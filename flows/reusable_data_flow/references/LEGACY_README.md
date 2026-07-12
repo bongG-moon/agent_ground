@@ -1,0 +1,279 @@
+# Reusable Data Retrieval Flow Components
+
+This folder contains a small reusable data retrieval flow that is separate from the main `PTMORE PKG AGENT` flow.
+
+The current recommended shape is:
+
+1. Put source definitions once in `source_catalog`.
+2. Let the native Langflow `Prompt Template` and `08_llm_caller.py` create a short request such as `name + params`.
+3. `00_data_request_normalizer.py` fills `source_type`, `required_params`, `param_order`, `param_formats`, and runtime config from `source_catalog`.
+4. Oracle / H-API / Datalake / Goodocs data nodes each run only their own source type.
+5. `05_data_result_merger.py` returns one compact result, and `06_data_output_builder.py` exposes request-level records as `data_json.data_result`.
+
+When requests are executed, `data_json.data_result` is an array in request/source-result order. Each index contains the row list for that request directly, even when the request returns one row. Detailed request metadata remains in `data_json.source_results`.
+
+If writing `source_catalog` by hand is inconvenient, use `07_source_catalog_normalizer.py` first. It converts a human-written source description into a normalized `source_catalog` without storing it anywhere.
+
+For long `query_template` values, do not reuse the catalog by copying the UI preview or Freeze text. Use one of these two paths instead: connect `catalog_data` directly, or save/load the full catalog through MongoDB with `09_source_catalog_mongodb_store.py` and `10_source_catalog_mongodb_loader.py`.
+
+## Current Test Execution
+
+The data nodes keep dummy row helpers for wiring tests, but they no longer use a `USE_DUMMY_DATA = True/False` switch.
+
+As long as each `_dummy_rows()` block exists, the data node returns sample rows without calling Oracle / H-API / Datalake / Goodocs. To switch to a real external call, comment out or remove that dummy block and use the commented real execution block inside each `_run_*` function.
+
+Oracle and Datalake include a small `ensure_package()` helper for the real execution path. Oracle checks `oracledb`; Datalake checks the SmallData runtime packages `aiohttp`, `mysql-connector-python`, and `pandas` only when real execution is used.
+
+Dummy rows include wiring-check fields such as Oracle `executed_query`, H-API `request_body`, and Goodocs `doc_id`. The merger also preserves those details in `source_results`.
+
+## Folder Layout
+
+The Langflow custom component files are stored under:
+
+```text
+langflow_components/reusable_data_flow_components
+```
+
+Detailed guides are stored under:
+
+```text
+docs
+```
+
+For a Korean structure overview, see [`docs/FLOW_STRUCTURE_ANALYSIS.md`](docs/FLOW_STRUCTURE_ANALYSIS.md).
+
+## Node Files
+
+| No. | File | Role |
+| --- | --- | --- |
+| `00` | `00_data_request_normalizer.py` | Normalizes the LLM JSON and enriches it from `source_catalog` |
+| `01` | `01_oracle_data.py` | Runs `source_type=oracle` requests |
+| `02` | `02_h_api_data.py` | Runs `source_type=h_api` requests |
+| `03` | `03_datalake_data.py` | Runs `source_type=datalake` requests |
+| `04` | `04_goodocs_data.py` | Runs `source_type=goodocs` requests |
+| `05` | `05_data_result_merger.py` | Merges data node outputs into one `data_result` |
+| `06` | `06_data_output_builder.py` | Returns `data_json` for automation and a table-style `test_message` for Chat Output |
+| `07` | `07_source_catalog_normalizer.py` | Converts LLM-generated source catalog JSON into normalized `source_catalog` |
+| `08` | `08_llm_caller.py` | Calls an LLM from Prompt Template output without using the default Agent component |
+| `09` | `09_source_catalog_mongodb_store.py` | Stores `source_catalog` through MongoDB, upserting each source by source name |
+| `10` | `10_source_catalog_mongodb_loader.py` | Loads saved MongoDB source documents and rebuilds one `source_catalog` |
+| `11` | `11_html_report_datasets_adapter.py` | Converts `06 Data JSON` into HTML report flow `datasets` input |
+| guide | `docs/REUSABLE_DATA_FLOW_GUIDE.md` | Current flow connection guide |
+| prompts | `docs/REUSABLE_DATA_FLOW_PROMPTS_AND_INPUTS.md` | Prompt Template text and input examples |
+| analysis | `docs/FLOW_STRUCTURE_ANALYSIS.md` | Korean structure analysis and Mermaid diagrams |
+
+## Catalog Authoring Path
+
+```text
+Text Input.source_description
+-> Prompt Template.source_description
+
+Prompt Template.prompt
+-> LLM Caller.prompt
+
+LLM Caller.llm_result
+-> Catalog Normalizer.llm_result
+
+Catalog Normalizer.catalog_message
+-> Text Input.Text
+
+Catalog Normalizer.catalog_data
+-> Catalog MongoDB Store.source_catalog_data
+
+Text Input.Output Text
+-> Prompt Template.source_catalog
+
+Text Input.Output Text
+-> Data Request Normalizer.Data Catalog
+
+Catalog MongoDB Loader.catalog_text
+-> Text Input.Text
+
+Catalog MongoDB Loader.catalog_data
+-> JSON result check
+```
+
+Use `catalog_message -> Text Input` when you want a middle step where the catalog can be generated by LLM or manually replaced. If you split catalog authoring and data retrieval into separate executions, send the full Text Input output into `Data Request Normalizer.Data Catalog`.
+
+If the catalog contains a long SQL query, prefer direct `catalog_data` connection or MongoDB Store/Loader. UI preview text can be shortened with `...`, but Data and MongoDB keep the full `query_template`.
+
+`Catalog MongoDB Store` saves every item inside `source_catalog.sources` as a separate MongoDB document. The user does not enter `source_name` manually; it is taken from source keys such as `production_summary` or `lot_trace`. If the same source already exists in the same collection, it is updated. If it does not exist, it is added. To manage separate catalogs, use a different MongoDB `collection_name`. `Catalog MongoDB Loader.catalog_text` is the Message output that contains JSON text for Text Input, and `catalog_data` is the JSON result check output.
+
+Use this path when the source definition starts as normal prose instead of structured catalog text.
+
+## Langflow Connection
+
+```text
+Chat Input.message
+-> Prompt Template.user_request
+
+Text Input or Prompt Template fixed value: source_catalog
+-> Prompt Template.source_catalog
+-> Data Request Normalizer.Data Catalog
+
+Catalog MongoDB Loader.catalog_text
+-> Text Input.Text
+
+Catalog MongoDB Loader.catalog_data
+-> JSON result check
+
+Prompt Template.prompt
+-> LLM Caller.prompt
+
+LLM Caller.llm_result
+-> Data Request Normalizer.llm_result
+
+Data Request Normalizer.data_request
+-> Oracle Data.data_request
+-> H-API Data.data_request
+-> Datalake Data.data_request
+-> Goodocs Data.data_request
+
+Each data node Data Result output
+-> Data Result Merger matching input
+
+Data Result Merger.data_result
+-> Data Output Builder.data_result
+
+Data Output Builder.test_message
+-> Chat Output.input
+
+Data Output Builder.data_json
+-> downstream JSON/API consumer, if needed
+
+Data Output Builder.data_json
+-> HTML Report Datasets Adapter.data_json
+
+HTML Report Datasets Adapter.html_datasets_text
+-> HTML Report Flow 00.데이터 직접 입력
+```
+
+`source_catalog` is intentionally connected twice. The Prompt Template uses it so the LLM knows which source to choose. The Normalizer uses the same normalized catalog so the LLM does not need to copy SQL, API URLs, or document IDs into its response.
+
+## Catalog
+
+The easiest authoring input is plain text. Put this text through `Catalog Normalizer` first; `Data Request Normalizer` should receive the normalized JSON catalog from `catalog_message`, `catalog_data`, or a manually copied JSON catalog.
+
+```text
+source: production_summary
+source_type: oracle
+description: 날짜/공장/공정/제품 조건별 생산 실적 집계 데이터
+keywords: production, 생산, 생산실적, output, 투입, pkg out
+example_questions: 2026년 5월 20일 FAB1 D/A1 공정 생산량을 제품별로 가져와줘, 오늘 B/G1 공정에서 MOBILE 제품 생산실적 가져와줘
+required_params: DATE, FACTORY, OPER_NAME, MODE, PRODUCT_KEYWORD
+param_order: DATE, FACTORY, OPER_NAME, MODE, PRODUCT_KEYWORD
+param_formats: DATE=YYYYMMDD, FACTORY=text, OPER_NAME=text, MODE=text, PRODUCT_KEYWORD=text
+db_key: PKG_RPT
+query_template:
+WITH base AS (
+    SELECT WORK_DT, FACTORY, OPER_NAME, MODE, TECH, DEVICE_DESC, PRODUCTION
+    FROM PRODUCTION_TABLE
+    WHERE WORK_DT = {DATE}
+      AND FACTORY = {FACTORY}
+      AND OPER_NAME = {OPER_NAME}
+)
+SELECT WORK_DT, FACTORY, OPER_NAME, MODE, TECH, SUM(PRODUCTION) AS PRODUCTION
+FROM base
+WHERE MODE = {MODE}
+  AND DEVICE_DESC LIKE '%' || {PRODUCT_KEYWORD} || '%'
+GROUP BY WORK_DT, FACTORY, OPER_NAME, MODE, TECH
+---
+source: lot_trace
+source_type: h_api
+description: lot trace history from H-API
+keywords: lot trace, trace, lot 이력
+example_questions: LOT A12345가 D/A1부터 B/G1까지 어떻게 흘렀는지 trace 조회해줘
+required_params: LOT_ID, START_OPER, END_OPER
+param_order: LOT_ID, START_OPER, END_OPER
+api_url: http://example/api
+response_path: data.row
+```
+
+For Datalake, `query_template` is still the main catalog setting. The data node asks the Datalake API for a running `starrocks` cluster and then executes SQL through the returned `jdbc-external` endpoint with `mysql-connector-python`. Add `cluster_type` only when you intentionally need a cluster other than `starrocks`.
+
+## LLM Output
+
+The LLM should return a compact request:
+
+```json
+{
+  "name": "production_summary",
+  "params": {
+    "DATE": "20260520",
+    "FACTORY": "FAB1",
+    "OPER_NAME": "D/A1",
+    "MODE": "DDR5",
+    "PRODUCT_KEYWORD": "DDR5"
+  }
+}
+```
+
+The Normalizer fills the executable fields from `source_catalog`:
+
+```json
+{
+  "source_type": "oracle",
+  "name": "production_summary",
+  "params": {
+    "DATE": "20260520",
+    "FACTORY": "FAB1",
+    "OPER_NAME": "D/A1",
+    "MODE": "DDR5",
+    "PRODUCT_KEYWORD": "DDR5"
+  },
+  "required_params": ["DATE", "FACTORY", "OPER_NAME", "MODE", "PRODUCT_KEYWORD"],
+  "param_order": ["DATE", "FACTORY", "OPER_NAME", "MODE", "PRODUCT_KEYWORD"],
+  "param_formats": {
+    "DATE": "YYYYMMDD",
+    "FACTORY": "text",
+    "OPER_NAME": "text",
+    "MODE": "text",
+    "PRODUCT_KEYWORD": "text"
+  },
+  "source_config": {
+    "db_key": "PKG_RPT",
+    "query_template": "WITH base AS (...)\nSELECT WORK_DT, FACTORY, OPER_NAME, MODE, TECH, SUM(PRODUCTION) AS PRODUCTION\nFROM base\nWHERE MODE = {MODE}\n  AND DEVICE_DESC LIKE '%' || {PRODUCT_KEYWORD} || '%'\nGROUP BY WORK_DT, FACTORY, OPER_NAME, MODE, TECH"
+  }
+}
+```
+
+## Credential Inputs
+
+Credentials stay on data node inputs. They should not be included in LLM output.
+
+| Source | Credential input | Catalog/runtime config |
+| --- | --- | --- |
+| `oracle` | `oracle_config` input shown as `Oracle TNS` (`db_key`별 TNS 목록) | `db_key`, `query_template` |
+| `h_api` | `h_api_token` | `api_url`, `response_path` |
+| `datalake` | `lake_user_id`, `lake_jwt_tk` | `query_template`, optional `cluster_type` |
+| `goodocs` | `goodocs_user_id`, `goodocs_token_source`, `goodocs_token_key` | `doc_id` |
+
+## Output Shape
+
+`data_json` returns the compact result body directly for downstream nodes or API consumers. `data_result[0]` contains the row list directly, not another `data_result` wrapper.
+
+```json
+{
+  "success": true,
+  "mode": "single",
+  "data_result": [
+    [
+      {"LOT_ID": "LOT-001"}
+    ]
+  ],
+  "source_results": [
+    {
+      "name": "lot_trace",
+      "source_type": "h_api",
+      "success": true,
+      "row_count": 1,
+      "columns": ["LOT_ID"],
+      "data_result": [{"LOT_ID": "LOT-001"}],
+      "error_message": "",
+      "request_params": {"LOT_ID": "LOT-001"}
+    }
+  ]
+}
+```
+
+`test_message` returns a Markdown table for quick manual testing in Chat Output. `Max Message Rows` and `Max Cell Chars` are advanced inputs that limit only this preview message. They do not trim the underlying data kept in `data_json.data_result`.

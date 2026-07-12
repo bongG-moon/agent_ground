@@ -1,0 +1,18 @@
+{
+  "id": "business_agent_design",
+  "name_ko": "업무 Agent 설계",
+  "version": "1.0.0-rc1",
+  "status": "user_testing",
+  "last_tested_version": "1.8.2",
+  "flow_file": "flow/business_agent_design_complete.json",
+  "bundle_file": "flow/00_business_agent_design_ALL_FLOWS.json",
+  "main_component_count": 10,
+  "catalog_admin_component_count": 5,
+  "node_count": 24,
+  "edge_count": 34,
+  "component_mode": "standalone",
+  "result_contract": "agent_ground.business_flow_graph.v1",
+  "documentation_path": "html/business-agent-design/index.html",
+  "recommendation_policy": "Only catalog items with status=approved may be recommended.",
+  "generated_by": "scripts/build_business_agent_design_flow.py"
+}

@@ -1,0 +1,116 @@
+{
+  "id": "multi_image_base64_encoder",
+  "name_ko": "다중 이미지 Base64 인코더",
+  "class_name": "MultiImageBase64Encoder",
+  "asset_type": "component",
+  "status": "user_testing",
+  "version": "0.1.0",
+  "standalone": true,
+  "reusability": "shared",
+  "source_family": "enterprise_utility_components",
+  "summary_ko": "여러 이미지 파일을 검증하고 입력 순서대로 Base64 또는 Data URL 목록으로 변환합니다.",
+  "source_file": "multi_image_base64_encoder.py",
+  "inputs": [
+    {
+      "type": "FileInput",
+      "name": "image_files",
+      "display_name": "이미지 파일",
+      "file_types": [
+        "png",
+        "jpg",
+        "jpeg",
+        "gif",
+        "webp",
+        "bmp",
+        "tif",
+        "tiff",
+        "svg"
+      ],
+      "info": "여러 이미지를 추가한 순서대로 처리합니다. 실제 파일 서명과 확장자가 일치해야 하며 SVG는 별도 옵션을 켠 경우에도 정적 SVG만 허용됩니다.",
+      "required": true,
+      "is_list": true,
+      "value": []
+    },
+    {
+      "type": "DropdownInput",
+      "name": "output_format",
+      "display_name": "출력 형식",
+      "options": [
+        "base64",
+        "data_url"
+      ],
+      "value": "base64",
+      "info": "Base64는 인코딩 본문만 반환하고, Data URL은 data:image/...;base64 접두사를 함께 반환합니다."
+    },
+    {
+      "type": "DropdownInput",
+      "name": "error_policy",
+      "display_name": "오류 처리 방식",
+      "options": [
+        "reject_batch",
+        "skip_invalid"
+      ],
+      "value": "reject_batch",
+      "info": "전체 거부(reject_batch)는 한 파일이라도 실패하면 결과를 모두 비우고, 잘못된 파일 제외(skip_invalid)는 유효한 파일만 반환합니다."
+    },
+    {
+      "type": "BoolInput",
+      "name": "allow_svg",
+      "display_name": "엄격한 정적 SVG 허용",
+      "value": false,
+      "advanced": true,
+      "info": "기본값은 꺼짐입니다. 켜더라도 스크립트, 이벤트, 외부 참조, 동적 요소가 없는 정적 SVG만 허용합니다."
+    },
+    {
+      "type": "IntInput",
+      "name": "max_files",
+      "display_name": "최대 파일 수",
+      "value": 20,
+      "advanced": true,
+      "info": "한 번에 처리할 파일 수를 1~100개 범위에서 제한합니다."
+    },
+    {
+      "type": "IntInput",
+      "name": "max_file_size_mb",
+      "display_name": "파일당 최대 크기(MB)",
+      "value": 8,
+      "advanced": true,
+      "info": "파일 하나의 크기를 1~100MB 범위에서 제한합니다."
+    },
+    {
+      "type": "IntInput",
+      "name": "max_total_size_mb",
+      "display_name": "전체 원본 최대 크기(MB)",
+      "value": 12,
+      "advanced": true,
+      "info": "전체 원본 크기를 1~200MB 범위에서 제한합니다. Base64 결과는 원본보다 약 33% 커지므로 기본값을 보수적으로 설정했습니다."
+    }
+  ],
+  "outputs": [
+    {
+      "type": "Output",
+      "name": "encoded_images",
+      "display_name": "인코딩된 이미지",
+      "method": "encode_images",
+      "types": [
+        "Data"
+      ]
+    }
+  ],
+  "dependencies": [
+    "lfx"
+  ],
+  "used_by_flows": [],
+  "risk_tags": [
+    "file_upload",
+    "image_content",
+    "base64_payload",
+    "payload_size",
+    "svg_optional"
+  ],
+  "verified_environment": "langflow-1.8.2-local-runtime-validation",
+  "last_verified_at": "2026-07-12",
+  "documentation_path": "html/components/multi_image_base64_encoder/index.html",
+  "approved_by_user_at": null,
+  "guide_file": "USAGE_GUIDE.md"
+}

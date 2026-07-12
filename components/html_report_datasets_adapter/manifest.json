@@ -1,0 +1,59 @@
+{
+  "id": "html_report_datasets_adapter",
+  "name_ko": "11 HTML Report Datasets Adapter",
+  "class_name": "HtmlReportDatasetsAdapter",
+  "asset_type": "component",
+  "status": "user_testing",
+  "version": "0.9.0",
+  "standalone": true,
+  "reusability": "shared",
+  "source_family": "reusable_data_flow",
+  "summary_ko": "06 Data JSON을 HTML 생성 Flow의 datasets JSON 입력으로 변환합니다.",
+  "source_file": "html_report_datasets_adapter.py",
+  "inputs": [
+    {
+      "type": "DataInput",
+      "name": "data_json",
+      "display_name": "Data JSON",
+      "input_types": [
+        "Data",
+        "JSON",
+        "Message",
+        "Text"
+      ]
+    }
+  ],
+  "outputs": [
+    {
+      "type": "Output",
+      "name": "html_datasets_data",
+      "display_name": "HTML Datasets Data",
+      "method": "build_datasets_data",
+      "group_outputs": true,
+      "types": [
+        "Data"
+      ]
+    },
+    {
+      "type": "Output",
+      "name": "html_datasets_text",
+      "display_name": "HTML Datasets Text",
+      "method": "build_datasets_text",
+      "group_outputs": true,
+      "types": [
+        "Message"
+      ]
+    }
+  ],
+  "dependencies": [
+    "lfx"
+  ],
+  "used_by_flows": [
+    "reusable_data_flow"
+  ],
+  "risk_tags": [],
+  "verified_environment": "legacy-export-1.8.2-local-static-check",
+  "last_verified_at": "2026-07-10",
+  "documentation_path": "html/components/html_report_datasets_adapter/index.html",
+  "approved_by_user_at": null
+}

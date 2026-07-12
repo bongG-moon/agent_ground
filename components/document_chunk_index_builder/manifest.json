@@ -1,0 +1,78 @@
+{
+  "id": "document_chunk_index_builder",
+  "name_ko": "02 Document Chunk Index Builder",
+  "class_name": "DocumentChunkIndexBuilder",
+  "asset_type": "component",
+  "status": "user_testing",
+  "version": "0.1.0",
+  "standalone": true,
+  "reusability": "shared",
+  "source_family": "enterprise_document_rag_flow",
+  "summary_ko": "Build stable, deduplicated chunks and version/tombstone operations for a model-free payload index.",
+  "source_file": "document_chunk_index_builder.py",
+  "inputs": [
+    {
+      "type": "DataInput",
+      "name": "documents",
+      "display_name": "Safe Documents",
+      "input_types": [
+        "Data",
+        "JSON"
+      ],
+      "required": true
+    },
+    {
+      "type": "IntInput",
+      "name": "chunk_chars",
+      "display_name": "Chunk Characters",
+      "value": 900,
+      "advanced": true
+    },
+    {
+      "type": "IntInput",
+      "name": "overlap_chars",
+      "display_name": "Overlap Characters",
+      "value": 120,
+      "advanced": true
+    },
+    {
+      "type": "IntInput",
+      "name": "max_chunks",
+      "display_name": "Maximum Chunks",
+      "value": 5000,
+      "advanced": true
+    },
+    {
+      "type": "BoolInput",
+      "name": "latest_version_only",
+      "display_name": "Keep Latest Version Only",
+      "value": true,
+      "advanced": true
+    }
+  ],
+  "outputs": [
+    {
+      "type": "Output",
+      "name": "document_index",
+      "display_name": "Document Index",
+      "method": "build_document_index",
+      "types": [
+        "Data"
+      ]
+    }
+  ],
+  "dependencies": [
+    "lfx"
+  ],
+  "used_by_flows": [
+    "enterprise_document_rag_flow"
+  ],
+  "risk_tags": [
+    "ephemeral_index",
+    "document_content"
+  ],
+  "verified_environment": "langflow-1.8.2-local-runtime-validation",
+  "last_verified_at": "2026-07-11",
+  "documentation_path": "html/components/document_chunk_index_builder/index.html",
+  "approved_by_user_at": null
+}

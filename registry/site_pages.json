@@ -1,0 +1,18 @@
+{
+  "schema_version": "1.0",
+  "pages": [
+    {"id": "home", "path": "html/index.html", "title": "Agent Ground"},
+    {"id": "training", "path": "html/training/index.html", "title": "전체 교육 포털"},
+    {"id": "training_overview", "path": "html/training/overview.html", "title": "초보자 학습 안내"},
+    {"id": "flows", "path": "html/flows/index.html", "title": "Flow Library"},
+    {"id": "enterprise_document_rag_flow", "path": "html/flows/enterprise_document_rag_flow/index.html", "title": "사내 문서 RAG Flow"},
+    {"id": "skill_based_agent_flow", "path": "html/flows/skill_based_agent_flow/index.html", "title": "Skills 기반 업무 Agent 예시 Flow"},
+    {"id": "components", "path": "html/components/index.html", "title": "Component Library"},
+    {"id": "direct_data_access_components", "path": "html/components/direct-data-access/index.html", "title": "직접 데이터 조회 Component"},
+    {"id": "enterprise_component_recommendations", "path": "html/components/enterprise-utility/index.html", "title": "사내 공용 Component 추천 목록"},
+    {"id": "cached_run_flow_beginner", "path": "html/components/cached_named_run_flow_tool/beginner.html", "title": "Run Flow 도구 초보자 설명"},
+    {"id": "troubleshooting", "path": "html/troubleshooting/index.html", "title": "실패와 해결"},
+    {"id": "troubleshooting_enterprise_document_rag", "path": "html/troubleshooting/enterprise-document-rag-langflow-1-8-2.html", "title": "문서 RAG 정상 질문 거절 문제"},
+    {"id": "business_agent_design", "path": "html/business-agent-design/index.html", "title": "업무 Agent 설계"}
+  ]
+}

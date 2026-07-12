@@ -1,0 +1,94 @@
+{
+  "catalog_notes": [
+    "구성비 대시보드는 전체 비중과 세부 breakdown을 쉽게 비교할 수 있어야 합니다.",
+    "전체 구성비는 도넛 차트로, 범주별 내부 구성 비교는 누적 막대로 보여줍니다.",
+    "두 dimension을 교차 비교해야 하면 히트맵을 사용합니다.",
+    "도넛 차트 범주는 6-8개로 제한하고 나머지 상세는 표에 둡니다."
+  ],
+  "style_presets": {
+    "composition_dashboard": {
+      "density": "compact",
+      "font_scale": "normal",
+      "accent_color": "#0891b2",
+      "secondary_color": "#f59e0b",
+      "max_width": "wide"
+    }
+  },
+  "template_defaults": {
+    "audience": "analyst",
+    "report_goal": "compare",
+    "layout": "dashboard",
+    "visual_style": {
+      "density": "compact",
+      "font_scale": "normal",
+      "accent_color": "#0891b2",
+      "secondary_color": "#f59e0b",
+      "max_width": "wide"
+    },
+    "block_defaults": {
+      "donut_chart": {
+        "width": "half",
+        "emphasis": "high",
+        "description": "선택한 지표의 전체 구성비를 보여줍니다.",
+        "chart_policy": {
+          "chart_type": "donut",
+          "limit": 8,
+          "show_percent": true,
+          "show_legend": true
+        }
+      },
+      "stacked_comparison_bar": {
+        "width": "full",
+        "emphasis": "high",
+        "description": "주요 범주별 내부 breakdown을 비교합니다.",
+        "chart_policy": {
+          "chart_type": "stacked_bar",
+          "limit": 8,
+          "show_legend": true,
+          "normalize": false
+        }
+      },
+      "heatmap_matrix": {
+        "width": "full",
+        "emphasis": "medium",
+        "description": "두 dimension 사이에서 값이 큰 교차 지점을 보여줍니다.",
+        "chart_policy": {
+          "chart_type": "heatmap",
+          "limit": 8,
+          "show_values": true
+        }
+      },
+      "ranking_table": {
+        "width": "half",
+        "density": "compact",
+        "emphasis": "medium",
+        "table_policy": {
+          "limit": 10,
+          "show_row_numbers": true
+        }
+      },
+      "detail_data_table": {
+        "width": "full",
+        "density": "compact",
+        "table_policy": {
+          "limit": 50,
+          "show_row_numbers": true
+        }
+      }
+    }
+  },
+  "components": [
+    {
+      "component_id": "donut_chart",
+      "template_guidance": "CHANNEL, PRODUCT, CATEGORY, STATUS, STAGE 같은 범주의 전체 비중을 볼 때 사용합니다."
+    },
+    {
+      "component_id": "stacked_comparison_bar",
+      "template_guidance": "창고별 재고상태, 세그먼트별 funnel stage처럼 두 dimension의 breakdown을 볼 때 사용합니다."
+    },
+    {
+      "component_id": "heatmap_matrix",
+      "template_guidance": "사용자가 교차표, matrix, heatmap, 교차 분석을 요청할 때 사용합니다."
+    }
+  ]
+}

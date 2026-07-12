@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <base href="../" />
+  <title>업무 Agent 설계 · Agent Ground</title>
+  <meta name="description" content="분기형 BEFORE/AFTER 업무 Flow Chart와 인터랙티브 개선 설명 시안" />
+  <link rel="stylesheet" href="assets/css/site.css" />
+  <link rel="stylesheet" href="assets/css/business-design.css" />
+</head>
+<body>
+  <a class="skip-link" href="#main">본문으로 바로가기</a>
+  <header class="site-header">
+    <div class="header-inner">
+      <a class="brand" href="index.html" aria-label="Agent Ground 홈">
+        <span class="brand-mark" aria-hidden="true">AG</span>
+        <span class="brand-copy"><strong>Agent Ground</strong><small>Learn · Build · Validate</small></span>
+      </a>
+      <button class="menu-button" type="button" data-menu-button aria-expanded="false" aria-controls="site-nav" aria-label="메뉴 열기"><span class="menu-lines"></span></button>
+      <nav class="site-nav" id="site-nav" data-site-nav data-open="false" aria-label="주요 메뉴"><a href="index.html">홈</a><a href="training/index.html">처음 배우기</a><a href="flows/index.html">Flows</a><a href="components/index.html">Components</a><a href="troubleshooting/index.html">실패와 해결</a><a href="business-agent-design/index.html" aria-current="page">업무 Agent 설계</a></nav>
+    </div>
+  </header>
+  <main class="page-wrap" id="main">
+    <nav class="breadcrumbs" aria-label="현재 위치"><a href="index.html">홈</a><span aria-hidden="true">/</span><span>업무 Agent 설계</span></nav>
+    
+<section class="hero"><div class="meta-row"><span class="badge badge-testing">검증 중</span><span class="tag">Langflow 1.8.2</span><span class="tag">24 nodes · 34 connections</span></div><div class="hero-kicker">Business agent design</div><h1>BEFORE와 AFTER를<br />진짜 업무 Flow로 비교합니다</h1><p>업무 설명을 구조화하고 승인 카탈로그를 검색한 뒤, 연결선·화살표·분기 조건이 있는 Flow Chart와 node별 개선 설명 HTML을 생성합니다.</p><div class="hero-actions"><a class="button button-primary" href="../business_agent_design/flow/business_agent_design_complete.json">전체 Flow JSON 열기</a><a class="button button-secondary" href="../business_agent_design/flow/00_business_agent_design_ALL_FLOWS.json">Bundle JSON 열기</a><a class="button button-secondary" href="../business_agent_design/BUSINESS_AGENT_DESIGN_IMPLEMENTATION_SPEC.md">상세 설계서</a><a class="button button-secondary" href="../business_agent_design/ENTERPRISE_AGENT_FLOW_COMPONENT_RESEARCH.md">사내 수요 조사</a></div></section>
+<section class="section"><div class="notice notice-testing"><strong>실행 구현을 완료하고 사용자 확인 단계로 전환했습니다.</strong>아래 화면은 실제 Renderer가 만드는 결과 계약을 보여 줍니다. Flow와 15개 전용 Component는 Standalone 방식으로 포함했으며, 사용자 환경 실행 확인 전까지 상태는 <code>user_testing</code>입니다.</div></section>
+
+<section class="section" id="flow-comparison">
+  <div class="section-heading"><p class="eyebrow">Before / After flow chart</p><h2>바뀐 업무 경로를 색상과 분기로 확인</h2><p>예시 업무는 “생산·불량 데이터를 확인하고 이상 설비의 원인 후보를 팀장에게 공유하는 과정”입니다.</p></div>
+  <div class="flow-legend" aria-label="변경 상태 범례"><span><i class="legend-dot legend-neutral"></i>기존과 동일</span><span><i class="legend-dot legend-modified"></i>자동화·변경</span><span><i class="legend-dot legend-added"></i>새로 추가</span><span><i class="legend-dot legend-human"></i>사람 검토</span></div>
+
+  <div class="flow-compare">
+    <section class="flow-board flow-board-before" aria-labelledby="before-flow-title">
+      <header class="flow-board-head"><div><p>BEFORE</p><h3 id="before-flow-title">현재 업무 Flow</h3></div><span class="flow-board-state">수작업 중심</span></header>
+      <div class="flow-chart" role="img" aria-label="담당자가 파일을 내려받아 수동으로 이상 여부를 확인하고, 이상이면 이력을 조회해 메일로 공유하는 현재 업무 흐름">
+        <div class="flow-node flow-node-start"><small>START</small><strong>아침 업무 시작</strong></div>
+        <div class="flow-arrow" aria-hidden="true"></div>
+        <div class="flow-node"><small>담당자</small><strong>생산·불량 Excel 다운로드</strong><span>시스템별 파일을 각각 저장</span></div>
+        <div class="flow-arrow" aria-hidden="true"></div>
+        <div class="flow-node"><small>담당자</small><strong>설비별 수치 수동 비교</strong><span>전일 값과 눈으로 대조</span></div>
+        <div class="flow-arrow" aria-hidden="true"></div>
+        <div class="flow-decision"><div class="flow-decision-shape"><span>이상 설비가<br />있는가?</span></div></div>
+        <div class="flow-arrow flow-arrow-short" aria-hidden="true"></div>
+        <div class="branch-split">
+          <div class="branch-path"><span class="branch-label">없음</span><div class="flow-node flow-node-end"><small>END</small><strong>확인 종료</strong></div></div>
+          <div class="branch-path"><span class="branch-label branch-label-alert">있음</span><div class="flow-node"><small>담당자</small><strong>작업·정비 이력 개별 조회</strong></div><div class="flow-arrow" aria-hidden="true"></div><div class="flow-node"><small>담당자</small><strong>원인 후보 수기 정리</strong></div><div class="flow-arrow" aria-hidden="true"></div><div class="flow-node flow-node-end"><small>END</small><strong>메일 작성·팀장 공유</strong></div></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="flow-board flow-board-after" aria-labelledby="after-flow-title">
+      <header class="flow-board-head"><div><p>AFTER</p><h3 id="after-flow-title">Agent 적용 후 Flow</h3></div><span class="flow-board-state flow-board-state-after">자동화 + 사람 승인</span></header>
+      <div class="flow-chart" role="img" aria-label="정해진 시간에 데이터를 자동 조회하고, 이상 여부에 따라 정상 기록 또는 원인 분석과 리포트 생성 후 사람이 검토하는 개선 업무 흐름">
+        <div class="flow-node flow-node-start flow-node-added"><small>NEW · SCHEDULE</small><strong>정해진 시간에 Agent 시작</strong><button type="button" data-improvement="schedule">개선 설명</button></div>
+        <div class="flow-arrow flow-arrow-added" aria-hidden="true"></div>
+        <div class="flow-node flow-node-modified"><small>CHANGED · reusable_data_flow</small><strong>생산·불량 데이터 자동 조회</strong><span>여러 소스를 표준 결과로 병합</span><button type="button" data-improvement="data-collection">개선 설명</button></div>
+        <div class="flow-arrow flow-arrow-modified" aria-hidden="true"></div>
+        <div class="flow-decision flow-decision-modified"><div class="flow-decision-shape"><span>기준 초과<br />이상인가?</span></div><button type="button" data-improvement="anomaly-branch">분기 설명</button></div>
+        <div class="flow-arrow flow-arrow-short flow-arrow-modified" aria-hidden="true"></div>
+        <div class="branch-split branch-split-after">
+          <div class="branch-path branch-path-added"><span class="branch-label">정상</span><div class="flow-node flow-node-added flow-node-end"><small>NEW</small><strong>정상 결과 자동 기록</strong><button type="button" data-improvement="normal-log">개선 설명</button></div></div>
+          <div class="branch-path branch-path-modified"><span class="branch-label branch-label-alert">이상</span><div class="flow-node flow-node-modified"><small>CHANGED</small><strong>작업·정비 이력 자동 병합</strong><button type="button" data-improvement="history-merge">개선 설명</button></div><div class="flow-arrow flow-arrow-modified" aria-hidden="true"></div><div class="flow-node flow-node-added"><small>NEW · ANALYSIS</small><strong>원인 후보와 근거 생성</strong><button type="button" data-improvement="cause-analysis">개선 설명</button></div><div class="flow-arrow flow-arrow-added" aria-hidden="true"></div><div class="flow-node flow-node-modified"><small>CHANGED · html_report_flow</small><strong>회의용 HTML 리포트 생성</strong><button type="button" data-improvement="html-report">개선 설명</button></div><div class="flow-arrow flow-arrow-human" aria-hidden="true"></div><div class="flow-node flow-node-human"><small>HUMAN REVIEW</small><strong>담당자 확인·팀장 승인</strong><button type="button" data-improvement="human-review">통제 설명</button></div><div class="flow-arrow flow-arrow-modified" aria-hidden="true"></div><div class="flow-node flow-node-modified flow-node-end"><small>CHANGED · END</small><strong>승인된 메일 초안 공유</strong><button type="button" data-improvement="email-draft">개선 설명</button></div></div>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <section class="improvement-detail" id="improvementPanel" hidden aria-live="polite" aria-labelledby="improvementTitle">
+    <div class="improvement-detail-head"><div><span id="improvementStatus">변경 단계</span><h3 id="improvementTitle">개선 설명</h3></div><button type="button" id="closeImprovement" aria-label="개선 설명 닫기">닫기</button></div>
+    <div class="improvement-detail-grid"><div><strong>왜 바꾸는가</strong><p id="improvementWhy"></p></div><div><strong>어떻게 개선하는가</strong><p id="improvementHow"></p></div><div><strong>사용할 Flow / Component</strong><p id="improvementAssets"></p></div><div><strong>성공 확인 기준</strong><p id="improvementCheck"></p></div><div class="improvement-human"><strong>사람 확인과 위험 통제</strong><p id="improvementHuman"></p></div></div>
+  </section>
+</section>
+
+<section class="section"><div class="section-heading"><p class="eyebrow">Rendering contract</p><h2>최종 결과에서 반드시 지킬 표현 규칙</h2></div><div class="grid grid-3"><div class="card"><span class="card-number">01</span><h3>실제 연결 구조</h3><p>노드 나열 대신 방향 화살표, 시작·종료, 의사결정 다이아몬드와 분기 라벨을 렌더링합니다.</p></div><div class="card"><span class="card-number">02</span><h3>변경 상태 매핑</h3><p>BEFORE와 AFTER의 같은 단계 ID를 비교해 유지·변경·추가·사람 검토를 색상과 텍스트로 함께 표시합니다.</p></div><div class="card"><span class="card-number">03</span><h3>설명 Drill-down</h3><p>변경된 노드마다 버튼을 제공하고 이유, 구현 자산, 연결 방식, 검증과 통제를 상세 패널로 엽니다.</p></div></div></section>
+
+<section class="section" id="roadmap"><div class="section-heading"><p class="eyebrow">Import & verify</p><h2>JSON 하나로 전체 Flow 확인</h2><p>개별 Import와 여러 Flow 일괄 Import를 모두 제공합니다.</p></div><div class="grid grid-3"><div class="card"><span class="card-number">01</span><h3>개별 Flow Import</h3><p><code>business_agent_design_complete.json</code>은 메인 10개 node와 운영자용 카탈로그 5개 node를 한 Canvas에서 확인하는 파일입니다.</p><a class="text-link" href="../business_agent_design/flow/business_agent_design_complete.json">개별 JSON 열기 →</a></div><div class="card"><span class="card-number">02</span><h3>Business Bundle</h3><p><code>00_business_agent_design_ALL_FLOWS.json</code>은 Langflow의 전체 Flow Import 화면에서 사용하는 <code>{"flows": [...]}</code> 형식입니다.</p><a class="text-link" href="../business_agent_design/flow/00_business_agent_design_ALL_FLOWS.json">Business Bundle 열기 →</a></div><div class="card"><span class="card-number">03</span><h3>Agent Ground 전체</h3><p>다섯 기반 Flow와 Business Agent Design을 한 번에 넣으려면 프로젝트 전체 Bundle을 사용합니다.</p><a class="text-link" href="../flows/00_AGENT_GROUND_ALL_FLOWS.json">6개 Flow Bundle 열기 →</a></div></div><div class="card" style="margin-top:16px"><ul class="check-list"><li>모든 edge handle은 Langflow 1.8.2 UI 계약인 <code>œ</code> quote delimiter로 생성했습니다.</li><li>개별 JSON과 Bundle은 UTF-8 BOM 없이 생성했습니다.</li><li>Decision node의 분기 label·condition과 변경 node의 improvement detail을 자동 검증합니다.</li><li>Renderer는 검증된 graph JSON만 사용하고 LLM이 만든 HTML을 실행하지 않습니다.</li></ul></div></section>
+
+  </main>
+  <footer class="site-footer">
+    <div class="footer-inner">
+      <div><strong>Agent Ground</strong><p>실제 Agent Builder 환경에서 검증된 교육자료, Standalone Component와 Flow를 함께 쌓아갑니다.</p></div>
+      <div class="footer-links"><a href="training/index.html">처음 배우기</a><a href="troubleshooting/index.html">실패와 해결</a><a href="../AGENT_GROUND_PROJECT_MASTER_GUIDE.md">프로젝트 기준</a></div>
+    </div>
+  </footer>
+  <script src="assets/js/site.js"></script>
+  <script src="assets/js/business-design.js"></script>
+</body>
+</html>

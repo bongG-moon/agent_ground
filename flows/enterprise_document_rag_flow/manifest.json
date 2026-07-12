@@ -1,0 +1,18 @@
+{
+  "id": "enterprise_document_rag_flow",
+  "name_ko": "사내 문서 RAG Flow",
+  "asset_type": "flow",
+  "status": "user_testing",
+  "version": "0.1.0",
+  "source_export_version": "1.8.2",
+  "summary_ko": "사내 문서를 정규화·비식별화·청크화한 뒤 사용자 권한을 먼저 적용해 근거와 인용이 있는 답변만 반환하는 실행형 RAG 예시입니다.",
+  "categories": ["rag", "document", "access-control", "citation", "security"],
+  "trigger_signals": ["사내 문서 검색", "규정 질문", "매뉴얼 Q&A", "근거", "출처", "권한별 검색"],
+  "flow_file": "enterprise_document_rag_flow.json",
+  "component_refs_file": "component_refs.json",
+  "documentation_path": "html/flows/enterprise_document_rag_flow/index.html",
+  "verified_environment": "langflow-1.8.2-local-upload-and-full-build-11-of-11-valid",
+  "last_verified_at": "2026-07-11",
+  "approved_by_user_at": null,
+  "risk_tags": ["document_content", "pii_baseline", "access_control", "demo_identity", "ephemeral_index"]
+}

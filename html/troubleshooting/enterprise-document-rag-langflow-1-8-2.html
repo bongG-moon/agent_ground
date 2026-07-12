@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <base href="../" />
+  <title>문서 RAG 정상 질문 거절 문제 · Agent Ground</title>
+  <meta name="description" content="Langflow 1.8.2 문서 RAG 검색 오탐과 token 점수 문제 해결 기록" />
+  <link rel="stylesheet" href="assets/css/site.css" />
+  
+</head>
+<body>
+  <a class="skip-link" href="#main">본문으로 바로가기</a>
+  <header class="site-header">
+    <div class="header-inner">
+      <a class="brand" href="index.html" aria-label="Agent Ground 홈">
+        <span class="brand-mark" aria-hidden="true">AG</span>
+        <span class="brand-copy"><strong>Agent Ground</strong><small>Learn · Build · Validate</small></span>
+      </a>
+      <button class="menu-button" type="button" data-menu-button aria-expanded="false" aria-controls="site-nav" aria-label="메뉴 열기"><span class="menu-lines"></span></button>
+      <nav class="site-nav" id="site-nav" data-site-nav data-open="false" aria-label="주요 메뉴"><a href="index.html">홈</a><a href="training/index.html">처음 배우기</a><a href="flows/index.html">Flows</a><a href="components/index.html">Components</a><a href="troubleshooting/index.html" aria-current="page">실패와 해결</a><a href="business-agent-design/index.html">업무 Agent 설계</a></nav>
+    </div>
+  </header>
+  <main class="page-wrap" id="main">
+    <nav class="breadcrumbs" aria-label="현재 위치"><a href="index.html">홈</a><span aria-hidden="true">/</span><a href="troubleshooting/index.html">실패와 해결</a><span aria-hidden="true">/</span><span>문서 RAG 정상 질문 거절</span></nav>
+    
+<section class="hero"><div class="meta-row"><span class="badge badge-approved">수정·재검증</span><span class="tag">enterprise_document_rag_flow</span><span class="tag">Langflow 1.8.2 · LFX 0.3.4</span></div><div class="hero-kicker">Troubleshooting record</div><h1>정상 RAG 질문이<br />근거 부족으로 거절됨</h1><p>가져오기 자체는 성공했지만 대표 질문이 답변되지 않은 문제를 기능 회귀검사에서 발견해, 검색·보안 판정 순서와 token 정규화를 고쳤습니다.</p><div class="hero-actions"><a class="button button-primary" href="flows/enterprise_document_rag_flow/index.html">RAG Flow 설명서</a><a class="button button-secondary" href="../flows/enterprise_document_rag_flow/tests/test_enterprise_document_rag.py">회귀 테스트</a></div></section>
+<section class="section"><div class="section-heading"><p class="eyebrow">Symptom</p><h2>어떤 입력에서 보였나</h2></div><div class="card"><p class="code-label">대표 질문</p><pre><code>RAG를 왜 문서 적재 flow와 사용자 질문 flow로 나눠야 해?</code></pre><ul class="check-list"><li>문서 정규화·PII Guard·색인 node는 정상 결과를 반환했습니다.</li><li>ACL을 통과한 <code>kb-001</code> 근거도 검색 후보에 있었습니다.</li><li>그러나 Quality Gate가 <code>abstain</code>을 반환해 Chat Output에 인용이 표시되지 않았습니다.</li></ul></div></section>
+<section class="section"><div class="section-heading"><p class="eyebrow">Root cause</p><h2>두 원인이 함께 있었습니다</h2></div><div class="grid grid-2"><div class="card"><span class="card-number">01</span><h3>관련 없는 문서의 injection 오탐</h3><p>다른 정상 문서의 “비밀값을 노출하지 않는다”는 교육 문구가 injection pattern에 걸렸고, 질문 관련성을 보기 전에 만든 전역 flag가 전체 답변을 막았습니다.</p></div><div class="card"><span class="card-number">02</span><h3>한글 조사가 붙은 token 불일치</h3><p><code>RAG를</code>, <code>flow와</code>, <code>문서는</code>가 원문의 <code>RAG는</code>, <code>flow</code>, <code>문서</code>와 다른 token으로 계산되어 top score가 기준보다 낮았습니다.</p></div></div></section>
+<section class="section"><div class="section-heading"><p class="eyebrow">Fix</p><h2>보안 경계와 관련성 판정을 분리</h2></div><div class="pipeline"><div class="pipeline-step"><small>1</small><strong>ACL 선필터</strong></div><div class="pipeline-step"><small>2</small><strong>인용 metadata 확인</strong></div><div class="pipeline-step"><small>3</small><strong>질문 관련성 점수</strong></div><div class="pipeline-step"><small>4</small><strong>관련 문서 injection 검사</strong></div><div class="pipeline-step"><small>5</small><strong>근거 품질 Gate</strong></div></div><div class="card" style="margin-top:16px"><ul class="check-list"><li>권한 밖 record는 계속 점수 계산 전에 제거합니다.</li><li>관련성 점수가 0보다 큰 허용 문서만 injection pattern을 검사합니다.</li><li>한글의 흔한 조사와 혼합 영문 token의 조사 suffix를 제한적으로 제거합니다.</li><li>관련성이 있는 악성 문서는 flag 후 evidence에서 제외하고 Gate가 답변을 거절합니다.</li><li>관련 없는 정상 문서는 다른 질문의 응답을 차단하지 않습니다.</li></ul></div></section>
+<section class="section"><div class="section-heading"><p class="eyebrow">Builder compatibility</p><h2>Import 성공만으로 완료 처리하지 않았습니다</h2></div><div class="grid grid-3"><div class="card"><h3>Runtime template</h3><p>9개 Custom Component node를 실제 LFX <code>create_component_template</code>로 생성해 UI field와 port를 source class에서 다시 만들었습니다.</p></div><div class="card"><h3>Handle contract</h3><p>10개 edge의 문자열 handle과 <code>edge.data</code>를 <code>œ</code> quote 형식으로 일치시키고 구형 <code>┇</code> delimiter를 금지했습니다.</p></div><div class="card"><h3>Full build</h3><p>임시 Flow를 실제 local Builder에 넣어 실행 node가 모두 <code>valid=true</code>인지 확인한 뒤 테스트 Flow를 삭제했습니다.</p></div></div></section>
+<section class="section"><div class="section-heading"><p class="eyebrow">Known 1.8.2 boundary</p><h2>기본 Milvus node로 바로 바꾸면 안 되는 이유</h2></div><div class="notice notice-testing"><strong>현재 데모가 payload 검색을 쓰는 이유입니다.</strong>Langflow 1.8.2 기본 Milvus 검색은 이 Flow가 요구하는 ACL search filter·score threshold·stable-ID replacement를 제공하지 않습니다. 또한 <code>{{ingest_data: [records]}}</code>를 담은 Data 하나를 기본 Milvus의 ingest에 연결하면 record별 chunk가 아니라 text가 빈 단일 문서로 변환될 수 있습니다.</div><div class="card" style="margin-top:16px"><ul class="check-list"><li>운영 Vector DB adapter는 ACL filter를 similarity search 쿼리 안에서 적용해야 합니다.</li><li>적재 output은 실제 node가 받는 <code>list[Data]</code> 또는 DataFrame 계약으로 맞춥니다.</li><li>동일 문서 반복 적재, 새 version 교체, tombstone 삭제를 실제 collection row 수로 확인합니다.</li><li>검색 결과의 page/locator와 권한 밖 정보 비노출을 통합 테스트합니다.</li></ul></div></section>
+<section class="section"><div class="section-heading"><p class="eyebrow">Security follow-up</p><h2>실행 환경 자격증명도 별도 조치 필요</h2></div><div class="notice notice-testing"><strong>P0 · 노출 가능 key 회전</strong>현재 Desktop 실행 프로세스의 시작 정보에 LLM API key 환경 변수가 포함된 정황을 확인했습니다. 값은 문서나 결과에 기록하지 않았습니다. 해당 key는 회전하고, command line이 아닌 Langflow Global Variables 또는 사내 secret manager 기반 주입으로 바꾼 뒤 process/log 노출 여부를 재확인해야 합니다.</div></section>
+<section class="section"><div class="section-heading"><p class="eyebrow">Regression result</p><h2>수정 후 확인 항목</h2></div><div class="card"><ul class="check-list"><li>대표 질문은 <code>answer</code> 상태와 숫자 인용을 반환합니다.</li><li>근거 없는 질문과 권한 밖 보안 문서 질문은 인용 없이 동일한 안전 문구로 거절합니다.</li><li>관련 악성 문서는 제외되며 관련 없는 정상 문서의 문구는 전체 질문을 막지 않습니다.</li><li>PII raw value, 권한 밖 ID·제목·본문·후보 수가 사용자 결과에 나타나지 않습니다.</li><li>Component source와 Flow JSON 내장 code가 byte-for-byte 일치합니다.</li><li>전체 Flow Bundle은 BOM 없이 4개 Flow를 포함합니다.</li></ul></div></section>
+<div class="page-actions"><button class="back-button" type="button" data-back data-fallback="troubleshooting/index.html">← 이전 화면</button><a class="button button-soft" href="troubleshooting/index.html">실패와 해결 목록</a><a class="button button-soft" href="index.html">홈</a></div>
+
+  </main>
+  <footer class="site-footer">
+    <div class="footer-inner">
+      <div><strong>Agent Ground</strong><p>실제 Agent Builder 환경에서 검증된 교육자료, Standalone Component와 Flow를 함께 쌓아갑니다.</p></div>
+      <div class="footer-links"><a href="training/index.html">처음 배우기</a><a href="troubleshooting/index.html">실패와 해결</a><a href="../AGENT_GROUND_PROJECT_MASTER_GUIDE.md">프로젝트 기준</a></div>
+    </div>
+  </footer>
+  <script src="assets/js/site.js"></script>
+  
+</body>
+</html>

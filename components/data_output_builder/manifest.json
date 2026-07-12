@@ -1,0 +1,71 @@
+{
+  "id": "data_output_builder",
+  "name_ko": "Data Output Builder",
+  "class_name": "DataOutputBuilder",
+  "asset_type": "component",
+  "status": "user_testing",
+  "version": "0.9.0",
+  "standalone": true,
+  "reusability": "shared",
+  "source_family": "reusable_data_flow",
+  "summary_ko": "조회 결과를 API용 Data JSON과 Chat Output 확인용 표 메시지로 반환합니다.",
+  "source_file": "data_output_builder.py",
+  "inputs": [
+    {
+      "type": "DataInput",
+      "name": "data_result",
+      "display_name": "Data Result",
+      "input_types": [
+        "Data",
+        "JSON"
+      ]
+    },
+    {
+      "type": "MessageTextInput",
+      "name": "max_message_rows",
+      "display_name": "Max Message Rows",
+      "value": null,
+      "advanced": true
+    },
+    {
+      "type": "MessageTextInput",
+      "name": "max_cell_chars",
+      "display_name": "Max Cell Chars",
+      "value": null,
+      "advanced": true
+    }
+  ],
+  "outputs": [
+    {
+      "type": "Output",
+      "name": "data_json",
+      "display_name": "Data JSON",
+      "method": "build_data_json",
+      "group_outputs": true,
+      "types": [
+        "Data"
+      ]
+    },
+    {
+      "type": "Output",
+      "name": "test_message",
+      "display_name": "Test Message",
+      "method": "build_test_message",
+      "group_outputs": true,
+      "types": [
+        "Message"
+      ]
+    }
+  ],
+  "dependencies": [
+    "lfx"
+  ],
+  "used_by_flows": [
+    "reusable_data_flow"
+  ],
+  "risk_tags": [],
+  "verified_environment": "legacy-export-1.8.2-local-static-check",
+  "last_verified_at": "2026-07-10",
+  "documentation_path": "html/components/data_output_builder/index.html",
+  "approved_by_user_at": null
+}

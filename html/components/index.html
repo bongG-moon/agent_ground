@@ -1,0 +1,207 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <base href="../" />
+  <title>Component Library · Agent Ground</title>
+  <meta name="description" content="Standalone Component 목록" />
+  <link rel="stylesheet" href="assets/css/site.css" />
+  
+</head>
+<body>
+  <a class="skip-link" href="#main">본문으로 바로가기</a>
+  <header class="site-header">
+    <div class="header-inner">
+      <a class="brand" href="index.html" aria-label="Agent Ground 홈">
+        <span class="brand-mark" aria-hidden="true">AG</span>
+        <span class="brand-copy"><strong>Agent Ground</strong><small>Learn · Build · Validate</small></span>
+      </a>
+      <button class="menu-button" type="button" data-menu-button aria-expanded="false" aria-controls="site-nav" aria-label="메뉴 열기"><span class="menu-lines"></span></button>
+      <nav class="site-nav" id="site-nav" data-site-nav data-open="false" aria-label="주요 메뉴"><a href="index.html">홈</a><a href="training/index.html">처음 배우기</a><a href="flows/index.html">Flows</a><a href="components/index.html" aria-current="page">Components</a><a href="troubleshooting/index.html">실패와 해결</a><a href="business-agent-design/index.html">업무 Agent 설계</a></nav>
+    </div>
+  </header>
+  <main class="page-wrap" id="main">
+    <nav class="breadcrumbs" aria-label="현재 위치"><a href="index.html">홈</a><span aria-hidden="true">/</span><span>Components</span></nav>
+    
+<section class="hero"><div class="hero-kicker">Component library</div><h1>한 파일로 가져오고<br />입력·출력을 바로 확인하세요</h1><p>현재 41개의 Python Component를 Standalone 기준 원본으로 관리합니다. 자산마다 실제 검증 범위와 위험 태그를 함께 확인하세요.</p></section>
+<div class="page-actions"><a class="button button-soft" href="components/direct-data-access/index.html">직접 데이터 조회 Component 보기</a><a class="button button-soft" href="components/enterprise-utility/index.html">공용 Component 추천·구현 현황 보기</a></div>
+<div class="search-panel" role="search"><label class="visually-hidden" for="asset-search">Component 검색</label><input id="asset-search" data-asset-search type="search" placeholder="이름, 역할, Flow, 의존성으로 검색" /><div class="filter-buttons" aria-label="자산군별 필터"><button class="filter-button" type="button" data-filter="all" aria-pressed="true">전체</button><button class="filter-button" type="button" data-filter="reusable_data_flow" aria-pressed="false">재사용 데이터</button><button class="filter-button" type="button" data-filter="html_report_flow" aria-pressed="false">HTML 보고서</button><button class="filter-button" type="button" data-filter="enterprise_document_rag_flow" aria-pressed="false">문서 RAG</button><button class="filter-button" type="button" data-filter="skill_based_agent_flow" aria-pressed="false">Skill Agent</button><button class="filter-button" type="button" data-filter="direct_data_access_components" aria-pressed="false">직접 데이터 조회</button><button class="filter-button" type="button" data-filter="enterprise_utility_components" aria-pressed="false">공용 Component</button></div><span data-result-count aria-live="polite"></span></div>
+<section><div class="grid grid-3"><a class="card card-link asset-card" data-asset-card data-family="enterprise_document_rag_flow" data-search="ACL Evidence Retriever acl_evidence_retriever 문서 ACL을 먼저 적용한 뒤 허용된 문서만 점수화하며, 의심스러운 문서 지시는 검색 근거에서 제외합니다. enterprise_document_rag_flow lfx" href="components/acl_evidence_retriever/index.html">
+  <div class="meta-row"><span class="badge badge-testing">검증 중</span><span class="tag">2 in</span><span class="tag">1 out</span></div>
+  <h3>ACL Evidence Retriever</h3><p>문서 ACL을 먼저 적용한 뒤 허용된 문서만 점수화하며, 의심스러운 문서 지시는 검색 근거에서 제외합니다.</p>
+  <div class="tag-list"><span class="tag">사내 문서 RAG Flow</span><span class="tag">Standalone</span></div>
+</a><a class="card card-link asset-card" data-asset-card data-family="html_report_flow" data-search="03 기본 리포트 계획 auto_html_plan_builder 요소 추천 결과를 바탕으로 LLM이 보완할 수 있는 기본 리포트 계획을 만듭니다. html_report_flow lfx" href="components/auto_html_plan_builder/index.html">
+  <div class="meta-row"><span class="badge badge-testing">검증 중</span><span class="tag">4 in</span><span class="tag">1 out</span></div>
+  <h3>03 기본 리포트 계획</h3><p>요소 추천 결과를 바탕으로 LLM이 보완할 수 있는 기본 리포트 계획을 만듭니다.</p>
+  <div class="tag-list"><span class="tag">HTML 보고서 Flow</span><span class="tag">Standalone</span></div>
+</a><a class="card card-link asset-card" data-asset-card data-family="enterprise_utility_components" data-search="캐시된 이름 기반 Run Flow 도구 cached_named_run_flow_tool 하위 Flow를 정확한 이름으로 다시 조회하고 실제 ID 기준으로 그래프만 캐시하며, 고정 question 인자를 현재 Chat Input으로 변환해 실행합니다. enterprise_utility_components langflow, lfx" href="components/cached_named_run_flow_tool/index.html">
+  <div class="meta-row"><span class="badge badge-testing">검증 중</span><span class="tag">8 in</span><span class="tag">1 out</span></div>
+  <h3>캐시된 이름 기반 Run Flow 도구</h3><p>하위 Flow를 정확한 이름으로 다시 조회하고 실제 ID 기준으로 그래프만 캐시하며, 고정 question 인자를 현재 Chat Input으로 변환해 실행합니다.</p>
+  <div class="tag-list"><span class="tag">공용 독립 Component</span><span class="tag">Standalone</span></div>
+</a><a class="card card-link asset-card" data-asset-card data-family="enterprise_document_rag_flow" data-search="Citation Response Builder citation_response_builder 검증된 authorized evidence에서만 문서명·버전·페이지 Citation을 다시 만들어 최종 Message로 반환합니다. enterprise_document_rag_flow lfx" href="components/citation_response_builder/index.html">
+  <div class="meta-row"><span class="badge badge-testing">검증 중</span><span class="tag">1 in</span><span class="tag">1 out</span></div>
+  <h3>Citation Response Builder</h3><p>검증된 authorized evidence에서만 문서명·버전·페이지 Citation을 다시 만들어 최종 Message로 반환합니다.</p>
+  <div class="tag-list"><span class="tag">사내 문서 RAG Flow</span><span class="tag">Standalone</span></div>
+</a><a class="card card-link asset-card" data-asset-card data-family="reusable_data_flow" data-search="Data Output Builder data_output_builder 조회 결과를 API용 Data JSON과 Chat Output 확인용 표 메시지로 반환합니다. reusable_data_flow lfx" href="components/data_output_builder/index.html">
+  <div class="meta-row"><span class="badge badge-testing">검증 중</span><span class="tag">3 in</span><span class="tag">2 out</span></div>
+  <h3>Data Output Builder</h3><p>조회 결과를 API용 Data JSON과 Chat Output 확인용 표 메시지로 반환합니다.</p>
+  <div class="tag-list"><span class="tag">재사용 데이터 Flow</span><span class="tag">Standalone</span></div>
+</a><a class="card card-link asset-card" data-asset-card data-family="reusable_data_flow" data-search="Data Request Normalizer data_request_normalizer LLM 응답을 data_request로 정규화하고 source_catalog의 실행 설정을 채웁니다. reusable_data_flow lfx" href="components/data_request_normalizer/index.html">
+  <div class="meta-row"><span class="badge badge-testing">검증 중</span><span class="tag">2 in</span><span class="tag">1 out</span></div>
+  <h3>Data Request Normalizer</h3><p>LLM 응답을 data_request로 정규화하고 source_catalog의 실행 설정을 채웁니다.</p>
+  <div class="tag-list"><span class="tag">재사용 데이터 Flow</span><span class="tag">Standalone</span></div>
+</a><a class="card card-link asset-card" data-asset-card data-family="reusable_data_flow" data-search="Data Result Merger data_result_merger Oracle, H-API, Datalake, Goodocs 조회 결과를 하나의 data_result로 병합합니다. reusable_data_flow lfx" href="components/data_result_merger/index.html">
+  <div class="meta-row"><span class="badge badge-testing">검증 중</span><span class="tag">4 in</span><span class="tag">1 out</span></div>
+  <h3>Data Result Merger</h3><p>Oracle, H-API, Datalake, Goodocs 조회 결과를 하나의 data_result로 병합합니다.</p>
+  <div class="tag-list"><span class="tag">재사용 데이터 Flow</span><span class="tag">Standalone</span></div>
+</a><a class="card card-link asset-card" data-asset-card data-family="reusable_data_flow" data-search="Datalake Data datalake_data data_request 중 datalake 요청만 골라 실행합니다. reusable_data_flow aiohttp, lfx, mysql, mysql-connector-python, nest-asyncio, nest_asyncio, pandas" href="components/datalake_data/index.html">
+  <div class="meta-row"><span class="badge badge-testing">검증 중</span><span class="tag">4 in</span><span class="tag">1 out</span></div>
+  <h3>Datalake Data</h3><p>data_request 중 datalake 요청만 골라 실행합니다.</p>
+  <div class="tag-list"><span class="tag">재사용 데이터 Flow</span><span class="tag">Standalone</span></div>
+</a><a class="card card-link asset-card" data-asset-card data-family="direct_data_access_components" data-search="Datalake 테이블 조회 datalake_table_query Cluster API와 MySQL 조회 설정을 직접 입력받아 Datalake 결과를 DataFrame으로 반환합니다. direct_data_access_components aiohttp, lfx, mysql-connector-python" href="components/datalake_table_query/index.html">
+  <div class="meta-row"><span class="badge badge-testing">검증 중</span><span class="tag">16 in</span><span class="tag">1 out</span></div>
+  <h3>Datalake 테이블 조회</h3><p>Cluster API와 MySQL 조회 설정을 직접 입력받아 Datalake 결과를 DataFrame으로 반환합니다.</p>
+  <div class="tag-list"><span class="tag">직접 데이터 조회 Component</span><span class="tag">Standalone</span></div>
+</a><a class="card card-link asset-card" data-asset-card data-family="html_report_flow" data-search="00 리포트 요청/데이터 불러오기 demo_report_request_loader 질문, 표시 요청, 직접 입력 데이터 또는 File Read 결과를 HTML 리포트용 요청으로 정리합니다. html_report_flow lfx" href="components/demo_report_request_loader/index.html">
+  <div class="meta-row"><span class="badge badge-testing">검증 중</span><span class="tag">4 in</span><span class="tag">1 out</span></div>
+  <h3>00 리포트 요청/데이터 불러오기</h3><p>질문, 표시 요청, 직접 입력 데이터 또는 File Read 결과를 HTML 리포트용 요청으로 정리합니다.</p>
+  <div class="tag-list"><span class="tag">HTML 보고서 Flow</span><span class="tag">Standalone</span></div>
+</a><a class="card card-link asset-card" data-asset-card data-family="skill_based_agent_flow" data-search="데모 Skill 카탈로그 빌더 demo_skill_catalog_builder 검증된 세 가지 업무 Skill 카탈로그와 Supervisor Agent용 지시사항을 생성합니다. skill_based_agent_flow lfx" href="components/demo_skill_catalog_builder/index.html">
+  <div class="meta-row"><span class="badge badge-testing">검증 중</span><span class="tag">1 in</span><span class="tag">2 out</span></div>
+  <h3>데모 Skill 카탈로그 빌더</h3><p>검증된 세 가지 업무 Skill 카탈로그와 Supervisor Agent용 지시사항을 생성합니다.</p>
+  <div class="tag-list"><span class="tag">Skill 기반 Agent Flow</span><span class="tag">Standalone</span></div>
+</a><a class="card card-link asset-card" data-asset-card data-family="enterprise_document_rag_flow" data-search="02 Document Chunk Index Builder document_chunk_index_builder Build stable, deduplicated chunks and version/tombstone operations for a model-free payload index. enterprise_document_rag_flow lfx" href="components/document_chunk_index_builder/index.html">
+  <div class="meta-row"><span class="badge badge-testing">검증 중</span><span class="tag">5 in</span><span class="tag">1 out</span></div>
+  <h3>02 Document Chunk Index Builder</h3><p>Build stable, deduplicated chunks and version/tombstone operations for a model-free payload index.</p>
+  <div class="tag-list"><span class="tag">사내 문서 RAG Flow</span><span class="tag">Standalone</span></div>
+</a><a class="card card-link asset-card" data-asset-card data-family="enterprise_document_rag_flow" data-search="00 Document Input Normalizer document_input_normalizer Normalize Data, Message, text, or JSON into documents with citation and ACL metadata. enterprise_document_rag_flow lfx" href="components/document_input_normalizer/index.html">
+  <div class="meta-row"><span class="badge badge-testing">검증 중</span><span class="tag">10 in</span><span class="tag">1 out</span></div>
+  <h3>00 Document Input Normalizer</h3><p>Normalize Data, Message, text, or JSON into documents with citation and ACL metadata.</p>
+  <div class="tag-list"><span class="tag">사내 문서 RAG Flow</span><span class="tag">Standalone</span></div>
+</a><a class="card card-link asset-card" data-asset-card data-family="skill_based_agent_flow" data-search="경비 사전 점검 Skill expense_precheck_skill_tool 식대·교통비·숙박비·기타 금액을 교육용 한도와 비교하며 실제 승인이나 저장은 하지 않습니다. skill_based_agent_flow lfx" href="components/expense_precheck_skill_tool/index.html">
+  <div class="meta-row"><span class="badge badge-testing">검증 중</span><span class="tag">2 in</span><span class="tag">2 out</span></div>
+  <h3>경비 사전 점검 Skill</h3><p>식대·교통비·숙박비·기타 금액을 교육용 한도와 비교하며 실제 승인이나 저장은 하지 않습니다.</p>
+  <div class="tag-list"><span class="tag">Skill 기반 Agent Flow</span><span class="tag">Standalone</span></div>
+</a><a class="card card-link asset-card" data-asset-card data-family="reusable_data_flow" data-search="Goodocs Data goodocs_data data_request 중 goodocs 요청만 골라 실행합니다. reusable_data_flow lfx" href="components/goodocs_data/index.html">
+  <div class="meta-row"><span class="badge badge-testing">검증 중</span><span class="tag">5 in</span><span class="tag">1 out</span></div>
+  <h3>Goodocs Data</h3><p>data_request 중 goodocs 요청만 골라 실행합니다.</p>
+  <div class="tag-list"><span class="tag">재사용 데이터 Flow</span><span class="tag">Standalone</span></div>
+</a><a class="card card-link asset-card" data-asset-card data-family="direct_data_access_components" data-search="GooDocs 테이블 조회기 goodocs_table_reader 문서 ID와 인증값으로 GooDocs 문서 한 개를 조회하고 데이터 테이블만 출력합니다. 실제 사내 GooDocs 모듈을 코드의 교체 구역에 넣어야 합니다. direct_data_access_components lfx, pandas, pydantic" href="components/goodocs_table_reader/index.html">
+  <div class="meta-row"><span class="badge badge-testing">검증 중</span><span class="tag">6 in</span><span class="tag">1 out</span></div>
+  <h3>GooDocs 테이블 조회기</h3><p>문서 ID와 인증값으로 GooDocs 문서 한 개를 조회하고 데이터 테이블만 출력합니다. 실제 사내 GooDocs 모듈을 코드의 교체 구역에 넣어야 합니다.</p>
+  <div class="tag-list"><span class="tag">직접 데이터 조회 Component</span><span class="tag">Standalone</span></div>
+</a><a class="card card-link asset-card" data-asset-card data-family="enterprise_document_rag_flow" data-search="Grounded Answer Builder grounded_answer_builder LLM의 근거 ID를 서버 allowlist와 교차 검증하고, 부적합 응답은 허용 근거의 deterministic 답변으로 대체합니다. enterprise_document_rag_flow lfx" href="components/grounded_answer_builder/index.html">
+  <div class="meta-row"><span class="badge badge-testing">검증 중</span><span class="tag">2 in</span><span class="tag">1 out</span></div>
+  <h3>Grounded Answer Builder</h3><p>LLM의 근거 ID를 서버 allowlist와 교차 검증하고, 부적합 응답은 허용 근거의 deterministic 답변으로 대체합니다.</p>
+  <div class="tag-list"><span class="tag">사내 문서 RAG Flow</span><span class="tag">Standalone</span></div>
+</a><a class="card card-link asset-card" data-asset-card data-family="reusable_data_flow" data-search="H-API Data h_api_data data_request 중 h_api 요청만 골라 실행합니다. reusable_data_flow lfx" href="components/h_api_data/index.html">
+  <div class="meta-row"><span class="badge badge-testing">검증 중</span><span class="tag">3 in</span><span class="tag">1 out</span></div>
+  <h3>H-API Data</h3><p>data_request 중 h_api 요청만 골라 실행합니다.</p>
+  <div class="tag-list"><span class="tag">재사용 데이터 Flow</span><span class="tag">Standalone</span></div>
+</a><a class="card card-link asset-card" data-asset-card data-family="direct_data_access_components" data-search="H-API 테이블 조회 h_api_table_request URL, Token, bindParams를 직접 받아 H-API를 한 번 호출하고 데이터 테이블만 반환합니다. direct_data_access_components lfx, requests" href="components/h_api_table_request/index.html">
+  <div class="meta-row"><span class="badge badge-testing">검증 중</span><span class="tag">7 in</span><span class="tag">1 out</span></div>
+  <h3>H-API 테이블 조회</h3><p>URL, Token, bindParams를 직접 받아 H-API를 한 번 호출하고 데이터 테이블만 반환합니다.</p>
+  <div class="tag-list"><span class="tag">직접 데이터 조회 Component</span><span class="tag">Standalone</span></div>
+</a><a class="card card-link asset-card" data-asset-card data-family="html_report_flow" data-search="02 기본 요소 양식/추천 html_component_catalog_builder 내부 기본 요소 양식을 바탕으로 데이터와 요청 의도에 맞는 HTML 리포트 블록 후보를 추천합니다. html_report_flow lfx" href="components/html_component_catalog_builder/index.html">
+  <div class="meta-row"><span class="badge badge-testing">검증 중</span><span class="tag">2 in</span><span class="tag">1 out</span></div>
+  <h3>02 기본 요소 양식/추천</h3><p>내부 기본 요소 양식을 바탕으로 데이터와 요청 의도에 맞는 HTML 리포트 블록 후보를 추천합니다.</p>
+  <div class="tag-list"><span class="tag">HTML 보고서 Flow</span><span class="tag">Standalone</span></div>
+</a><a class="card card-link asset-card" data-asset-card data-family="html_report_flow" data-search="01 데이터 구조 분석 html_report_data_profile_builder 리포트에 쓸 컬럼 유형, 숫자/범주/날짜 후보, 데이터 품질 신호를 요약합니다. html_report_flow lfx" href="components/html_report_data_profile_builder/index.html">
+  <div class="meta-row"><span class="badge badge-testing">검증 중</span><span class="tag">1 in</span><span class="tag">1 out</span></div>
+  <h3>01 데이터 구조 분석</h3><p>리포트에 쓸 컬럼 유형, 숫자/범주/날짜 후보, 데이터 품질 신호를 요약합니다.</p>
+  <div class="tag-list"><span class="tag">HTML 보고서 Flow</span><span class="tag">Standalone</span></div>
+</a><a class="card card-link asset-card" data-asset-card data-family="reusable_data_flow" data-search="11 HTML Report Datasets Adapter html_report_datasets_adapter 06 Data JSON을 HTML 생성 Flow의 datasets JSON 입력으로 변환합니다. reusable_data_flow lfx" href="components/html_report_datasets_adapter/index.html">
+  <div class="meta-row"><span class="badge badge-testing">검증 중</span><span class="tag">1 in</span><span class="tag">2 out</span></div>
+  <h3>11 HTML Report Datasets Adapter</h3><p>06 Data JSON을 HTML 생성 Flow의 datasets JSON 입력으로 변환합니다.</p>
+  <div class="tag-list"><span class="tag">재사용 데이터 Flow</span><span class="tag">Standalone</span></div>
+</a><a class="card card-link asset-card" data-asset-card data-family="html_report_flow" data-search="05-1 HTML 원문 출력 html_source_output Report API 없이 04에서 생성된 전체 HTML 코드를 Playground에 그대로 출력합니다. html_report_flow lfx" href="components/html_source_output/index.html">
+  <div class="meta-row"><span class="badge badge-testing">검증 중</span><span class="tag">1 in</span><span class="tag">1 out</span></div>
+  <h3>05-1 HTML 원문 출력</h3><p>Report API 없이 04에서 생성된 전체 HTML 코드를 Playground에 그대로 출력합니다.</p>
+  <div class="tag-list"><span class="tag">HTML 보고서 Flow</span><span class="tag">Standalone</span></div>
+</a><a class="card card-link asset-card" data-asset-card data-family="html_report_flow" data-search="04 HTML 렌더링 html_template_renderer 최종 리포트 계획과 데이터를 이용해 독립 실행 가능한 HTML 원문을 생성합니다. html_report_flow lfx" href="components/html_template_renderer/index.html">
+  <div class="meta-row"><span class="badge badge-testing">검증 중</span><span class="tag">1 in</span><span class="tag">1 out</span></div>
+  <h3>04 HTML 렌더링</h3><p>최종 리포트 계획과 데이터를 이용해 독립 실행 가능한 HTML 원문을 생성합니다.</p>
+  <div class="tag-list"><span class="tag">HTML 보고서 Flow</span><span class="tag">Standalone</span></div>
+</a><a class="card card-link asset-card" data-asset-card data-family="skill_based_agent_flow" data-search="휴가 정책 점검 Skill leave_policy_skill_tool ISO 날짜 두 개의 평일과 선택적으로 연결한 휴일을 계산하며 실제 휴가 신청이나 승인은 하지 않습니다. skill_based_agent_flow lfx" href="components/leave_policy_skill_tool/index.html">
+  <div class="meta-row"><span class="badge badge-testing">검증 중</span><span class="tag">3 in</span><span class="tag">2 out</span></div>
+  <h3>휴가 정책 점검 Skill</h3><p>ISO 날짜 두 개의 평일과 선택적으로 연결한 휴일을 계산하며 실제 휴가 신청이나 승인은 하지 않습니다.</p>
+  <div class="tag-list"><span class="tag">Skill 기반 Agent Flow</span><span class="tag">Standalone</span></div>
+</a><a class="card card-link asset-card" data-asset-card data-family="reusable_data_flow" data-search="LLM Caller llm_caller Prompt Template 결과를 LLM에 전달하고, 다음 Normalizer가 읽을 llm_result를 반환합니다. reusable_data_flow langchain_google_genai, lfx" href="components/llm_caller/index.html">
+  <div class="meta-row"><span class="badge badge-testing">검증 중</span><span class="tag">4 in</span><span class="tag">1 out</span></div>
+  <h3>LLM Caller</h3><p>Prompt Template 결과를 LLM에 전달하고, 다음 Normalizer가 읽을 llm_result를 반환합니다.</p>
+  <div class="tag-list"><span class="tag">재사용 데이터 Flow</span><span class="tag">Standalone</span></div>
+</a><a class="card card-link asset-card" data-asset-card data-family="html_report_flow" data-search="03b LLM 계획 검증 llm_html_plan_normalizer LLM이 만든 리포트 계획 JSON을 검증하고 렌더러가 쓸 최종 계획으로 정리합니다. html_report_flow lfx" href="components/llm_html_plan_normalizer/index.html">
+  <div class="meta-row"><span class="badge badge-testing">검증 중</span><span class="tag">2 in</span><span class="tag">1 out</span></div>
+  <h3>03b LLM 계획 검증</h3><p>LLM이 만든 리포트 계획 JSON을 검증하고 렌더러가 쓸 최종 계획으로 정리합니다.</p>
+  <div class="tag-list"><span class="tag">HTML 보고서 Flow</span><span class="tag">Standalone</span></div>
+</a><a class="card card-link asset-card" data-asset-card data-family="html_report_flow" data-search="03a 프롬프트 변수 준비 llm_html_plan_prompt_builder Langflow 기본 Prompt Template에 연결할 변수 값을 개별 출력으로 준비합니다. html_report_flow lfx" href="components/llm_html_plan_prompt_builder/index.html">
+  <div class="meta-row"><span class="badge badge-testing">검증 중</span><span class="tag">2 in</span><span class="tag">5 out</span></div>
+  <h3>03a 프롬프트 변수 준비</h3><p>Langflow 기본 Prompt Template에 연결할 변수 값을 개별 출력으로 준비합니다.</p>
+  <div class="tag-list"><span class="tag">HTML 보고서 Flow</span><span class="tag">Standalone</span></div>
+</a><a class="card card-link asset-card" data-asset-card data-family="skill_based_agent_flow" data-search="회의 후속 조치 Skill meeting_action_skill_tool 담당자·할 일·ISO 기한 형식의 여러 줄을 구조화하며 실제 발송이나 시스템 등록은 하지 않습니다. skill_based_agent_flow lfx" href="components/meeting_action_skill_tool/index.html">
+  <div class="meta-row"><span class="badge badge-testing">검증 중</span><span class="tag">2 in</span><span class="tag">2 out</span></div>
+  <h3>회의 후속 조치 Skill</h3><p>담당자·할 일·ISO 기한 형식의 여러 줄을 구조화하며 실제 발송이나 시스템 등록은 하지 않습니다.</p>
+  <div class="tag-list"><span class="tag">Skill 기반 Agent Flow</span><span class="tag">Standalone</span></div>
+</a><a class="card card-link asset-card" data-asset-card data-family="enterprise_utility_components" data-search="다중 이미지 Base64 인코더 multi_image_base64_encoder 여러 이미지 파일을 검증하고 입력 순서대로 Base64 또는 Data URL 목록으로 변환합니다. enterprise_utility_components lfx" href="components/multi_image_base64_encoder/index.html">
+  <div class="meta-row"><span class="badge badge-testing">검증 중</span><span class="tag">7 in</span><span class="tag">1 out</span></div>
+  <h3>다중 이미지 Base64 인코더</h3><p>여러 이미지 파일을 검증하고 입력 순서대로 Base64 또는 Data URL 목록으로 변환합니다.</p>
+  <div class="tag-list"><span class="tag">공용 독립 Component</span><span class="tag">Standalone</span></div>
+</a><a class="card card-link asset-card" data-asset-card data-family="reusable_data_flow" data-search="Oracle Data oracle_data data_request 중 oracle 요청만 골라 실행합니다. reusable_data_flow lfx, oracledb" href="components/oracle_data/index.html">
+  <div class="meta-row"><span class="badge badge-testing">검증 중</span><span class="tag">3 in</span><span class="tag">1 out</span></div>
+  <h3>Oracle Data</h3><p>data_request 중 oracle 요청만 골라 실행합니다.</p>
+  <div class="tag-list"><span class="tag">재사용 데이터 Flow</span><span class="tag">Standalone</span></div>
+</a><a class="card card-link asset-card" data-asset-card data-family="direct_data_access_components" data-search="Oracle 테이블 조회 oracle_table_query Oracle 접속 정보와 읽기 SQL을 직접 입력받아 조회 결과를 DataFrame으로 반환합니다. direct_data_access_components lfx, oracledb" href="components/oracle_table_query/index.html">
+  <div class="meta-row"><span class="badge badge-testing">검증 중</span><span class="tag">7 in</span><span class="tag">1 out</span></div>
+  <h3>Oracle 테이블 조회</h3><p>Oracle 접속 정보와 읽기 SQL을 직접 입력받아 조회 결과를 DataFrame으로 반환합니다.</p>
+  <div class="tag-list"><span class="tag">직접 데이터 조회 Component</span><span class="tag">Standalone</span></div>
+</a><a class="card card-link asset-card" data-asset-card data-family="enterprise_document_rag_flow" data-search="01 PII &amp; Confidential Data Guard pii_confidential_data_guard Redact or block common sensitive patterns before documents enter the retrieval index. enterprise_document_rag_flow lfx" href="components/pii_confidential_data_guard/index.html">
+  <div class="meta-row"><span class="badge badge-testing">검증 중</span><span class="tag">8 in</span><span class="tag">1 out</span></div>
+  <h3>01 PII &amp; Confidential Data Guard</h3><p>Redact or block common sensitive patterns before documents enter the retrieval index.</p>
+  <div class="tag-list"><span class="tag">사내 문서 RAG Flow</span><span class="tag">Standalone</span></div>
+</a><a class="card card-link asset-card" data-asset-card data-family="enterprise_document_rag_flow" data-search="RAG Prompt Builder rag_prompt_builder 품질 게이트를 통과한 ACL 허용 근거만 비신뢰 데이터로 감싸고 엄격한 근거 ID 출력 계약을 만듭니다. enterprise_document_rag_flow lfx" href="components/rag_prompt_builder/index.html">
+  <div class="meta-row"><span class="badge badge-testing">검증 중</span><span class="tag">1 in</span><span class="tag">1 out</span></div>
+  <h3>RAG Prompt Builder</h3><p>품질 게이트를 통과한 ACL 허용 근거만 비신뢰 데이터로 감싸고 엄격한 근거 ID 출력 계약을 만듭니다.</p>
+  <div class="tag-list"><span class="tag">사내 문서 RAG Flow</span><span class="tag">Standalone</span></div>
+</a><a class="card card-link asset-card" data-asset-card data-family="enterprise_document_rag_flow" data-search="RAG Request Context Normalizer rag_request_context_normalizer 사용자 질문과 서버에서 검증한 사용자·조직·역할 컨텍스트를 fail-closed 요청으로 정규화합니다. enterprise_document_rag_flow lfx" href="components/rag_request_context_normalizer/index.html">
+  <div class="meta-row"><span class="badge badge-testing">검증 중</span><span class="tag">8 in</span><span class="tag">1 out</span></div>
+  <h3>RAG Request Context Normalizer</h3><p>사용자 질문과 서버에서 검증한 사용자·조직·역할 컨텍스트를 fail-closed 요청으로 정규화합니다.</p>
+  <div class="tag-list"><span class="tag">사내 문서 RAG Flow</span><span class="tag">Standalone</span></div>
+</a><a class="card card-link asset-card" data-asset-card data-family="html_report_flow" data-search="05-2 공유 링크 출력 report_api_publisher 생성된 HTML을 Report API에 저장하고 간단한 다운로드 링크 메시지를 출력합니다. html_report_flow lfx" href="components/report_api_publisher/index.html">
+  <div class="meta-row"><span class="badge badge-testing">검증 중</span><span class="tag">3 in</span><span class="tag">1 out</span></div>
+  <h3>05-2 공유 링크 출력</h3><p>생성된 HTML을 Report API에 저장하고 간단한 다운로드 링크 메시지를 출력합니다.</p>
+  <div class="tag-list"><span class="tag">HTML 보고서 Flow</span><span class="tag">Standalone</span></div>
+</a><a class="card card-link asset-card" data-asset-card data-family="enterprise_document_rag_flow" data-search="Retrieval Quality Gate retrieval_quality_gate ACL 적용 여부·검색 점수·문서 지시 신호를 확인하고 근거가 부족하면 LLM 앞에서 답변을 차단합니다. enterprise_document_rag_flow lfx" href="components/retrieval_quality_gate/index.html">
+  <div class="meta-row"><span class="badge badge-testing">검증 중</span><span class="tag">1 in</span><span class="tag">1 out</span></div>
+  <h3>Retrieval Quality Gate</h3><p>ACL 적용 여부·검색 점수·문서 지시 신호를 확인하고 근거가 부족하면 LLM 앞에서 답변을 차단합니다.</p>
+  <div class="tag-list"><span class="tag">사내 문서 RAG Flow</span><span class="tag">Standalone</span></div>
+</a><a class="card card-link asset-card" data-asset-card data-family="direct_data_access_components" data-search="단순 API 테이블 조회 simple_api_table_request HTTP API를 한 번 호출하고 지정한 JSON 응답 경로의 값을 데이터 테이블로 반환합니다. direct_data_access_components lfx, requests" href="components/simple_api_table_request/index.html">
+  <div class="meta-row"><span class="badge badge-testing">검증 중</span><span class="tag">10 in</span><span class="tag">1 out</span></div>
+  <h3>단순 API 테이블 조회</h3><p>HTTP API를 한 번 호출하고 지정한 JSON 응답 경로의 값을 데이터 테이블로 반환합니다.</p>
+  <div class="tag-list"><span class="tag">직접 데이터 조회 Component</span><span class="tag">Standalone</span></div>
+</a><a class="card card-link asset-card" data-asset-card data-family="reusable_data_flow" data-search="Catalog MongoDB Loader source_catalog_mongodb_loader MongoDB collection에서 source_catalog를 읽어옵니다. reusable_data_flow lfx, pymongo" href="components/source_catalog_mongodb_loader/index.html">
+  <div class="meta-row"><span class="badge badge-testing">검증 중</span><span class="tag">4 in</span><span class="tag">2 out</span></div>
+  <h3>Catalog MongoDB Loader</h3><p>MongoDB collection에서 source_catalog를 읽어옵니다.</p>
+  <div class="tag-list"><span class="tag">재사용 데이터 Flow</span><span class="tag">Standalone</span></div>
+</a><a class="card card-link asset-card" data-asset-card data-family="reusable_data_flow" data-search="Catalog MongoDB Store source_catalog_mongodb_store source_catalog를 source 이름 기준으로 MongoDB에 저장하거나 업데이트합니다. reusable_data_flow lfx, pymongo" href="components/source_catalog_mongodb_store/index.html">
+  <div class="meta-row"><span class="badge badge-testing">검증 중</span><span class="tag">5 in</span><span class="tag">2 out</span></div>
+  <h3>Catalog MongoDB Store</h3><p>source_catalog를 source 이름 기준으로 MongoDB에 저장하거나 업데이트합니다.</p>
+  <div class="tag-list"><span class="tag">재사용 데이터 Flow</span><span class="tag">Standalone</span></div>
+</a><a class="card card-link asset-card" data-asset-card data-family="reusable_data_flow" data-search="Catalog Normalizer source_catalog_normalizer LLM이 만든 source_catalog 후보를 저장하지 않고 조회 Flow용 형태로 정규화합니다. reusable_data_flow lfx" href="components/source_catalog_normalizer/index.html">
+  <div class="meta-row"><span class="badge badge-testing">검증 중</span><span class="tag">1 in</span><span class="tag">2 out</span></div>
+  <h3>Catalog Normalizer</h3><p>LLM이 만든 source_catalog 후보를 저장하지 않고 조회 Flow용 형태로 정규화합니다.</p>
+  <div class="tag-list"><span class="tag">재사용 데이터 Flow</span><span class="tag">Standalone</span></div>
+</a></div><div class="empty-state" data-search-empty hidden><strong>일치하는 Component가 없습니다.</strong><p>검색어를 줄이거나 다른 Flow 필터를 선택해 보세요.</p></div></section>
+<section class="section"><div class="notice notice-testing"><strong>Standalone 원본과 검증 상태를 분리해 관리합니다.</strong>모든 파일은 상대 import 없이 단일 Python 파일로 분리합니다. 각 manifest의 실제 환경 검증 기록과 사용자 승인 여부를 확인한 뒤 재사용합니다.</div></section>
+
+  </main>
+  <footer class="site-footer">
+    <div class="footer-inner">
+      <div><strong>Agent Ground</strong><p>실제 Agent Builder 환경에서 검증된 교육자료, Standalone Component와 Flow를 함께 쌓아갑니다.</p></div>
+      <div class="footer-links"><a href="training/index.html">처음 배우기</a><a href="troubleshooting/index.html">실패와 해결</a><a href="../AGENT_GROUND_PROJECT_MASTER_GUIDE.md">프로젝트 기준</a></div>
+    </div>
+  </footer>
+  <script src="assets/js/site.js"></script>
+  
+</body>
+</html>

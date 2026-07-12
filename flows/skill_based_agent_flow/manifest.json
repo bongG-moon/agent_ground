@@ -1,0 +1,20 @@
+{
+  "id": "skill_based_agent_flow",
+  "name_ko": "Skills 기반 업무 Agent 예시 Flow",
+  "asset_type": "flow",
+  "status": "user_testing",
+  "version": "0.2.0",
+  "source_export_version": "1.8.2",
+  "summary_ko": "경비·휴가 계산은 Standalone Component Tool로 직접 실행하고, 회의 후속 조치는 provider-safe question을 사용하는 Cached Named Run Flow Tool로 별도 meeting_action_skill_flow를 호출합니다. MCP는 선택적 확장으로 문서화한 하이브리드 교육용 Flow입니다.",
+  "categories": ["agent", "skills", "tool-calling", "run-flow", "enterprise-workflow", "education"],
+  "trigger_signals": ["Skill 기반 Agent", "하이브리드 Tool", "Run Flow Tool", "MCP 확장", "업무 Agent", "Tool 자동 선택", "경비 점검", "휴가 정책", "회의 후속 조치"],
+  "flow_file": "skill_based_agent_flow.json",
+  "bundle_file": "00_SKILL_BASED_AGENT_ALL_FLOWS.json",
+  "subflow_files": ["meeting_action_skill_flow.json"],
+  "component_refs_file": "component_refs.json",
+  "documentation_path": "html/flows/skill_based_agent_flow/index.html",
+  "verified_environment": "langflow-1.8.2-lfx-0.3.4-direct-tool-run-flow-template-schema-and-graph-parse-user-model-db-e2e-pending",
+  "last_verified_at": "2026-07-12",
+  "approved_by_user_at": null,
+  "risk_tags": ["llm_tool_selection", "model_api_key_required", "exact_subflow_name", "same_folder_required", "demo_policy_only", "no_external_side_effects"]
+}

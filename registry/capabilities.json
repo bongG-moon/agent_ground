@@ -1,0 +1,3210 @@
+{
+  "schema_version": "1.0",
+  "generated_at": "2026-07-12",
+  "source_of_truth": "component and flow manifest files",
+  "publication_rule": "Only approved assets may be used by Business Agent Design recommendations.",
+  "assets": [
+    {
+      "id": "acl_evidence_retriever",
+      "name_ko": "ACL Evidence Retriever",
+      "class_name": "AclEvidenceRetriever",
+      "asset_type": "component",
+      "status": "user_testing",
+      "version": "0.1.0",
+      "standalone": true,
+      "reusability": "shared",
+      "source_family": "enterprise_document_rag_flow",
+      "summary_ko": "문서 ACL을 먼저 적용한 뒤 허용된 문서만 점수화하며, 의심스러운 문서 지시는 검색 근거에서 제외합니다.",
+      "source_file": "acl_evidence_retriever.py",
+      "inputs": [
+        {
+          "type": "DataInput",
+          "name": "request",
+          "display_name": "Request",
+          "input_types": [
+            "Data",
+            "JSON"
+          ],
+          "required": true
+        },
+        {
+          "type": "DataInput",
+          "name": "document_index",
+          "display_name": "Document Index",
+          "input_types": [
+            "Data",
+            "JSON"
+          ],
+          "required": true
+        }
+      ],
+      "outputs": [
+        {
+          "type": "Output",
+          "name": "retrieval",
+          "display_name": "Retrieval",
+          "method": "build_retrieval",
+          "types": [
+            "Data"
+          ]
+        }
+      ],
+      "dependencies": [
+        "lfx"
+      ],
+      "used_by_flows": [
+        "enterprise_document_rag_flow"
+      ],
+      "risk_tags": [
+        "access_control",
+        "document_content"
+      ],
+      "verified_environment": "langflow-1.8.2-local-runtime-validation",
+      "last_verified_at": "2026-07-11",
+      "documentation_path": "html/components/acl_evidence_retriever/index.html",
+      "approved_by_user_at": null
+    },
+    {
+      "id": "auto_html_plan_builder",
+      "name_ko": "03 기본 리포트 계획",
+      "class_name": "AutoHtmlPlanBuilder",
+      "asset_type": "component",
+      "status": "user_testing",
+      "version": "0.9.0",
+      "standalone": true,
+      "reusability": "shared",
+      "source_family": "html_report_flow",
+      "summary_ko": "요소 추천 결과를 바탕으로 LLM이 보완할 수 있는 기본 리포트 계획을 만듭니다.",
+      "source_file": "auto_html_plan_builder.py",
+      "inputs": [
+        {
+          "type": "DataInput",
+          "name": "payload",
+          "display_name": "요청 데이터",
+          "required": true
+        },
+        {
+          "type": "DataInput",
+          "name": "data_profile",
+          "display_name": "데이터 분석 결과",
+          "required": true
+        },
+        {
+          "type": "DataInput",
+          "name": "html_component_catalog",
+          "display_name": "요소 추천 결과",
+          "required": true
+        },
+        {
+          "type": "MessageTextInput",
+          "name": "max_blocks",
+          "display_name": "블록 수 제한",
+          "value": "auto",
+          "advanced": true
+        }
+      ],
+      "outputs": [
+        {
+          "type": "Output",
+          "name": "payload_out",
+          "display_name": "기본 계획",
+          "method": "build_payload"
+        }
+      ],
+      "dependencies": [
+        "lfx"
+      ],
+      "used_by_flows": [
+        "html_report_flow"
+      ],
+      "risk_tags": [],
+      "verified_environment": "legacy-export-1.8.2-local-static-check",
+      "last_verified_at": "2026-07-10",
+      "documentation_path": "html/components/auto_html_plan_builder/index.html",
+      "approved_by_user_at": null
+    },
+    {
+      "id": "cached_named_run_flow_tool",
+      "name_ko": "캐시된 이름 기반 Run Flow 도구",
+      "class_name": "CachedNamedRunFlowTool",
+      "asset_type": "component",
+      "status": "user_testing",
+      "version": "0.2.0",
+      "standalone": true,
+      "reusability": "shared",
+      "source_family": "enterprise_utility_components",
+      "summary_ko": "하위 Flow를 정확한 이름으로 다시 조회하고 실제 ID 기준으로 그래프만 캐시하며, 고정 question 인자를 현재 Chat Input으로 변환해 실행합니다.",
+      "source_file": "cached_named_run_flow_tool.py",
+      "inputs": [
+        {
+          "type": "StrInput",
+          "name": "flow_name_selected",
+          "display_name": "대상 Flow 이름",
+          "info": "현재 Router와 같은 폴더에 있고 이름이 고유한 하위 Flow의 정확한 이름입니다. 실행할 때 현재 DB ID를 다시 조회합니다.",
+          "required": true
+        },
+        {
+          "type": "StrInput",
+          "name": "flow_id_selected",
+          "display_name": "해석된 Flow ID",
+          "info": "대상 Flow 이름에서 실행 시 해석하는 숨김 ID입니다. export 시점 ID를 고정하지 않습니다.",
+          "value": "",
+          "show": false,
+          "override_skip": true
+        },
+        {
+          "type": "MessageTextInput",
+          "name": "session_id",
+          "display_name": "세션 ID",
+          "info": "직접 지정할 때만 입력합니다. 비우면 부모 Flow 그래프의 세션을 자동 상속합니다.",
+          "value": "",
+          "advanced": true
+        },
+        {
+          "type": "BoolInput",
+          "name": "cache_flow",
+          "display_name": "Flow 그래프 캐시",
+          "info": "현재 사용자와 실제 Flow ID를 기준으로 파싱한 그래프만 캐시합니다. 데이터, 도구 결과와 최종 답변은 캐시하지 않습니다.",
+          "value": true,
+          "advanced": true
+        },
+        {
+          "type": "BoolInput",
+          "name": "allow_cross_folder",
+          "display_name": "다른 폴더 Flow 허용",
+          "info": "기본값은 꺼짐이며 부모 Router와 같은 폴더에서만 이름을 찾습니다. 켜면 현재 사용자의 모든 폴더에서 고유한 동일 이름을 찾습니다.",
+          "value": false,
+          "advanced": true
+        },
+        {
+          "type": "StrInput",
+          "name": "tool_name",
+          "display_name": "도구 이름",
+          "info": "Agent에 노출할 64자 이하 이름입니다. 첫 글자는 영문 또는 숫자로 시작하고, 이후에는 영문, 숫자, 밑줄과 하이픈만 사용합니다.",
+          "required": true
+        },
+        {
+          "type": "MultilineInput",
+          "name": "tool_description",
+          "display_name": "도구 설명",
+          "info": "Agent가 이 하위 Flow를 선택할 조건과 선택하지 않을 조건을 함께 설명합니다.",
+          "required": true
+        },
+        {
+          "type": "BoolInput",
+          "name": "return_direct",
+          "display_name": "하위 결과 직접 반환",
+          "info": "부모 Agent의 추가 재작성 단계를 거치지 않고 하위 Flow 결과를 그대로 반환합니다.",
+          "value": true,
+          "advanced": true
+        }
+      ],
+      "outputs": [
+        {
+          "type": "Output",
+          "name": "component_as_tool",
+          "display_name": "Flow 도구",
+          "method": "to_toolkit",
+          "types": [
+            "Tool"
+          ],
+          "tool_mode": true
+        }
+      ],
+      "dependencies": [
+        "langflow",
+        "lfx"
+      ],
+      "used_by_flows": [
+        "skill_based_agent_flow"
+      ],
+      "risk_tags": [
+        "subflow_execution",
+        "agent_tool",
+        "graph_cache",
+        "session_inheritance",
+        "exact_flow_name",
+        "version_coupled_internal_api",
+        "provider_tool_parameter_compatibility",
+        "stable_question_schema",
+        "runtime_chat_input_mapping"
+      ],
+      "verified_environment": "langflow-1.8.2-local-runtime-validation",
+      "last_verified_at": "2026-07-12",
+      "documentation_path": "html/components/cached_named_run_flow_tool/index.html",
+      "approved_by_user_at": null,
+      "guide_file": "USAGE_GUIDE.md",
+      "beginner_guide_file": "BEGINNER_GUIDE.md",
+      "beginner_documentation_path": "html/components/cached_named_run_flow_tool/beginner.html"
+    },
+    {
+      "id": "citation_response_builder",
+      "name_ko": "Citation Response Builder",
+      "class_name": "CitationResponseBuilder",
+      "asset_type": "component",
+      "status": "user_testing",
+      "version": "0.1.0",
+      "standalone": true,
+      "reusability": "shared",
+      "source_family": "enterprise_document_rag_flow",
+      "summary_ko": "검증된 authorized evidence에서만 문서명·버전·페이지 Citation을 다시 만들어 최종 Message로 반환합니다.",
+      "source_file": "citation_response_builder.py",
+      "inputs": [
+        {
+          "type": "DataInput",
+          "name": "answer",
+          "display_name": "Answer",
+          "input_types": [
+            "Data",
+            "JSON"
+          ],
+          "required": true
+        }
+      ],
+      "outputs": [
+        {
+          "type": "Output",
+          "name": "message",
+          "display_name": "Message",
+          "method": "build_message",
+          "types": [
+            "Message"
+          ]
+        }
+      ],
+      "dependencies": [
+        "lfx"
+      ],
+      "used_by_flows": [
+        "enterprise_document_rag_flow"
+      ],
+      "risk_tags": [
+        "citation_output",
+        "document_content"
+      ],
+      "verified_environment": "langflow-1.8.2-local-runtime-validation",
+      "last_verified_at": "2026-07-11",
+      "documentation_path": "html/components/citation_response_builder/index.html",
+      "approved_by_user_at": null
+    },
+    {
+      "id": "data_output_builder",
+      "name_ko": "Data Output Builder",
+      "class_name": "DataOutputBuilder",
+      "asset_type": "component",
+      "status": "user_testing",
+      "version": "0.9.0",
+      "standalone": true,
+      "reusability": "shared",
+      "source_family": "reusable_data_flow",
+      "summary_ko": "조회 결과를 API용 Data JSON과 Chat Output 확인용 표 메시지로 반환합니다.",
+      "source_file": "data_output_builder.py",
+      "inputs": [
+        {
+          "type": "DataInput",
+          "name": "data_result",
+          "display_name": "Data Result",
+          "input_types": [
+            "Data",
+            "JSON"
+          ]
+        },
+        {
+          "type": "MessageTextInput",
+          "name": "max_message_rows",
+          "display_name": "Max Message Rows",
+          "value": null,
+          "advanced": true
+        },
+        {
+          "type": "MessageTextInput",
+          "name": "max_cell_chars",
+          "display_name": "Max Cell Chars",
+          "value": null,
+          "advanced": true
+        }
+      ],
+      "outputs": [
+        {
+          "type": "Output",
+          "name": "data_json",
+          "display_name": "Data JSON",
+          "method": "build_data_json",
+          "group_outputs": true,
+          "types": [
+            "Data"
+          ]
+        },
+        {
+          "type": "Output",
+          "name": "test_message",
+          "display_name": "Test Message",
+          "method": "build_test_message",
+          "group_outputs": true,
+          "types": [
+            "Message"
+          ]
+        }
+      ],
+      "dependencies": [
+        "lfx"
+      ],
+      "used_by_flows": [
+        "reusable_data_flow"
+      ],
+      "risk_tags": [],
+      "verified_environment": "legacy-export-1.8.2-local-static-check",
+      "last_verified_at": "2026-07-10",
+      "documentation_path": "html/components/data_output_builder/index.html",
+      "approved_by_user_at": null
+    },
+    {
+      "id": "data_request_normalizer",
+      "name_ko": "Data Request Normalizer",
+      "class_name": "DataRequestNormalizer",
+      "asset_type": "component",
+      "status": "user_testing",
+      "version": "0.9.0",
+      "standalone": true,
+      "reusability": "shared",
+      "source_family": "reusable_data_flow",
+      "summary_ko": "LLM 응답을 data_request로 정규화하고 source_catalog의 실행 설정을 채웁니다.",
+      "source_file": "data_request_normalizer.py",
+      "inputs": [
+        {
+          "type": "DataInput",
+          "name": "llm_result",
+          "display_name": "LLM Result",
+          "input_types": [
+            "Message",
+            "Data",
+            "Text",
+            "JSON"
+          ]
+        },
+        {
+          "type": "MultilineInput",
+          "name": "source_catalog",
+          "display_name": "Data Catalog",
+          "value": "",
+          "advanced": false
+        }
+      ],
+      "outputs": [
+        {
+          "type": "Output",
+          "name": "data_request",
+          "display_name": "Data Request",
+          "method": "build_data_request",
+          "types": [
+            "Data"
+          ]
+        }
+      ],
+      "dependencies": [
+        "lfx"
+      ],
+      "used_by_flows": [
+        "reusable_data_flow"
+      ],
+      "risk_tags": [],
+      "verified_environment": "legacy-export-1.8.2-local-static-check",
+      "last_verified_at": "2026-07-10",
+      "documentation_path": "html/components/data_request_normalizer/index.html",
+      "approved_by_user_at": null
+    },
+    {
+      "id": "data_result_merger",
+      "name_ko": "Data Result Merger",
+      "class_name": "DataResultMerger",
+      "asset_type": "component",
+      "status": "user_testing",
+      "version": "0.9.0",
+      "standalone": true,
+      "reusability": "shared",
+      "source_family": "reusable_data_flow",
+      "summary_ko": "Oracle, H-API, Datalake, Goodocs 조회 결과를 하나의 data_result로 병합합니다.",
+      "source_file": "data_result_merger.py",
+      "inputs": [
+        {
+          "type": "DataInput",
+          "name": "oracle_result",
+          "display_name": "Oracle Result",
+          "input_types": [
+            "Data",
+            "JSON"
+          ]
+        },
+        {
+          "type": "DataInput",
+          "name": "h_api_result",
+          "display_name": "H-API Result",
+          "input_types": [
+            "Data",
+            "JSON"
+          ]
+        },
+        {
+          "type": "DataInput",
+          "name": "datalake_result",
+          "display_name": "Datalake Result",
+          "input_types": [
+            "Data",
+            "JSON"
+          ]
+        },
+        {
+          "type": "DataInput",
+          "name": "goodocs_result",
+          "display_name": "Goodocs Result",
+          "input_types": [
+            "Data",
+            "JSON"
+          ]
+        }
+      ],
+      "outputs": [
+        {
+          "type": "Output",
+          "name": "data_result",
+          "display_name": "Data Result",
+          "method": "build_data_result",
+          "types": [
+            "Data"
+          ]
+        }
+      ],
+      "dependencies": [
+        "lfx"
+      ],
+      "used_by_flows": [
+        "reusable_data_flow"
+      ],
+      "risk_tags": [],
+      "verified_environment": "legacy-export-1.8.2-local-static-check",
+      "last_verified_at": "2026-07-10",
+      "documentation_path": "html/components/data_result_merger/index.html",
+      "approved_by_user_at": null
+    },
+    {
+      "id": "datalake_data",
+      "name_ko": "Datalake Data",
+      "class_name": "DatalakeData",
+      "asset_type": "component",
+      "status": "user_testing",
+      "version": "0.9.0",
+      "standalone": true,
+      "reusability": "shared",
+      "source_family": "reusable_data_flow",
+      "summary_ko": "data_request 중 datalake 요청만 골라 실행합니다.",
+      "source_file": "datalake_data.py",
+      "inputs": [
+        {
+          "type": "DataInput",
+          "name": "data_request",
+          "display_name": "Data Request",
+          "input_types": [
+            "Data",
+            "JSON"
+          ]
+        },
+        {
+          "type": "MessageTextInput",
+          "name": "lake_user_id",
+          "display_name": "LAKE_USER_ID",
+          "value": ""
+        },
+        {
+          "type": "MessageTextInput",
+          "name": "lake_jwt_tk",
+          "display_name": "LAKE_JWT_TK",
+          "value": ""
+        },
+        {
+          "type": "MessageTextInput",
+          "name": "fetch_limit",
+          "display_name": "Fetch Limit",
+          "value": "5000",
+          "advanced": true
+        }
+      ],
+      "outputs": [
+        {
+          "type": "Output",
+          "name": "source_result",
+          "display_name": "Data Result",
+          "method": "build_source_result",
+          "types": [
+            "Data"
+          ]
+        }
+      ],
+      "dependencies": [
+        "aiohttp",
+        "lfx",
+        "mysql",
+        "mysql-connector-python",
+        "nest-asyncio",
+        "nest_asyncio",
+        "pandas"
+      ],
+      "used_by_flows": [
+        "reusable_data_flow"
+      ],
+      "risk_tags": [
+        "external_data_access",
+        "credentials_required"
+      ],
+      "verified_environment": "legacy-export-1.8.2-local-static-check",
+      "last_verified_at": "2026-07-10",
+      "documentation_path": "html/components/datalake_data/index.html",
+      "approved_by_user_at": null
+    },
+    {
+      "id": "datalake_table_query",
+      "name_ko": "Datalake 테이블 조회",
+      "class_name": "DatalakeTableQuery",
+      "asset_type": "component",
+      "status": "user_testing",
+      "version": "0.1.0",
+      "standalone": true,
+      "reusability": "shared",
+      "source_family": "direct_data_access_components",
+      "summary_ko": "Cluster API와 MySQL 조회 설정을 직접 입력받아 Datalake 결과를 DataFrame으로 반환합니다.",
+      "source_file": "datalake_table_query.py",
+      "inputs": [
+        {
+          "type": "StrInput",
+          "name": "api_base_url",
+          "display_name": "Datalake API 기준 URL",
+          "value": "https://api-server.lake.skhynix.com/api/v4/",
+          "required": true,
+          "info": "Cluster 상태 API의 기준 URL입니다. 신뢰할 수 있는 사내 주소만 사용하세요."
+        },
+        {
+          "type": "BoolInput",
+          "name": "allow_insecure_api_http",
+          "display_name": "HTTP API 사용 허용",
+          "value": false,
+          "advanced": true,
+          "info": "기본값은 꺼짐입니다. HTTPS를 지원하지 않는 폐쇄된 테스트망에서만 명시적으로 켜세요."
+        },
+        {
+          "type": "StrInput",
+          "name": "cluster_status_path",
+          "display_name": "Cluster 상태 경로",
+          "value": "runtime/cluster/{cluster_type}/running",
+          "required": true,
+          "info": "기준 URL 뒤에 붙는 상대 경로입니다. {cluster_type} 변수를 사용할 수 있습니다."
+        },
+        {
+          "type": "StrInput",
+          "name": "cluster_type",
+          "display_name": "Cluster 유형",
+          "value": "starrocks",
+          "required": true,
+          "info": "기본값은 starrocks입니다."
+        },
+        {
+          "type": "StrInput",
+          "name": "jdbc_endpoint_key",
+          "display_name": "MySQL Endpoint 필드",
+          "value": "jdbc-external",
+          "required": true,
+          "advanced": true,
+          "info": "Cluster 응답의 endpoints 객체에서 MySQL 주소를 찾을 필드명입니다."
+        },
+        {
+          "type": "MultilineInput",
+          "name": "allowed_mysql_hosts",
+          "display_name": "허용 MySQL Host",
+          "value": ".skhynix.com",
+          "required": true,
+          "info": "정확한 host 또는 .example.com suffix를 쉼표/줄바꿈으로 입력합니다. API가 다른 host를 반환하면 차단합니다."
+        },
+        {
+          "type": "StrInput",
+          "name": "lake_user_id",
+          "display_name": "Datalake 사용자 ID",
+          "required": true,
+          "info": "Cluster API의 user_id와 MySQL 접속 사용자로 전달됩니다."
+        },
+        {
+          "type": "SecretStrInput",
+          "name": "lake_jwt_token",
+          "display_name": "Datalake JWT 토큰",
+          "required": true,
+          "info": "Bearer Token과 MySQL 비밀번호로 전달되는 보호 필드입니다."
+        },
+        {
+          "type": "StrInput",
+          "name": "mysql_ssl_ca_path",
+          "display_name": "MySQL CA 파일 경로",
+          "required": true,
+          "info": "MySQL 서버 인증서와 host 신원을 검증할 CA PEM 파일의 Agent Builder 실행 환경 경로입니다."
+        },
+        {
+          "type": "MultilineInput",
+          "name": "sql_query",
+          "display_name": "조회 SQL",
+          "required": true,
+          "info": "SELECT 또는 조회용 WITH 문 한 개만 입력합니다. 값은 native bind를 사용하세요."
+        },
+        {
+          "type": "DictInput",
+          "name": "bind_parameters",
+          "display_name": "바인드 변수",
+          "value": {},
+          "info": "SQL의 %(from_ym)s 같은 변수에 전달할 JSON 객체입니다."
+        },
+        {
+          "type": "IntInput",
+          "name": "max_rows",
+          "display_name": "최대 조회 행 수",
+          "value": 5000,
+          "advanced": true,
+          "info": "1~100000행 사이에서 설정합니다."
+        },
+        {
+          "type": "IntInput",
+          "name": "api_timeout_seconds",
+          "display_name": "API/DB 연결 제한시간(초)",
+          "value": 15,
+          "advanced": true,
+          "info": "Cluster API 한 번의 요청과 MySQL 연결에 적용할 제한시간입니다."
+        },
+        {
+          "type": "IntInput",
+          "name": "query_timeout_seconds",
+          "display_name": "SQL 읽기 제한시간(초)",
+          "value": 60,
+          "advanced": true,
+          "info": "MySQL SQL 실행과 결과 읽기에 적용할 제한시간입니다."
+        },
+        {
+          "type": "IntInput",
+          "name": "cluster_wait_seconds",
+          "display_name": "Cluster 전체 대기시간(초)",
+          "value": 120,
+          "advanced": true,
+          "info": "Cluster가 RUNNING이 될 때까지 기다릴 전체 시간입니다."
+        },
+        {
+          "type": "IntInput",
+          "name": "poll_interval_seconds",
+          "display_name": "Cluster 확인 간격(초)",
+          "value": 3,
+          "advanced": true,
+          "info": "RUNNING 상태를 다시 확인하는 간격입니다."
+        }
+      ],
+      "outputs": [
+        {
+          "type": "Output",
+          "name": "data_table",
+          "display_name": "조회 데이터 테이블",
+          "method": "build_data_table",
+          "types": [
+            "DataFrame"
+          ],
+          "tool_mode": false
+        }
+      ],
+      "dependencies": [
+        "aiohttp",
+        "lfx",
+        "mysql-connector-python"
+      ],
+      "used_by_flows": [],
+      "risk_tags": [
+        "database_read",
+        "credentials_required",
+        "cluster_api",
+        "read_only_sql",
+        "endpoint_allowlist",
+        "verified_tls_required"
+      ],
+      "verified_environment": "langflow-1.8.2-template-and-isolated-contract-validation",
+      "last_verified_at": "2026-07-12",
+      "documentation_path": "html/components/datalake_table_query/index.html",
+      "approved_by_user_at": null,
+      "guide_file": "USAGE_GUIDE.md"
+    },
+    {
+      "id": "demo_report_request_loader",
+      "name_ko": "00 리포트 요청/데이터 불러오기",
+      "class_name": "DemoReportRequestLoader",
+      "asset_type": "component",
+      "status": "user_testing",
+      "version": "0.9.0",
+      "standalone": true,
+      "reusability": "shared",
+      "source_family": "html_report_flow",
+      "summary_ko": "질문, 표시 요청, 직접 입력 데이터 또는 File Read 결과를 HTML 리포트용 요청으로 정리합니다.",
+      "source_file": "demo_report_request_loader.py",
+      "inputs": [
+        {
+          "type": "MessageTextInput",
+          "name": "question",
+          "display_name": "질문",
+          "required": true
+        },
+        {
+          "type": "MessageTextInput",
+          "name": "view_request",
+          "display_name": "보고 싶은 방식",
+          "required": false
+        },
+        {
+          "type": "MessageTextInput",
+          "name": "data_text",
+          "display_name": "데이터 직접 입력",
+          "required": false
+        },
+        {
+          "type": "DataInput",
+          "name": "file_data",
+          "display_name": "파일 데이터",
+          "input_types": [
+            "Data",
+            "DataFrame",
+            "Message",
+            "Text",
+            "File",
+            "JSON",
+            "StructuredContent",
+            "Structured Content"
+          ],
+          "required": false
+        }
+      ],
+      "outputs": [
+        {
+          "type": "Output",
+          "name": "payload",
+          "display_name": "요청 데이터",
+          "method": "build_payload"
+        }
+      ],
+      "dependencies": [
+        "lfx"
+      ],
+      "used_by_flows": [
+        "html_report_flow"
+      ],
+      "risk_tags": [],
+      "verified_environment": "legacy-export-1.8.2-local-static-check",
+      "last_verified_at": "2026-07-10",
+      "documentation_path": "html/components/demo_report_request_loader/index.html",
+      "approved_by_user_at": null
+    },
+    {
+      "id": "demo_skill_catalog_builder",
+      "name_ko": "데모 Skill 카탈로그 빌더",
+      "class_name": "DemoSkillCatalogBuilder",
+      "asset_type": "component",
+      "status": "user_testing",
+      "version": "0.1.0",
+      "standalone": true,
+      "reusability": "shared",
+      "source_family": "skill_based_agent_flow",
+      "summary_ko": "검증된 세 가지 업무 Skill 카탈로그와 Supervisor Agent용 지시사항을 생성합니다.",
+      "source_file": "demo_skill_catalog_builder.py",
+      "inputs": [
+        {
+          "type": "MultilineInput",
+          "name": "catalog_json",
+          "display_name": "Skill 카탈로그 JSON",
+          "info": "비우면 내장된 교육용 카탈로그를 사용합니다. 세 Tool과 허용 action은 고정 검증됩니다.",
+          "value": "",
+          "required": false,
+          "advanced": true
+        }
+      ],
+      "outputs": [
+        {
+          "type": "Output",
+          "name": "skill_catalog",
+          "display_name": "Skill 카탈로그",
+          "method": "build_catalog",
+          "types": [
+            "Data"
+          ]
+        },
+        {
+          "type": "Output",
+          "name": "agent_instructions",
+          "display_name": "Agent 지시사항",
+          "method": "build_instructions",
+          "types": [
+            "Message"
+          ]
+        }
+      ],
+      "dependencies": [
+        "lfx"
+      ],
+      "used_by_flows": [
+        "skill_based_agent_flow",
+        "meeting_action_skill_flow"
+      ],
+      "risk_tags": [
+        "dynamic_agent_instruction",
+        "skill_catalog",
+        "tool_allowlist",
+        "prompt_injection_boundary"
+      ],
+      "verified_environment": "langflow-1.8.2-template-and-isolated-contract-validation",
+      "last_verified_at": "2026-07-12",
+      "documentation_path": "html/components/demo_skill_catalog_builder/index.html",
+      "approved_by_user_at": null
+    },
+    {
+      "id": "document_chunk_index_builder",
+      "name_ko": "02 Document Chunk Index Builder",
+      "class_name": "DocumentChunkIndexBuilder",
+      "asset_type": "component",
+      "status": "user_testing",
+      "version": "0.1.0",
+      "standalone": true,
+      "reusability": "shared",
+      "source_family": "enterprise_document_rag_flow",
+      "summary_ko": "Build stable, deduplicated chunks and version/tombstone operations for a model-free payload index.",
+      "source_file": "document_chunk_index_builder.py",
+      "inputs": [
+        {
+          "type": "DataInput",
+          "name": "documents",
+          "display_name": "Safe Documents",
+          "input_types": [
+            "Data",
+            "JSON"
+          ],
+          "required": true
+        },
+        {
+          "type": "IntInput",
+          "name": "chunk_chars",
+          "display_name": "Chunk Characters",
+          "value": 900,
+          "advanced": true
+        },
+        {
+          "type": "IntInput",
+          "name": "overlap_chars",
+          "display_name": "Overlap Characters",
+          "value": 120,
+          "advanced": true
+        },
+        {
+          "type": "IntInput",
+          "name": "max_chunks",
+          "display_name": "Maximum Chunks",
+          "value": 5000,
+          "advanced": true
+        },
+        {
+          "type": "BoolInput",
+          "name": "latest_version_only",
+          "display_name": "Keep Latest Version Only",
+          "value": true,
+          "advanced": true
+        }
+      ],
+      "outputs": [
+        {
+          "type": "Output",
+          "name": "document_index",
+          "display_name": "Document Index",
+          "method": "build_document_index",
+          "types": [
+            "Data"
+          ]
+        }
+      ],
+      "dependencies": [
+        "lfx"
+      ],
+      "used_by_flows": [
+        "enterprise_document_rag_flow"
+      ],
+      "risk_tags": [
+        "ephemeral_index",
+        "document_content"
+      ],
+      "verified_environment": "langflow-1.8.2-local-runtime-validation",
+      "last_verified_at": "2026-07-11",
+      "documentation_path": "html/components/document_chunk_index_builder/index.html",
+      "approved_by_user_at": null
+    },
+    {
+      "id": "document_input_normalizer",
+      "name_ko": "00 Document Input Normalizer",
+      "class_name": "DocumentInputNormalizer",
+      "asset_type": "component",
+      "status": "user_testing",
+      "version": "0.1.0",
+      "standalone": true,
+      "reusability": "shared",
+      "source_family": "enterprise_document_rag_flow",
+      "summary_ko": "Normalize Data, Message, text, or JSON into documents with citation and ACL metadata.",
+      "source_file": "document_input_normalizer.py",
+      "inputs": [
+        {
+          "type": "DataInput",
+          "name": "document_input",
+          "display_name": "Document Input",
+          "info": "Optional Data, Message, JSON, or text. Empty input uses the embedded demo corpus when enabled.",
+          "input_types": [
+            "Data",
+            "Message",
+            "Text",
+            "JSON"
+          ],
+          "required": false
+        },
+        {
+          "type": "BoolInput",
+          "name": "use_demo_corpus",
+          "display_name": "Use Demo Corpus When Empty",
+          "value": true
+        },
+        {
+          "type": "MessageTextInput",
+          "name": "default_source_name",
+          "display_name": "Default Source Name",
+          "value": "enterprise_demo_corpus",
+          "advanced": true
+        },
+        {
+          "type": "MessageTextInput",
+          "name": "default_tenant_id",
+          "display_name": "Default Tenant ID",
+          "value": "agent-ground",
+          "advanced": true
+        },
+        {
+          "type": "DropdownInput",
+          "name": "default_classification",
+          "display_name": "Default Classification",
+          "options": [
+            "public",
+            "internal",
+            "confidential",
+            "restricted"
+          ],
+          "value": "internal",
+          "advanced": true
+        },
+        {
+          "type": "MessageTextInput",
+          "name": "default_allowed_roles",
+          "display_name": "Default Allowed Roles",
+          "info": "Comma-separated trusted role names. This is document metadata, not end-user identity.",
+          "value": "employee",
+          "advanced": true
+        },
+        {
+          "type": "MessageTextInput",
+          "name": "default_allowed_groups",
+          "display_name": "Default Allowed Groups",
+          "value": "all-employees",
+          "advanced": true
+        },
+        {
+          "type": "MessageTextInput",
+          "name": "page_break_marker",
+          "display_name": "Page Break Marker",
+          "value": "[[PAGE_BREAK]]",
+          "advanced": true
+        },
+        {
+          "type": "IntInput",
+          "name": "max_documents",
+          "display_name": "Max Documents or Pages",
+          "value": 100,
+          "advanced": true
+        },
+        {
+          "type": "IntInput",
+          "name": "max_chars_per_document",
+          "display_name": "Max Characters per Document",
+          "value": 200000,
+          "advanced": true
+        }
+      ],
+      "outputs": [
+        {
+          "type": "Output",
+          "name": "documents",
+          "display_name": "Documents",
+          "method": "build_documents",
+          "types": [
+            "Data"
+          ]
+        }
+      ],
+      "dependencies": [
+        "lfx"
+      ],
+      "used_by_flows": [
+        "enterprise_document_rag_flow"
+      ],
+      "risk_tags": [
+        "document_content",
+        "demo_corpus"
+      ],
+      "verified_environment": "langflow-1.8.2-local-runtime-validation",
+      "last_verified_at": "2026-07-11",
+      "documentation_path": "html/components/document_input_normalizer/index.html",
+      "approved_by_user_at": null
+    },
+    {
+      "id": "expense_precheck_skill_tool",
+      "name_ko": "경비 사전 점검 Skill",
+      "class_name": "ExpensePrecheckSkillTool",
+      "asset_type": "component",
+      "status": "user_testing",
+      "version": "0.1.0",
+      "standalone": true,
+      "reusability": "shared",
+      "source_family": "skill_based_agent_flow",
+      "summary_ko": "식대·교통비·숙박비·기타 금액을 교육용 한도와 비교하며 실제 승인이나 저장은 하지 않습니다.",
+      "source_file": "expense_precheck_skill_tool.py",
+      "inputs": [
+        {
+          "type": "DataInput",
+          "name": "skill_catalog",
+          "display_name": "Skill 카탈로그",
+          "info": "데모 Skill 카탈로그 빌더의 Skill 카탈로그 출력을 연결합니다. Agent Tool 인자로 노출되지 않습니다.",
+          "input_types": [
+            "Data",
+            "JSON"
+          ],
+          "required": true
+        },
+        {
+          "type": "MessageTextInput",
+          "name": "request",
+          "display_name": "경비 점검 요청",
+          "info": "예: 식대 25,000원, 교통비 12,000원",
+          "required": true,
+          "tool_mode": true
+        }
+      ],
+      "outputs": [
+        {
+          "type": "Output",
+          "name": "skill_result",
+          "display_name": "Skill 실행 결과",
+          "method": "run_skill",
+          "types": [
+            "Data"
+          ],
+          "tool_mode": true
+        },
+        {
+          "type": "Output",
+          "name": "skill_message",
+          "display_name": "하위 Flow 응답",
+          "method": "run_skill_message",
+          "types": [
+            "Message"
+          ],
+          "tool_mode": false
+        }
+      ],
+      "dependencies": [
+        "lfx"
+      ],
+      "used_by_flows": [
+        "skill_based_agent_flow"
+      ],
+      "risk_tags": [
+        "agent_tool",
+        "skill_as_tool",
+        "read_only_demo",
+        "deterministic_calculation"
+      ],
+      "verified_environment": "langflow-1.8.2-template-and-isolated-contract-validation",
+      "last_verified_at": "2026-07-12",
+      "documentation_path": "html/components/expense_precheck_skill_tool/index.html",
+      "approved_by_user_at": null
+    },
+    {
+      "id": "goodocs_data",
+      "name_ko": "Goodocs Data",
+      "class_name": "GoodocsData",
+      "asset_type": "component",
+      "status": "user_testing",
+      "version": "0.9.0",
+      "standalone": true,
+      "reusability": "shared",
+      "source_family": "reusable_data_flow",
+      "summary_ko": "data_request 중 goodocs 요청만 골라 실행합니다.",
+      "source_file": "goodocs_data.py",
+      "inputs": [
+        {
+          "type": "DataInput",
+          "name": "data_request",
+          "display_name": "Data Request",
+          "input_types": [
+            "Data",
+            "JSON"
+          ]
+        },
+        {
+          "type": "MessageTextInput",
+          "name": "goodocs_user_id",
+          "display_name": "USER_ID",
+          "value": ""
+        },
+        {
+          "type": "MessageTextInput",
+          "name": "goodocs_token_source",
+          "display_name": "TOKEN_SOURCE",
+          "value": ""
+        },
+        {
+          "type": "MessageTextInput",
+          "name": "goodocs_token_key",
+          "display_name": "TOKEN_KEY",
+          "value": ""
+        },
+        {
+          "type": "MessageTextInput",
+          "name": "fetch_limit",
+          "display_name": "Fetch Limit",
+          "value": "5000",
+          "advanced": true
+        }
+      ],
+      "outputs": [
+        {
+          "type": "Output",
+          "name": "source_result",
+          "display_name": "Data Result",
+          "method": "build_source_result",
+          "types": [
+            "Data"
+          ]
+        }
+      ],
+      "dependencies": [
+        "lfx"
+      ],
+      "used_by_flows": [
+        "reusable_data_flow"
+      ],
+      "risk_tags": [
+        "external_document_access",
+        "credentials_required"
+      ],
+      "verified_environment": "legacy-export-1.8.2-local-static-check",
+      "last_verified_at": "2026-07-10",
+      "documentation_path": "html/components/goodocs_data/index.html",
+      "approved_by_user_at": null
+    },
+    {
+      "id": "goodocs_table_reader",
+      "name_ko": "GooDocs 테이블 조회기",
+      "class_name": "GooDocsTableReader",
+      "asset_type": "component",
+      "status": "user_testing",
+      "version": "0.1.0",
+      "standalone": true,
+      "reusability": "shared",
+      "source_family": "direct_data_access_components",
+      "summary_ko": "문서 ID와 인증값으로 GooDocs 문서 한 개를 조회하고 데이터 테이블만 출력합니다. 실제 사내 GooDocs 모듈을 코드의 교체 구역에 넣어야 합니다.",
+      "source_file": "goodocs_table_reader.py",
+      "inputs": [
+        {
+          "type": "StrInput",
+          "name": "document_id",
+          "display_name": "문서 ID",
+          "info": "조회할 GooDocs 문서의 식별자입니다.",
+          "required": true
+        },
+        {
+          "type": "StrInput",
+          "name": "user_id",
+          "display_name": "사용자 ID",
+          "info": "GooDocs 인증에 사용하는 사용자 ID입니다.",
+          "required": true
+        },
+        {
+          "type": "SecretStrInput",
+          "name": "token_source",
+          "display_name": "토큰 소스",
+          "info": "GooDocs 인증에 사용하는 토큰 소스입니다.",
+          "required": true
+        },
+        {
+          "type": "SecretStrInput",
+          "name": "token_key",
+          "display_name": "토큰 키",
+          "info": "GooDocs 인증에 사용하는 토큰 키입니다.",
+          "required": true
+        },
+        {
+          "type": "StrInput",
+          "name": "sheet_name",
+          "display_name": "시트 이름",
+          "info": "특정 시트를 지정해야 할 때 입력합니다. 비워 두면 SHEET_NAME을 전달하지 않습니다.",
+          "value": "",
+          "required": false,
+          "advanced": true
+        },
+        {
+          "type": "IntInput",
+          "name": "max_rows",
+          "display_name": "최대 출력 행 수",
+          "info": "read_all()이 반환한 전체 결과 중 출력할 최대 행 수입니다. 원본 문서의 실제 조회량을 줄이는 설정은 아닙니다.",
+          "value": 5000,
+          "required": true,
+          "advanced": true
+        }
+      ],
+      "outputs": [
+        {
+          "type": "Output",
+          "name": "data_table",
+          "display_name": "데이터 테이블",
+          "method": "build_data_table",
+          "types": [
+            "DataFrame"
+          ],
+          "tool_mode": false
+        }
+      ],
+      "dependencies": [
+        "lfx",
+        "pandas",
+        "pydantic"
+      ],
+      "used_by_flows": [],
+      "risk_tags": [
+        "external_document_access",
+        "credentials_required",
+        "module_replacement_required"
+      ],
+      "verified_environment": "langflow-1.8.2-template-and-isolated-contract-validation",
+      "last_verified_at": "2026-07-12",
+      "documentation_path": "html/components/goodocs_table_reader/index.html",
+      "approved_by_user_at": null,
+      "guide_file": "USAGE_GUIDE.md"
+    },
+    {
+      "id": "grounded_answer_builder",
+      "name_ko": "Grounded Answer Builder",
+      "class_name": "GroundedAnswerBuilder",
+      "asset_type": "component",
+      "status": "user_testing",
+      "version": "0.1.0",
+      "standalone": true,
+      "reusability": "shared",
+      "source_family": "enterprise_document_rag_flow",
+      "summary_ko": "LLM의 근거 ID를 서버 allowlist와 교차 검증하고, 부적합 응답은 허용 근거의 deterministic 답변으로 대체합니다.",
+      "source_file": "grounded_answer_builder.py",
+      "inputs": [
+        {
+          "type": "DataInput",
+          "name": "gate",
+          "display_name": "Gate",
+          "input_types": [
+            "Data",
+            "JSON"
+          ],
+          "required": true
+        },
+        {
+          "type": "MessageTextInput",
+          "name": "llm_response",
+          "display_name": "LLM Response",
+          "required": false
+        }
+      ],
+      "outputs": [
+        {
+          "type": "Output",
+          "name": "answer",
+          "display_name": "Answer",
+          "method": "build_answer",
+          "types": [
+            "Data"
+          ]
+        }
+      ],
+      "dependencies": [
+        "lfx"
+      ],
+      "used_by_flows": [
+        "enterprise_document_rag_flow"
+      ],
+      "risk_tags": [
+        "llm_output_validation",
+        "document_content"
+      ],
+      "verified_environment": "langflow-1.8.2-local-runtime-validation",
+      "last_verified_at": "2026-07-11",
+      "documentation_path": "html/components/grounded_answer_builder/index.html",
+      "approved_by_user_at": null
+    },
+    {
+      "id": "h_api_data",
+      "name_ko": "H-API Data",
+      "class_name": "HApiData",
+      "asset_type": "component",
+      "status": "user_testing",
+      "version": "0.9.0",
+      "standalone": true,
+      "reusability": "shared",
+      "source_family": "reusable_data_flow",
+      "summary_ko": "data_request 중 h_api 요청만 골라 실행합니다.",
+      "source_file": "h_api_data.py",
+      "inputs": [
+        {
+          "type": "DataInput",
+          "name": "data_request",
+          "display_name": "Data Request",
+          "input_types": [
+            "Data",
+            "JSON"
+          ]
+        },
+        {
+          "type": "MessageTextInput",
+          "name": "h_api_token",
+          "display_name": "H-API Token",
+          "value": ""
+        },
+        {
+          "type": "MessageTextInput",
+          "name": "fetch_limit",
+          "display_name": "Fetch Limit",
+          "value": "5000",
+          "advanced": true
+        }
+      ],
+      "outputs": [
+        {
+          "type": "Output",
+          "name": "source_result",
+          "display_name": "Data Result",
+          "method": "build_source_result",
+          "types": [
+            "Data"
+          ]
+        }
+      ],
+      "dependencies": [
+        "lfx"
+      ],
+      "used_by_flows": [
+        "reusable_data_flow"
+      ],
+      "risk_tags": [
+        "external_api_access",
+        "credentials_required"
+      ],
+      "verified_environment": "legacy-export-1.8.2-local-static-check",
+      "last_verified_at": "2026-07-10",
+      "documentation_path": "html/components/h_api_data/index.html",
+      "approved_by_user_at": null
+    },
+    {
+      "id": "h_api_table_request",
+      "name_ko": "H-API 테이블 조회",
+      "class_name": "HApiTableRequest",
+      "asset_type": "component",
+      "status": "user_testing",
+      "version": "0.1.0",
+      "standalone": true,
+      "reusability": "shared",
+      "source_family": "direct_data_access_components",
+      "summary_ko": "URL, Token, bindParams를 직접 받아 H-API를 한 번 호출하고 데이터 테이블만 반환합니다.",
+      "source_file": "h_api_table_request.py",
+      "inputs": [
+        {
+          "type": "MessageTextInput",
+          "name": "api_url",
+          "display_name": "H-API 주소",
+          "info": "호출할 H-API의 전체 http 또는 https 주소입니다.",
+          "required": true
+        },
+        {
+          "type": "BoolInput",
+          "name": "allow_insecure_http",
+          "display_name": "HTTP API 사용 허용",
+          "info": "기본값은 꺼짐입니다. HTTPS를 지원하지 않는 폐쇄된 테스트망에서만 명시적으로 켜세요.",
+          "value": false,
+          "advanced": true
+        },
+        {
+          "type": "SecretStrInput",
+          "name": "h_api_token",
+          "display_name": "H-API 인증 토큰",
+          "info": "h-api-token 요청 헤더에 넣을 인증 값입니다. 실행 상태와 출력에는 표시하지 않습니다.",
+          "required": true
+        },
+        {
+          "type": "MultilineInput",
+          "name": "bind_params_json",
+          "display_name": "요청 파라미터 JSON",
+          "info": "H-API가 요구하는 순서대로 값을 넣은 JSON 배열입니다. 예: [\"A12345\", \"D/A1\", \"B/G1\"]",
+          "value": "[]",
+          "required": true
+        },
+        {
+          "type": "MessageTextInput",
+          "name": "response_path",
+          "display_name": "응답 데이터 경로",
+          "info": "표로 바꿀 JSON 값의 점 경로입니다. 경로가 틀리면 자동 대체하지 않고 오류로 중단합니다.",
+          "value": "data.row"
+        },
+        {
+          "type": "IntInput",
+          "name": "timeout_seconds",
+          "display_name": "제한 시간(초)",
+          "info": "연결과 응답 읽기 작업에 적용되는 timeout입니다. 전체 wall-clock 제한은 아닙니다.",
+          "value": 30,
+          "advanced": true
+        },
+        {
+          "type": "IntInput",
+          "name": "max_rows",
+          "display_name": "최대 반환 행 수",
+          "info": "응답에서 앞부분 기준으로 반환할 최대 행 수입니다.",
+          "value": 5000,
+          "advanced": true
+        }
+      ],
+      "outputs": [
+        {
+          "type": "Output",
+          "name": "data_table",
+          "display_name": "데이터 테이블",
+          "method": "build_data_table",
+          "types": [
+            "DataFrame"
+          ],
+          "tool_mode": false
+        }
+      ],
+      "dependencies": [
+        "lfx",
+        "requests"
+      ],
+      "used_by_flows": [],
+      "risk_tags": [
+        "external_api_access",
+        "credentials_required",
+        "response_size_limit",
+        "https_default"
+      ],
+      "verified_environment": "langflow-1.8.2-template-and-isolated-contract-validation",
+      "last_verified_at": "2026-07-12",
+      "documentation_path": "html/components/h_api_table_request/index.html",
+      "approved_by_user_at": null,
+      "guide_file": "USAGE_GUIDE.md"
+    },
+    {
+      "id": "html_component_catalog_builder",
+      "name_ko": "02 기본 요소 양식/추천",
+      "class_name": "HtmlComponentCatalogBuilder",
+      "asset_type": "component",
+      "status": "user_testing",
+      "version": "0.9.0",
+      "standalone": true,
+      "reusability": "shared",
+      "source_family": "html_report_flow",
+      "summary_ko": "내부 기본 요소 양식을 바탕으로 데이터와 요청 의도에 맞는 HTML 리포트 블록 후보를 추천합니다.",
+      "source_file": "html_component_catalog_builder.py",
+      "inputs": [
+        {
+          "type": "DataInput",
+          "name": "data_profile",
+          "display_name": "데이터 분석 결과",
+          "required": true
+        },
+        {
+          "type": "MessageTextInput",
+          "name": "component_catalog_json",
+          "display_name": "요소 양식 JSON (선택)",
+          "required": false,
+          "advanced": true
+        }
+      ],
+      "outputs": [
+        {
+          "type": "Output",
+          "name": "html_component_catalog",
+          "display_name": "요소 추천 결과",
+          "method": "build_catalog"
+        }
+      ],
+      "dependencies": [
+        "lfx"
+      ],
+      "used_by_flows": [
+        "html_report_flow"
+      ],
+      "risk_tags": [],
+      "verified_environment": "legacy-export-1.8.2-local-static-check",
+      "last_verified_at": "2026-07-10",
+      "documentation_path": "html/components/html_component_catalog_builder/index.html",
+      "approved_by_user_at": null
+    },
+    {
+      "id": "html_report_data_profile_builder",
+      "name_ko": "01 데이터 구조 분석",
+      "class_name": "HtmlReportDataProfileBuilder",
+      "asset_type": "component",
+      "status": "user_testing",
+      "version": "0.9.0",
+      "standalone": true,
+      "reusability": "shared",
+      "source_family": "html_report_flow",
+      "summary_ko": "리포트에 쓸 컬럼 유형, 숫자/범주/날짜 후보, 데이터 품질 신호를 요약합니다.",
+      "source_file": "html_report_data_profile_builder.py",
+      "inputs": [
+        {
+          "type": "DataInput",
+          "name": "analysis_payload",
+          "display_name": "요청 데이터",
+          "required": true
+        }
+      ],
+      "outputs": [
+        {
+          "type": "Output",
+          "name": "data_profile",
+          "display_name": "데이터 분석 결과",
+          "method": "build_profile"
+        }
+      ],
+      "dependencies": [
+        "lfx"
+      ],
+      "used_by_flows": [
+        "html_report_flow"
+      ],
+      "risk_tags": [],
+      "verified_environment": "legacy-export-1.8.2-local-static-check",
+      "last_verified_at": "2026-07-10",
+      "documentation_path": "html/components/html_report_data_profile_builder/index.html",
+      "approved_by_user_at": null
+    },
+    {
+      "id": "html_report_datasets_adapter",
+      "name_ko": "11 HTML Report Datasets Adapter",
+      "class_name": "HtmlReportDatasetsAdapter",
+      "asset_type": "component",
+      "status": "user_testing",
+      "version": "0.9.0",
+      "standalone": true,
+      "reusability": "shared",
+      "source_family": "reusable_data_flow",
+      "summary_ko": "06 Data JSON을 HTML 생성 Flow의 datasets JSON 입력으로 변환합니다.",
+      "source_file": "html_report_datasets_adapter.py",
+      "inputs": [
+        {
+          "type": "DataInput",
+          "name": "data_json",
+          "display_name": "Data JSON",
+          "input_types": [
+            "Data",
+            "JSON",
+            "Message",
+            "Text"
+          ]
+        }
+      ],
+      "outputs": [
+        {
+          "type": "Output",
+          "name": "html_datasets_data",
+          "display_name": "HTML Datasets Data",
+          "method": "build_datasets_data",
+          "group_outputs": true,
+          "types": [
+            "Data"
+          ]
+        },
+        {
+          "type": "Output",
+          "name": "html_datasets_text",
+          "display_name": "HTML Datasets Text",
+          "method": "build_datasets_text",
+          "group_outputs": true,
+          "types": [
+            "Message"
+          ]
+        }
+      ],
+      "dependencies": [
+        "lfx"
+      ],
+      "used_by_flows": [
+        "reusable_data_flow"
+      ],
+      "risk_tags": [],
+      "verified_environment": "legacy-export-1.8.2-local-static-check",
+      "last_verified_at": "2026-07-10",
+      "documentation_path": "html/components/html_report_datasets_adapter/index.html",
+      "approved_by_user_at": null
+    },
+    {
+      "id": "html_source_output",
+      "name_ko": "05-1 HTML 원문 출력",
+      "class_name": "HtmlSourceOutput",
+      "asset_type": "component",
+      "status": "user_testing",
+      "version": "0.9.0",
+      "standalone": true,
+      "reusability": "shared",
+      "source_family": "html_report_flow",
+      "summary_ko": "Report API 없이 04에서 생성된 전체 HTML 코드를 Playground에 그대로 출력합니다.",
+      "source_file": "html_source_output.py",
+      "inputs": [
+        {
+          "type": "DataInput",
+          "name": "payload",
+          "display_name": "HTML 생성 결과",
+          "required": true
+        }
+      ],
+      "outputs": [
+        {
+          "type": "Output",
+          "name": "html_message",
+          "display_name": "HTML 원문",
+          "method": "build_message"
+        }
+      ],
+      "dependencies": [
+        "lfx"
+      ],
+      "used_by_flows": [
+        "html_report_flow"
+      ],
+      "risk_tags": [],
+      "verified_environment": "legacy-export-1.8.2-local-static-check",
+      "last_verified_at": "2026-07-10",
+      "documentation_path": "html/components/html_source_output/index.html",
+      "approved_by_user_at": null
+    },
+    {
+      "id": "html_template_renderer",
+      "name_ko": "04 HTML 렌더링",
+      "class_name": "HtmlTemplateRenderer",
+      "asset_type": "component",
+      "status": "user_testing",
+      "version": "0.9.0",
+      "standalone": true,
+      "reusability": "shared",
+      "source_family": "html_report_flow",
+      "summary_ko": "최종 리포트 계획과 데이터를 이용해 독립 실행 가능한 HTML 원문을 생성합니다.",
+      "source_file": "html_template_renderer.py",
+      "inputs": [
+        {
+          "type": "DataInput",
+          "name": "payload",
+          "display_name": "최종 계획",
+          "required": true
+        }
+      ],
+      "outputs": [
+        {
+          "type": "Output",
+          "name": "payload_out",
+          "display_name": "HTML 생성 결과",
+          "method": "build_payload"
+        }
+      ],
+      "dependencies": [
+        "lfx"
+      ],
+      "used_by_flows": [
+        "html_report_flow"
+      ],
+      "risk_tags": [
+        "html_output"
+      ],
+      "verified_environment": "legacy-export-1.8.2-local-static-check",
+      "last_verified_at": "2026-07-10",
+      "documentation_path": "html/components/html_template_renderer/index.html",
+      "approved_by_user_at": null
+    },
+    {
+      "id": "leave_policy_skill_tool",
+      "name_ko": "휴가 정책 점검 Skill",
+      "class_name": "LeavePolicySkillTool",
+      "asset_type": "component",
+      "status": "user_testing",
+      "version": "0.1.0",
+      "standalone": true,
+      "reusability": "shared",
+      "source_family": "skill_based_agent_flow",
+      "summary_ko": "ISO 날짜 두 개의 평일과 선택적으로 연결한 휴일을 계산하며 실제 휴가 신청이나 승인은 하지 않습니다.",
+      "source_file": "leave_policy_skill_tool.py",
+      "inputs": [
+        {
+          "type": "DataInput",
+          "name": "skill_catalog",
+          "display_name": "Skill 카탈로그",
+          "info": "데모 Skill 카탈로그 빌더의 Skill 카탈로그 출력을 연결합니다. Agent Tool 인자로 노출되지 않습니다.",
+          "input_types": [
+            "Data",
+            "JSON"
+          ],
+          "required": true
+        },
+        {
+          "type": "MessageTextInput",
+          "name": "request",
+          "display_name": "휴가 점검 요청",
+          "info": "예: 2026-07-13부터 2026-07-17까지 휴가 일수를 확인해 줘.",
+          "required": true,
+          "tool_mode": true
+        },
+        {
+          "type": "MessageTextInput",
+          "name": "holiday_dates_json",
+          "display_name": "휴일 날짜 JSON",
+          "info": "선택 입력입니다. 예: [\"2026-07-15\"] 또는 {\"holiday_dates\":[\"2026-07-15\"]}",
+          "value": "",
+          "required": false,
+          "advanced": true
+        }
+      ],
+      "outputs": [
+        {
+          "type": "Output",
+          "name": "skill_result",
+          "display_name": "Skill 실행 결과",
+          "method": "run_skill",
+          "types": [
+            "Data"
+          ],
+          "tool_mode": true
+        },
+        {
+          "type": "Output",
+          "name": "skill_message",
+          "display_name": "하위 Flow 응답",
+          "method": "run_skill_message",
+          "types": [
+            "Message"
+          ],
+          "tool_mode": false
+        }
+      ],
+      "dependencies": [
+        "lfx"
+      ],
+      "used_by_flows": [
+        "skill_based_agent_flow"
+      ],
+      "risk_tags": [
+        "agent_tool",
+        "skill_as_tool",
+        "read_only_demo",
+        "date_calculation"
+      ],
+      "verified_environment": "langflow-1.8.2-template-and-isolated-contract-validation",
+      "last_verified_at": "2026-07-12",
+      "documentation_path": "html/components/leave_policy_skill_tool/index.html",
+      "approved_by_user_at": null
+    },
+    {
+      "id": "llm_caller",
+      "name_ko": "LLM Caller",
+      "class_name": "LLMCaller",
+      "asset_type": "component",
+      "status": "user_testing",
+      "version": "0.9.0",
+      "standalone": true,
+      "reusability": "shared",
+      "source_family": "reusable_data_flow",
+      "summary_ko": "Prompt Template 결과를 LLM에 전달하고, 다음 Normalizer가 읽을 llm_result를 반환합니다.",
+      "source_file": "llm_caller.py",
+      "inputs": [
+        {
+          "type": "DataInput",
+          "name": "prompt",
+          "display_name": "Prompt",
+          "input_types": [
+            "Message",
+            "Data",
+            "Text"
+          ]
+        },
+        {
+          "type": "MessageTextInput",
+          "name": "llm_api_key",
+          "display_name": "LLM API Key",
+          "value": "",
+          "advanced": true
+        },
+        {
+          "type": "MessageTextInput",
+          "name": "model_name",
+          "display_name": "Model Name",
+          "value": "",
+          "advanced": true
+        },
+        {
+          "type": "MessageTextInput",
+          "name": "temperature",
+          "display_name": "Temperature",
+          "value": "0",
+          "advanced": true
+        }
+      ],
+      "outputs": [
+        {
+          "type": "Output",
+          "name": "llm_result",
+          "display_name": "LLM Result",
+          "method": "build_result",
+          "types": [
+            "Data"
+          ]
+        }
+      ],
+      "dependencies": [
+        "langchain_google_genai",
+        "lfx"
+      ],
+      "used_by_flows": [
+        "reusable_data_flow"
+      ],
+      "risk_tags": [
+        "external_llm",
+        "api_key"
+      ],
+      "verified_environment": "legacy-export-1.8.2-local-static-check",
+      "last_verified_at": "2026-07-10",
+      "documentation_path": "html/components/llm_caller/index.html",
+      "approved_by_user_at": null
+    },
+    {
+      "id": "llm_html_plan_normalizer",
+      "name_ko": "03b LLM 계획 검증",
+      "class_name": "LlmHtmlPlanNormalizer",
+      "asset_type": "component",
+      "status": "user_testing",
+      "version": "0.9.0",
+      "standalone": true,
+      "reusability": "shared",
+      "source_family": "html_report_flow",
+      "summary_ko": "LLM이 만든 리포트 계획 JSON을 검증하고 렌더러가 쓸 최종 계획으로 정리합니다.",
+      "source_file": "llm_html_plan_normalizer.py",
+      "inputs": [
+        {
+          "type": "DataInput",
+          "name": "base_payload",
+          "display_name": "기본 계획",
+          "required": true
+        },
+        {
+          "type": "MessageTextInput",
+          "name": "llm_response",
+          "display_name": "LLM 응답",
+          "required": true
+        }
+      ],
+      "outputs": [
+        {
+          "type": "Output",
+          "name": "payload_out",
+          "display_name": "최종 계획",
+          "method": "build_payload"
+        }
+      ],
+      "dependencies": [
+        "lfx"
+      ],
+      "used_by_flows": [
+        "html_report_flow"
+      ],
+      "risk_tags": [],
+      "verified_environment": "legacy-export-1.8.2-local-static-check",
+      "last_verified_at": "2026-07-10",
+      "documentation_path": "html/components/llm_html_plan_normalizer/index.html",
+      "approved_by_user_at": null
+    },
+    {
+      "id": "llm_html_plan_prompt_builder",
+      "name_ko": "03a 프롬프트 변수 준비",
+      "class_name": "LlmHtmlPlanPromptBuilder",
+      "asset_type": "component",
+      "status": "user_testing",
+      "version": "0.9.0",
+      "standalone": true,
+      "reusability": "shared",
+      "source_family": "html_report_flow",
+      "summary_ko": "Langflow 기본 Prompt Template에 연결할 변수 값을 개별 출력으로 준비합니다.",
+      "source_file": "llm_html_plan_prompt_builder.py",
+      "inputs": [
+        {
+          "type": "DataInput",
+          "name": "payload",
+          "display_name": "기본 계획",
+          "required": true
+        },
+        {
+          "type": "MessageTextInput",
+          "name": "design_instruction",
+          "display_name": "추가 구현 지시사항",
+          "required": false
+        }
+      ],
+      "outputs": [
+        {
+          "type": "Output",
+          "name": "user_request_json",
+          "display_name": "사용자_요청_JSON",
+          "method": "build_user_request_json",
+          "group_outputs": true
+        },
+        {
+          "type": "Output",
+          "name": "report_context_json",
+          "display_name": "리포트_컨텍스트_JSON",
+          "method": "build_report_context_json",
+          "group_outputs": true
+        },
+        {
+          "type": "Output",
+          "name": "design_instruction_text",
+          "display_name": "디자인_지시",
+          "method": "build_design_instruction_text",
+          "group_outputs": true
+        },
+        {
+          "type": "Output",
+          "name": "rendering_rules",
+          "display_name": "렌더링_규칙",
+          "method": "build_rendering_rules",
+          "group_outputs": true
+        },
+        {
+          "type": "Output",
+          "name": "output_schema_json",
+          "display_name": "출력_스키마_JSON",
+          "method": "build_output_schema_json",
+          "group_outputs": true
+        }
+      ],
+      "dependencies": [
+        "lfx"
+      ],
+      "used_by_flows": [
+        "html_report_flow"
+      ],
+      "risk_tags": [],
+      "verified_environment": "legacy-export-1.8.2-local-static-check",
+      "last_verified_at": "2026-07-10",
+      "documentation_path": "html/components/llm_html_plan_prompt_builder/index.html",
+      "approved_by_user_at": null
+    },
+    {
+      "id": "meeting_action_skill_tool",
+      "name_ko": "회의 후속 조치 Skill",
+      "class_name": "MeetingActionSkillTool",
+      "asset_type": "component",
+      "status": "user_testing",
+      "version": "0.1.0",
+      "standalone": true,
+      "reusability": "shared",
+      "source_family": "skill_based_agent_flow",
+      "summary_ko": "담당자·할 일·ISO 기한 형식의 여러 줄을 구조화하며 실제 발송이나 시스템 등록은 하지 않습니다.",
+      "source_file": "meeting_action_skill_tool.py",
+      "inputs": [
+        {
+          "type": "DataInput",
+          "name": "skill_catalog",
+          "display_name": "Skill 카탈로그",
+          "info": "데모 Skill 카탈로그 빌더의 Skill 카탈로그 출력을 연결합니다. Agent Tool 인자로 노출되지 않습니다.",
+          "input_types": [
+            "Data",
+            "JSON"
+          ],
+          "required": true
+        },
+        {
+          "type": "MessageTextInput",
+          "name": "request",
+          "display_name": "회의 후속 조치 요청",
+          "info": "각 줄을 '담당자 | 할 일 | YYYY-MM-DD' 형식으로 입력합니다.",
+          "required": true,
+          "tool_mode": true
+        }
+      ],
+      "outputs": [
+        {
+          "type": "Output",
+          "name": "skill_result",
+          "display_name": "Skill 실행 결과",
+          "method": "run_skill",
+          "types": [
+            "Data"
+          ],
+          "tool_mode": true
+        },
+        {
+          "type": "Output",
+          "name": "skill_message",
+          "display_name": "하위 Flow 응답",
+          "method": "run_skill_message",
+          "types": [
+            "Message"
+          ],
+          "tool_mode": false
+        }
+      ],
+      "dependencies": [
+        "lfx"
+      ],
+      "used_by_flows": [
+        "meeting_action_skill_flow"
+      ],
+      "risk_tags": [
+        "agent_tool",
+        "skill_as_tool",
+        "read_only_demo",
+        "structured_text"
+      ],
+      "verified_environment": "langflow-1.8.2-template-and-isolated-contract-validation",
+      "last_verified_at": "2026-07-12",
+      "documentation_path": "html/components/meeting_action_skill_tool/index.html",
+      "approved_by_user_at": null
+    },
+    {
+      "id": "multi_image_base64_encoder",
+      "name_ko": "다중 이미지 Base64 인코더",
+      "class_name": "MultiImageBase64Encoder",
+      "asset_type": "component",
+      "status": "user_testing",
+      "version": "0.1.0",
+      "standalone": true,
+      "reusability": "shared",
+      "source_family": "enterprise_utility_components",
+      "summary_ko": "여러 이미지 파일을 검증하고 입력 순서대로 Base64 또는 Data URL 목록으로 변환합니다.",
+      "source_file": "multi_image_base64_encoder.py",
+      "inputs": [
+        {
+          "type": "FileInput",
+          "name": "image_files",
+          "display_name": "이미지 파일",
+          "file_types": [
+            "png",
+            "jpg",
+            "jpeg",
+            "gif",
+            "webp",
+            "bmp",
+            "tif",
+            "tiff",
+            "svg"
+          ],
+          "info": "여러 이미지를 추가한 순서대로 처리합니다. 실제 파일 서명과 확장자가 일치해야 하며 SVG는 별도 옵션을 켠 경우에도 정적 SVG만 허용됩니다.",
+          "required": true,
+          "is_list": true,
+          "value": []
+        },
+        {
+          "type": "DropdownInput",
+          "name": "output_format",
+          "display_name": "출력 형식",
+          "options": [
+            "base64",
+            "data_url"
+          ],
+          "value": "base64",
+          "info": "Base64는 인코딩 본문만 반환하고, Data URL은 data:image/...;base64 접두사를 함께 반환합니다."
+        },
+        {
+          "type": "DropdownInput",
+          "name": "error_policy",
+          "display_name": "오류 처리 방식",
+          "options": [
+            "reject_batch",
+            "skip_invalid"
+          ],
+          "value": "reject_batch",
+          "info": "전체 거부(reject_batch)는 한 파일이라도 실패하면 결과를 모두 비우고, 잘못된 파일 제외(skip_invalid)는 유효한 파일만 반환합니다."
+        },
+        {
+          "type": "BoolInput",
+          "name": "allow_svg",
+          "display_name": "엄격한 정적 SVG 허용",
+          "value": false,
+          "advanced": true,
+          "info": "기본값은 꺼짐입니다. 켜더라도 스크립트, 이벤트, 외부 참조, 동적 요소가 없는 정적 SVG만 허용합니다."
+        },
+        {
+          "type": "IntInput",
+          "name": "max_files",
+          "display_name": "최대 파일 수",
+          "value": 20,
+          "advanced": true,
+          "info": "한 번에 처리할 파일 수를 1~100개 범위에서 제한합니다."
+        },
+        {
+          "type": "IntInput",
+          "name": "max_file_size_mb",
+          "display_name": "파일당 최대 크기(MB)",
+          "value": 8,
+          "advanced": true,
+          "info": "파일 하나의 크기를 1~100MB 범위에서 제한합니다."
+        },
+        {
+          "type": "IntInput",
+          "name": "max_total_size_mb",
+          "display_name": "전체 원본 최대 크기(MB)",
+          "value": 12,
+          "advanced": true,
+          "info": "전체 원본 크기를 1~200MB 범위에서 제한합니다. Base64 결과는 원본보다 약 33% 커지므로 기본값을 보수적으로 설정했습니다."
+        }
+      ],
+      "outputs": [
+        {
+          "type": "Output",
+          "name": "encoded_images",
+          "display_name": "인코딩된 이미지",
+          "method": "encode_images",
+          "types": [
+            "Data"
+          ]
+        }
+      ],
+      "dependencies": [
+        "lfx"
+      ],
+      "used_by_flows": [],
+      "risk_tags": [
+        "file_upload",
+        "image_content",
+        "base64_payload",
+        "payload_size",
+        "svg_optional"
+      ],
+      "verified_environment": "langflow-1.8.2-local-runtime-validation",
+      "last_verified_at": "2026-07-12",
+      "documentation_path": "html/components/multi_image_base64_encoder/index.html",
+      "approved_by_user_at": null,
+      "guide_file": "USAGE_GUIDE.md"
+    },
+    {
+      "id": "oracle_data",
+      "name_ko": "Oracle Data",
+      "class_name": "OracleData",
+      "asset_type": "component",
+      "status": "user_testing",
+      "version": "0.9.0",
+      "standalone": true,
+      "reusability": "shared",
+      "source_family": "reusable_data_flow",
+      "summary_ko": "data_request 중 oracle 요청만 골라 실행합니다.",
+      "source_file": "oracle_data.py",
+      "inputs": [
+        {
+          "type": "DataInput",
+          "name": "data_request",
+          "display_name": "Data Request",
+          "input_types": [
+            "Data",
+            "JSON"
+          ]
+        },
+        {
+          "type": "MultilineInput",
+          "name": "oracle_config",
+          "display_name": "Oracle TNS",
+          "value": ""
+        },
+        {
+          "type": "MessageTextInput",
+          "name": "fetch_limit",
+          "display_name": "Fetch Limit",
+          "value": "5000",
+          "advanced": true
+        }
+      ],
+      "outputs": [
+        {
+          "type": "Output",
+          "name": "source_result",
+          "display_name": "Data Result",
+          "method": "build_source_result",
+          "types": [
+            "Data"
+          ]
+        }
+      ],
+      "dependencies": [
+        "lfx",
+        "oracledb"
+      ],
+      "used_by_flows": [
+        "reusable_data_flow"
+      ],
+      "risk_tags": [
+        "external_data_access",
+        "credentials_required"
+      ],
+      "verified_environment": "legacy-export-1.8.2-local-static-check",
+      "last_verified_at": "2026-07-10",
+      "documentation_path": "html/components/oracle_data/index.html",
+      "approved_by_user_at": null
+    },
+    {
+      "id": "oracle_table_query",
+      "name_ko": "Oracle 테이블 조회",
+      "class_name": "OracleTableQuery",
+      "asset_type": "component",
+      "status": "user_testing",
+      "version": "0.1.0",
+      "standalone": true,
+      "reusability": "shared",
+      "source_family": "direct_data_access_components",
+      "summary_ko": "Oracle 접속 정보와 읽기 SQL을 직접 입력받아 조회 결과를 DataFrame으로 반환합니다.",
+      "source_file": "oracle_table_query.py",
+      "inputs": [
+        {
+          "type": "MultilineInput",
+          "name": "dsn",
+          "display_name": "Oracle DSN/TNS",
+          "required": true,
+          "info": "한 개 Oracle DB의 DSN, TNS 별칭 또는 전체 TNS 문자열을 입력합니다."
+        },
+        {
+          "type": "StrInput",
+          "name": "username",
+          "display_name": "사용자 ID",
+          "value": "",
+          "info": "일반 인증이면 입력합니다. 외부 인증/Wallet 환경이면 비워둘 수 있습니다."
+        },
+        {
+          "type": "SecretStrInput",
+          "name": "password",
+          "display_name": "비밀번호",
+          "value": "",
+          "info": "사용자 ID를 입력했다면 비밀번호도 함께 입력해야 합니다."
+        },
+        {
+          "type": "MultilineInput",
+          "name": "sql_query",
+          "display_name": "조회 SQL",
+          "required": true,
+          "info": "SELECT 또는 조회용 WITH 문 한 개만 입력합니다. 값은 바인드 변수를 사용하세요."
+        },
+        {
+          "type": "DictInput",
+          "name": "bind_parameters",
+          "display_name": "바인드 변수",
+          "value": {},
+          "info": "SQL의 :DATE 같은 변수에 전달할 JSON 객체입니다. 키에는 콜론을 붙이지 않습니다."
+        },
+        {
+          "type": "IntInput",
+          "name": "max_rows",
+          "display_name": "최대 조회 행 수",
+          "value": 5000,
+          "advanced": true,
+          "info": "1~100000행 사이에서 설정합니다."
+        },
+        {
+          "type": "IntInput",
+          "name": "query_timeout_seconds",
+          "display_name": "SQL 제한시간(초)",
+          "value": 60,
+          "advanced": true,
+          "info": "Oracle 각 DB 왕복 호출에 적용할 제한시간입니다. 기본값은 60초입니다."
+        }
+      ],
+      "outputs": [
+        {
+          "type": "Output",
+          "name": "data_table",
+          "display_name": "조회 데이터 테이블",
+          "method": "build_data_table",
+          "types": [
+            "DataFrame"
+          ],
+          "tool_mode": false
+        }
+      ],
+      "dependencies": [
+        "lfx",
+        "oracledb"
+      ],
+      "used_by_flows": [],
+      "risk_tags": [
+        "database_read",
+        "credentials_required",
+        "read_only_sql",
+        "external_data_access"
+      ],
+      "verified_environment": "langflow-1.8.2-template-and-isolated-contract-validation",
+      "last_verified_at": "2026-07-12",
+      "documentation_path": "html/components/oracle_table_query/index.html",
+      "approved_by_user_at": null,
+      "guide_file": "USAGE_GUIDE.md"
+    },
+    {
+      "id": "pii_confidential_data_guard",
+      "name_ko": "01 PII & Confidential Data Guard",
+      "class_name": "PiiConfidentialDataGuard",
+      "asset_type": "component",
+      "status": "user_testing",
+      "version": "0.1.0",
+      "standalone": true,
+      "reusability": "shared",
+      "source_family": "enterprise_document_rag_flow",
+      "summary_ko": "Redact or block common sensitive patterns before documents enter the retrieval index.",
+      "source_file": "pii_confidential_data_guard.py",
+      "inputs": [
+        {
+          "type": "DataInput",
+          "name": "documents",
+          "display_name": "Documents",
+          "input_types": [
+            "Data",
+            "JSON"
+          ],
+          "required": true
+        },
+        {
+          "type": "DropdownInput",
+          "name": "guard_mode",
+          "display_name": "Guard Mode",
+          "options": [
+            "redact",
+            "block"
+          ],
+          "value": "redact"
+        },
+        {
+          "type": "BoolInput",
+          "name": "detect_emails",
+          "display_name": "Detect Email Addresses",
+          "value": true,
+          "advanced": true
+        },
+        {
+          "type": "BoolInput",
+          "name": "detect_phone_numbers",
+          "display_name": "Detect Phone Numbers",
+          "value": true,
+          "advanced": true
+        },
+        {
+          "type": "BoolInput",
+          "name": "detect_national_ids",
+          "display_name": "Detect National IDs",
+          "value": true,
+          "advanced": true
+        },
+        {
+          "type": "BoolInput",
+          "name": "detect_employee_ids",
+          "display_name": "Detect Employee IDs",
+          "value": true,
+          "advanced": true
+        },
+        {
+          "type": "BoolInput",
+          "name": "detect_secrets",
+          "display_name": "Detect Secret-like Values",
+          "value": true,
+          "advanced": true
+        },
+        {
+          "type": "BoolInput",
+          "name": "upgrade_classification",
+          "display_name": "Upgrade Classification When Detected",
+          "value": true,
+          "advanced": true
+        }
+      ],
+      "outputs": [
+        {
+          "type": "Output",
+          "name": "safe_documents",
+          "display_name": "Safe Documents",
+          "method": "build_safe_documents",
+          "types": [
+            "Data"
+          ]
+        }
+      ],
+      "dependencies": [
+        "lfx"
+      ],
+      "used_by_flows": [
+        "enterprise_document_rag_flow"
+      ],
+      "risk_tags": [
+        "pii_baseline",
+        "confidential_content"
+      ],
+      "verified_environment": "langflow-1.8.2-local-runtime-validation",
+      "last_verified_at": "2026-07-11",
+      "documentation_path": "html/components/pii_confidential_data_guard/index.html",
+      "approved_by_user_at": null
+    },
+    {
+      "id": "rag_prompt_builder",
+      "name_ko": "RAG Prompt Builder",
+      "class_name": "RagPromptBuilder",
+      "asset_type": "component",
+      "status": "user_testing",
+      "version": "0.1.0",
+      "standalone": true,
+      "reusability": "shared",
+      "source_family": "enterprise_document_rag_flow",
+      "summary_ko": "품질 게이트를 통과한 ACL 허용 근거만 비신뢰 데이터로 감싸고 엄격한 근거 ID 출력 계약을 만듭니다.",
+      "source_file": "rag_prompt_builder.py",
+      "inputs": [
+        {
+          "type": "DataInput",
+          "name": "gate",
+          "display_name": "Gate",
+          "input_types": [
+            "Data",
+            "JSON"
+          ],
+          "required": true
+        }
+      ],
+      "outputs": [
+        {
+          "type": "Output",
+          "name": "prompt",
+          "display_name": "Prompt",
+          "method": "build_prompt",
+          "types": [
+            "Message"
+          ]
+        }
+      ],
+      "dependencies": [
+        "lfx"
+      ],
+      "used_by_flows": [
+        "enterprise_document_rag_flow"
+      ],
+      "risk_tags": [
+        "prompt_injection_boundary",
+        "document_content"
+      ],
+      "verified_environment": "langflow-1.8.2-local-runtime-validation",
+      "last_verified_at": "2026-07-11",
+      "documentation_path": "html/components/rag_prompt_builder/index.html",
+      "approved_by_user_at": null
+    },
+    {
+      "id": "rag_request_context_normalizer",
+      "name_ko": "RAG Request Context Normalizer",
+      "class_name": "RagRequestContextNormalizer",
+      "asset_type": "component",
+      "status": "user_testing",
+      "version": "0.1.0",
+      "standalone": true,
+      "reusability": "shared",
+      "source_family": "enterprise_document_rag_flow",
+      "summary_ko": "사용자 질문과 서버에서 검증한 사용자·조직·역할 컨텍스트를 fail-closed 요청으로 정규화합니다.",
+      "source_file": "rag_request_context_normalizer.py",
+      "inputs": [
+        {
+          "type": "MessageTextInput",
+          "name": "question",
+          "display_name": "Question",
+          "required": true
+        },
+        {
+          "type": "DataInput",
+          "name": "trusted_context",
+          "display_name": "Trusted Context",
+          "info": "Gateway 또는 검증된 upstream이 만든 actor_context입니다. Chat Input의 역할 주장은 사용하지 않습니다.",
+          "input_types": [
+            "Data",
+            "JSON"
+          ],
+          "required": false
+        },
+        {
+          "type": "BoolInput",
+          "name": "use_demo_identity",
+          "display_name": "Use Demo Identity",
+          "info": "교육용 기본 실행에만 사용합니다. 사내 연동 시 끄고 Trusted Context를 연결하세요.",
+          "value": true
+        },
+        {
+          "type": "MessageTextInput",
+          "name": "demo_user_id",
+          "display_name": "Demo User ID",
+          "value": "demo.employee",
+          "advanced": true
+        },
+        {
+          "type": "MessageTextInput",
+          "name": "demo_tenant_id",
+          "display_name": "Demo Tenant ID",
+          "value": "agent-ground",
+          "advanced": true
+        },
+        {
+          "type": "MessageTextInput",
+          "name": "demo_roles",
+          "display_name": "Demo Roles",
+          "value": "employee",
+          "advanced": true
+        },
+        {
+          "type": "MessageTextInput",
+          "name": "demo_groups",
+          "display_name": "Demo Groups",
+          "value": "all-employees",
+          "advanced": true
+        },
+        {
+          "type": "DropdownInput",
+          "name": "demo_clearance",
+          "display_name": "Demo Clearance",
+          "options": [
+            "public",
+            "internal",
+            "confidential",
+            "restricted"
+          ],
+          "value": "internal",
+          "advanced": true
+        }
+      ],
+      "outputs": [
+        {
+          "type": "Output",
+          "name": "request",
+          "display_name": "Request",
+          "method": "build_request",
+          "types": [
+            "Data"
+          ]
+        }
+      ],
+      "dependencies": [
+        "lfx"
+      ],
+      "used_by_flows": [
+        "enterprise_document_rag_flow"
+      ],
+      "risk_tags": [
+        "access_control",
+        "demo_identity"
+      ],
+      "verified_environment": "langflow-1.8.2-local-runtime-validation",
+      "last_verified_at": "2026-07-11",
+      "documentation_path": "html/components/rag_request_context_normalizer/index.html",
+      "approved_by_user_at": null
+    },
+    {
+      "id": "report_api_publisher",
+      "name_ko": "05-2 공유 링크 출력",
+      "class_name": "ReportApiPublisher",
+      "asset_type": "component",
+      "status": "user_testing",
+      "version": "0.9.0",
+      "standalone": true,
+      "reusability": "shared",
+      "source_family": "html_report_flow",
+      "summary_ko": "생성된 HTML을 Report API에 저장하고 간단한 다운로드 링크 메시지를 출력합니다.",
+      "source_file": "report_api_publisher.py",
+      "inputs": [
+        {
+          "type": "DataInput",
+          "name": "payload",
+          "display_name": "HTML 생성 결과",
+          "required": true
+        },
+        {
+          "type": "MessageTextInput",
+          "name": "report_api_url",
+          "display_name": "Report API 주소",
+          "value": "",
+          "advanced": false
+        },
+        {
+          "type": "MessageTextInput",
+          "name": "ttl_hours",
+          "display_name": "링크 유효시간",
+          "value": "24",
+          "advanced": false
+        }
+      ],
+      "outputs": [
+        {
+          "type": "Output",
+          "name": "link_message",
+          "display_name": "링크 메시지",
+          "method": "build_message"
+        }
+      ],
+      "dependencies": [
+        "lfx"
+      ],
+      "used_by_flows": [
+        "html_report_flow"
+      ],
+      "risk_tags": [
+        "external_publish",
+        "html_output"
+      ],
+      "verified_environment": "legacy-export-1.8.2-local-static-check",
+      "last_verified_at": "2026-07-10",
+      "documentation_path": "html/components/report_api_publisher/index.html",
+      "approved_by_user_at": null
+    },
+    {
+      "id": "retrieval_quality_gate",
+      "name_ko": "Retrieval Quality Gate",
+      "class_name": "RetrievalQualityGate",
+      "asset_type": "component",
+      "status": "user_testing",
+      "version": "0.1.0",
+      "standalone": true,
+      "reusability": "shared",
+      "source_family": "enterprise_document_rag_flow",
+      "summary_ko": "ACL 적용 여부·검색 점수·문서 지시 신호를 확인하고 근거가 부족하면 LLM 앞에서 답변을 차단합니다.",
+      "source_file": "retrieval_quality_gate.py",
+      "inputs": [
+        {
+          "type": "DataInput",
+          "name": "retrieval",
+          "display_name": "Retrieval",
+          "input_types": [
+            "Data",
+            "JSON"
+          ],
+          "required": true
+        }
+      ],
+      "outputs": [
+        {
+          "type": "Output",
+          "name": "gate",
+          "display_name": "Gate",
+          "method": "build_gate",
+          "types": [
+            "Data"
+          ]
+        }
+      ],
+      "dependencies": [
+        "lfx"
+      ],
+      "used_by_flows": [
+        "enterprise_document_rag_flow"
+      ],
+      "risk_tags": [
+        "answer_policy"
+      ],
+      "verified_environment": "langflow-1.8.2-local-runtime-validation",
+      "last_verified_at": "2026-07-11",
+      "documentation_path": "html/components/retrieval_quality_gate/index.html",
+      "approved_by_user_at": null
+    },
+    {
+      "id": "simple_api_table_request",
+      "name_ko": "단순 API 테이블 조회",
+      "class_name": "SimpleApiTableRequest",
+      "asset_type": "component",
+      "status": "user_testing",
+      "version": "0.1.0",
+      "standalone": true,
+      "reusability": "shared",
+      "source_family": "direct_data_access_components",
+      "summary_ko": "HTTP API를 한 번 호출하고 지정한 JSON 응답 경로의 값을 데이터 테이블로 반환합니다.",
+      "source_file": "simple_api_table_request.py",
+      "inputs": [
+        {
+          "type": "MessageTextInput",
+          "name": "api_url",
+          "display_name": "API 주소",
+          "info": "호출할 API의 전체 http 또는 https 주소입니다.",
+          "required": true
+        },
+        {
+          "type": "BoolInput",
+          "name": "allow_insecure_http",
+          "display_name": "HTTP API 사용 허용",
+          "info": "기본값은 꺼짐입니다. HTTPS를 지원하지 않는 폐쇄된 테스트망에서만 명시적으로 켜세요.",
+          "value": false,
+          "advanced": true
+        },
+        {
+          "type": "DropdownInput",
+          "name": "http_method",
+          "display_name": "HTTP 방식",
+          "info": "한 번 실행할 HTTP 요청 방식입니다.",
+          "options": [
+            "GET",
+            "POST"
+          ],
+          "value": "GET"
+        },
+        {
+          "type": "SecretStrInput",
+          "name": "headers_json",
+          "display_name": "요청 헤더 JSON",
+          "info": "인증값을 포함할 수 있어 비밀 입력으로 처리합니다. 예: {\"Authorization\":\"Bearer ...\"}",
+          "value": "{}"
+        },
+        {
+          "type": "MultilineInput",
+          "name": "query_params_json",
+          "display_name": "URL 쿼리 파라미터 JSON",
+          "info": "URL 뒤에 붙일 query parameter 객체입니다. 예: {\"page\":1,\"size\":100}",
+          "value": "{}"
+        },
+        {
+          "type": "MultilineInput",
+          "name": "body_json",
+          "display_name": "요청 본문 JSON",
+          "info": "POST 요청에 보낼 JSON입니다. 본문이 없으면 비워 두세요.",
+          "value": ""
+        },
+        {
+          "type": "MessageTextInput",
+          "name": "response_path",
+          "display_name": "응답 데이터 경로",
+          "info": "표로 바꿀 JSON 값의 점 경로입니다. 비우면 전체 JSON을 사용하며, 틀린 경로를 자동 대체하지 않습니다.",
+          "value": ""
+        },
+        {
+          "type": "IntInput",
+          "name": "timeout_seconds",
+          "display_name": "제한 시간(초)",
+          "info": "연결과 응답 읽기 작업에 적용되는 timeout입니다. 전체 wall-clock 제한은 아닙니다.",
+          "value": 30,
+          "advanced": true
+        },
+        {
+          "type": "IntInput",
+          "name": "max_response_bytes",
+          "display_name": "최대 응답 크기(바이트)",
+          "info": "응답이 이 크기를 넘으면 메모리 보호를 위해 중단합니다. 기본값은 10MiB입니다.",
+          "value": 10485760,
+          "advanced": true
+        },
+        {
+          "type": "IntInput",
+          "name": "max_rows",
+          "display_name": "최대 반환 행 수",
+          "info": "응답에서 앞부분 기준으로 반환할 최대 행 수입니다.",
+          "value": 5000,
+          "advanced": true
+        }
+      ],
+      "outputs": [
+        {
+          "type": "Output",
+          "name": "data_table",
+          "display_name": "데이터 테이블",
+          "method": "build_data_table",
+          "types": [
+            "DataFrame"
+          ],
+          "tool_mode": false
+        }
+      ],
+      "dependencies": [
+        "lfx",
+        "requests"
+      ],
+      "used_by_flows": [],
+      "risk_tags": [
+        "external_api_access",
+        "ssrf_review",
+        "response_size_limit",
+        "json_response_only",
+        "https_default",
+        "same_origin_redirect"
+      ],
+      "verified_environment": "langflow-1.8.2-template-and-isolated-contract-validation",
+      "last_verified_at": "2026-07-12",
+      "documentation_path": "html/components/simple_api_table_request/index.html",
+      "approved_by_user_at": null,
+      "guide_file": "USAGE_GUIDE.md"
+    },
+    {
+      "id": "source_catalog_mongodb_loader",
+      "name_ko": "Catalog MongoDB Loader",
+      "class_name": "SourceCatalogMongoDBLoader",
+      "asset_type": "component",
+      "status": "user_testing",
+      "version": "0.9.0",
+      "standalone": true,
+      "reusability": "shared",
+      "source_family": "reusable_data_flow",
+      "summary_ko": "MongoDB collection에서 source_catalog를 읽어옵니다.",
+      "source_file": "source_catalog_mongodb_loader.py",
+      "inputs": [
+        {
+          "type": "MessageTextInput",
+          "name": "mongo_uri",
+          "display_name": "Mongo URI",
+          "value": ""
+        },
+        {
+          "type": "MessageTextInput",
+          "name": "db_name",
+          "display_name": "DB Name",
+          "value": "langflow"
+        },
+        {
+          "type": "MessageTextInput",
+          "name": "collection_name",
+          "display_name": "Collection Name",
+          "value": "reusable_source_catalogs"
+        },
+        {
+          "type": "MessageTextInput",
+          "name": "timeout_ms",
+          "display_name": "Timeout MS",
+          "value": "5000",
+          "advanced": true
+        }
+      ],
+      "outputs": [
+        {
+          "type": "Output",
+          "name": "catalog_text",
+          "display_name": "Catalog Text",
+          "method": "build_catalog_text",
+          "types": [
+            "Message"
+          ]
+        },
+        {
+          "type": "Output",
+          "name": "catalog_data",
+          "display_name": "Catalog Data",
+          "method": "build_catalog_data",
+          "types": [
+            "Data"
+          ]
+        }
+      ],
+      "dependencies": [
+        "lfx",
+        "pymongo"
+      ],
+      "used_by_flows": [
+        "reusable_data_flow"
+      ],
+      "risk_tags": [
+        "database_read",
+        "credentials_required"
+      ],
+      "verified_environment": "legacy-export-1.8.2-local-static-check",
+      "last_verified_at": "2026-07-10",
+      "documentation_path": "html/components/source_catalog_mongodb_loader/index.html",
+      "approved_by_user_at": null
+    },
+    {
+      "id": "source_catalog_mongodb_store",
+      "name_ko": "Catalog MongoDB Store",
+      "class_name": "SourceCatalogMongoDBStore",
+      "asset_type": "component",
+      "status": "user_testing",
+      "version": "0.9.0",
+      "standalone": true,
+      "reusability": "shared",
+      "source_family": "reusable_data_flow",
+      "summary_ko": "source_catalog를 source 이름 기준으로 MongoDB에 저장하거나 업데이트합니다.",
+      "source_file": "source_catalog_mongodb_store.py",
+      "inputs": [
+        {
+          "type": "DataInput",
+          "name": "source_catalog_data",
+          "display_name": "Catalog Data",
+          "input_types": [
+            "Data",
+            "JSON",
+            "Message",
+            "Text"
+          ]
+        },
+        {
+          "type": "MessageTextInput",
+          "name": "mongo_uri",
+          "display_name": "Mongo URI",
+          "value": ""
+        },
+        {
+          "type": "MessageTextInput",
+          "name": "db_name",
+          "display_name": "DB Name",
+          "value": "langflow"
+        },
+        {
+          "type": "MessageTextInput",
+          "name": "collection_name",
+          "display_name": "Collection Name",
+          "value": "reusable_source_catalogs"
+        },
+        {
+          "type": "MessageTextInput",
+          "name": "timeout_ms",
+          "display_name": "Timeout MS",
+          "value": "5000",
+          "advanced": true
+        }
+      ],
+      "outputs": [
+        {
+          "type": "Output",
+          "name": "catalog_data",
+          "display_name": "Catalog Data",
+          "method": "build_catalog_data",
+          "types": [
+            "Data"
+          ]
+        },
+        {
+          "type": "Output",
+          "name": "store_result",
+          "display_name": "Store Result",
+          "method": "build_store_result",
+          "types": [
+            "Data"
+          ]
+        }
+      ],
+      "dependencies": [
+        "lfx",
+        "pymongo"
+      ],
+      "used_by_flows": [
+        "reusable_data_flow"
+      ],
+      "risk_tags": [
+        "database_write",
+        "credentials_required"
+      ],
+      "verified_environment": "legacy-export-1.8.2-local-static-check",
+      "last_verified_at": "2026-07-10",
+      "documentation_path": "html/components/source_catalog_mongodb_store/index.html",
+      "approved_by_user_at": null
+    },
+    {
+      "id": "source_catalog_normalizer",
+      "name_ko": "Catalog Normalizer",
+      "class_name": "SourceCatalogNormalizer",
+      "asset_type": "component",
+      "status": "user_testing",
+      "version": "0.9.0",
+      "standalone": true,
+      "reusability": "shared",
+      "source_family": "reusable_data_flow",
+      "summary_ko": "LLM이 만든 source_catalog 후보를 저장하지 않고 조회 Flow용 형태로 정규화합니다.",
+      "source_file": "source_catalog_normalizer.py",
+      "inputs": [
+        {
+          "type": "DataInput",
+          "name": "llm_result",
+          "display_name": "LLM Result",
+          "input_types": [
+            "Message",
+            "Data",
+            "Text",
+            "JSON"
+          ]
+        }
+      ],
+      "outputs": [
+        {
+          "type": "Output",
+          "name": "catalog_message",
+          "display_name": "Catalog(Text직접연결용)",
+          "method": "build_catalog_message",
+          "types": [
+            "Message"
+          ]
+        },
+        {
+          "type": "Output",
+          "name": "catalog_data",
+          "display_name": "Catalog(DB저장용)",
+          "method": "build_catalog_data",
+          "types": [
+            "Data"
+          ]
+        }
+      ],
+      "dependencies": [
+        "lfx"
+      ],
+      "used_by_flows": [
+        "reusable_data_flow"
+      ],
+      "risk_tags": [],
+      "verified_environment": "legacy-export-1.8.2-local-static-check",
+      "last_verified_at": "2026-07-10",
+      "documentation_path": "html/components/source_catalog_normalizer/index.html",
+      "approved_by_user_at": null
+    },
+    {
+      "id": "enterprise_document_rag_flow",
+      "name_ko": "사내 문서 RAG Flow",
+      "asset_type": "flow",
+      "status": "user_testing",
+      "version": "0.1.0",
+      "source_export_version": "1.8.2",
+      "summary_ko": "사내 문서를 정규화·비식별화·청크화한 뒤 사용자 권한을 먼저 적용해 근거와 인용이 있는 답변만 반환하는 실행형 RAG 예시입니다.",
+      "categories": [
+        "rag",
+        "document",
+        "access-control",
+        "citation",
+        "security"
+      ],
+      "trigger_signals": [
+        "사내 문서 검색",
+        "규정 질문",
+        "매뉴얼 Q&A",
+        "근거",
+        "출처",
+        "권한별 검색"
+      ],
+      "flow_file": "enterprise_document_rag_flow.json",
+      "component_refs_file": "component_refs.json",
+      "documentation_path": "html/flows/enterprise_document_rag_flow/index.html",
+      "verified_environment": "langflow-1.8.2-local-upload-and-full-build-11-of-11-valid",
+      "last_verified_at": "2026-07-11",
+      "approved_by_user_at": null,
+      "risk_tags": [
+        "document_content",
+        "pii_baseline",
+        "access_control",
+        "demo_identity",
+        "ephemeral_index"
+      ]
+    },
+    {
+      "id": "html_report_flow",
+      "name_ko": "HTML 분석 리포트 Flow",
+      "asset_type": "flow",
+      "status": "user_testing",
+      "version": "0.9.0",
+      "source_export_version": "1.8.2",
+      "summary_ko": "CSV 또는 JSON 데이터와 사용자의 표현 요청을 분석해 검증된 블록 조합의 독립 HTML 리포트를 생성합니다.",
+      "categories": [
+        "reporting",
+        "visualization",
+        "html"
+      ],
+      "trigger_signals": [
+        "리포트",
+        "대시보드",
+        "KPI",
+        "차트",
+        "HTML",
+        "공유 링크"
+      ],
+      "flow_file": "html_report_flow.json",
+      "component_refs_file": "component_refs.json",
+      "documentation_path": "html/flows/html_report_flow/index.html",
+      "verified_environment": "legacy-export-1.8.2-local-static-check",
+      "last_verified_at": "2026-07-10",
+      "approved_by_user_at": null,
+      "risk_tags": [
+        "html_output",
+        "optional_report_publishing"
+      ]
+    },
+    {
+      "id": "reusable_data_flow",
+      "name_ko": "재사용 데이터 조회 Flow",
+      "asset_type": "flow",
+      "status": "user_testing",
+      "version": "0.9.0",
+      "source_export_version": "1.8.2",
+      "summary_ko": "자연어 요청을 표준 data_request로 바꾸고 Oracle, H-API, Datalake, Goodocs 조회 결과를 하나의 data_json으로 합칩니다.",
+      "categories": [
+        "data_retrieval",
+        "integration",
+        "normalization"
+      ],
+      "trigger_signals": [
+        "데이터 조회",
+        "Oracle",
+        "H-API",
+        "Datalake",
+        "Goodocs",
+        "source catalog"
+      ],
+      "flow_file": "reusable_data_flow.json",
+      "component_refs_file": "component_refs.json",
+      "documentation_path": "html/flows/reusable_data_flow/index.html",
+      "verified_environment": "legacy-export-1.8.2-local-static-check",
+      "last_verified_at": "2026-07-10",
+      "approved_by_user_at": null,
+      "risk_tags": [
+        "external_data_access",
+        "credentials_required"
+      ]
+    },
+    {
+      "id": "skill_based_agent_flow",
+      "name_ko": "Skills 기반 업무 Agent 예시 Flow",
+      "asset_type": "flow",
+      "status": "user_testing",
+      "version": "0.2.0",
+      "source_export_version": "1.8.2",
+      "summary_ko": "경비·휴가 계산은 Standalone Component Tool로 직접 실행하고, 회의 후속 조치는 provider-safe question을 사용하는 Cached Named Run Flow Tool로 별도 meeting_action_skill_flow를 호출합니다. MCP는 선택적 확장으로 문서화한 하이브리드 교육용 Flow입니다.",
+      "categories": [
+        "agent",
+        "skills",
+        "tool-calling",
+        "run-flow",
+        "enterprise-workflow",
+        "education"
+      ],
+      "trigger_signals": [
+        "Skill 기반 Agent",
+        "하이브리드 Tool",
+        "Run Flow Tool",
+        "MCP 확장",
+        "업무 Agent",
+        "Tool 자동 선택",
+        "경비 점검",
+        "휴가 정책",
+        "회의 후속 조치"
+      ],
+      "flow_file": "skill_based_agent_flow.json",
+      "bundle_file": "00_SKILL_BASED_AGENT_ALL_FLOWS.json",
+      "subflow_files": [
+        "meeting_action_skill_flow.json"
+      ],
+      "component_refs_file": "component_refs.json",
+      "documentation_path": "html/flows/skill_based_agent_flow/index.html",
+      "verified_environment": "langflow-1.8.2-lfx-0.3.4-direct-tool-run-flow-template-schema-and-graph-parse-user-model-db-e2e-pending",
+      "last_verified_at": "2026-07-12",
+      "approved_by_user_at": null,
+      "risk_tags": [
+        "llm_tool_selection",
+        "model_api_key_required",
+        "exact_subflow_name",
+        "same_folder_required",
+        "demo_policy_only",
+        "no_external_side_effects"
+      ]
+    }
+  ]
+}

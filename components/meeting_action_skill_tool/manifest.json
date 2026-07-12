@@ -1,0 +1,72 @@
+{
+  "id": "meeting_action_skill_tool",
+  "name_ko": "회의 후속 조치 Skill",
+  "class_name": "MeetingActionSkillTool",
+  "asset_type": "component",
+  "status": "user_testing",
+  "version": "0.1.0",
+  "standalone": true,
+  "reusability": "shared",
+  "source_family": "skill_based_agent_flow",
+  "summary_ko": "담당자·할 일·ISO 기한 형식의 여러 줄을 구조화하며 실제 발송이나 시스템 등록은 하지 않습니다.",
+  "source_file": "meeting_action_skill_tool.py",
+  "inputs": [
+    {
+      "type": "DataInput",
+      "name": "skill_catalog",
+      "display_name": "Skill 카탈로그",
+      "info": "데모 Skill 카탈로그 빌더의 Skill 카탈로그 출력을 연결합니다. Agent Tool 인자로 노출되지 않습니다.",
+      "input_types": [
+        "Data",
+        "JSON"
+      ],
+      "required": true
+    },
+    {
+      "type": "MessageTextInput",
+      "name": "request",
+      "display_name": "회의 후속 조치 요청",
+      "info": "각 줄을 '담당자 | 할 일 | YYYY-MM-DD' 형식으로 입력합니다.",
+      "required": true,
+      "tool_mode": true
+    }
+  ],
+  "outputs": [
+    {
+      "type": "Output",
+      "name": "skill_result",
+      "display_name": "Skill 실행 결과",
+      "method": "run_skill",
+      "types": [
+        "Data"
+      ],
+      "tool_mode": true
+    },
+    {
+      "type": "Output",
+      "name": "skill_message",
+      "display_name": "하위 Flow 응답",
+      "method": "run_skill_message",
+      "types": [
+        "Message"
+      ],
+      "tool_mode": false
+    }
+  ],
+  "dependencies": [
+    "lfx"
+  ],
+  "used_by_flows": [
+    "meeting_action_skill_flow"
+  ],
+  "risk_tags": [
+    "agent_tool",
+    "skill_as_tool",
+    "read_only_demo",
+    "structured_text"
+  ],
+  "verified_environment": "langflow-1.8.2-template-and-isolated-contract-validation",
+  "last_verified_at": "2026-07-12",
+  "documentation_path": "html/components/meeting_action_skill_tool/index.html",
+  "approved_by_user_at": null
+}

@@ -1,0 +1,123 @@
+{
+  "id": "simple_api_table_request",
+  "name_ko": "단순 API 테이블 조회",
+  "class_name": "SimpleApiTableRequest",
+  "asset_type": "component",
+  "status": "user_testing",
+  "version": "0.1.0",
+  "standalone": true,
+  "reusability": "shared",
+  "source_family": "direct_data_access_components",
+  "summary_ko": "HTTP API를 한 번 호출하고 지정한 JSON 응답 경로의 값을 데이터 테이블로 반환합니다.",
+  "source_file": "simple_api_table_request.py",
+  "inputs": [
+    {
+      "type": "MessageTextInput",
+      "name": "api_url",
+      "display_name": "API 주소",
+      "info": "호출할 API의 전체 http 또는 https 주소입니다.",
+      "required": true
+    },
+    {
+      "type": "BoolInput",
+      "name": "allow_insecure_http",
+      "display_name": "HTTP API 사용 허용",
+      "info": "기본값은 꺼짐입니다. HTTPS를 지원하지 않는 폐쇄된 테스트망에서만 명시적으로 켜세요.",
+      "value": false,
+      "advanced": true
+    },
+    {
+      "type": "DropdownInput",
+      "name": "http_method",
+      "display_name": "HTTP 방식",
+      "info": "한 번 실행할 HTTP 요청 방식입니다.",
+      "options": [
+        "GET",
+        "POST"
+      ],
+      "value": "GET"
+    },
+    {
+      "type": "SecretStrInput",
+      "name": "headers_json",
+      "display_name": "요청 헤더 JSON",
+      "info": "인증값을 포함할 수 있어 비밀 입력으로 처리합니다. 예: {\"Authorization\":\"Bearer ...\"}",
+      "value": "{}"
+    },
+    {
+      "type": "MultilineInput",
+      "name": "query_params_json",
+      "display_name": "URL 쿼리 파라미터 JSON",
+      "info": "URL 뒤에 붙일 query parameter 객체입니다. 예: {\"page\":1,\"size\":100}",
+      "value": "{}"
+    },
+    {
+      "type": "MultilineInput",
+      "name": "body_json",
+      "display_name": "요청 본문 JSON",
+      "info": "POST 요청에 보낼 JSON입니다. 본문이 없으면 비워 두세요.",
+      "value": ""
+    },
+    {
+      "type": "MessageTextInput",
+      "name": "response_path",
+      "display_name": "응답 데이터 경로",
+      "info": "표로 바꿀 JSON 값의 점 경로입니다. 비우면 전체 JSON을 사용하며, 틀린 경로를 자동 대체하지 않습니다.",
+      "value": ""
+    },
+    {
+      "type": "IntInput",
+      "name": "timeout_seconds",
+      "display_name": "제한 시간(초)",
+      "info": "연결과 응답 읽기 작업에 적용되는 timeout입니다. 전체 wall-clock 제한은 아닙니다.",
+      "value": 30,
+      "advanced": true
+    },
+    {
+      "type": "IntInput",
+      "name": "max_response_bytes",
+      "display_name": "최대 응답 크기(바이트)",
+      "info": "응답이 이 크기를 넘으면 메모리 보호를 위해 중단합니다. 기본값은 10MiB입니다.",
+      "value": 10485760,
+      "advanced": true
+    },
+    {
+      "type": "IntInput",
+      "name": "max_rows",
+      "display_name": "최대 반환 행 수",
+      "info": "응답에서 앞부분 기준으로 반환할 최대 행 수입니다.",
+      "value": 5000,
+      "advanced": true
+    }
+  ],
+  "outputs": [
+    {
+      "type": "Output",
+      "name": "data_table",
+      "display_name": "데이터 테이블",
+      "method": "build_data_table",
+      "types": [
+        "DataFrame"
+      ],
+      "tool_mode": false
+    }
+  ],
+  "dependencies": [
+    "lfx",
+    "requests"
+  ],
+  "used_by_flows": [],
+  "risk_tags": [
+    "external_api_access",
+    "ssrf_review",
+    "response_size_limit",
+    "json_response_only",
+    "https_default",
+    "same_origin_redirect"
+  ],
+  "verified_environment": "langflow-1.8.2-template-and-isolated-contract-validation",
+  "last_verified_at": "2026-07-12",
+  "documentation_path": "html/components/simple_api_table_request/index.html",
+  "approved_by_user_at": null,
+  "guide_file": "USAGE_GUIDE.md"
+}

@@ -1,0 +1,56 @@
+{
+  "id": "grounded_answer_builder",
+  "name_ko": "Grounded Answer Builder",
+  "class_name": "GroundedAnswerBuilder",
+  "asset_type": "component",
+  "status": "user_testing",
+  "version": "0.1.0",
+  "standalone": true,
+  "reusability": "shared",
+  "source_family": "enterprise_document_rag_flow",
+  "summary_ko": "LLM의 근거 ID를 서버 allowlist와 교차 검증하고, 부적합 응답은 허용 근거의 deterministic 답변으로 대체합니다.",
+  "source_file": "grounded_answer_builder.py",
+  "inputs": [
+    {
+      "type": "DataInput",
+      "name": "gate",
+      "display_name": "Gate",
+      "input_types": [
+        "Data",
+        "JSON"
+      ],
+      "required": true
+    },
+    {
+      "type": "MessageTextInput",
+      "name": "llm_response",
+      "display_name": "LLM Response",
+      "required": false
+    }
+  ],
+  "outputs": [
+    {
+      "type": "Output",
+      "name": "answer",
+      "display_name": "Answer",
+      "method": "build_answer",
+      "types": [
+        "Data"
+      ]
+    }
+  ],
+  "dependencies": [
+    "lfx"
+  ],
+  "used_by_flows": [
+    "enterprise_document_rag_flow"
+  ],
+  "risk_tags": [
+    "llm_output_validation",
+    "document_content"
+  ],
+  "verified_environment": "langflow-1.8.2-local-runtime-validation",
+  "last_verified_at": "2026-07-11",
+  "documentation_path": "html/components/grounded_answer_builder/index.html",
+  "approved_by_user_at": null
+}

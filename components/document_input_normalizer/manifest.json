@@ -1,0 +1,122 @@
+{
+  "id": "document_input_normalizer",
+  "name_ko": "00 Document Input Normalizer",
+  "class_name": "DocumentInputNormalizer",
+  "asset_type": "component",
+  "status": "user_testing",
+  "version": "0.1.0",
+  "standalone": true,
+  "reusability": "shared",
+  "source_family": "enterprise_document_rag_flow",
+  "summary_ko": "Normalize Data, Message, text, or JSON into documents with citation and ACL metadata.",
+  "source_file": "document_input_normalizer.py",
+  "inputs": [
+    {
+      "type": "DataInput",
+      "name": "document_input",
+      "display_name": "Document Input",
+      "info": "Optional Data, Message, JSON, or text. Empty input uses the embedded demo corpus when enabled.",
+      "input_types": [
+        "Data",
+        "Message",
+        "Text",
+        "JSON"
+      ],
+      "required": false
+    },
+    {
+      "type": "BoolInput",
+      "name": "use_demo_corpus",
+      "display_name": "Use Demo Corpus When Empty",
+      "value": true
+    },
+    {
+      "type": "MessageTextInput",
+      "name": "default_source_name",
+      "display_name": "Default Source Name",
+      "value": "enterprise_demo_corpus",
+      "advanced": true
+    },
+    {
+      "type": "MessageTextInput",
+      "name": "default_tenant_id",
+      "display_name": "Default Tenant ID",
+      "value": "agent-ground",
+      "advanced": true
+    },
+    {
+      "type": "DropdownInput",
+      "name": "default_classification",
+      "display_name": "Default Classification",
+      "options": [
+        "public",
+        "internal",
+        "confidential",
+        "restricted"
+      ],
+      "value": "internal",
+      "advanced": true
+    },
+    {
+      "type": "MessageTextInput",
+      "name": "default_allowed_roles",
+      "display_name": "Default Allowed Roles",
+      "info": "Comma-separated trusted role names. This is document metadata, not end-user identity.",
+      "value": "employee",
+      "advanced": true
+    },
+    {
+      "type": "MessageTextInput",
+      "name": "default_allowed_groups",
+      "display_name": "Default Allowed Groups",
+      "value": "all-employees",
+      "advanced": true
+    },
+    {
+      "type": "MessageTextInput",
+      "name": "page_break_marker",
+      "display_name": "Page Break Marker",
+      "value": "[[PAGE_BREAK]]",
+      "advanced": true
+    },
+    {
+      "type": "IntInput",
+      "name": "max_documents",
+      "display_name": "Max Documents or Pages",
+      "value": 100,
+      "advanced": true
+    },
+    {
+      "type": "IntInput",
+      "name": "max_chars_per_document",
+      "display_name": "Max Characters per Document",
+      "value": 200000,
+      "advanced": true
+    }
+  ],
+  "outputs": [
+    {
+      "type": "Output",
+      "name": "documents",
+      "display_name": "Documents",
+      "method": "build_documents",
+      "types": [
+        "Data"
+      ]
+    }
+  ],
+  "dependencies": [
+    "lfx"
+  ],
+  "used_by_flows": [
+    "enterprise_document_rag_flow"
+  ],
+  "risk_tags": [
+    "document_content",
+    "demo_corpus"
+  ],
+  "verified_environment": "langflow-1.8.2-local-runtime-validation",
+  "last_verified_at": "2026-07-11",
+  "documentation_path": "html/components/document_input_normalizer/index.html",
+  "approved_by_user_at": null
+}

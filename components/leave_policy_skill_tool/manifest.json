@@ -1,0 +1,81 @@
+{
+  "id": "leave_policy_skill_tool",
+  "name_ko": "휴가 정책 점검 Skill",
+  "class_name": "LeavePolicySkillTool",
+  "asset_type": "component",
+  "status": "user_testing",
+  "version": "0.1.0",
+  "standalone": true,
+  "reusability": "shared",
+  "source_family": "skill_based_agent_flow",
+  "summary_ko": "ISO 날짜 두 개의 평일과 선택적으로 연결한 휴일을 계산하며 실제 휴가 신청이나 승인은 하지 않습니다.",
+  "source_file": "leave_policy_skill_tool.py",
+  "inputs": [
+    {
+      "type": "DataInput",
+      "name": "skill_catalog",
+      "display_name": "Skill 카탈로그",
+      "info": "데모 Skill 카탈로그 빌더의 Skill 카탈로그 출력을 연결합니다. Agent Tool 인자로 노출되지 않습니다.",
+      "input_types": [
+        "Data",
+        "JSON"
+      ],
+      "required": true
+    },
+    {
+      "type": "MessageTextInput",
+      "name": "request",
+      "display_name": "휴가 점검 요청",
+      "info": "예: 2026-07-13부터 2026-07-17까지 휴가 일수를 확인해 줘.",
+      "required": true,
+      "tool_mode": true
+    },
+    {
+      "type": "MessageTextInput",
+      "name": "holiday_dates_json",
+      "display_name": "휴일 날짜 JSON",
+      "info": "선택 입력입니다. 예: [\"2026-07-15\"] 또는 {\"holiday_dates\":[\"2026-07-15\"]}",
+      "value": "",
+      "required": false,
+      "advanced": true
+    }
+  ],
+  "outputs": [
+    {
+      "type": "Output",
+      "name": "skill_result",
+      "display_name": "Skill 실행 결과",
+      "method": "run_skill",
+      "types": [
+        "Data"
+      ],
+      "tool_mode": true
+    },
+    {
+      "type": "Output",
+      "name": "skill_message",
+      "display_name": "하위 Flow 응답",
+      "method": "run_skill_message",
+      "types": [
+        "Message"
+      ],
+      "tool_mode": false
+    }
+  ],
+  "dependencies": [
+    "lfx"
+  ],
+  "used_by_flows": [
+    "skill_based_agent_flow"
+  ],
+  "risk_tags": [
+    "agent_tool",
+    "skill_as_tool",
+    "read_only_demo",
+    "date_calculation"
+  ],
+  "verified_environment": "langflow-1.8.2-template-and-isolated-contract-validation",
+  "last_verified_at": "2026-07-12",
+  "documentation_path": "html/components/leave_policy_skill_tool/index.html",
+  "approved_by_user_at": null
+}

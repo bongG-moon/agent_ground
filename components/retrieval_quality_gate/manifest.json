@@ -1,0 +1,49 @@
+{
+  "id": "retrieval_quality_gate",
+  "name_ko": "Retrieval Quality Gate",
+  "class_name": "RetrievalQualityGate",
+  "asset_type": "component",
+  "status": "user_testing",
+  "version": "0.1.0",
+  "standalone": true,
+  "reusability": "shared",
+  "source_family": "enterprise_document_rag_flow",
+  "summary_ko": "ACL 적용 여부·검색 점수·문서 지시 신호를 확인하고 근거가 부족하면 LLM 앞에서 답변을 차단합니다.",
+  "source_file": "retrieval_quality_gate.py",
+  "inputs": [
+    {
+      "type": "DataInput",
+      "name": "retrieval",
+      "display_name": "Retrieval",
+      "input_types": [
+        "Data",
+        "JSON"
+      ],
+      "required": true
+    }
+  ],
+  "outputs": [
+    {
+      "type": "Output",
+      "name": "gate",
+      "display_name": "Gate",
+      "method": "build_gate",
+      "types": [
+        "Data"
+      ]
+    }
+  ],
+  "dependencies": [
+    "lfx"
+  ],
+  "used_by_flows": [
+    "enterprise_document_rag_flow"
+  ],
+  "risk_tags": [
+    "answer_policy"
+  ],
+  "verified_environment": "langflow-1.8.2-local-runtime-validation",
+  "last_verified_at": "2026-07-11",
+  "documentation_path": "html/components/retrieval_quality_gate/index.html",
+  "approved_by_user_at": null
+}

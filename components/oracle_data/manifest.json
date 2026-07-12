@@ -1,0 +1,63 @@
+{
+  "id": "oracle_data",
+  "name_ko": "Oracle Data",
+  "class_name": "OracleData",
+  "asset_type": "component",
+  "status": "user_testing",
+  "version": "0.9.0",
+  "standalone": true,
+  "reusability": "shared",
+  "source_family": "reusable_data_flow",
+  "summary_ko": "data_request 중 oracle 요청만 골라 실행합니다.",
+  "source_file": "oracle_data.py",
+  "inputs": [
+    {
+      "type": "DataInput",
+      "name": "data_request",
+      "display_name": "Data Request",
+      "input_types": [
+        "Data",
+        "JSON"
+      ]
+    },
+    {
+      "type": "MultilineInput",
+      "name": "oracle_config",
+      "display_name": "Oracle TNS",
+      "value": ""
+    },
+    {
+      "type": "MessageTextInput",
+      "name": "fetch_limit",
+      "display_name": "Fetch Limit",
+      "value": "5000",
+      "advanced": true
+    }
+  ],
+  "outputs": [
+    {
+      "type": "Output",
+      "name": "source_result",
+      "display_name": "Data Result",
+      "method": "build_source_result",
+      "types": [
+        "Data"
+      ]
+    }
+  ],
+  "dependencies": [
+    "lfx",
+    "oracledb"
+  ],
+  "used_by_flows": [
+    "reusable_data_flow"
+  ],
+  "risk_tags": [
+    "external_data_access",
+    "credentials_required"
+  ],
+  "verified_environment": "legacy-export-1.8.2-local-static-check",
+  "last_verified_at": "2026-07-10",
+  "documentation_path": "html/components/oracle_data/index.html",
+  "approved_by_user_at": null
+}

@@ -1,0 +1,46 @@
+{
+  "id": "llm_html_plan_normalizer",
+  "name_ko": "03b LLM 계획 검증",
+  "class_name": "LlmHtmlPlanNormalizer",
+  "asset_type": "component",
+  "status": "user_testing",
+  "version": "0.9.0",
+  "standalone": true,
+  "reusability": "shared",
+  "source_family": "html_report_flow",
+  "summary_ko": "LLM이 만든 리포트 계획 JSON을 검증하고 렌더러가 쓸 최종 계획으로 정리합니다.",
+  "source_file": "llm_html_plan_normalizer.py",
+  "inputs": [
+    {
+      "type": "DataInput",
+      "name": "base_payload",
+      "display_name": "기본 계획",
+      "required": true
+    },
+    {
+      "type": "MessageTextInput",
+      "name": "llm_response",
+      "display_name": "LLM 응답",
+      "required": true
+    }
+  ],
+  "outputs": [
+    {
+      "type": "Output",
+      "name": "payload_out",
+      "display_name": "최종 계획",
+      "method": "build_payload"
+    }
+  ],
+  "dependencies": [
+    "lfx"
+  ],
+  "used_by_flows": [
+    "html_report_flow"
+  ],
+  "risk_tags": [],
+  "verified_environment": "legacy-export-1.8.2-local-static-check",
+  "last_verified_at": "2026-07-10",
+  "documentation_path": "html/components/llm_html_plan_normalizer/index.html",
+  "approved_by_user_at": null
+}

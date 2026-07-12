@@ -1,0 +1,46 @@
+{
+  "datasets": [
+    {
+      "dataset_id": "wip_status",
+      "label": "WIP status by process",
+      "rows": [
+        {"DATE": "2026-06-01", "LINE": "L1", "PROCESS": "DA", "STATUS": "RUN", "ALERT_LEVEL": "NORMAL", "WIP_QTY": 118},
+        {"DATE": "2026-06-02", "LINE": "L1", "PROCESS": "DA", "STATUS": "RUN", "ALERT_LEVEL": "NORMAL", "WIP_QTY": 126},
+        {"DATE": "2026-06-03", "LINE": "L1", "PROCESS": "DA", "STATUS": "DELAY", "ALERT_LEVEL": "WARN", "WIP_QTY": 171},
+        {"DATE": "2026-06-04", "LINE": "L1", "PROCESS": "TEST", "STATUS": "DELAY", "ALERT_LEVEL": "HIGH", "WIP_QTY": 215},
+        {"DATE": "2026-06-05", "LINE": "L2", "PROCESS": "TEST", "STATUS": "RUN", "ALERT_LEVEL": "WARN", "WIP_QTY": 184},
+        {"DATE": "2026-06-06", "LINE": "L2", "PROCESS": "PACK", "STATUS": "RUN", "ALERT_LEVEL": "NORMAL", "WIP_QTY": 93},
+        {"DATE": "2026-06-07", "LINE": "L2", "PROCESS": "PACK", "STATUS": "HOLD", "ALERT_LEVEL": "HIGH", "WIP_QTY": 204},
+        {"DATE": "2026-06-08", "LINE": "L3", "PROCESS": "WB", "STATUS": "RUN", "ALERT_LEVEL": "NORMAL", "WIP_QTY": 142}
+      ]
+    },
+    {
+      "dataset_id": "production_result",
+      "label": "Daily output and yield",
+      "rows": [
+        {"DATE": "2026-06-01", "LINE": "L1", "PROCESS": "DA", "OUTPUT_QTY": 1040, "YIELD_RATE": 97.4, "CYCLE_TIME_HR": 8.2},
+        {"DATE": "2026-06-02", "LINE": "L1", "PROCESS": "DA", "OUTPUT_QTY": 1095, "YIELD_RATE": 97.1, "CYCLE_TIME_HR": 8.5},
+        {"DATE": "2026-06-03", "LINE": "L1", "PROCESS": "DA", "OUTPUT_QTY": 980, "YIELD_RATE": 95.8, "CYCLE_TIME_HR": 9.1},
+        {"DATE": "2026-06-04", "LINE": "L1", "PROCESS": "TEST", "OUTPUT_QTY": 820, "YIELD_RATE": 94.2, "CYCLE_TIME_HR": 10.7},
+        {"DATE": "2026-06-05", "LINE": "L2", "PROCESS": "TEST", "OUTPUT_QTY": 910, "YIELD_RATE": 95.3, "CYCLE_TIME_HR": 9.8},
+        {"DATE": "2026-06-06", "LINE": "L2", "PROCESS": "PACK", "OUTPUT_QTY": 1180, "YIELD_RATE": 98.1, "CYCLE_TIME_HR": 7.6},
+        {"DATE": "2026-06-07", "LINE": "L2", "PROCESS": "PACK", "OUTPUT_QTY": 870, "YIELD_RATE": 94.9, "CYCLE_TIME_HR": 10.2},
+        {"DATE": "2026-06-08", "LINE": "L3", "PROCESS": "WB", "OUTPUT_QTY": 1015, "YIELD_RATE": 96.8, "CYCLE_TIME_HR": 8.9}
+      ]
+    },
+    {
+      "dataset_id": "quality_backlog",
+      "label": "Quality and backlog events",
+      "rows": [
+        {"DATE": "2026-06-01", "LINE": "L1", "PROCESS": "DA", "DEFECT_QTY": 18, "BACKLOG_QTY": 42, "REWORK_QTY": 9},
+        {"DATE": "2026-06-02", "LINE": "L1", "PROCESS": "DA", "DEFECT_QTY": 22, "BACKLOG_QTY": 55, "REWORK_QTY": 11},
+        {"DATE": "2026-06-03", "LINE": "L1", "PROCESS": "DA", "DEFECT_QTY": 38, "BACKLOG_QTY": 97, "REWORK_QTY": 21},
+        {"DATE": "2026-06-04", "LINE": "L1", "PROCESS": "TEST", "DEFECT_QTY": 64, "BACKLOG_QTY": 156, "REWORK_QTY": 36},
+        {"DATE": "2026-06-05", "LINE": "L2", "PROCESS": "TEST", "DEFECT_QTY": 49, "BACKLOG_QTY": 118, "REWORK_QTY": 28},
+        {"DATE": "2026-06-06", "LINE": "L2", "PROCESS": "PACK", "DEFECT_QTY": 15, "BACKLOG_QTY": 34, "REWORK_QTY": 8},
+        {"DATE": "2026-06-07", "LINE": "L2", "PROCESS": "PACK", "DEFECT_QTY": 57, "BACKLOG_QTY": 141, "REWORK_QTY": 33},
+        {"DATE": "2026-06-08", "LINE": "L3", "PROCESS": "WB", "DEFECT_QTY": 29, "BACKLOG_QTY": 76, "REWORK_QTY": 14}
+      ]
+    }
+  ]
+}

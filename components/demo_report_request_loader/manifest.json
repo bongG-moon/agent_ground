@@ -1,0 +1,68 @@
+{
+  "id": "demo_report_request_loader",
+  "name_ko": "00 리포트 요청/데이터 불러오기",
+  "class_name": "DemoReportRequestLoader",
+  "asset_type": "component",
+  "status": "user_testing",
+  "version": "0.9.0",
+  "standalone": true,
+  "reusability": "shared",
+  "source_family": "html_report_flow",
+  "summary_ko": "질문, 표시 요청, 직접 입력 데이터 또는 File Read 결과를 HTML 리포트용 요청으로 정리합니다.",
+  "source_file": "demo_report_request_loader.py",
+  "inputs": [
+    {
+      "type": "MessageTextInput",
+      "name": "question",
+      "display_name": "질문",
+      "required": true
+    },
+    {
+      "type": "MessageTextInput",
+      "name": "view_request",
+      "display_name": "보고 싶은 방식",
+      "required": false
+    },
+    {
+      "type": "MessageTextInput",
+      "name": "data_text",
+      "display_name": "데이터 직접 입력",
+      "required": false
+    },
+    {
+      "type": "DataInput",
+      "name": "file_data",
+      "display_name": "파일 데이터",
+      "input_types": [
+        "Data",
+        "DataFrame",
+        "Message",
+        "Text",
+        "File",
+        "JSON",
+        "StructuredContent",
+        "Structured Content"
+      ],
+      "required": false
+    }
+  ],
+  "outputs": [
+    {
+      "type": "Output",
+      "name": "payload",
+      "display_name": "요청 데이터",
+      "method": "build_payload"
+    }
+  ],
+  "dependencies": [
+    "lfx"
+  ],
+  "used_by_flows": [
+    "html_report_flow"
+  ],
+  "risk_tags": [],
+  "verified_environment": "legacy-export-1.8.2-local-static-check",
+  "last_verified_at": "2026-07-10",
+  "documentation_path": "html/components/demo_report_request_loader/index.html",
+  "approved_by_user_at": null
+}

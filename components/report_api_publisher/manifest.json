@@ -1,0 +1,57 @@
+{
+  "id": "report_api_publisher",
+  "name_ko": "05-2 공유 링크 출력",
+  "class_name": "ReportApiPublisher",
+  "asset_type": "component",
+  "status": "user_testing",
+  "version": "0.9.0",
+  "standalone": true,
+  "reusability": "shared",
+  "source_family": "html_report_flow",
+  "summary_ko": "생성된 HTML을 Report API에 저장하고 간단한 다운로드 링크 메시지를 출력합니다.",
+  "source_file": "report_api_publisher.py",
+  "inputs": [
+    {
+      "type": "DataInput",
+      "name": "payload",
+      "display_name": "HTML 생성 결과",
+      "required": true
+    },
+    {
+      "type": "MessageTextInput",
+      "name": "report_api_url",
+      "display_name": "Report API 주소",
+      "value": "",
+      "advanced": false
+    },
+    {
+      "type": "MessageTextInput",
+      "name": "ttl_hours",
+      "display_name": "링크 유효시간",
+      "value": "24",
+      "advanced": false
+    }
+  ],
+  "outputs": [
+    {
+      "type": "Output",
+      "name": "link_message",
+      "display_name": "링크 메시지",
+      "method": "build_message"
+    }
+  ],
+  "dependencies": [
+    "lfx"
+  ],
+  "used_by_flows": [
+    "html_report_flow"
+  ],
+  "risk_tags": [
+    "external_publish",
+    "html_output"
+  ],
+  "verified_environment": "legacy-export-1.8.2-local-static-check",
+  "last_verified_at": "2026-07-10",
+  "documentation_path": "html/components/report_api_publisher/index.html",
+  "approved_by_user_at": null
+}

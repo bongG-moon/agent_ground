@@ -1,0 +1,14 @@
+{
+  "flow_id": "html_report_flow",
+  "components": [
+    {"id": "demo_report_request_loader", "version": "0.9.0"},
+    {"id": "html_report_data_profile_builder", "version": "0.9.0"},
+    {"id": "html_component_catalog_builder", "version": "0.9.0"},
+    {"id": "auto_html_plan_builder", "version": "0.9.0"},
+    {"id": "llm_html_plan_prompt_builder", "version": "0.9.0"},
+    {"id": "llm_html_plan_normalizer", "version": "0.9.0"},
+    {"id": "html_template_renderer", "version": "0.9.0"},
+    {"id": "html_source_output", "version": "0.9.0"},
+    {"id": "report_api_publisher", "version": "0.9.0"}
+  ]
+}

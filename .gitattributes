@@ -1,0 +1,26 @@
+* text=auto
+
+*.py text eol=lf
+*.json text eol=lf
+*.jsonl text eol=lf
+*.md text eol=lf
+*.html text eol=lf
+*.css text eol=lf
+*.js text eol=lf
+*.csv text eol=lf
+*.txt text eol=lf
+*.yml text eol=lf
+*.yaml text eol=lf
+
+# Markdown의 두 칸 줄바꿈과 생성 HTML의 들여쓰기 공백은 의도된 출력입니다.
+*.md whitespace=-trailing-space
+*.html whitespace=-trailing-space
+
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.webp binary
+*.pdf binary
+*.docx binary
+*.xlsx binary
+*.pptx binary

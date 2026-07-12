@@ -1,0 +1,94 @@
+{
+  "id": "oracle_table_query",
+  "name_ko": "Oracle 테이블 조회",
+  "class_name": "OracleTableQuery",
+  "asset_type": "component",
+  "status": "user_testing",
+  "version": "0.1.0",
+  "standalone": true,
+  "reusability": "shared",
+  "source_family": "direct_data_access_components",
+  "summary_ko": "Oracle 접속 정보와 읽기 SQL을 직접 입력받아 조회 결과를 DataFrame으로 반환합니다.",
+  "source_file": "oracle_table_query.py",
+  "inputs": [
+    {
+      "type": "MultilineInput",
+      "name": "dsn",
+      "display_name": "Oracle DSN/TNS",
+      "required": true,
+      "info": "한 개 Oracle DB의 DSN, TNS 별칭 또는 전체 TNS 문자열을 입력합니다."
+    },
+    {
+      "type": "StrInput",
+      "name": "username",
+      "display_name": "사용자 ID",
+      "value": "",
+      "info": "일반 인증이면 입력합니다. 외부 인증/Wallet 환경이면 비워둘 수 있습니다."
+    },
+    {
+      "type": "SecretStrInput",
+      "name": "password",
+      "display_name": "비밀번호",
+      "value": "",
+      "info": "사용자 ID를 입력했다면 비밀번호도 함께 입력해야 합니다."
+    },
+    {
+      "type": "MultilineInput",
+      "name": "sql_query",
+      "display_name": "조회 SQL",
+      "required": true,
+      "info": "SELECT 또는 조회용 WITH 문 한 개만 입력합니다. 값은 바인드 변수를 사용하세요."
+    },
+    {
+      "type": "DictInput",
+      "name": "bind_parameters",
+      "display_name": "바인드 변수",
+      "value": {},
+      "info": "SQL의 :DATE 같은 변수에 전달할 JSON 객체입니다. 키에는 콜론을 붙이지 않습니다."
+    },
+    {
+      "type": "IntInput",
+      "name": "max_rows",
+      "display_name": "최대 조회 행 수",
+      "value": 5000,
+      "advanced": true,
+      "info": "1~100000행 사이에서 설정합니다."
+    },
+    {
+      "type": "IntInput",
+      "name": "query_timeout_seconds",
+      "display_name": "SQL 제한시간(초)",
+      "value": 60,
+      "advanced": true,
+      "info": "Oracle 각 DB 왕복 호출에 적용할 제한시간입니다. 기본값은 60초입니다."
+    }
+  ],
+  "outputs": [
+    {
+      "type": "Output",
+      "name": "data_table",
+      "display_name": "조회 데이터 테이블",
+      "method": "build_data_table",
+      "types": [
+        "DataFrame"
+      ],
+      "tool_mode": false
+    }
+  ],
+  "dependencies": [
+    "lfx",
+    "oracledb"
+  ],
+  "used_by_flows": [],
+  "risk_tags": [
+    "database_read",
+    "credentials_required",
+    "read_only_sql",
+    "external_data_access"
+  ],
+  "verified_environment": "langflow-1.8.2-template-and-isolated-contract-validation",
+  "last_verified_at": "2026-07-12",
+  "documentation_path": "html/components/oracle_table_query/index.html",
+  "approved_by_user_at": null,
+  "guide_file": "USAGE_GUIDE.md"
+}

@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <base href="../" />
+  <title>학습 안내 · Agent Ground</title>
+  <meta name="description" content="전체 교육 포털을 위한 초보자 학습 동선" />
+  <link rel="stylesheet" href="assets/css/site.css" />
+  
+</head>
+<body>
+  <a class="skip-link" href="#main">본문으로 바로가기</a>
+  <header class="site-header">
+    <div class="header-inner">
+      <a class="brand" href="index.html" aria-label="Agent Ground 홈">
+        <span class="brand-mark" aria-hidden="true">AG</span>
+        <span class="brand-copy"><strong>Agent Ground</strong><small>Learn · Build · Validate</small></span>
+      </a>
+      <button class="menu-button" type="button" data-menu-button aria-expanded="false" aria-controls="site-nav" aria-label="메뉴 열기"><span class="menu-lines"></span></button>
+      <nav class="site-nav" id="site-nav" data-site-nav data-open="false" aria-label="주요 메뉴"><a href="index.html">홈</a><a href="training/index.html" aria-current="page">처음 배우기</a><a href="flows/index.html">Flows</a><a href="components/index.html">Components</a><a href="troubleshooting/index.html">실패와 해결</a><a href="business-agent-design/index.html">업무 Agent 설계</a></nav>
+    </div>
+  </header>
+  <main class="page-wrap" id="main">
+    <nav class="breadcrumbs" aria-label="현재 위치"><a href="index.html">홈</a><span aria-hidden="true">/</span><a href="training/index.html">전체 교육 포털</a><span aria-hidden="true">/</span><span>학습 안내</span></nav>
+    
+<section class="hero">
+  <div class="hero-kicker">Beginner course</div>
+  <h1>노드를 외우기보다<br />흐르는 값을 이해합니다</h1>
+  <p>이 페이지는 축적된 교육자료를 대체하지 않습니다. 전체 교육 포털은 모든 기존 본문·예제·샘플을 그대로 보존하고, 여기서는 처음 보는 사용자가 어느 순서로 학습할지만 안내합니다.</p>
+  <div class="hero-actions"><a class="button button-primary" href="training/index.html">전체 교육 포털 열기</a><a class="button button-secondary" href="#learning-path">학습 순서 보기</a></div>
+</section>
+<section class="section" id="learning-path">
+  <div class="section-heading"><p class="eyebrow">Learning path</p><h2>다섯 단계로 한 번 완성해보기</h2><p>각 단계는 다음 단계에 필요한 결과를 직접 확인하는 방식으로 이어집니다.</p></div>
+  <div class="pipeline">
+    <div class="pipeline-step"><small>STEP 01</small><strong>노드의 역할 이해</strong></div>
+    <div class="pipeline-step"><small>STEP 02</small><strong>입력·출력 타입 확인</strong></div>
+    <div class="pipeline-step"><small>STEP 03</small><strong>포트 정확히 연결</strong></div>
+    <div class="pipeline-step"><small>STEP 04</small><strong>샘플로 실행</strong></div>
+    <div class="pipeline-step"><small>STEP 05</small><strong>기대 결과 비교</strong></div>
+  </div>
+</section>
+<section class="section">
+  <div class="section-heading"><p class="eyebrow">Core concept</p><h2>화면 입력과 연결 입력은 다릅니다</h2><p>초보자가 가장 자주 막히는 부분은 “값을 타이핑하는 칸”과 “앞 노드의 결과를 연결하는 포트”를 같은 것으로 보는 것입니다.</p></div>
+  <div class="grid grid-2">
+    <div class="card"><div class="meta-row"><span class="badge badge-design">연결 입력</span></div><h3>앞 노드의 결과가 들어오는 곳</h3><p><code>DataInput</code>, <code>MessageTextInput</code>처럼 연결 가능한 타입은 앞 노드의 출력과 타입이 맞아야 합니다.</p><div class="tag-list"><span class="tag">Data</span><span class="tag">Message</span><span class="tag">DataFrame</span></div></div>
+    <div class="card"><div class="meta-row"><span class="badge badge-neutral">설정 필드</span></div><h3>사용자가 화면에서 정하는 값</h3><p>토글, 숫자 제한, 모델 이름과 같은 설정은 일반적인 데이터 흐름 포트가 아닐 수 있습니다. 화면의 고급 설정 여부도 함께 확인합니다.</p><div class="tag-list"><span class="tag">Bool</span><span class="tag">Integer</span><span class="tag">Dropdown</span><span class="tag">Secret</span></div></div>
+  </div>
+</section>
+<section class="section">
+  <div class="section-heading"><p class="eyebrow">Custom component</p><h2>Standalone Component를 확인하는 방법</h2></div>
+  <div class="grid grid-3">
+    <div class="card"><span class="card-number">1</span><h3>파일 하나 등록</h3><p>형제 helper 파일 없이 하나의 Python 파일만 등록합니다.</p></div>
+    <div class="card"><span class="card-number">2</span><h3>화면 모양 확인</h3><p>이름, 입력 필드, 고급 설정, Output 이름이 설명서와 같은지 확인합니다.</p></div>
+    <div class="card"><span class="card-number">3</span><h3>가장 작은 실행</h3><p>샘플 입력을 넣고 다음 노드가 받을 실제 타입과 핵심 값을 확인합니다.</p></div>
+  </div>
+  <div class="notice notice-info" style="margin-top:18px"><strong>현재 환경과 다르면?</strong>억지로 설명서에 맞추지 않습니다. 실제 화면, 오류 문구, 입력값을 기록하고 문제 해결 문서를 만든 뒤 교육자료를 고칩니다.</div>
+</section>
+<section class="section">
+  <div class="section-heading"><p class="eyebrow">Practice</p><h2>현재 준비된 다섯 가지 실습</h2></div>
+  <div class="grid grid-3">
+    <a class="card card-link" href="flows/reusable_data_flow/index.html"><div class="meta-row"><span class="badge badge-testing">검증 중</span></div><h3>실습 A · 여러 데이터 소스 조회</h3><p>질문 → 요청 정규화 → 소스별 실행 → 결과 병합의 데이터 흐름을 배웁니다.</p></a>
+    <a class="card card-link" href="components/direct-data-access/index.html"><div class="meta-row"><span class="badge badge-testing">검증 중</span></div><h3>실습 B · 한 소스 직접 조회</h3><p>필요한 접속값과 조회 조건을 직접 넣고 <code>data_table</code> 하나를 받는 최소 연결을 배웁니다.</p></a>
+    <a class="card card-link" href="flows/html_report_flow/index.html"><div class="meta-row"><span class="badge badge-testing">검증 중</span></div><h3>실습 C · HTML 리포트 만들기</h3><p>데이터 구조 분석 → 블록 계획 → 검증 → 안전한 렌더링을 배웁니다.</p></a>
+    <a class="card card-link" href="flows/enterprise_document_rag_flow/index.html"><div class="meta-row"><span class="badge badge-testing">검증 중</span></div><h3>실습 D · 근거 있는 문서 답변</h3><p>문서 준비 → ACL 검색 → 품질 gate → 인용과 거절의 흐름을 배웁니다.</p></a>
+    <a class="card card-link" href="flows/skill_based_agent_flow/index.html"><div class="meta-row"><span class="badge badge-testing">검증 중</span></div><h3>실습 E · 하이브리드 Skill Tool</h3><p>작은 계산은 직접 Component Tool로, 확장 가능한 업무는 Run Flow Tool로 실행하는 차이를 배웁니다.</p></a>
+  </div>
+</section>
+<section class="section">
+  <div class="section-heading"><p class="eyebrow">Validation loop</p><h2>잘 안 된 순간도 학습 과정입니다</h2></div>
+  <div class="card"><ul class="check-list"><li>실제 오류 문구와 어느 노드에서 발생했는지 기록합니다.</li><li>기대했던 입력·출력 타입과 실제 화면 타입을 비교합니다.</li><li>최소 연결로 같은 문제가 재현되는지 확인합니다.</li><li>수정한 뒤 같은 입력으로 다시 실행합니다.</li><li>해결 과정을 별도 HTML로 만들고 이 교육 허브에서 연결합니다.</li></ul><div class="page-actions"><a class="button button-soft" href="troubleshooting/index.html">실패와 해결 기록 보기</a></div></div>
+</section>
+
+  </main>
+  <footer class="site-footer">
+    <div class="footer-inner">
+      <div><strong>Agent Ground</strong><p>실제 Agent Builder 환경에서 검증된 교육자료, Standalone Component와 Flow를 함께 쌓아갑니다.</p></div>
+      <div class="footer-links"><a href="training/index.html">처음 배우기</a><a href="troubleshooting/index.html">실패와 해결</a><a href="../AGENT_GROUND_PROJECT_MASTER_GUIDE.md">프로젝트 기준</a></div>
+    </div>
+  </footer>
+  <script src="assets/js/site.js"></script>
+  
+</body>
+</html>

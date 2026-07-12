@@ -1,0 +1,75 @@
+{
+  "id": "llm_html_plan_prompt_builder",
+  "name_ko": "03a 프롬프트 변수 준비",
+  "class_name": "LlmHtmlPlanPromptBuilder",
+  "asset_type": "component",
+  "status": "user_testing",
+  "version": "0.9.0",
+  "standalone": true,
+  "reusability": "shared",
+  "source_family": "html_report_flow",
+  "summary_ko": "Langflow 기본 Prompt Template에 연결할 변수 값을 개별 출력으로 준비합니다.",
+  "source_file": "llm_html_plan_prompt_builder.py",
+  "inputs": [
+    {
+      "type": "DataInput",
+      "name": "payload",
+      "display_name": "기본 계획",
+      "required": true
+    },
+    {
+      "type": "MessageTextInput",
+      "name": "design_instruction",
+      "display_name": "추가 구현 지시사항",
+      "required": false
+    }
+  ],
+  "outputs": [
+    {
+      "type": "Output",
+      "name": "user_request_json",
+      "display_name": "사용자_요청_JSON",
+      "method": "build_user_request_json",
+      "group_outputs": true
+    },
+    {
+      "type": "Output",
+      "name": "report_context_json",
+      "display_name": "리포트_컨텍스트_JSON",
+      "method": "build_report_context_json",
+      "group_outputs": true
+    },
+    {
+      "type": "Output",
+      "name": "design_instruction_text",
+      "display_name": "디자인_지시",
+      "method": "build_design_instruction_text",
+      "group_outputs": true
+    },
+    {
+      "type": "Output",
+      "name": "rendering_rules",
+      "display_name": "렌더링_규칙",
+      "method": "build_rendering_rules",
+      "group_outputs": true
+    },
+    {
+      "type": "Output",
+      "name": "output_schema_json",
+      "display_name": "출력_스키마_JSON",
+      "method": "build_output_schema_json",
+      "group_outputs": true
+    }
+  ],
+  "dependencies": [
+    "lfx"
+  ],
+  "used_by_flows": [
+    "html_report_flow"
+  ],
+  "risk_tags": [],
+  "verified_environment": "legacy-export-1.8.2-local-static-check",
+  "last_verified_at": "2026-07-10",
+  "documentation_path": "html/components/llm_html_plan_prompt_builder/index.html",
+  "approved_by_user_at": null
+}

@@ -1,0 +1,57 @@
+{
+  "id": "source_catalog_normalizer",
+  "name_ko": "Catalog Normalizer",
+  "class_name": "SourceCatalogNormalizer",
+  "asset_type": "component",
+  "status": "user_testing",
+  "version": "0.9.0",
+  "standalone": true,
+  "reusability": "shared",
+  "source_family": "reusable_data_flow",
+  "summary_ko": "LLM이 만든 source_catalog 후보를 저장하지 않고 조회 Flow용 형태로 정규화합니다.",
+  "source_file": "source_catalog_normalizer.py",
+  "inputs": [
+    {
+      "type": "DataInput",
+      "name": "llm_result",
+      "display_name": "LLM Result",
+      "input_types": [
+        "Message",
+        "Data",
+        "Text",
+        "JSON"
+      ]
+    }
+  ],
+  "outputs": [
+    {
+      "type": "Output",
+      "name": "catalog_message",
+      "display_name": "Catalog(Text직접연결용)",
+      "method": "build_catalog_message",
+      "types": [
+        "Message"
+      ]
+    },
+    {
+      "type": "Output",
+      "name": "catalog_data",
+      "display_name": "Catalog(DB저장용)",
+      "method": "build_catalog_data",
+      "types": [
+        "Data"
+      ]
+    }
+  ],
+  "dependencies": [
+    "lfx"
+  ],
+  "used_by_flows": [
+    "reusable_data_flow"
+  ],
+  "risk_tags": [],
+  "verified_environment": "legacy-export-1.8.2-local-static-check",
+  "last_verified_at": "2026-07-10",
+  "documentation_path": "html/components/source_catalog_normalizer/index.html",
+  "approved_by_user_at": null
+}

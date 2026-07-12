@@ -1,0 +1,72 @@
+{
+  "id": "expense_precheck_skill_tool",
+  "name_ko": "경비 사전 점검 Skill",
+  "class_name": "ExpensePrecheckSkillTool",
+  "asset_type": "component",
+  "status": "user_testing",
+  "version": "0.1.0",
+  "standalone": true,
+  "reusability": "shared",
+  "source_family": "skill_based_agent_flow",
+  "summary_ko": "식대·교통비·숙박비·기타 금액을 교육용 한도와 비교하며 실제 승인이나 저장은 하지 않습니다.",
+  "source_file": "expense_precheck_skill_tool.py",
+  "inputs": [
+    {
+      "type": "DataInput",
+      "name": "skill_catalog",
+      "display_name": "Skill 카탈로그",
+      "info": "데모 Skill 카탈로그 빌더의 Skill 카탈로그 출력을 연결합니다. Agent Tool 인자로 노출되지 않습니다.",
+      "input_types": [
+        "Data",
+        "JSON"
+      ],
+      "required": true
+    },
+    {
+      "type": "MessageTextInput",
+      "name": "request",
+      "display_name": "경비 점검 요청",
+      "info": "예: 식대 25,000원, 교통비 12,000원",
+      "required": true,
+      "tool_mode": true
+    }
+  ],
+  "outputs": [
+    {
+      "type": "Output",
+      "name": "skill_result",
+      "display_name": "Skill 실행 결과",
+      "method": "run_skill",
+      "types": [
+        "Data"
+      ],
+      "tool_mode": true
+    },
+    {
+      "type": "Output",
+      "name": "skill_message",
+      "display_name": "하위 Flow 응답",
+      "method": "run_skill_message",
+      "types": [
+        "Message"
+      ],
+      "tool_mode": false
+    }
+  ],
+  "dependencies": [
+    "lfx"
+  ],
+  "used_by_flows": [
+    "skill_based_agent_flow"
+  ],
+  "risk_tags": [
+    "agent_tool",
+    "skill_as_tool",
+    "read_only_demo",
+    "deterministic_calculation"
+  ],
+  "verified_environment": "langflow-1.8.2-template-and-isolated-contract-validation",
+  "last_verified_at": "2026-07-12",
+  "documentation_path": "html/components/expense_precheck_skill_tool/index.html",
+  "approved_by_user_at": null
+}

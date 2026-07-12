@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <base href="./" />
+  <title>통합 포털 · Agent Ground</title>
+  <meta name="description" content="Agent Builder 교육과 재사용 자산 통합 포털" />
+  <link rel="stylesheet" href="assets/css/site.css" />
+  
+</head>
+<body>
+  <a class="skip-link" href="#main">본문으로 바로가기</a>
+  <header class="site-header">
+    <div class="header-inner">
+      <a class="brand" href="index.html" aria-label="Agent Ground 홈">
+        <span class="brand-mark" aria-hidden="true">AG</span>
+        <span class="brand-copy"><strong>Agent Ground</strong><small>Learn · Build · Validate</small></span>
+      </a>
+      <button class="menu-button" type="button" data-menu-button aria-expanded="false" aria-controls="site-nav" aria-label="메뉴 열기"><span class="menu-lines"></span></button>
+      <nav class="site-nav" id="site-nav" data-site-nav data-open="false" aria-label="주요 메뉴"><a href="index.html" aria-current="page">홈</a><a href="training/index.html">처음 배우기</a><a href="flows/index.html">Flows</a><a href="components/index.html">Components</a><a href="troubleshooting/index.html">실패와 해결</a><a href="business-agent-design/index.html">업무 Agent 설계</a></nav>
+    </div>
+  </header>
+  <main class="page-wrap" id="main">
+    <nav class="breadcrumbs" aria-label="현재 위치"><span>홈</span></nav>
+    
+<section class="hero">
+  <div class="hero-kicker">Agent Builder Learning Hub</div>
+  <h1>배우는 순간부터<br />실제 업무 Agent까지</h1>
+  <p>코딩이 익숙하지 않아도 연결 구조를 이해하고, 검증된 Component와 Flow를 가져다 쓰며, 막힌 문제의 해결 기록까지 한곳에서 찾을 수 있습니다.</p>
+  <div class="hero-actions"><a class="button button-primary" href="training/index.html">처음부터 시작하기</a><a class="button button-secondary" href="flows/index.html">Flow 둘러보기</a></div>
+</section>
+<div class="metric-strip" aria-label="프로젝트 현황">
+  <div class="metric"><strong>4</strong><span>검증 중 Flow</span></div>
+  <div class="metric"><strong>41</strong><span>Standalone Component</span></div>
+  <div class="metric"><strong>0</strong><span>사용자 승인 완료</span></div>
+  <div class="metric"><strong>1</strong><span>업무 Agent 설계안</span></div>
+</div>
+<section class="section">
+  <div class="section-heading"><p class="eyebrow">Choose your path</p><h2>지금 필요한 곳에서 시작하세요</h2><p>처음 배우는 사람과 바로 가져다 쓰려는 사람이 같은 화면에서 길을 잃지 않도록 진입점을 나눴습니다.</p></div>
+  <div class="grid grid-3">
+    <a class="card card-link" href="training/index.html"><span class="card-number">01</span><h3>처음 배우기</h3><p>노드, 연결점, 입력·출력 타입부터 실제 실행 확인까지 순서대로 배웁니다.</p></a>
+    <a class="card card-link" href="components/index.html"><span class="card-number">02</span><h3>Component 찾기</h3><p>한 파일만 등록하는 Standalone Component의 입력과 출력을 빠르게 비교합니다.</p></a>
+    <a class="card card-link" href="flows/index.html"><span class="card-number">03</span><h3>Flow 가져다 쓰기</h3><p>데이터 조회, HTML 리포트, 문서 RAG와 Skill 기반 Agent의 전체 연결과 성공 기준을 확인합니다.</p></a>
+    <a class="card card-link" href="troubleshooting/index.html"><span class="card-number">04</span><h3>실패와 해결</h3><p>실제 환경에서 잘 안 된 증상부터 원인, 수정과 재검증 결과를 찾습니다.</p></a>
+    <a class="card card-link" href="business-agent-design/index.html"><span class="card-number">05</span><h3>업무를 Agent로 설계</h3><p>추후 승인된 자산을 근거로 AS-IS와 TO-BE 구현안을 만드는 서비스 계획을 봅니다.</p></a>
+    <a class="card card-link" href="../AGENT_GROUND_PROJECT_MASTER_GUIDE.md"><span class="card-number">06</span><h3>프로젝트 기준</h3><p>승인 게이트, 폴더 구조, 검증과 문서 반영 규칙을 확인합니다.</p></a>
+  </div>
+</section>
+<section class="section">
+  <div class="section-heading"><p class="eyebrow">Current release</p><h2>현재 검증할 통합 자산</h2><p>기존 구현을 새 구조로 이관한 두 Flow, 문서 RAG와 Skill Agent 예시, 직접 데이터 조회와 공용 Component를 함께 확인합니다.</p></div>
+  <div class="grid grid-3">
+    <a class="card card-link" href="flows/reusable_data_flow/index.html"><div class="meta-row"><span class="badge badge-testing">검증 중</span><span class="tag">12 Components</span></div><h3>재사용 데이터 조회 Flow</h3><p>자연어 요청을 Oracle, H-API, Datalake, Goodocs 조회로 연결하고 결과 계약을 하나로 통일합니다.</p></a>
+    <a class="card card-link" href="flows/html_report_flow/index.html"><div class="meta-row"><span class="badge badge-testing">검증 중</span><span class="tag">9 Components</span></div><h3>HTML 분석 리포트 Flow</h3><p>데이터와 표현 요청을 검증된 리포트 블록 계획으로 바꾸고 독립 HTML로 렌더링합니다.</p></a>
+    <a class="card card-link" href="flows/enterprise_document_rag_flow/index.html"><div class="meta-row"><span class="badge badge-testing">검증 중</span><span class="tag">9 Components</span></div><h3>사내 문서 RAG Flow</h3><p>권한을 먼저 적용한 검색, 근거 품질 판정, 안전한 거절과 서버측 인용 재구성을 한 번에 검증합니다.</p></a>
+    <a class="card card-link" href="flows/skill_based_agent_flow/index.html"><div class="meta-row"><span class="badge badge-testing">검증 중</span><span class="tag">2 Direct + 1 Run Flow</span></div><h3>Skill 기반 Agent Flow</h3><p>LLM이 직접 계산 Tool과 이름 기반 Run Flow Tool 중 업무에 맞는 실행 경로를 선택합니다.</p></a>
+    <a class="card card-link" href="components/direct-data-access/index.html"><div class="meta-row"><span class="badge badge-testing">검증 중</span><span class="tag">5 Components · DataFrame</span></div><h3>직접 데이터 조회 Component</h3><p>Oracle, H-API, Datalake, GooDocs와 일반 JSON API에 필요한 값을 직접 입력하고 데이터 테이블 하나만 받습니다.</p></a>
+    <a class="card card-link" href="components/enterprise-utility/index.html"><div class="meta-row"><span class="badge badge-testing">검증 중</span><span class="tag">30 Recommendations · 2 Selected</span></div><h3>사내 공용 Component 추천·구현 현황</h3><p>웹 조사 후보 중 Multi Image Base64 Encoder와 Cached Named Run Flow Tool을 선택해 Standalone으로 구현했습니다.</p></a>
+  </div>
+  <div class="notice notice-testing" style="margin-top:18px"><strong>아직 승인 전입니다.</strong>현재 페이지는 사용자 실제 환경 확인을 위한 미리보기입니다. Flow와 Component는 완료 승인 전까지 Business Agent Design 추천에 사용하지 않습니다.</div>
+</section>
+
+  </main>
+  <footer class="site-footer">
+    <div class="footer-inner">
+      <div><strong>Agent Ground</strong><p>실제 Agent Builder 환경에서 검증된 교육자료, Standalone Component와 Flow를 함께 쌓아갑니다.</p></div>
+      <div class="footer-links"><a href="training/index.html">처음 배우기</a><a href="troubleshooting/index.html">실패와 해결</a><a href="../AGENT_GROUND_PROJECT_MASTER_GUIDE.md">프로젝트 기준</a></div>
+    </div>
+  </footer>
+  <script src="assets/js/site.js"></script>
+  
+</body>
+</html>

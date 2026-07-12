@@ -1,0 +1,74 @@
+{
+  "id": "goodocs_data",
+  "name_ko": "Goodocs Data",
+  "class_name": "GoodocsData",
+  "asset_type": "component",
+  "status": "user_testing",
+  "version": "0.9.0",
+  "standalone": true,
+  "reusability": "shared",
+  "source_family": "reusable_data_flow",
+  "summary_ko": "data_request 중 goodocs 요청만 골라 실행합니다.",
+  "source_file": "goodocs_data.py",
+  "inputs": [
+    {
+      "type": "DataInput",
+      "name": "data_request",
+      "display_name": "Data Request",
+      "input_types": [
+        "Data",
+        "JSON"
+      ]
+    },
+    {
+      "type": "MessageTextInput",
+      "name": "goodocs_user_id",
+      "display_name": "USER_ID",
+      "value": ""
+    },
+    {
+      "type": "MessageTextInput",
+      "name": "goodocs_token_source",
+      "display_name": "TOKEN_SOURCE",
+      "value": ""
+    },
+    {
+      "type": "MessageTextInput",
+      "name": "goodocs_token_key",
+      "display_name": "TOKEN_KEY",
+      "value": ""
+    },
+    {
+      "type": "MessageTextInput",
+      "name": "fetch_limit",
+      "display_name": "Fetch Limit",
+      "value": "5000",
+      "advanced": true
+    }
+  ],
+  "outputs": [
+    {
+      "type": "Output",
+      "name": "source_result",
+      "display_name": "Data Result",
+      "method": "build_source_result",
+      "types": [
+        "Data"
+      ]
+    }
+  ],
+  "dependencies": [
+    "lfx"
+  ],
+  "used_by_flows": [
+    "reusable_data_flow"
+  ],
+  "risk_tags": [
+    "external_document_access",
+    "credentials_required"
+  ],
+  "verified_environment": "legacy-export-1.8.2-local-static-check",
+  "last_verified_at": "2026-07-10",
+  "documentation_path": "html/components/goodocs_data/index.html",
+  "approved_by_user_at": null
+}

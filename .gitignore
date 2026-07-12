@@ -1,0 +1,11 @@
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.env
+.venv/
+node_modules/
+~$*
+flows/html_report_flow/report_api/storage/
+flows/html_report_flow/report_api/*.log
+archive/migration_snapshots/*
+!archive/migration_snapshots/.gitkeep

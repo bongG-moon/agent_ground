@@ -1,0 +1,95 @@
+{
+  "catalog_notes": [
+    "임원/요약 리포트는 결론을 먼저 보여주고 블록 수를 줄여 크게 배치합니다.",
+    "첫 화면에는 여백을 넉넉히 두고 밀도 높은 표를 피합니다.",
+    "도넛 차트는 범주 수가 적고 구성비 의도가 명확할 때만 사용합니다.",
+    "사용자가 보고서나 의사결정용 요약을 요청하면 추천사항이나 핵심 발견을 상단에 둡니다."
+  ],
+  "style_presets": {
+    "executive_summary": {
+      "density": "comfortable",
+      "font_scale": "large",
+      "accent_color": "#2563eb",
+      "secondary_color": "#0f766e",
+      "max_width": "normal"
+    }
+  },
+  "template_defaults": {
+    "audience": "executive",
+    "report_goal": "explain",
+    "layout": "executive_summary",
+    "visual_style": {
+      "density": "comfortable",
+      "font_scale": "large",
+      "accent_color": "#2563eb",
+      "secondary_color": "#0f766e",
+      "max_width": "normal"
+    },
+    "narrative": {
+      "data_quality_notes": [
+        "데이터가 preview 일부라면 보이는 row 기준의 결론임을 명시합니다."
+      ]
+    },
+    "block_defaults": {
+      "report_header": {
+        "width": "full",
+        "emphasis": "high"
+      },
+      "kpi_card_grid": {
+        "width": "full",
+        "emphasis": "high",
+        "description": "상세 분석 전에 비즈니스 영향이 큰 핵심 지표를 먼저 보여줍니다."
+      },
+      "insight_bullets": {
+        "width": "half",
+        "emphasis": "high",
+        "description": "가장 중요한 발견을 짧은 문장으로 요약합니다."
+      },
+      "donut_chart": {
+        "width": "half",
+        "emphasis": "medium",
+        "chart_policy": {
+          "chart_type": "donut",
+          "limit": 6,
+          "show_percent": true,
+          "show_legend": true
+        }
+      },
+      "comparison_bar_chart": {
+        "width": "half",
+        "emphasis": "medium",
+        "chart_policy": {
+          "chart_type": "horizontal_bar",
+          "limit": 8,
+          "show_values": true
+        }
+      },
+      "recommendation_list": {
+        "width": "half",
+        "emphasis": "medium"
+      },
+      "detail_data_table": {
+        "width": "full",
+        "density": "compact",
+        "table_policy": {
+          "limit": 20,
+          "show_row_numbers": false
+        }
+      }
+    }
+  },
+  "components": [
+    {
+      "component_id": "insight_bullets",
+      "template_guidance": "사용자가 보고서, 요약, 의사결정용 화면을 요청하면 KPI 카드 바로 뒤에 배치합니다."
+    },
+    {
+      "component_id": "donut_chart",
+      "template_guidance": "비중과 구성비를 볼 때 사용하되 범주 수를 줄이고 짧은 해석 문장과 함께 배치합니다."
+    },
+    {
+      "component_id": "detail_data_table",
+      "template_guidance": "원본 row 확인용 표는 하단에 두고 검증에 필요한 컬럼만 제한해서 보여줍니다."
+    }
+  ]
+}

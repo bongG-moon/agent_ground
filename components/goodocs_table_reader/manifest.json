@@ -1,0 +1,89 @@
+{
+  "id": "goodocs_table_reader",
+  "name_ko": "GooDocs 테이블 조회기",
+  "class_name": "GooDocsTableReader",
+  "asset_type": "component",
+  "status": "user_testing",
+  "version": "0.1.0",
+  "standalone": true,
+  "reusability": "shared",
+  "source_family": "direct_data_access_components",
+  "summary_ko": "문서 ID와 인증값으로 GooDocs 문서 한 개를 조회하고 데이터 테이블만 출력합니다. 실제 사내 GooDocs 모듈을 코드의 교체 구역에 넣어야 합니다.",
+  "source_file": "goodocs_table_reader.py",
+  "inputs": [
+    {
+      "type": "StrInput",
+      "name": "document_id",
+      "display_name": "문서 ID",
+      "info": "조회할 GooDocs 문서의 식별자입니다.",
+      "required": true
+    },
+    {
+      "type": "StrInput",
+      "name": "user_id",
+      "display_name": "사용자 ID",
+      "info": "GooDocs 인증에 사용하는 사용자 ID입니다.",
+      "required": true
+    },
+    {
+      "type": "SecretStrInput",
+      "name": "token_source",
+      "display_name": "토큰 소스",
+      "info": "GooDocs 인증에 사용하는 토큰 소스입니다.",
+      "required": true
+    },
+    {
+      "type": "SecretStrInput",
+      "name": "token_key",
+      "display_name": "토큰 키",
+      "info": "GooDocs 인증에 사용하는 토큰 키입니다.",
+      "required": true
+    },
+    {
+      "type": "StrInput",
+      "name": "sheet_name",
+      "display_name": "시트 이름",
+      "info": "특정 시트를 지정해야 할 때 입력합니다. 비워 두면 SHEET_NAME을 전달하지 않습니다.",
+      "value": "",
+      "required": false,
+      "advanced": true
+    },
+    {
+      "type": "IntInput",
+      "name": "max_rows",
+      "display_name": "최대 출력 행 수",
+      "info": "read_all()이 반환한 전체 결과 중 출력할 최대 행 수입니다. 원본 문서의 실제 조회량을 줄이는 설정은 아닙니다.",
+      "value": 5000,
+      "required": true,
+      "advanced": true
+    }
+  ],
+  "outputs": [
+    {
+      "type": "Output",
+      "name": "data_table",
+      "display_name": "데이터 테이블",
+      "method": "build_data_table",
+      "types": [
+        "DataFrame"
+      ],
+      "tool_mode": false
+    }
+  ],
+  "dependencies": [
+    "lfx",
+    "pandas",
+    "pydantic"
+  ],
+  "used_by_flows": [],
+  "risk_tags": [
+    "external_document_access",
+    "credentials_required",
+    "module_replacement_required"
+  ],
+  "verified_environment": "langflow-1.8.2-template-and-isolated-contract-validation",
+  "last_verified_at": "2026-07-12",
+  "documentation_path": "html/components/goodocs_table_reader/index.html",
+  "approved_by_user_at": null,
+  "guide_file": "USAGE_GUIDE.md"
+}

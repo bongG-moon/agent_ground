@@ -1,0 +1,114 @@
+{
+  "id": "cached_named_run_flow_tool",
+  "name_ko": "캐시된 이름 기반 Run Flow 도구",
+  "class_name": "CachedNamedRunFlowTool",
+  "asset_type": "component",
+  "status": "user_testing",
+  "version": "0.2.0",
+  "standalone": true,
+  "reusability": "shared",
+  "source_family": "enterprise_utility_components",
+  "summary_ko": "하위 Flow를 정확한 이름으로 다시 조회하고 실제 ID 기준으로 그래프만 캐시하며, 고정 question 인자를 현재 Chat Input으로 변환해 실행합니다.",
+  "source_file": "cached_named_run_flow_tool.py",
+  "inputs": [
+    {
+      "type": "StrInput",
+      "name": "flow_name_selected",
+      "display_name": "대상 Flow 이름",
+      "info": "현재 Router와 같은 폴더에 있고 이름이 고유한 하위 Flow의 정확한 이름입니다. 실행할 때 현재 DB ID를 다시 조회합니다.",
+      "required": true
+    },
+    {
+      "type": "StrInput",
+      "name": "flow_id_selected",
+      "display_name": "해석된 Flow ID",
+      "info": "대상 Flow 이름에서 실행 시 해석하는 숨김 ID입니다. export 시점 ID를 고정하지 않습니다.",
+      "value": "",
+      "show": false,
+      "override_skip": true
+    },
+    {
+      "type": "MessageTextInput",
+      "name": "session_id",
+      "display_name": "세션 ID",
+      "info": "직접 지정할 때만 입력합니다. 비우면 부모 Flow 그래프의 세션을 자동 상속합니다.",
+      "value": "",
+      "advanced": true
+    },
+    {
+      "type": "BoolInput",
+      "name": "cache_flow",
+      "display_name": "Flow 그래프 캐시",
+      "info": "현재 사용자와 실제 Flow ID를 기준으로 파싱한 그래프만 캐시합니다. 데이터, 도구 결과와 최종 답변은 캐시하지 않습니다.",
+      "value": true,
+      "advanced": true
+    },
+    {
+      "type": "BoolInput",
+      "name": "allow_cross_folder",
+      "display_name": "다른 폴더 Flow 허용",
+      "info": "기본값은 꺼짐이며 부모 Router와 같은 폴더에서만 이름을 찾습니다. 켜면 현재 사용자의 모든 폴더에서 고유한 동일 이름을 찾습니다.",
+      "value": false,
+      "advanced": true
+    },
+    {
+      "type": "StrInput",
+      "name": "tool_name",
+      "display_name": "도구 이름",
+      "info": "Agent에 노출할 64자 이하 이름입니다. 첫 글자는 영문 또는 숫자로 시작하고, 이후에는 영문, 숫자, 밑줄과 하이픈만 사용합니다.",
+      "required": true
+    },
+    {
+      "type": "MultilineInput",
+      "name": "tool_description",
+      "display_name": "도구 설명",
+      "info": "Agent가 이 하위 Flow를 선택할 조건과 선택하지 않을 조건을 함께 설명합니다.",
+      "required": true
+    },
+    {
+      "type": "BoolInput",
+      "name": "return_direct",
+      "display_name": "하위 결과 직접 반환",
+      "info": "부모 Agent의 추가 재작성 단계를 거치지 않고 하위 Flow 결과를 그대로 반환합니다.",
+      "value": true,
+      "advanced": true
+    }
+  ],
+  "outputs": [
+    {
+      "type": "Output",
+      "name": "component_as_tool",
+      "display_name": "Flow 도구",
+      "method": "to_toolkit",
+      "types": [
+        "Tool"
+      ],
+      "tool_mode": true
+    }
+  ],
+  "dependencies": [
+    "langflow",
+    "lfx"
+  ],
+  "used_by_flows": [
+    "skill_based_agent_flow"
+  ],
+  "risk_tags": [
+    "subflow_execution",
+    "agent_tool",
+    "graph_cache",
+    "session_inheritance",
+    "exact_flow_name",
+    "version_coupled_internal_api",
+    "provider_tool_parameter_compatibility",
+    "stable_question_schema",
+    "runtime_chat_input_mapping"
+  ],
+  "verified_environment": "langflow-1.8.2-local-runtime-validation",
+  "last_verified_at": "2026-07-12",
+  "documentation_path": "html/components/cached_named_run_flow_tool/index.html",
+  "approved_by_user_at": null,
+  "guide_file": "USAGE_GUIDE.md",
+  "beginner_guide_file": "BEGINNER_GUIDE.md",
+  "beginner_documentation_path": "html/components/cached_named_run_flow_tool/beginner.html"
+}

@@ -1,0 +1,18 @@
+{
+  "id": "reusable_data_flow",
+  "name_ko": "재사용 데이터 조회 Flow",
+  "asset_type": "flow",
+  "status": "user_testing",
+  "version": "0.9.0",
+  "source_export_version": "1.8.2",
+  "summary_ko": "자연어 요청을 표준 data_request로 바꾸고 Oracle, H-API, Datalake, Goodocs 조회 결과를 하나의 data_json으로 합칩니다.",
+  "categories": ["data_retrieval", "integration", "normalization"],
+  "trigger_signals": ["데이터 조회", "Oracle", "H-API", "Datalake", "Goodocs", "source catalog"],
+  "flow_file": "reusable_data_flow.json",
+  "component_refs_file": "component_refs.json",
+  "documentation_path": "html/flows/reusable_data_flow/index.html",
+  "verified_environment": "legacy-export-1.8.2-local-static-check",
+  "last_verified_at": "2026-07-10",
+  "approved_by_user_at": null,
+  "risk_tags": ["external_data_access", "credentials_required"]
+}

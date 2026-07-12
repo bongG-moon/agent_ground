@@ -1,0 +1,10 @@
+{
+  "flow_id": "skill_based_agent_flow",
+  "components": [
+    {"id": "demo_skill_catalog_builder", "version": "0.1.0"},
+    {"id": "expense_precheck_skill_tool", "version": "0.1.0"},
+    {"id": "leave_policy_skill_tool", "version": "0.1.0"},
+    {"id": "meeting_action_skill_tool", "version": "0.1.0"},
+    {"id": "cached_named_run_flow_tool", "version": "0.2.0"}
+  ]
+}

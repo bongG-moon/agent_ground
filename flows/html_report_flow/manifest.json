@@ -1,0 +1,18 @@
+{
+  "id": "html_report_flow",
+  "name_ko": "HTML 분석 리포트 Flow",
+  "asset_type": "flow",
+  "status": "user_testing",
+  "version": "0.9.0",
+  "source_export_version": "1.8.2",
+  "summary_ko": "CSV 또는 JSON 데이터와 사용자의 표현 요청을 분석해 검증된 블록 조합의 독립 HTML 리포트를 생성합니다.",
+  "categories": ["reporting", "visualization", "html"],
+  "trigger_signals": ["리포트", "대시보드", "KPI", "차트", "HTML", "공유 링크"],
+  "flow_file": "html_report_flow.json",
+  "component_refs_file": "component_refs.json",
+  "documentation_path": "html/flows/html_report_flow/index.html",
+  "verified_environment": "legacy-export-1.8.2-local-static-check",
+  "last_verified_at": "2026-07-10",
+  "approved_by_user_at": null,
+  "risk_tags": ["html_output", "optional_report_publishing"]
+}

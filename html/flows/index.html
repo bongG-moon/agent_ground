@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <base href="../" />
+  <title>Flow Library · Agent Ground</title>
+  <meta name="description" content="Agent Ground Flow 목록" />
+  <link rel="stylesheet" href="assets/css/site.css" />
+  
+</head>
+<body>
+  <a class="skip-link" href="#main">본문으로 바로가기</a>
+  <header class="site-header">
+    <div class="header-inner">
+      <a class="brand" href="index.html" aria-label="Agent Ground 홈">
+        <span class="brand-mark" aria-hidden="true">AG</span>
+        <span class="brand-copy"><strong>Agent Ground</strong><small>Learn · Build · Validate</small></span>
+      </a>
+      <button class="menu-button" type="button" data-menu-button aria-expanded="false" aria-controls="site-nav" aria-label="메뉴 열기"><span class="menu-lines"></span></button>
+      <nav class="site-nav" id="site-nav" data-site-nav data-open="false" aria-label="주요 메뉴"><a href="index.html">홈</a><a href="training/index.html">처음 배우기</a><a href="flows/index.html" aria-current="page">Flows</a><a href="components/index.html">Components</a><a href="troubleshooting/index.html">실패와 해결</a><a href="business-agent-design/index.html">업무 Agent 설계</a></nav>
+    </div>
+  </header>
+  <main class="page-wrap" id="main">
+    <nav class="breadcrumbs" aria-label="현재 위치"><a href="index.html">홈</a><span aria-hidden="true">/</span><span>Flows</span></nav>
+    
+<section class="hero"><div class="hero-kicker">Flow library</div><h1>완성된 연결 구조를<br />업무에 맞게 시작하세요</h1><p>Flow JSON만 제공하지 않습니다. 필요한 Standalone Component, 정확한 연결표, 샘플 입력과 성공 기준을 함께 제공합니다.</p></section>
+<section class="section">
+  <div class="section-heading"><p class="eyebrow">Current assets</p><h2>현재 검증할 Flow</h2><p>4개 Flow 모두 사용자 완료 승인 전이며, 각 페이지에서 실제 검증 범위와 남은 운영 전환 조건을 확인할 수 있습니다.</p></div>
+  <div class="grid grid-2"><a class="card card-link asset-card" data-asset-card data-family="enterprise_document_rag_flow" data-search="사내 문서 RAG Flow 사내 문서를 정규화·비식별화·청크화한 뒤 사용자 권한을 먼저 적용해 근거와 인용이 있는 답변만 반환하는 실행형 RAG 예시입니다. rag document access-control citation security 사내 문서 검색 규정 질문 매뉴얼 Q&amp;A 근거 출처 권한별 검색" href="flows/enterprise_document_rag_flow/index.html">
+  <div class="meta-row"><span class="badge badge-testing">검증 중</span><span class="tag">9 Components</span><span class="tag">v0.1.0</span></div>
+  <h3>사내 문서 RAG Flow</h3><p>사내 문서를 정규화·비식별화·청크화한 뒤 사용자 권한을 먼저 적용해 근거와 인용이 있는 답변만 반환하는 실행형 RAG 예시입니다.</p><div class="tag-list"><span class="tag">rag</span><span class="tag">document</span><span class="tag">access-control</span><span class="tag">citation</span><span class="tag">security</span></div>
+</a><a class="card card-link asset-card" data-asset-card data-family="html_report_flow" data-search="HTML 분석 리포트 Flow CSV 또는 JSON 데이터와 사용자의 표현 요청을 분석해 검증된 블록 조합의 독립 HTML 리포트를 생성합니다. reporting visualization html 리포트 대시보드 KPI 차트 HTML 공유 링크" href="flows/html_report_flow/index.html">
+  <div class="meta-row"><span class="badge badge-testing">검증 중</span><span class="tag">9 Components</span><span class="tag">v0.9.0</span></div>
+  <h3>HTML 분석 리포트 Flow</h3><p>CSV 또는 JSON 데이터와 사용자의 표현 요청을 분석해 검증된 블록 조합의 독립 HTML 리포트를 생성합니다.</p><div class="tag-list"><span class="tag">reporting</span><span class="tag">visualization</span><span class="tag">html</span></div>
+</a><a class="card card-link asset-card" data-asset-card data-family="reusable_data_flow" data-search="재사용 데이터 조회 Flow 자연어 요청을 표준 data_request로 바꾸고 Oracle, H-API, Datalake, Goodocs 조회 결과를 하나의 data_json으로 합칩니다. data_retrieval integration normalization 데이터 조회 Oracle H-API Datalake Goodocs source catalog" href="flows/reusable_data_flow/index.html">
+  <div class="meta-row"><span class="badge badge-testing">검증 중</span><span class="tag">12 Components</span><span class="tag">v0.9.0</span></div>
+  <h3>재사용 데이터 조회 Flow</h3><p>자연어 요청을 표준 data_request로 바꾸고 Oracle, H-API, Datalake, Goodocs 조회 결과를 하나의 data_json으로 합칩니다.</p><div class="tag-list"><span class="tag">data_retrieval</span><span class="tag">integration</span><span class="tag">normalization</span></div>
+</a><a class="card card-link asset-card" data-asset-card data-family="skill_based_agent_flow" data-search="Skills 기반 업무 Agent 예시 Flow 경비·휴가 계산은 Standalone Component Tool로 직접 실행하고, 회의 후속 조치는 provider-safe question을 사용하는 Cached Named Run Flow Tool로 별도 meeting_action_skill_flow를 호출합니다. MCP는 선택적 확장으로 문서화한 하이브리드 교육용 Flow입니다. agent skills tool-calling run-flow enterprise-workflow education Skill 기반 Agent 하이브리드 Tool Run Flow Tool MCP 확장 업무 Agent Tool 자동 선택 경비 점검 휴가 정책 회의 후속 조치" href="flows/skill_based_agent_flow/index.html">
+  <div class="meta-row"><span class="badge badge-testing">검증 중</span><span class="tag">5 Components</span><span class="tag">v0.2.0</span></div>
+  <h3>Skills 기반 업무 Agent 예시 Flow</h3><p>경비·휴가 계산은 Standalone Component Tool로 직접 실행하고, 회의 후속 조치는 provider-safe question을 사용하는 Cached Named Run Flow Tool로 별도 meeting_action_skill_flow를 호출합니다. MCP는 선택적 확장으로 문서화한 하이브리드 교육용 Flow입니다.</p><div class="tag-list"><span class="tag">agent</span><span class="tag">skills</span><span class="tag">tool-calling</span><span class="tag">run-flow</span><span class="tag">enterprise-workflow</span><span class="tag">education</span></div>
+</a></div>
+</section>
+<section class="section"><div class="notice notice-testing"><strong>공개 상태 규칙</strong><code>user_testing</code> 자산은 이 로컬 포털에서 검토할 수 있지만 Business Agent Design 추천 카탈로그에는 들어가지 않습니다. 사용자 완료 승인과 최종 검증 후 <code>approved</code>로 전환합니다.</div></section>
+
+  </main>
+  <footer class="site-footer">
+    <div class="footer-inner">
+      <div><strong>Agent Ground</strong><p>실제 Agent Builder 환경에서 검증된 교육자료, Standalone Component와 Flow를 함께 쌓아갑니다.</p></div>
+      <div class="footer-links"><a href="training/index.html">처음 배우기</a><a href="troubleshooting/index.html">실패와 해결</a><a href="../AGENT_GROUND_PROJECT_MASTER_GUIDE.md">프로젝트 기준</a></div>
+    </div>
+  </footer>
+  <script src="assets/js/site.js"></script>
+  
+</body>
+</html>

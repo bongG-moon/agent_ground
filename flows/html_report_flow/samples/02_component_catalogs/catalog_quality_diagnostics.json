@@ -1,0 +1,107 @@
+{
+  "catalog_notes": [
+    "품질 진단 리포트는 예외, 분포, 상관관계, 원인 탐색을 우선합니다.",
+    "STATUS가 warning 또는 danger인 row는 warning/danger 톤으로 강조합니다.",
+    "히스토그램과 산점도는 둘 다 compact하고 크기가 비슷할 때만 나란히 배치합니다.",
+    "불량 또는 예외 검토용 상세 표는 full width로 둡니다."
+  ],
+  "style_presets": {
+    "quality_diagnostics": {
+      "density": "compact",
+      "font_scale": "normal",
+      "accent_color": "#dc2626",
+      "secondary_color": "#7c3aed",
+      "max_width": "wide"
+    }
+  },
+  "template_defaults": {
+    "audience": "engineer",
+    "report_goal": "diagnose",
+    "layout": "diagnosis",
+    "visual_style": {
+      "density": "compact",
+      "font_scale": "normal",
+      "accent_color": "#dc2626",
+      "secondary_color": "#7c3aed",
+      "max_width": "wide"
+    },
+    "block_defaults": {
+      "warning_box": {
+        "width": "full",
+        "emphasis": "critical"
+      },
+      "kpi_card_grid": {
+        "width": "full",
+        "emphasis": "high",
+        "description": "불량 수량, 검사 수량, 수율 관련 지표를 보여줍니다."
+      },
+      "distribution_histogram": {
+        "width": "half",
+        "emphasis": "high",
+        "chart_policy": {
+          "chart_type": "histogram",
+          "bin_count": 8,
+          "show_values": true
+        }
+      },
+      "scatter_plot": {
+        "width": "half",
+        "emphasis": "high",
+        "chart_policy": {
+          "chart_type": "scatter",
+          "limit": 120
+        }
+      },
+      "heatmap_matrix": {
+        "width": "full",
+        "emphasis": "medium",
+        "chart_policy": {
+          "chart_type": "heatmap",
+          "limit": 8,
+          "show_values": true
+        }
+      },
+      "outlier_exception_table": {
+        "width": "full",
+        "density": "compact",
+        "emphasis": "high",
+        "table_policy": {
+          "limit": 50,
+          "show_row_numbers": true
+        },
+        "highlight_rules": [
+          {
+            "column": "STATUS",
+            "operator": "eq",
+            "value": "warning",
+            "tone": "warning"
+          },
+          {
+            "column": "STATUS",
+            "operator": "eq",
+            "value": "danger",
+            "tone": "danger"
+          }
+        ]
+      },
+      "recommendation_list": {
+        "width": "full",
+        "emphasis": "medium"
+      }
+    }
+  },
+  "components": [
+    {
+      "component_id": "distribution_histogram",
+      "template_guidance": "불량 수, cycle time, 온도, 수율의 분포를 확인할 때 사용합니다."
+    },
+    {
+      "component_id": "scatter_plot",
+      "template_guidance": "불량 수와 cycle time, 수율과 온도, downtime과 kWh처럼 두 숫자 지표의 관계를 볼 때 사용합니다."
+    },
+    {
+      "component_id": "outlier_exception_table",
+      "template_guidance": "warning/danger 상태 row를 검토할 때 사용하며 full width를 유지합니다."
+    }
+  ]
+}

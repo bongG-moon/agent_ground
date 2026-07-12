@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <base href="../../" />
+  <title>Run Flow 도구 초보자 설명 · Agent Ground</title>
+  <meta name="description" content="기본 Run Flow 엔진을 유지하면서 Router와 Standalone 배포 경계를 보완한 이유" />
+  <link rel="stylesheet" href="assets/css/site.css" />
+  
+</head>
+<body>
+  <a class="skip-link" href="#main">본문으로 바로가기</a>
+  <header class="site-header">
+    <div class="header-inner">
+      <a class="brand" href="index.html" aria-label="Agent Ground 홈">
+        <span class="brand-mark" aria-hidden="true">AG</span>
+        <span class="brand-copy"><strong>Agent Ground</strong><small>Learn · Build · Validate</small></span>
+      </a>
+      <button class="menu-button" type="button" data-menu-button aria-expanded="false" aria-controls="site-nav" aria-label="메뉴 열기"><span class="menu-lines"></span></button>
+      <nav class="site-nav" id="site-nav" data-site-nav data-open="false" aria-label="주요 메뉴"><a href="index.html">홈</a><a href="training/index.html">처음 배우기</a><a href="flows/index.html">Flows</a><a href="components/index.html" aria-current="page">Components</a><a href="troubleshooting/index.html">실패와 해결</a><a href="business-agent-design/index.html">업무 Agent 설계</a></nav>
+    </div>
+  </header>
+  <main class="page-wrap" id="main">
+    <nav class="breadcrumbs" aria-label="현재 위치"><a href="index.html">홈</a><span aria-hidden="true">/</span><a href="components/index.html">Components</a><span aria-hidden="true">/</span><a href="components/cached_named_run_flow_tool/index.html">캐시된 이름 기반 Run Flow 도구</a><span aria-hidden="true">/</span><span>초보자 설명</span></nav>
+    
+<section class="hero"><div class="meta-row"><span class="badge badge-testing">초보자 설명</span><span class="tag">Langflow 1.8.2</span><span class="tag">Standalone Router Tool</span></div><div class="hero-kicker">기본 엔진은 그대로 사용</div><h1>새 엔진이 아닌<br />기본 Run Flow 전용 도구입니다</h1><p>하위 Flow 실행은 Langflow 기본 기능에 맡기고, 다른 환경으로 옮길 때의 재연결과 Agent Tool 입력·세션·결과 처리만 보완했습니다.</p><div class="hero-actions"><a class="button button-primary" href="components/cached_named_run_flow_tool/index.html">Component 상세 보기</a><a class="button button-secondary" href="../components/cached_named_run_flow_tool/BEGINNER_GUIDE.md">전체 초보자 문서</a><a class="button button-secondary" href="../components/cached_named_run_flow_tool/USAGE_GUIDE.md">기술 사용 가이드</a></div></section>
+
+<section class="section"><div class="notice notice-info"><strong>한 문장으로 이해하기</strong>기본 <code>RunFlowBaseComponent</code>가 자동차 엔진이라면, 캐시된 이름 기반 Run Flow 도구는 현재 목적지를 찾는 내비게이션과 Agent용 운전 규칙입니다. 엔진을 다시 만든 것이 아닙니다.</div></section>
+
+<section class="section"><div class="section-heading"><p class="eyebrow">Why it exists</p><h2>별도 Component가 필요했던 여섯 가지 이유</h2><p>기본 Run Flow의 실행 능력보다 Router Agent와 Standalone 배포의 연결 경계를 보완했습니다.</p></div><div class="grid grid-3">
+<div class="card"><span class="card-number">01</span><h3>현재 Flow ID 다시 찾기</h3><p>다른 Langflow로 import하면 DB ID가 바뀔 수 있습니다. 저장된 정확한 이름으로 현재 환경의 실제 ID를 다시 찾습니다.</p></div>
+<div class="card"><span class="card-number">02</span><h3>고정 question 하나만 공개</h3><p>내부 Prompt, helper와 node ID를 빼고 <code>flow_tweak_data</code> 안에 필수 <code>question</code> 하나만 남깁니다.</p></div>
+<div class="card"><span class="card-number">03</span><h3>Tool 업무 분장 명확화</h3><p>도구 이름과 설명을 직접 작성해 Router Agent가 조회·저장·분석 Tool을 혼동하지 않게 합니다.</p></div>
+<div class="card"><span class="card-number">04</span><h3>질문과 세션 분리</h3><p>질문은 선택된 Tool 하나로 보내고, 세션 ID는 직접 입력하거나 부모 대화에서 상속합니다.</p></div>
+<div class="card"><span class="card-number">05</span><h3>Graph 구성만 재사용</h3><p>Flow 설계도를 해석한 Graph만 캐시합니다. 질문, DB 조회, pandas, LLM 답변은 요청마다 다시 실행합니다.</p></div>
+<div class="card"><span class="card-number">06</span><h3>완성 답변 그대로 전달</h3><p>하위 Flow가 최종 답변을 완성했다면 부모 Agent의 추가 재작성 없이 직접 반환할 수 있습니다.</p></div>
+</div></section>
+
+<section class="section"><div class="section-heading"><p class="eyebrow">Execution path</p><h2>사용자 질문이 최종 답변이 되는 순서</h2></div><div class="pipeline"><div class="pipeline-step"><small>01</small><strong>question 입력</strong></div><div class="pipeline-step"><small>02</small><strong>Agent가 Tool 선택</strong></div><div class="pipeline-step"><small>03</small><strong>이름으로 Graph 확인</strong></div><div class="pipeline-step"><small>04</small><strong>현재 Chat Input 매핑</strong></div><div class="pipeline-step"><small>05</small><strong>기본 엔진으로 실행</strong></div><div class="pipeline-step"><small>06</small><strong>완성 결과 반환</strong></div></div></section>
+
+<section class="section"><div class="section-heading"><p class="eyebrow">What stays the same</p><h2>Langflow 기본 기능이 계속 담당하는 것</h2><p>커스텀 Component가 실행기를 새로 구현하지 않았다는 것을 확인하는 목록입니다.</p></div><div class="grid grid-2"><div class="card"><h3>기본 엔진 담당</h3><ul class="check-list"><li>Flow payload를 실행 Graph로 구성</li><li>하위 Flow 입력값 적용</li><li><code>run_flow()</code> 실행</li><li>하위 Flow 출력 해석</li><li>callback과 Tool toolkit</li></ul></div><div class="card"><h3>커스텀 경계 담당</h3><ul class="check-list"><li>어느 폴더에서 어떤 이름을 찾을지</li><li>Agent에게 어떤 입력만 보여줄지</li><li>Tool 이름과 설명을 어떻게 정할지</li><li>세션을 어떻게 이어 줄지</li><li>결과를 다시 작성할지</li></ul></div></div></section>
+
+<section class="section"><div class="section-heading"><p class="eyebrow">Choose correctly</p><h2>기본 Run Flow와 전용 도구 중 무엇을 쓰나</h2></div><div class="table-wrap"><table><thead><tr><th>상황</th><th>권장 선택</th><th>이유</th></tr></thead><tbody><tr><td>입력과 출력이 여러 개인 범용 Flow</td><td>기본 Run Flow</td><td>동적 입력·출력을 유연하게 사용할 수 있음</td></tr><tr><td>한 환경에서 Builder로 직접 대상 관리</td><td>기본 Run Flow</td><td>UI에서 대상 Flow를 선택하는 방식이 단순함</td></tr><tr><td>Standalone JSON을 다른 환경으로 이동</td><td>이름 기반 전용 도구</td><td>현재 환경의 실제 ID를 다시 해석함</td></tr><tr><td>Router Agent가 여러 전문 Flow 중 선택</td><td>이름 기반 전용 도구</td><td>질문 하나와 업무별 Tool 설명에 집중함</td></tr></tbody></table></div></section>
+
+<section class="section"><div class="section-heading"><p class="eyebrow">Do not misunderstand</p><h2>자주 생기는 오해</h2></div><div class="grid grid-2"><div class="card"><h3>캐시는 답변을 저장하지 않습니다</h3><p>Flow Graph 구성만 잠시 재사용합니다. 사용자 질문과 실제 업무 결과는 매번 새로 처리합니다.</p></div><div class="card"><h3>직접 반환은 중복 저장 방지가 아닙니다</h3><p><code>return_direct</code>는 부모 Agent의 재작성을 생략합니다. 메시지 중복은 Chat Input fan-out과 Chat Output 연결도 확인해야 합니다.</p></div><div class="card"><h3>Flow ID가 사라지는 것이 아닙니다</h3><p>export 당시 ID를 고정하지 않고, 실행 시 이름을 이용해 현재 ID로 다시 해석합니다.</p></div><div class="card"><h3>모든 Run Flow를 대체하지 않습니다</h3><p>Chat Input 하나와 최종 Tool 출력 하나를 가진 전문 하위 Flow에 맞춘 Component입니다.</p></div></div></section>
+
+<section class="section"><div class="section-heading"><p class="eyebrow">Stable question contract</p><h2>특수문자가 바뀌어도 질문을 잃지 않습니다</h2><p>이전에는 내부 node ID가 Tool 인자에 노출되어 provider가 이름을 바꾸면 질문만 비는 문제가 있었습니다. 지금은 외부와 내부 이름을 분리합니다.</p></div><div class="table-wrap"><table><thead><tr><th>구분</th><th>이전 방식</th><th>현재 방식</th></tr></thead><tbody><tr><td>Agent 동적 입력</td><td><code>flow_tweak_data.ChatInput-xVKPV~input_value</code></td><td><code>flow_tweak_data.question</code></td></tr><tr><td>Provider 변형</td><td><code>ChatInput_xVKPV_input_value</code>로 바뀔 수 있음</td><td>안전한 영문 필드명 유지</td></tr><tr><td>실행 시 처리</td><td>변형된 키를 기본 Run Flow가 무시</td><td>현재 그래프의 Chat Input ID로 내부 변환</td></tr><tr><td>빈 질문</td><td>세션 이력으로 정상처럼 보일 수 있음</td><td>하위 Flow 실행 전에 요청 거절</td></tr></tbody></table></div><div class="notice notice-safe" style="margin-top:18px"><strong><code>empty_question</code> 원인을 구조적으로 제거했습니다.</strong>하위 Flow 재import로 node ID가 바뀌어도 Agent가 채우는 내부 필드는 <code>question</code>으로 유지됩니다. 세션 이력에서 질문을 추정하는 fallback은 사용하지 않습니다. Langflow 기본 실행기가 오류를 공통 문구로 감싸면 Agent 화면에는 세부 원인 대신 일반 실행 오류가 보일 수 있습니다.</div></section>
+
+<section class="section"><div class="section-heading"><p class="eyebrow">Minimum check</p><h2>처음 등록한 뒤 확인할 것</h2></div><div class="card"><ul class="check-list"><li>같은 폴더에 정확한 이름의 하위 Flow가 하나만 있습니다.</li><li>하위 Flow에 Chat Input과 Tool용 최종 출력이 각각 하나 있습니다.</li><li><code>Flow 도구</code> 출력을 Agent의 Tools 입력에 연결했습니다.</li><li>Agent Tool schema의 <code>flow_tweak_data</code> 안에는 필수 <code>question</code> 하나만 표시됩니다.</li><li>실제 질문이 하위 Flow 첫 입력에 들어오는지 확인했습니다.</li><li>하위 Flow 재import 후에도 새 Chat Input ID로 질문이 전달됩니다.</li><li>첫 실행과 두 번째 실행의 답변 내용이 같습니다.</li><li><code>Flow A → Flow B → Flow A</code> 간접 순환이 없습니다.</li></ul></div></section>
+
+<div class="page-actions"><button class="back-button" type="button" data-back data-fallback="components/cached_named_run_flow_tool/index.html">← 이전 화면</button><a class="button button-soft" href="components/cached_named_run_flow_tool/index.html">Component 상세</a><a class="button button-soft" href="components/enterprise-utility/index.html">공용 Component 목록</a><a class="button button-soft" href="index.html">홈</a></div>
+
+  </main>
+  <footer class="site-footer">
+    <div class="footer-inner">
+      <div><strong>Agent Ground</strong><p>실제 Agent Builder 환경에서 검증된 교육자료, Standalone Component와 Flow를 함께 쌓아갑니다.</p></div>
+      <div class="footer-links"><a href="training/index.html">처음 배우기</a><a href="troubleshooting/index.html">실패와 해결</a><a href="../AGENT_GROUND_PROJECT_MASTER_GUIDE.md">프로젝트 기준</a></div>
+    </div>
+  </footer>
+  <script src="assets/js/site.js"></script>
+  
+</body>
+</html>

@@ -1,0 +1,102 @@
+{
+  "id": "pii_confidential_data_guard",
+  "name_ko": "01 PII & Confidential Data Guard",
+  "class_name": "PiiConfidentialDataGuard",
+  "asset_type": "component",
+  "status": "user_testing",
+  "version": "0.1.0",
+  "standalone": true,
+  "reusability": "shared",
+  "source_family": "enterprise_document_rag_flow",
+  "summary_ko": "Redact or block common sensitive patterns before documents enter the retrieval index.",
+  "source_file": "pii_confidential_data_guard.py",
+  "inputs": [
+    {
+      "type": "DataInput",
+      "name": "documents",
+      "display_name": "Documents",
+      "input_types": [
+        "Data",
+        "JSON"
+      ],
+      "required": true
+    },
+    {
+      "type": "DropdownInput",
+      "name": "guard_mode",
+      "display_name": "Guard Mode",
+      "options": [
+        "redact",
+        "block"
+      ],
+      "value": "redact"
+    },
+    {
+      "type": "BoolInput",
+      "name": "detect_emails",
+      "display_name": "Detect Email Addresses",
+      "value": true,
+      "advanced": true
+    },
+    {
+      "type": "BoolInput",
+      "name": "detect_phone_numbers",
+      "display_name": "Detect Phone Numbers",
+      "value": true,
+      "advanced": true
+    },
+    {
+      "type": "BoolInput",
+      "name": "detect_national_ids",
+      "display_name": "Detect National IDs",
+      "value": true,
+      "advanced": true
+    },
+    {
+      "type": "BoolInput",
+      "name": "detect_employee_ids",
+      "display_name": "Detect Employee IDs",
+      "value": true,
+      "advanced": true
+    },
+    {
+      "type": "BoolInput",
+      "name": "detect_secrets",
+      "display_name": "Detect Secret-like Values",
+      "value": true,
+      "advanced": true
+    },
+    {
+      "type": "BoolInput",
+      "name": "upgrade_classification",
+      "display_name": "Upgrade Classification When Detected",
+      "value": true,
+      "advanced": true
+    }
+  ],
+  "outputs": [
+    {
+      "type": "Output",
+      "name": "safe_documents",
+      "display_name": "Safe Documents",
+      "method": "build_safe_documents",
+      "types": [
+        "Data"
+      ]
+    }
+  ],
+  "dependencies": [
+    "lfx"
+  ],
+  "used_by_flows": [
+    "enterprise_document_rag_flow"
+  ],
+  "risk_tags": [
+    "pii_baseline",
+    "confidential_content"
+  ],
+  "verified_environment": "langflow-1.8.2-local-runtime-validation",
+  "last_verified_at": "2026-07-11",
+  "documentation_path": "html/components/pii_confidential_data_guard/index.html",
+  "approved_by_user_at": null
+}

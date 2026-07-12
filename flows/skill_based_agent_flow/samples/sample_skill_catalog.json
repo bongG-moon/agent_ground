@@ -1,0 +1,84 @@
+{
+  "contract": "agent_ground.demo_skill_catalog.v1",
+  "catalog_id": "enterprise_skill_demo",
+  "version": "1.0.0",
+  "skills": [
+    {
+      "skill_id": "expense_precheck",
+      "tool_name": "expense_precheck_skill",
+      "name": "경비 사전 점검 Skill",
+      "description": "상위 Agent에 직접 연결된 Standalone Component Tool로 경비 항목과 금액을 분류하고 데모 카테고리 한도와 비교합니다.",
+      "enabled": true,
+      "triggers": [
+        "경비 사전 점검",
+        "교통비·식대·숙박비 한도 확인",
+        "경비 항목별 합계 계산"
+      ],
+      "instructions": [
+        "경비 카테고리와 금액을 추출합니다.",
+        "카테고리별 합계와 전체 합계를 계산합니다.",
+        "데모 한도 초과 여부만 점검하고 승인으로 표현하지 않습니다.",
+        "실제 사규와 증빙 적정성은 담당자가 확인해야 한다고 안내합니다."
+      ],
+      "allowed_actions": ["expense_precheck"],
+      "forbidden_actions": ["external_write", "external_send", "approve", "submit"],
+      "rules": {
+        "category_limits": {
+          "식대": 30000,
+          "교통비": 50000,
+          "숙박비": 150000,
+          "기타": 20000
+        },
+        "currency": "KRW"
+      }
+    },
+    {
+      "skill_id": "leave_policy",
+      "tool_name": "leave_policy_skill",
+      "name": "휴가 정책 점검 Skill",
+      "description": "상위 Agent에 직접 연결된 Standalone Component Tool로 휴가 시작일과 종료일에서 평일과 운영자 지정 휴일을 제외해 데모 차감 일수를 계산합니다.",
+      "enabled": true,
+      "triggers": [
+        "휴가 차감 일수 계산",
+        "휴가 기간 정책 점검",
+        "평일과 휴일 제외 계산"
+      ],
+      "instructions": [
+        "시작일과 종료일을 YYYY-MM-DD 형식으로 확인합니다.",
+        "월요일부터 금요일까지를 평일로 계산합니다.",
+        "운영자가 설정한 holiday_dates_json의 날짜를 제외합니다.",
+        "실제 휴가 신청이나 승인으로 표현하지 않습니다."
+      ],
+      "allowed_actions": ["leave_policy_check"],
+      "forbidden_actions": ["external_write", "external_send", "approve", "submit"],
+      "rules": {
+        "demo_max_chargeable_weekdays": 5,
+        "weekday_policy": "월요일부터 금요일까지"
+      }
+    },
+    {
+      "skill_id": "meeting_action",
+      "tool_name": "meeting_action_skill",
+      "name": "회의 후속 조치 Skill",
+      "description": "이름 기반 Run Flow Tool로 별도 meeting_action_skill_flow를 실행해 회의 후속 조치의 담당자, 할 일, 기한을 검토용 목록으로 정리합니다.",
+      "enabled": true,
+      "triggers": [
+        "회의 액션 아이템 정리",
+        "담당자와 기한 추출",
+        "회의 후속 조치 구조화"
+      ],
+      "instructions": [
+        "Agent가 전달한 question을 meeting_action_skill_flow의 현재 Chat Input으로 전달합니다.",
+        "담당자 | 할 일 | YYYY-MM-DD 형식의 줄을 파싱합니다.",
+        "형식이 맞지 않는 줄은 임의 보정하지 않고 invalid_lines에 남깁니다.",
+        "추출 결과는 검토용 목록으로만 반환합니다.",
+        "메일, 메신저, 캘린더로 전송했다고 표현하지 않습니다."
+      ],
+      "allowed_actions": ["meeting_action_extract"],
+      "forbidden_actions": ["external_write", "external_send", "approve", "submit"],
+      "rules": {
+        "line_format": "담당자 | 할 일 | YYYY-MM-DD"
+      }
+    }
+  ]
+}

@@ -1,0 +1,14 @@
+{
+  "flow_id": "enterprise_document_rag_flow",
+  "components": [
+    {"id": "document_input_normalizer", "version": "0.1.0"},
+    {"id": "pii_confidential_data_guard", "version": "0.1.0"},
+    {"id": "document_chunk_index_builder", "version": "0.1.0"},
+    {"id": "rag_request_context_normalizer", "version": "0.1.0"},
+    {"id": "acl_evidence_retriever", "version": "0.1.0"},
+    {"id": "retrieval_quality_gate", "version": "0.1.0"},
+    {"id": "rag_prompt_builder", "version": "0.1.0"},
+    {"id": "grounded_answer_builder", "version": "0.1.0"},
+    {"id": "citation_response_builder", "version": "0.1.0"}
+  ]
+}

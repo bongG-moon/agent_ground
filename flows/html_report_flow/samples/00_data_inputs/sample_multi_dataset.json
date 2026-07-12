@@ -1,0 +1,22 @@
+{
+  "datasets": [
+    {
+      "dataset_id": "wip_demo",
+      "label": "WIP Demo Data",
+      "rows": [
+        {"DATE": "2026-06-14", "OPER_SHORT_DESC": "DA", "PRODUCT": "Alpha", "WIP": 120, "STATUS": "normal"},
+        {"DATE": "2026-06-15", "OPER_SHORT_DESC": "DA", "PRODUCT": "Alpha", "WIP": 150, "STATUS": "normal"},
+        {"DATE": "2026-06-16", "OPER_SHORT_DESC": "TEST", "PRODUCT": "Gamma", "WIP": 160, "STATUS": "warning"}
+      ]
+    },
+    {
+      "dataset_id": "production_demo",
+      "label": "Production Demo Data",
+      "rows": [
+        {"DATE": "2026-06-14", "OPER_SHORT_DESC": "DA", "PRODUCT": "Alpha", "PRODUCTION": 85},
+        {"DATE": "2026-06-15", "OPER_SHORT_DESC": "DA", "PRODUCT": "Alpha", "PRODUCTION": 92},
+        {"DATE": "2026-06-16", "OPER_SHORT_DESC": "WB", "PRODUCT": "Beta", "PRODUCTION": 142}
+      ]
+    }
+  ]
+}

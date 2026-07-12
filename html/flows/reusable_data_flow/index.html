@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <base href="../../" />
+  <title>재사용 데이터 조회 Flow · Agent Ground</title>
+  <meta name="description" content="자연어 요청을 표준 data_request로 바꾸고 Oracle, H-API, Datalake, Goodocs 조회 결과를 하나의 data_json으로 합칩니다." />
+  <link rel="stylesheet" href="assets/css/site.css" />
+  
+</head>
+<body>
+  <a class="skip-link" href="#main">본문으로 바로가기</a>
+  <header class="site-header">
+    <div class="header-inner">
+      <a class="brand" href="index.html" aria-label="Agent Ground 홈">
+        <span class="brand-mark" aria-hidden="true">AG</span>
+        <span class="brand-copy"><strong>Agent Ground</strong><small>Learn · Build · Validate</small></span>
+      </a>
+      <button class="menu-button" type="button" data-menu-button aria-expanded="false" aria-controls="site-nav" aria-label="메뉴 열기"><span class="menu-lines"></span></button>
+      <nav class="site-nav" id="site-nav" data-site-nav data-open="false" aria-label="주요 메뉴"><a href="index.html">홈</a><a href="training/index.html">처음 배우기</a><a href="flows/index.html" aria-current="page">Flows</a><a href="components/index.html">Components</a><a href="troubleshooting/index.html">실패와 해결</a><a href="business-agent-design/index.html">업무 Agent 설계</a></nav>
+    </div>
+  </header>
+  <main class="page-wrap" id="main">
+    <nav class="breadcrumbs" aria-label="현재 위치"><a href="index.html">홈</a><span aria-hidden="true">/</span><a href="flows/index.html">Flows</a><span aria-hidden="true">/</span><span>재사용 데이터 조회 Flow</span></nav>
+    
+<section class="hero"><div class="meta-row"><span class="badge badge-testing">검증 중</span><span class="tag">v0.9.0</span><span class="tag">Export 1.8.2</span></div><div class="hero-kicker">Data retrieval</div><h1>여러 데이터 소스를<br />하나의 결과 계약으로</h1><p>자연어 요청을 표준 data_request로 바꾸고 Oracle, H-API, Datalake, Goodocs 조회 결과를 하나의 data_json으로 합칩니다.</p><div class="hero-actions"><a class="button button-primary" href="../flows/reusable_data_flow/reusable_data_flow.json">Flow JSON 열기</a><a class="button button-secondary" href="#connections">연결 순서 보기</a></div></section>
+<div class="metric-strip"><div class="metric"><strong>12</strong><span>Standalone Component</span></div><div class="metric"><strong>4</strong><span>데이터 소스 유형</span></div><div class="metric"><strong>2</strong><span>최종 출력 경로</span></div><div class="metric"><strong>0.9</strong><span>현재 검증 버전</span></div></div>
+<section class="section"><div class="notice notice-testing"><strong>실제 환경 확인 전</strong>기존 Flow의 구조와 코드를 분리해 정적 검사를 진행한 상태입니다. 현재 Agent Builder에서 import와 대표 질문 실행을 확인한 뒤 완료 여부를 판단합니다.</div></section>
+<section class="section"><div class="section-heading"><p class="eyebrow">Choose the right size</p><h2>한 소스만 직접 조회하려면</h2><p>이 Flow는 자연어 요청, Catalog, 분기, 여러 결과 병합까지 포함합니다. Oracle·H-API·Datalake·GooDocs 또는 일반 API를 한 번만 호출하고 표만 받고 싶다면 기존 노드를 바꾸지 말고 새 최소 단위 Component를 사용합니다.</p></div><div class="notice notice-info"><strong>기존 Flow 계약은 그대로 유지됩니다.</strong>신규 5종은 새 ID이며 출력 포트가 모두 <code>data_table: DataFrame</code> 하나입니다.</div><div class="page-actions"><a class="button button-primary" href="components/direct-data-access/index.html">직접 데이터 조회 5종 보기</a><a class="button button-soft" href="../components/DIRECT_DATA_ACCESS_COMPONENTS_GUIDE.md">통합 사용 가이드</a></div></section>
+<section class="section"><div class="section-heading"><p class="eyebrow">How it works</p><h2>조회는 두 과정으로 나뉩니다</h2></div><div class="grid grid-2"><div class="card"><span class="card-number">A</span><h3>Source Catalog 준비</h3><p>사람이 적은 데이터 설명을 표준 catalog로 바꾸고, 바로 연결하거나 MongoDB에 저장합니다.</p></div><div class="card"><span class="card-number">B</span><h3>질문 기반 데이터 조회</h3><p>LLM은 소스 이름과 params만 정하고, 실행 정보는 Normalizer가 catalog에서 안전하게 채웁니다.</p></div></div></section>
+<section class="section"><div class="section-heading"><p class="eyebrow">Pipeline</p><h2>질문에서 HTML 데이터셋까지</h2></div><div class="pipeline"><div class="pipeline-step"><small>01</small><strong>질문 + Catalog</strong></div><div class="pipeline-step"><small>02</small><strong>LLM 요청 생성</strong></div><div class="pipeline-step"><small>03</small><strong>Request 정규화</strong></div><div class="pipeline-step"><small>04</small><strong>소스별 실행</strong></div><div class="pipeline-step"><small>05</small><strong>결과 병합</strong></div><div class="pipeline-step"><small>06</small><strong>JSON / Datasets</strong></div></div></section>
+<section class="section"><div class="section-heading"><p class="eyebrow">Payload contract</p><h2>중요 결과 모양</h2><p><code>data_result</code>는 요청 순서의 row 배열이며, <code>source_results</code>에 상세 추적 정보를 유지합니다.</p></div><p class="code-label">Data Output Builder 결과 예시</p><pre><code>{
+  "success": true,
+  "mode": "single",
+  "data_result": [[{"LOT_ID": "LOT-001"}]],
+  "source_results": [
+    {"name": "lot_trace", "source_type": "h_api", "row_count": 1}
+  ]
+}</code></pre></section>
+<section class="section" id="connections"><div class="section-heading"><p class="eyebrow">Connection map</p><h2>메인 연결 순서</h2></div><div class="table-wrap"><table><thead><tr><th>From</th><th>Output</th><th>To</th><th>Input</th></tr></thead><tbody><tr><td>Prompt Template</td><td>Prompt</td><td>LLM Caller</td><td>Prompt</td></tr><tr><td>LLM Caller</td><td>LLM Result</td><td>Data Request Normalizer</td><td>LLM Result</td></tr><tr><td>Data Request Normalizer</td><td>Data Request</td><td>4개 Source Node</td><td>Data Request</td></tr><tr><td>Source Nodes</td><td>Data Result</td><td>Data Result Merger</td><td>Source별 Result</td></tr><tr><td>Data Result Merger</td><td>Data Result</td><td>Data Output Builder</td><td>Data Result</td></tr><tr><td>Data Output Builder</td><td>Data JSON</td><td>HTML Report Adapter</td><td>Data JSON</td></tr></tbody></table></div><div class="page-actions"><a class="button button-soft" href="../flows/reusable_data_flow/CONNECTION_GUIDE.md">전체 연결 가이드 열기</a></div></section>
+<section class="section"><div class="section-heading"><p class="eyebrow">Components</p><h2>이 Flow를 구성하는 12개 파일</h2></div><div class="grid grid-3"><a class="card card-link" href="components/data_request_normalizer/index.html"><div class="meta-row"><span class="badge badge-testing">검증 중</span><span class="tag">2 in · 1 out</span></div><h3>Data Request Normalizer</h3><p>LLM 응답을 data_request로 정규화하고 source_catalog의 실행 설정을 채웁니다.</p></a><a class="card card-link" href="components/oracle_data/index.html"><div class="meta-row"><span class="badge badge-testing">검증 중</span><span class="tag">3 in · 1 out</span></div><h3>Oracle Data</h3><p>data_request 중 oracle 요청만 골라 실행합니다.</p></a><a class="card card-link" href="components/h_api_data/index.html"><div class="meta-row"><span class="badge badge-testing">검증 중</span><span class="tag">3 in · 1 out</span></div><h3>H-API Data</h3><p>data_request 중 h_api 요청만 골라 실행합니다.</p></a><a class="card card-link" href="components/datalake_data/index.html"><div class="meta-row"><span class="badge badge-testing">검증 중</span><span class="tag">4 in · 1 out</span></div><h3>Datalake Data</h3><p>data_request 중 datalake 요청만 골라 실행합니다.</p></a><a class="card card-link" href="components/goodocs_data/index.html"><div class="meta-row"><span class="badge badge-testing">검증 중</span><span class="tag">5 in · 1 out</span></div><h3>Goodocs Data</h3><p>data_request 중 goodocs 요청만 골라 실행합니다.</p></a><a class="card card-link" href="components/data_result_merger/index.html"><div class="meta-row"><span class="badge badge-testing">검증 중</span><span class="tag">4 in · 1 out</span></div><h3>Data Result Merger</h3><p>Oracle, H-API, Datalake, Goodocs 조회 결과를 하나의 data_result로 병합합니다.</p></a><a class="card card-link" href="components/data_output_builder/index.html"><div class="meta-row"><span class="badge badge-testing">검증 중</span><span class="tag">3 in · 2 out</span></div><h3>Data Output Builder</h3><p>조회 결과를 API용 Data JSON과 Chat Output 확인용 표 메시지로 반환합니다.</p></a><a class="card card-link" href="components/source_catalog_normalizer/index.html"><div class="meta-row"><span class="badge badge-testing">검증 중</span><span class="tag">1 in · 2 out</span></div><h3>Catalog Normalizer</h3><p>LLM이 만든 source_catalog 후보를 저장하지 않고 조회 Flow용 형태로 정규화합니다.</p></a><a class="card card-link" href="components/llm_caller/index.html"><div class="meta-row"><span class="badge badge-testing">검증 중</span><span class="tag">4 in · 1 out</span></div><h3>LLM Caller</h3><p>Prompt Template 결과를 LLM에 전달하고, 다음 Normalizer가 읽을 llm_result를 반환합니다.</p></a><a class="card card-link" href="components/source_catalog_mongodb_store/index.html"><div class="meta-row"><span class="badge badge-testing">검증 중</span><span class="tag">5 in · 2 out</span></div><h3>Catalog MongoDB Store</h3><p>source_catalog를 source 이름 기준으로 MongoDB에 저장하거나 업데이트합니다.</p></a><a class="card card-link" href="components/source_catalog_mongodb_loader/index.html"><div class="meta-row"><span class="badge badge-testing">검증 중</span><span class="tag">4 in · 2 out</span></div><h3>Catalog MongoDB Loader</h3><p>MongoDB collection에서 source_catalog를 읽어옵니다.</p></a><a class="card card-link" href="components/html_report_datasets_adapter/index.html"><div class="meta-row"><span class="badge badge-testing">검증 중</span><span class="tag">1 in · 2 out</span></div><h3>11 HTML Report Datasets Adapter</h3><p>06 Data JSON을 HTML 생성 Flow의 datasets JSON 입력으로 변환합니다.</p></a></div></section>
+<section class="section"><div class="section-heading"><p class="eyebrow">User test</p><h2>완료 승인 전 확인할 것</h2></div><div class="card"><ul class="check-list"><li>12개 Component가 실제 화면에 보이는가?</li><li>Flow JSON import 후 invalid handle이 없는가?</li><li>질문과 catalog로 기대한 source가 선택되는가?</li><li>소스별 결과와 merger의 row 수가 일치하는가?</li><li><code>data_json</code>이 HTML Report Adapter에 연결되는가?</li><li>실데이터 전환 전 dummy 경로와 자격증명 입력을 확인했는가?</li></ul></div></section>
+<div class="page-actions"><button class="back-button" type="button" data-back data-fallback="flows/index.html">← 이전 화면</button><a class="button button-soft" href="flows/index.html">Flow 목록</a><a class="button button-soft" href="index.html">홈</a></div>
+
+  </main>
+  <footer class="site-footer">
+    <div class="footer-inner">
+      <div><strong>Agent Ground</strong><p>실제 Agent Builder 환경에서 검증된 교육자료, Standalone Component와 Flow를 함께 쌓아갑니다.</p></div>
+      <div class="footer-links"><a href="training/index.html">처음 배우기</a><a href="troubleshooting/index.html">실패와 해결</a><a href="../AGENT_GROUND_PROJECT_MASTER_GUIDE.md">프로젝트 기준</a></div>
+    </div>
+  </footer>
+  <script src="assets/js/site.js"></script>
+  
+</body>
+</html>

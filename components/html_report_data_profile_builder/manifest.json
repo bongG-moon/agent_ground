@@ -1,0 +1,40 @@
+{
+  "id": "html_report_data_profile_builder",
+  "name_ko": "01 데이터 구조 분석",
+  "class_name": "HtmlReportDataProfileBuilder",
+  "asset_type": "component",
+  "status": "user_testing",
+  "version": "0.9.0",
+  "standalone": true,
+  "reusability": "shared",
+  "source_family": "html_report_flow",
+  "summary_ko": "리포트에 쓸 컬럼 유형, 숫자/범주/날짜 후보, 데이터 품질 신호를 요약합니다.",
+  "source_file": "html_report_data_profile_builder.py",
+  "inputs": [
+    {
+      "type": "DataInput",
+      "name": "analysis_payload",
+      "display_name": "요청 데이터",
+      "required": true
+    }
+  ],
+  "outputs": [
+    {
+      "type": "Output",
+      "name": "data_profile",
+      "display_name": "데이터 분석 결과",
+      "method": "build_profile"
+    }
+  ],
+  "dependencies": [
+    "lfx"
+  ],
+  "used_by_flows": [
+    "html_report_flow"
+  ],
+  "risk_tags": [],
+  "verified_environment": "legacy-export-1.8.2-local-static-check",
+  "last_verified_at": "2026-07-10",
+  "documentation_path": "html/components/html_report_data_profile_builder/index.html",
+  "approved_by_user_at": null
+}

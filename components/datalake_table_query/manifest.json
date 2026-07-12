@@ -1,0 +1,170 @@
+{
+  "id": "datalake_table_query",
+  "name_ko": "Datalake 테이블 조회",
+  "class_name": "DatalakeTableQuery",
+  "asset_type": "component",
+  "status": "user_testing",
+  "version": "0.1.0",
+  "standalone": true,
+  "reusability": "shared",
+  "source_family": "direct_data_access_components",
+  "summary_ko": "Cluster API와 MySQL 조회 설정을 직접 입력받아 Datalake 결과를 DataFrame으로 반환합니다.",
+  "source_file": "datalake_table_query.py",
+  "inputs": [
+    {
+      "type": "StrInput",
+      "name": "api_base_url",
+      "display_name": "Datalake API 기준 URL",
+      "value": "https://api-server.lake.skhynix.com/api/v4/",
+      "required": true,
+      "info": "Cluster 상태 API의 기준 URL입니다. 신뢰할 수 있는 사내 주소만 사용하세요."
+    },
+    {
+      "type": "BoolInput",
+      "name": "allow_insecure_api_http",
+      "display_name": "HTTP API 사용 허용",
+      "value": false,
+      "advanced": true,
+      "info": "기본값은 꺼짐입니다. HTTPS를 지원하지 않는 폐쇄된 테스트망에서만 명시적으로 켜세요."
+    },
+    {
+      "type": "StrInput",
+      "name": "cluster_status_path",
+      "display_name": "Cluster 상태 경로",
+      "value": "runtime/cluster/{cluster_type}/running",
+      "required": true,
+      "info": "기준 URL 뒤에 붙는 상대 경로입니다. {cluster_type} 변수를 사용할 수 있습니다."
+    },
+    {
+      "type": "StrInput",
+      "name": "cluster_type",
+      "display_name": "Cluster 유형",
+      "value": "starrocks",
+      "required": true,
+      "info": "기본값은 starrocks입니다."
+    },
+    {
+      "type": "StrInput",
+      "name": "jdbc_endpoint_key",
+      "display_name": "MySQL Endpoint 필드",
+      "value": "jdbc-external",
+      "required": true,
+      "advanced": true,
+      "info": "Cluster 응답의 endpoints 객체에서 MySQL 주소를 찾을 필드명입니다."
+    },
+    {
+      "type": "MultilineInput",
+      "name": "allowed_mysql_hosts",
+      "display_name": "허용 MySQL Host",
+      "value": ".skhynix.com",
+      "required": true,
+      "info": "정확한 host 또는 .example.com suffix를 쉼표/줄바꿈으로 입력합니다. API가 다른 host를 반환하면 차단합니다."
+    },
+    {
+      "type": "StrInput",
+      "name": "lake_user_id",
+      "display_name": "Datalake 사용자 ID",
+      "required": true,
+      "info": "Cluster API의 user_id와 MySQL 접속 사용자로 전달됩니다."
+    },
+    {
+      "type": "SecretStrInput",
+      "name": "lake_jwt_token",
+      "display_name": "Datalake JWT 토큰",
+      "required": true,
+      "info": "Bearer Token과 MySQL 비밀번호로 전달되는 보호 필드입니다."
+    },
+    {
+      "type": "StrInput",
+      "name": "mysql_ssl_ca_path",
+      "display_name": "MySQL CA 파일 경로",
+      "required": true,
+      "info": "MySQL 서버 인증서와 host 신원을 검증할 CA PEM 파일의 Agent Builder 실행 환경 경로입니다."
+    },
+    {
+      "type": "MultilineInput",
+      "name": "sql_query",
+      "display_name": "조회 SQL",
+      "required": true,
+      "info": "SELECT 또는 조회용 WITH 문 한 개만 입력합니다. 값은 native bind를 사용하세요."
+    },
+    {
+      "type": "DictInput",
+      "name": "bind_parameters",
+      "display_name": "바인드 변수",
+      "value": {},
+      "info": "SQL의 %(from_ym)s 같은 변수에 전달할 JSON 객체입니다."
+    },
+    {
+      "type": "IntInput",
+      "name": "max_rows",
+      "display_name": "최대 조회 행 수",
+      "value": 5000,
+      "advanced": true,
+      "info": "1~100000행 사이에서 설정합니다."
+    },
+    {
+      "type": "IntInput",
+      "name": "api_timeout_seconds",
+      "display_name": "API/DB 연결 제한시간(초)",
+      "value": 15,
+      "advanced": true,
+      "info": "Cluster API 한 번의 요청과 MySQL 연결에 적용할 제한시간입니다."
+    },
+    {
+      "type": "IntInput",
+      "name": "query_timeout_seconds",
+      "display_name": "SQL 읽기 제한시간(초)",
+      "value": 60,
+      "advanced": true,
+      "info": "MySQL SQL 실행과 결과 읽기에 적용할 제한시간입니다."
+    },
+    {
+      "type": "IntInput",
+      "name": "cluster_wait_seconds",
+      "display_name": "Cluster 전체 대기시간(초)",
+      "value": 120,
+      "advanced": true,
+      "info": "Cluster가 RUNNING이 될 때까지 기다릴 전체 시간입니다."
+    },
+    {
+      "type": "IntInput",
+      "name": "poll_interval_seconds",
+      "display_name": "Cluster 확인 간격(초)",
+      "value": 3,
+      "advanced": true,
+      "info": "RUNNING 상태를 다시 확인하는 간격입니다."
+    }
+  ],
+  "outputs": [
+    {
+      "type": "Output",
+      "name": "data_table",
+      "display_name": "조회 데이터 테이블",
+      "method": "build_data_table",
+      "types": [
+        "DataFrame"
+      ],
+      "tool_mode": false
+    }
+  ],
+  "dependencies": [
+    "aiohttp",
+    "lfx",
+    "mysql-connector-python"
+  ],
+  "used_by_flows": [],
+  "risk_tags": [
+    "database_read",
+    "credentials_required",
+    "cluster_api",
+    "read_only_sql",
+    "endpoint_allowlist",
+    "verified_tls_required"
+  ],
+  "verified_environment": "langflow-1.8.2-template-and-isolated-contract-validation",
+  "last_verified_at": "2026-07-12",
+  "documentation_path": "html/components/datalake_table_query/index.html",
+  "approved_by_user_at": null,
+  "guide_file": "USAGE_GUIDE.md"
+}

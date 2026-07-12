@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <base href="../../" />
+  <title>직접 데이터 조회 Component · Agent Ground</title>
+  <meta name="description" content="Oracle, H-API, Datalake, GooDocs와 일반 JSON API의 최소 단위 DataFrame 조회 Component" />
+  <link rel="stylesheet" href="assets/css/site.css" />
+  
+</head>
+<body>
+  <a class="skip-link" href="#main">본문으로 바로가기</a>
+  <header class="site-header">
+    <div class="header-inner">
+      <a class="brand" href="index.html" aria-label="Agent Ground 홈">
+        <span class="brand-mark" aria-hidden="true">AG</span>
+        <span class="brand-copy"><strong>Agent Ground</strong><small>Learn · Build · Validate</small></span>
+      </a>
+      <button class="menu-button" type="button" data-menu-button aria-expanded="false" aria-controls="site-nav" aria-label="메뉴 열기"><span class="menu-lines"></span></button>
+      <nav class="site-nav" id="site-nav" data-site-nav data-open="false" aria-label="주요 메뉴"><a href="index.html">홈</a><a href="training/index.html">처음 배우기</a><a href="flows/index.html">Flows</a><a href="components/index.html" aria-current="page">Components</a><a href="troubleshooting/index.html">실패와 해결</a><a href="business-agent-design/index.html">업무 Agent 설계</a></nav>
+    </div>
+  </header>
+  <main class="page-wrap" id="main">
+    <nav class="breadcrumbs" aria-label="현재 위치"><a href="index.html">홈</a><span aria-hidden="true">/</span><a href="components/index.html">Components</a><span aria-hidden="true">/</span><span>직접 데이터 조회</span></nav>
+    
+<section class="hero"><div class="meta-row"><span class="badge badge-testing">검증 중</span><span class="tag">5 Components</span><span class="tag">DataFrame only</span></div><div class="hero-kicker">Direct data access</div><h1>필요한 값을 직접 넣고<br />데이터 테이블만 받습니다</h1><p>기존 재사용 Flow의 catalog·라우팅·다중 요청 envelope를 제거하고, Oracle·H-API·Datalake·GooDocs와 일반 JSON API를 각각 한 번 호출하는 최소 단위 Component로 분리했습니다.</p><div class="hero-actions"><a class="button button-primary" href="#direct-components">Component 보기</a><a class="button button-secondary" href="../components/DIRECT_DATA_ACCESS_COMPONENTS_GUIDE.md">전체 사용 가이드</a><a class="button button-secondary" href="flows/reusable_data_flow/index.html">기존 재사용 Flow 보기</a></div></section>
+<section class="section"><div class="notice notice-testing"><strong>기존 Flow는 그대로 보존했습니다.</strong><code>oracle_data</code>, <code>h_api_data</code>, <code>datalake_data</code>, <code>goodocs_data</code>는 기존 <code>reusable_data_flow</code>의 0.9.0 계약을 재현하기 위해 변경하지 않았습니다. 아래 다섯 Component는 아직 기존 Flow JSON에 자동 교체하지 않은 독립 자산입니다.</div></section>
+<section class="section"><div class="section-heading"><p class="eyebrow">One job, one table</p><h2>유연한 라우터와 직접 조회기를 구분합니다</h2></div><div class="table-wrap"><table><thead><tr><th>구분</th><th>기존 재사용 Flow용</th><th>신규 최소 단위</th></tr></thead><tbody><tr><td>입력</td><td><code>data_request</code>, catalog, source type</td><td>접속정보·URL·SQL·파라미터 직접 입력</td></tr><tr><td>처리</td><td>요청 해석, source 필터, 다중 요청, 결과 envelope</td><td>외부 소스 한 번 호출</td></tr><tr><td>출력</td><td><code>Data</code> 안의 source metadata와 row</td><td><code>data_table: DataFrame</code> 하나</td></tr><tr><td>오류</td><td>merger용 실패 payload</td><td>한글 실행 오류로 즉시 실패</td></tr><tr><td>더미 데이터</td><td>기존 배선 확인 경로 존재</td><td>없음</td></tr></tbody></table></div></section>
+<section class="section" id="direct-components"><div class="section-heading"><p class="eyebrow">Selected implementation</p><h2>직접 조회 Component 다섯 종류</h2><p>모든 Component는 Python 파일 하나로 등록하며 정상 결과는 DataFrame Output 하나만 반환합니다.</p></div><div class="grid grid-3"><a class="card card-link asset-card" data-asset-card data-family="direct_data_access_components" data-search="Datalake 테이블 조회 datalake_table_query Cluster API와 MySQL 조회 설정을 직접 입력받아 Datalake 결과를 DataFrame으로 반환합니다. direct_data_access_components aiohttp, lfx, mysql-connector-python" href="components/datalake_table_query/index.html">
+  <div class="meta-row"><span class="badge badge-testing">검증 중</span><span class="tag">16 in</span><span class="tag">1 out</span></div>
+  <h3>Datalake 테이블 조회</h3><p>Cluster API와 MySQL 조회 설정을 직접 입력받아 Datalake 결과를 DataFrame으로 반환합니다.</p>
+  <div class="tag-list"><span class="tag">직접 데이터 조회 Component</span><span class="tag">Standalone</span></div>
+</a><a class="card card-link asset-card" data-asset-card data-family="direct_data_access_components" data-search="GooDocs 테이블 조회기 goodocs_table_reader 문서 ID와 인증값으로 GooDocs 문서 한 개를 조회하고 데이터 테이블만 출력합니다. 실제 사내 GooDocs 모듈을 코드의 교체 구역에 넣어야 합니다. direct_data_access_components lfx, pandas, pydantic" href="components/goodocs_table_reader/index.html">
+  <div class="meta-row"><span class="badge badge-testing">검증 중</span><span class="tag">6 in</span><span class="tag">1 out</span></div>
+  <h3>GooDocs 테이블 조회기</h3><p>문서 ID와 인증값으로 GooDocs 문서 한 개를 조회하고 데이터 테이블만 출력합니다. 실제 사내 GooDocs 모듈을 코드의 교체 구역에 넣어야 합니다.</p>
+  <div class="tag-list"><span class="tag">직접 데이터 조회 Component</span><span class="tag">Standalone</span></div>
+</a><a class="card card-link asset-card" data-asset-card data-family="direct_data_access_components" data-search="H-API 테이블 조회 h_api_table_request URL, Token, bindParams를 직접 받아 H-API를 한 번 호출하고 데이터 테이블만 반환합니다. direct_data_access_components lfx, requests" href="components/h_api_table_request/index.html">
+  <div class="meta-row"><span class="badge badge-testing">검증 중</span><span class="tag">7 in</span><span class="tag">1 out</span></div>
+  <h3>H-API 테이블 조회</h3><p>URL, Token, bindParams를 직접 받아 H-API를 한 번 호출하고 데이터 테이블만 반환합니다.</p>
+  <div class="tag-list"><span class="tag">직접 데이터 조회 Component</span><span class="tag">Standalone</span></div>
+</a><a class="card card-link asset-card" data-asset-card data-family="direct_data_access_components" data-search="Oracle 테이블 조회 oracle_table_query Oracle 접속 정보와 읽기 SQL을 직접 입력받아 조회 결과를 DataFrame으로 반환합니다. direct_data_access_components lfx, oracledb" href="components/oracle_table_query/index.html">
+  <div class="meta-row"><span class="badge badge-testing">검증 중</span><span class="tag">7 in</span><span class="tag">1 out</span></div>
+  <h3>Oracle 테이블 조회</h3><p>Oracle 접속 정보와 읽기 SQL을 직접 입력받아 조회 결과를 DataFrame으로 반환합니다.</p>
+  <div class="tag-list"><span class="tag">직접 데이터 조회 Component</span><span class="tag">Standalone</span></div>
+</a><a class="card card-link asset-card" data-asset-card data-family="direct_data_access_components" data-search="단순 API 테이블 조회 simple_api_table_request HTTP API를 한 번 호출하고 지정한 JSON 응답 경로의 값을 데이터 테이블로 반환합니다. direct_data_access_components lfx, requests" href="components/simple_api_table_request/index.html">
+  <div class="meta-row"><span class="badge badge-testing">검증 중</span><span class="tag">10 in</span><span class="tag">1 out</span></div>
+  <h3>단순 API 테이블 조회</h3><p>HTTP API를 한 번 호출하고 지정한 JSON 응답 경로의 값을 데이터 테이블로 반환합니다.</p>
+  <div class="tag-list"><span class="tag">직접 데이터 조회 Component</span><span class="tag">Standalone</span></div>
+</a></div></section>
+<section class="section"><div class="section-heading"><p class="eyebrow">Minimum contracts</p><h2>소스별로 직접 입력하는 값</h2></div><div class="grid grid-3"><div class="card"><h3>Oracle</h3><p>DSN/TNS, 사용자 ID·비밀번호, 조회 SQL, native bind 변수, 행·시간 제한</p></div><div class="card"><h3>H-API</h3><p>API URL, H-API Token, bindParams 배열, 응답 경로, HTTP opt-in, timeout·행 제한</p></div><div class="card"><h3>Datalake</h3><p>Cluster API, HTTP opt-in, 허용 DB host, 사용자 ID·JWT, CA 파일, SQL·bind, 대기·조회 제한</p></div><div class="card"><h3>GooDocs</h3><p>문서 ID, 사용자 ID, 토큰 소스·키, 선택 시트명, 최대 행 수</p></div><div class="card"><h3>일반 API</h3><p>URL, GET/POST, HTTP opt-in, header·query·body JSON, 응답 경로, timeout·byte·행 제한</p></div></div></section>
+<section class="section"><div class="grid grid-2"><div class="notice notice-info"><strong>DataFrame 하나만 출력합니다.</strong>성공 여부, SQL, URL, 토큰, 요청 metadata를 데이터 행에 섞지 않습니다. 정상 0건은 빈 DataFrame이며, 접속·인증·응답 오류는 빈 성공 결과로 숨기지 않습니다.</div><div class="notice notice-testing"><strong>실환경 확인이 남아 있습니다.</strong>GooDocs 실제 모듈은 표시된 교체 구역에 사용자가 넣어야 합니다. Datalake 실행 환경에는 <code>mysql-connector-python</code> 사전 설치가 필요합니다. 실제 사내 endpoint와 계정으로 검증하기 전까지 모두 <code>user_testing</code>입니다.</div></div></section>
+<section class="section"><div class="notice notice-testing"><strong>운영 보안 경계</strong>HTTP는 기본 차단합니다. Datalake는 API가 돌려준 DB host를 허용목록과 대조하고 CA로 인증서·hostname을 검증한 뒤에만 JWT를 전달합니다. Oracle·Datalake는 조회 전용 계정과 native bind를 사용하세요. 일반 API URL을 LLM 출력에 직접 연결하지 말고 승인 host·서버 egress 정책을 함께 적용합니다. 토큰과 비밀번호는 status·DataFrame·외부 오류 원문에 기록하지 않습니다.</div></section>
+<div class="page-actions"><button class="back-button" type="button" data-back data-fallback="components/index.html">← 이전 화면</button><a class="button button-soft" href="components/index.html">전체 Component</a><a class="button button-soft" href="index.html">홈</a></div>
+
+  </main>
+  <footer class="site-footer">
+    <div class="footer-inner">
+      <div><strong>Agent Ground</strong><p>실제 Agent Builder 환경에서 검증된 교육자료, Standalone Component와 Flow를 함께 쌓아갑니다.</p></div>
+      <div class="footer-links"><a href="training/index.html">처음 배우기</a><a href="troubleshooting/index.html">실패와 해결</a><a href="../AGENT_GROUND_PROJECT_MASTER_GUIDE.md">프로젝트 기준</a></div>
+    </div>
+  </footer>
+  <script src="assets/js/site.js"></script>
+  
+</body>
+</html>

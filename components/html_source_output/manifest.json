@@ -1,0 +1,40 @@
+{
+  "id": "html_source_output",
+  "name_ko": "05-1 HTML 원문 출력",
+  "class_name": "HtmlSourceOutput",
+  "asset_type": "component",
+  "status": "user_testing",
+  "version": "0.9.0",
+  "standalone": true,
+  "reusability": "shared",
+  "source_family": "html_report_flow",
+  "summary_ko": "Report API 없이 04에서 생성된 전체 HTML 코드를 Playground에 그대로 출력합니다.",
+  "source_file": "html_source_output.py",
+  "inputs": [
+    {
+      "type": "DataInput",
+      "name": "payload",
+      "display_name": "HTML 생성 결과",
+      "required": true
+    }
+  ],
+  "outputs": [
+    {
+      "type": "Output",
+      "name": "html_message",
+      "display_name": "HTML 원문",
+      "method": "build_message"
+    }
+  ],
+  "dependencies": [
+    "lfx"
+  ],
+  "used_by_flows": [
+    "html_report_flow"
+  ],
+  "risk_tags": [],
+  "verified_environment": "legacy-export-1.8.2-local-static-check",
+  "last_verified_at": "2026-07-10",
+  "documentation_path": "html/components/html_source_output/index.html",
+  "approved_by_user_at": null
+}

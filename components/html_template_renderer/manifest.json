@@ -1,0 +1,42 @@
+{
+  "id": "html_template_renderer",
+  "name_ko": "04 HTML 렌더링",
+  "class_name": "HtmlTemplateRenderer",
+  "asset_type": "component",
+  "status": "user_testing",
+  "version": "0.9.0",
+  "standalone": true,
+  "reusability": "shared",
+  "source_family": "html_report_flow",
+  "summary_ko": "최종 리포트 계획과 데이터를 이용해 독립 실행 가능한 HTML 원문을 생성합니다.",
+  "source_file": "html_template_renderer.py",
+  "inputs": [
+    {
+      "type": "DataInput",
+      "name": "payload",
+      "display_name": "최종 계획",
+      "required": true
+    }
+  ],
+  "outputs": [
+    {
+      "type": "Output",
+      "name": "payload_out",
+      "display_name": "HTML 생성 결과",
+      "method": "build_payload"
+    }
+  ],
+  "dependencies": [
+    "lfx"
+  ],
+  "used_by_flows": [
+    "html_report_flow"
+  ],
+  "risk_tags": [
+    "html_output"
+  ],
+  "verified_environment": "legacy-export-1.8.2-local-static-check",
+  "last_verified_at": "2026-07-10",
+  "documentation_path": "html/components/html_template_renderer/index.html",
+  "approved_by_user_at": null
+}

@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <base href="../../" />
+  <title>00 Document Input Normalizer · Agent Ground</title>
+  <meta name="description" content="Normalize Data, Message, text, or JSON into documents with citation and ACL metadata." />
+  <link rel="stylesheet" href="assets/css/site.css" />
+  
+</head>
+<body>
+  <a class="skip-link" href="#main">본문으로 바로가기</a>
+  <header class="site-header">
+    <div class="header-inner">
+      <a class="brand" href="index.html" aria-label="Agent Ground 홈">
+        <span class="brand-mark" aria-hidden="true">AG</span>
+        <span class="brand-copy"><strong>Agent Ground</strong><small>Learn · Build · Validate</small></span>
+      </a>
+      <button class="menu-button" type="button" data-menu-button aria-expanded="false" aria-controls="site-nav" aria-label="메뉴 열기"><span class="menu-lines"></span></button>
+      <nav class="site-nav" id="site-nav" data-site-nav data-open="false" aria-label="주요 메뉴"><a href="index.html">홈</a><a href="training/index.html">처음 배우기</a><a href="flows/index.html">Flows</a><a href="components/index.html" aria-current="page">Components</a><a href="troubleshooting/index.html">실패와 해결</a><a href="business-agent-design/index.html">업무 Agent 설계</a></nav>
+    </div>
+  </header>
+  <main class="page-wrap" id="main">
+    <nav class="breadcrumbs" aria-label="현재 위치"><a href="index.html">홈</a><span aria-hidden="true">/</span><a href="components/index.html">Components</a><span aria-hidden="true">/</span><span>00 Document Input Normalizer</span></nav>
+    
+<section class="hero"><div class="meta-row"><span class="badge badge-testing">검증 중</span><span class="tag">Standalone</span><span class="tag">v0.1.0</span></div><div class="hero-kicker">사내 문서 RAG Flow</div><h1>00 Document Input Normalizer</h1><p>Normalize Data, Message, text, or JSON into documents with citation and ACL metadata.</p><div class="hero-actions"><a class="button button-primary" href="../components/document_input_normalizer/document_input_normalizer.py">Python 파일 열기</a><a class="button button-secondary" href="#contract">입출력 계약 보기</a></div></section>
+<section class="section"><div class="grid grid-3"><div class="card"><h3>Component ID</h3><p><code>document_input_normalizer</code></p></div><div class="card"><h3>Class</h3><p><code>DocumentInputNormalizer</code></p></div><div class="card"><h3>사용 Flow</h3><p><a href="flows/enterprise_document_rag_flow/index.html">enterprise_document_rag_flow</a></p></div></div></section>
+<section class="section" id="contract"><div class="section-heading"><p class="eyebrow">Input contract</p><h2>입력</h2><p>화면 이름과 코드 이름, 연결 타입을 함께 확인합니다.</p></div><div class="table-wrap"><table><thead><tr><th>화면 이름</th><th>코드 이름</th><th>입력 UI</th><th>연결 타입</th><th>목록·선택 조건</th><th>필수</th><th>고급</th></tr></thead><tbody><tr><td>Document Input</td><td><code>document_input</code></td><td><code>DataInput</code></td><td><code>Data, Message, Text, JSON</code></td><td>-</td><td>아니오</td><td>아니오</td></tr><tr><td>Use Demo Corpus When Empty</td><td><code>use_demo_corpus</code></td><td><code>BoolInput</code></td><td><code>-</code></td><td>-</td><td>아니오</td><td>아니오</td></tr><tr><td>Default Source Name</td><td><code>default_source_name</code></td><td><code>MessageTextInput</code></td><td><code>-</code></td><td>-</td><td>아니오</td><td>예</td></tr><tr><td>Default Tenant ID</td><td><code>default_tenant_id</code></td><td><code>MessageTextInput</code></td><td><code>-</code></td><td>-</td><td>아니오</td><td>예</td></tr><tr><td>Default Classification</td><td><code>default_classification</code></td><td><code>DropdownInput</code></td><td><code>-</code></td><td>선택: public, internal, confidential, restricted</td><td>아니오</td><td>예</td></tr><tr><td>Default Allowed Roles</td><td><code>default_allowed_roles</code></td><td><code>MessageTextInput</code></td><td><code>-</code></td><td>-</td><td>아니오</td><td>예</td></tr><tr><td>Default Allowed Groups</td><td><code>default_allowed_groups</code></td><td><code>MessageTextInput</code></td><td><code>-</code></td><td>-</td><td>아니오</td><td>예</td></tr><tr><td>Page Break Marker</td><td><code>page_break_marker</code></td><td><code>MessageTextInput</code></td><td><code>-</code></td><td>-</td><td>아니오</td><td>예</td></tr><tr><td>Max Documents or Pages</td><td><code>max_documents</code></td><td><code>IntInput</code></td><td><code>-</code></td><td>-</td><td>아니오</td><td>예</td></tr><tr><td>Max Characters per Document</td><td><code>max_chars_per_document</code></td><td><code>IntInput</code></td><td><code>-</code></td><td>-</td><td>아니오</td><td>예</td></tr></tbody></table></div></section>
+<section class="section"><div class="section-heading"><p class="eyebrow">Output contract</p><h2>출력</h2><p>다음 노드에 연결할 때 Output 타입과 실행 method를 확인합니다.</p></div><div class="table-wrap"><table><thead><tr><th>화면 이름</th><th>코드 이름</th><th>Output 타입</th><th>Method</th><th>그룹 출력</th><th>도구 모드</th></tr></thead><tbody><tr><td>Documents</td><td><code>documents</code></td><td><code>Data</code></td><td><code>build_documents</code></td><td>아니오</td><td>아니오</td></tr></tbody></table></div></section>
+<section class="section"><div class="grid grid-2"><div class="card"><h3>의존성</h3><p>코드에서 감지한 runtime 또는 외부 import입니다. 실제 서버 설치 여부는 별도 확인합니다.</p><div class="tag-list"><span class="tag">lfx</span></div></div><div class="card"><h3>위험 태그</h3><p>자격증명, 외부 접근, 쓰기 또는 HTML 출력과 관련된 검토 항목입니다.</p><div class="tag-list"><span class="tag">document_content</span><span class="tag">demo_corpus</span></div></div></div></section>
+<section class="section"><div class="section-heading"><p class="eyebrow">Standalone check</p><h2>등록과 검증 순서</h2></div><div class="card"><ul class="check-list"><li><code>document_input_normalizer.py</code> 파일 하나만 등록합니다.</li><li>형제 모듈 또는 상대 import가 없음을 정적 검사했습니다.</li><li>화면 이름과 입력·출력이 위 표와 같은지 확인합니다.</li><li>가장 작은 정상 입력으로 Output 타입과 핵심 값을 확인합니다.</li><li>빈 입력과 잘못된 입력의 상태·오류를 확인합니다.</li><li>사용자 완료 승인 전까지 <code>user_testing</code>을 유지합니다.</li></ul></div></section>
+<div class="page-actions"><button class="back-button" type="button" data-back data-fallback="components/index.html">← 이전 화면</button><a class="button button-soft" href="components/index.html">Component 목록</a><a class="button button-soft" href="index.html">홈</a></div>
+
+  </main>
+  <footer class="site-footer">
+    <div class="footer-inner">
+      <div><strong>Agent Ground</strong><p>실제 Agent Builder 환경에서 검증된 교육자료, Standalone Component와 Flow를 함께 쌓아갑니다.</p></div>
+      <div class="footer-links"><a href="training/index.html">처음 배우기</a><a href="troubleshooting/index.html">실패와 해결</a><a href="../AGENT_GROUND_PROJECT_MASTER_GUIDE.md">프로젝트 기준</a></div>
+    </div>
+  </footer>
+  <script src="assets/js/site.js"></script>
+  
+</body>
+</html>

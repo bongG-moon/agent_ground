@@ -1,0 +1,75 @@
+{
+  "id": "source_catalog_mongodb_loader",
+  "name_ko": "Catalog MongoDB Loader",
+  "class_name": "SourceCatalogMongoDBLoader",
+  "asset_type": "component",
+  "status": "user_testing",
+  "version": "0.9.0",
+  "standalone": true,
+  "reusability": "shared",
+  "source_family": "reusable_data_flow",
+  "summary_ko": "MongoDB collection에서 source_catalog를 읽어옵니다.",
+  "source_file": "source_catalog_mongodb_loader.py",
+  "inputs": [
+    {
+      "type": "MessageTextInput",
+      "name": "mongo_uri",
+      "display_name": "Mongo URI",
+      "value": ""
+    },
+    {
+      "type": "MessageTextInput",
+      "name": "db_name",
+      "display_name": "DB Name",
+      "value": "langflow"
+    },
+    {
+      "type": "MessageTextInput",
+      "name": "collection_name",
+      "display_name": "Collection Name",
+      "value": "reusable_source_catalogs"
+    },
+    {
+      "type": "MessageTextInput",
+      "name": "timeout_ms",
+      "display_name": "Timeout MS",
+      "value": "5000",
+      "advanced": true
+    }
+  ],
+  "outputs": [
+    {
+      "type": "Output",
+      "name": "catalog_text",
+      "display_name": "Catalog Text",
+      "method": "build_catalog_text",
+      "types": [
+        "Message"
+      ]
+    },
+    {
+      "type": "Output",
+      "name": "catalog_data",
+      "display_name": "Catalog Data",
+      "method": "build_catalog_data",
+      "types": [
+        "Data"
+      ]
+    }
+  ],
+  "dependencies": [
+    "lfx",
+    "pymongo"
+  ],
+  "used_by_flows": [
+    "reusable_data_flow"
+  ],
+  "risk_tags": [
+    "database_read",
+    "credentials_required"
+  ],
+  "verified_environment": "legacy-export-1.8.2-local-static-check",
+  "last_verified_at": "2026-07-10",
+  "documentation_path": "html/components/source_catalog_mongodb_loader/index.html",
+  "approved_by_user_at": null
+}
