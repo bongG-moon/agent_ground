@@ -1,0 +1,68 @@
+{
+  "id": "html_presentation_renderer",
+  "name_ko": "HTML 프레젠테이션 렌더러",
+  "class_name": "HtmlPresentationRenderer",
+  "asset_type": "component",
+  "status": "user_testing",
+  "version": "0.1.0",
+  "packaging": "standalone",
+  "standalone": true,
+  "reusability": "shared",
+  "component_scope": "domain",
+  "qualification": {
+    "decision": "qualified_component",
+    "criteria": {
+      "independent_input_output": true,
+      "functional_completeness": true,
+      "reusable_unit": true,
+      "payload_coupling": "domain_contract",
+      "validation_or_error_handling": true
+    },
+    "review_rule": "Flow에서 사용된다는 사실만으로 Component 자격을 부여하지 않습니다."
+  },
+  "owner_usage": {
+    "owner": "ppt_reference_html_flow",
+    "usage": "검증된 발표 계획을 자체 포함 HTML 슬라이드로 만드는 독립 렌더링 기능",
+    "used_by_flows": [
+      "ppt_reference_html_flow"
+    ]
+  },
+  "source_family": "ppt_reference_html_flow",
+  "summary_ko": "검증된 슬라이드 계획을 탐색·인쇄 가능한 독립 16:9 HTML 프레젠테이션으로 변환합니다.",
+  "source_file": "html_presentation_renderer.py",
+  "inputs": [
+    {
+      "type": "DataInput",
+      "name": "presentation_plan",
+      "display_name": "검증된 프레젠테이션 계획",
+      "required": true,
+      "info": "presentation_plan.slides와 선택적 theme을 포함한 검증 완료 Data를 연결합니다."
+    }
+  ],
+  "outputs": [
+    {
+      "type": "Output",
+      "name": "presentation_artifact",
+      "display_name": "HTML 프레젠테이션 결과",
+      "method": "build_artifact",
+      "types": [
+        "Data"
+      ]
+    }
+  ],
+  "dependencies": [
+    "lfx"
+  ],
+  "used_by_flows": [
+    "ppt_reference_html_flow"
+  ],
+  "risk_tags": [
+    "html_output",
+    "inline_svg",
+    "self_contained_artifact"
+  ],
+  "verified_environment": "langflow-1.8.2-template-and-isolated-contract-validation",
+  "last_verified_at": "2026-07-13",
+  "documentation_path": "html/components/html_presentation_renderer/index.html",
+  "approved_by_user_at": null
+}

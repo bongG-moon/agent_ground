@@ -1,0 +1,832 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <base href="../../../../" />
+  <title>03b LLM 계획 검증 Python 코드 · Agent Ground</title>
+  <meta name="description" content="HTML 보고서 Flow 내부 Node 03b LLM 계획 검증 Python 코드 뷰어" />
+  <link rel="stylesheet" href="assets/css/site.css" />
+  
+</head>
+<body>
+  <a class="skip-link" href="#main">본문으로 바로가기</a>
+  <header class="site-header">
+    <div class="header-inner">
+      <a class="brand" href="index.html" aria-label="Agent Ground 홈">
+        <span class="brand-mark" aria-hidden="true">AG</span>
+        <span class="brand-copy"><strong>Agent Ground</strong><small>Learn · Build · Validate</small></span>
+      </a>
+      <button class="menu-button" type="button" data-menu-button aria-expanded="false" aria-controls="site-nav" aria-label="메뉴 열기"><span class="menu-lines"></span></button>
+      <nav class="site-nav" id="site-nav" data-site-nav data-open="false" aria-label="주요 메뉴"><a href="index.html">홈</a><a href="training/index.html">처음 배우기</a><a href="flows/index.html" aria-current="page">Flows</a><a href="components/index.html">Components</a><a href="troubleshooting/index.html">실패와 해결</a><a href="business-agent-design/index.html">업무 Agent 설계</a></nav>
+    </div>
+  </header>
+  <main class="page-wrap" id="main">
+    <nav class="breadcrumbs" aria-label="현재 위치"><a href="index.html">홈</a><span aria-hidden="true">/</span><a href="flows/index.html">Flows</a><span aria-hidden="true">/</span><a href="flows/html_report_flow/index.html">HTML 보고서 Flow</a><span aria-hidden="true">/</span><a href="flows/html_report_flow/nodes/llm_html_plan_normalizer/index.html">03b LLM 계획 검증</a><span aria-hidden="true">/</span><span>Python 코드</span></nav>
+    
+<section class="code-page-intro"><div><p class="eyebrow">Flow internal Python source</p><h1>03b LLM 계획 검증</h1><p><code>llm_html_plan_normalizer.py</code> 원문을 포털 안에서 확인합니다. 이 코드는 Component Library가 아니라 <strong>HTML 보고서 Flow</strong>의 내부 구현입니다.</p></div><div class="code-page-actions"><a class="button button-soft" href="flows/html_report_flow/nodes/llm_html_plan_normalizer/index.html">내부 Node 설명으로 돌아가기</a></div></section>
+<section class="code-workspace" aria-label="Python 코드 뷰어">
+  <header class="code-toolbar"><div class="code-window-dots" aria-hidden="true"><span></span><span></span><span></span></div><div class="code-file-meta"><strong>llm_html_plan_normalizer.py</strong><span>788줄 · 33.0KB · UTF-8</span></div><button class="code-copy-button" type="button" data-copy-code>코드 복사</button></header>
+  <div class="code-editor-scroll" tabindex="0" aria-label="가로와 세로로 스크롤할 수 있는 Python 코드"><div class="code-lines" data-code-source><div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">1</span><code data-code-text>from __future__ import annotations</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">2</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">3</span><code data-code-text>&quot;&quot;&quot;03b LLM 계획 검증 노드.</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">4</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">5</span><code data-code-text>이 파일은 LLM이 만든 report_plan JSON을 그대로 사용하지 않고,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">6</span><code data-code-text>허용된 block_id인지, 실제 컬럼명만 참조하는지, width/style 값이 안전한지 검증합니다.</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">7</span><code data-code-text>검증에 실패하면 03번 기본 계획으로 fallback해서 flow가 중단되지 않게 합니다.</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">8</span><code data-code-text>&quot;&quot;&quot;</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">9</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">10</span><code data-code-text>import json</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">11</span><code data-code-text>import re</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">12</span><code data-code-text>from copy import deepcopy</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">13</span><code data-code-text>from typing import Any</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">14</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">15</span><code data-code-text>from lfx.custom.custom_component.component import Component</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">16</span><code data-code-text>from lfx.io import DataInput, MessageTextInput, Output</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">17</span><code data-code-text>from lfx.schema.data import Data</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">18</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">19</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">20</span><code data-code-text># LLM이 마음대로 CSS/HTML을 만들지 못하도록, 사용할 수 있는 값들을 작은 set으로 제한합니다.</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">21</span><code data-code-text>WIDTHS = {&quot;full&quot;, &quot;two_third&quot;, &quot;half&quot;, &quot;third&quot;}</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">22</span><code data-code-text>EMPHASIS = {&quot;high&quot;, &quot;medium&quot;, &quot;low&quot;, &quot;critical&quot;}</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">23</span><code data-code-text>DENSITIES = {&quot;compact&quot;, &quot;comfortable&quot;}</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">24</span><code data-code-text>FONT_SCALES = {&quot;small&quot;, &quot;normal&quot;, &quot;large&quot;}</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">25</span><code data-code-text>LAYOUTS = {&quot;dashboard&quot;, &quot;query_review&quot;, &quot;diagnosis&quot;, &quot;executive_summary&quot;, &quot;detail_review&quot;, &quot;report&quot;}</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">26</span><code data-code-text>AGGREGATIONS = {&quot;sum&quot;, &quot;avg&quot;, &quot;average&quot;, &quot;mean&quot;, &quot;min&quot;, &quot;max&quot;, &quot;count&quot;, &quot;nunique&quot;}</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">27</span><code data-code-text>AUDIENCES = {&quot;operator&quot;, &quot;analyst&quot;, &quot;executive&quot;, &quot;engineer&quot;, &quot;general&quot;}</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">28</span><code data-code-text>REPORT_GOALS = {&quot;monitor&quot;, &quot;compare&quot;, &quot;diagnose&quot;, &quot;explain&quot;, &quot;audit&quot;, &quot;explore&quot;}</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">29</span><code data-code-text>TONES = {&quot;info&quot;, &quot;positive&quot;, &quot;warning&quot;, &quot;danger&quot;, &quot;neutral&quot;}</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">30</span><code data-code-text>OPERATORS = {&quot;eq&quot;, &quot;ne&quot;, &quot;gt&quot;, &quot;gte&quot;, &quot;lt&quot;, &quot;lte&quot;, &quot;contains&quot;, &quot;in&quot;, &quot;not_in&quot;}</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">31</span><code data-code-text>CHART_TYPES = {&quot;bar&quot;, &quot;horizontal_bar&quot;, &quot;grouped_bar&quot;, &quot;stacked_bar&quot;, &quot;line&quot;, &quot;donut&quot;, &quot;histogram&quot;, &quot;scatter&quot;, &quot;heatmap&quot;}</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">32</span><code data-code-text>ORIENTATIONS = {&quot;horizontal&quot;, &quot;vertical&quot;}</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">33</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">34</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">35</span><code data-code-text>def normalize_llm_html_plan(base_payload_value: Any, llm_response_value: Any, component_catalog_value: Any = None) -&gt; dict[str, Any]:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">36</span><code data-code-text>    &quot;&quot;&quot;LLM 응답에서 JSON 계획을 추출하고 최종 report_plan으로 정규화합니다.&quot;&quot;&quot;</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">37</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">38</span><code data-code-text>    payload = _payload(base_payload_value)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">39</span><code data-code-text>    llm_text = _text(llm_response_value)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">40</span><code data-code-text>    llm_json = _extract_json_object(llm_text)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">41</span><code data-code-text>    base_plan = _dict(payload.get(&quot;report_plan&quot;))</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">42</span><code data-code-text>    llm_context = _dict(payload.get(&quot;llm_context&quot;))</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">43</span><code data-code-text>    catalog = _payload(component_catalog_value) or _dict(payload.get(&quot;html_component_catalog&quot;)) or _dict(llm_context.get(&quot;html_component_catalog&quot;))</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">44</span><code data-code-text>    allowed_blocks = _allowed_blocks(catalog)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">45</span><code data-code-text>    columns = _available_columns(payload)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">46</span><code data-code-text>    data_view_ids = _available_data_view_ids(payload)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">47</span><code data-code-text>    warnings = _list(payload.get(&quot;warnings&quot;))</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">48</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">49</span><code data-code-text>    if not llm_json:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">50</span><code data-code-text>        # LLM이 JSON이 아닌 설명문만 반환해도 리포트 생성은 계속되도록 기본 계획을 사용합니다.</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">51</span><code data-code-text>        result = deepcopy(payload)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">52</span><code data-code-text>        result[&quot;report_plan&quot;] = _mark_plan(base_plan, &quot;deterministic_fallback&quot;, [&quot;LLM response did not contain a JSON object.&quot;])</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">53</span><code data-code-text>        result[&quot;llm_report_plan&quot;] = {&quot;status&quot;: &quot;fallback&quot;, &quot;llm_text_preview&quot;: llm_text[:1200], &quot;errors&quot;: [&quot;missing_json&quot;]}</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">54</span><code data-code-text>        result[&quot;warnings&quot;] = warnings + [&quot;LLM plan fallback: JSON object not found.&quot;]</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">55</span><code data-code-text>        return result</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">56</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">57</span><code data-code-text>    normalized_plan, plan_warnings = _normalize_plan(llm_json, base_plan, allowed_blocks, columns, data_view_ids)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">58</span><code data-code-text>    result = deepcopy(payload)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">59</span><code data-code-text>    result[&quot;report_plan&quot;] = normalized_plan</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">60</span><code data-code-text>    result[&quot;llm_report_plan&quot;] = {</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">61</span><code data-code-text>        &quot;status&quot;: &quot;ok&quot; if normalized_plan.get(&quot;plan_source&quot;) == &quot;llm&quot; else &quot;fallback&quot;,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">62</span><code data-code-text>        &quot;raw_plan&quot;: llm_json,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">63</span><code data-code-text>        &quot;request_interpretation&quot;: _dict(normalized_plan.get(&quot;request_interpretation&quot;)),</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">64</span><code data-code-text>        &quot;warnings&quot;: plan_warnings,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">65</span><code data-code-text>        &quot;llm_text_preview&quot;: llm_text[:1200],</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">66</span><code data-code-text>    }</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">67</span><code data-code-text>    result[&quot;warnings&quot;] = warnings + [f&quot;LLM plan warning: {item}&quot; for item in plan_warnings]</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">68</span><code data-code-text>    return result</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">69</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">70</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">71</span><code data-code-text>def _normalize_plan(</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">72</span><code data-code-text>    llm_json: dict[str, Any],</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">73</span><code data-code-text>    base_plan: dict[str, Any],</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">74</span><code data-code-text>    allowed_blocks: set[str],</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">75</span><code data-code-text>    columns: set[str],</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">76</span><code data-code-text>    data_view_ids: set[str],</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">77</span><code data-code-text>) -&gt; tuple[dict[str, Any], list[str]]:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">78</span><code data-code-text>    &quot;&quot;&quot;Validate the LLM output while preserving the user&#x27;s interpreted intent.&quot;&quot;&quot;</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">79</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">80</span><code data-code-text>    warnings: list[str] = []</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">81</span><code data-code-text>    # The preferred output is one object with request_interpretation and plan fields,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">82</span><code data-code-text>    # but this also accepts {&quot;request_interpretation&quot;: ..., &quot;report_plan&quot;: {...}}.</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">83</span><code data-code-text>    llm_plan = _dict(llm_json.get(&quot;report_plan&quot;)) or llm_json</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">84</span><code data-code-text>    interpretation_raw = _dict(llm_json.get(&quot;request_interpretation&quot;)) or _dict(llm_plan.get(&quot;request_interpretation&quot;))</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">85</span><code data-code-text>    request_interpretation = _normalize_request_interpretation(interpretation_raw)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">86</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">87</span><code data-code-text>    base_blocks = [item for item in _list(base_plan.get(&quot;blocks&quot;)) if isinstance(item, dict)]</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">88</span><code data-code-text>    base_by_id = {str(item.get(&quot;block_id&quot;)): item for item in base_blocks}</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">89</span><code data-code-text>    raw_blocks = [item for item in _list(llm_plan.get(&quot;blocks&quot;)) if isinstance(item, dict)]</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">90</span><code data-code-text>    blocks: list[dict[str, Any]] = []</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">91</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">92</span><code data-code-text>    for raw in raw_blocks:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">93</span><code data-code-text>        block_id = str(raw.get(&quot;block_id&quot;) or &quot;&quot;).strip()</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">94</span><code data-code-text>        if block_id not in allowed_blocks:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">95</span><code data-code-text>            # Unknown block IDs are skipped, but valid LLM blocks still survive.</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">96</span><code data-code-text>            warnings.append(f&quot;Skipped unknown block_id: {block_id or &#x27;(blank)&#x27;}&quot;)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">97</span><code data-code-text>            continue</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">98</span><code data-code-text>        base = _dict(base_by_id.get(block_id))</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">99</span><code data-code-text>        block = _normalize_block(raw, base, columns, data_view_ids, warnings)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">100</span><code data-code-text>        if block and not any(existing.get(&quot;block_id&quot;) == block_id for existing in blocks):</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">101</span><code data-code-text>            blocks.append(block)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">102</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">103</span><code data-code-text>    if not blocks:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">104</span><code data-code-text>        warnings.append(&quot;No valid LLM blocks remained after validation; deterministic base blocks were used.&quot;)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">105</span><code data-code-text>        fallback = _mark_plan(base_plan, &quot;deterministic_fallback&quot;, warnings)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">106</span><code data-code-text>        if request_interpretation:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">107</span><code data-code-text>            fallback[&quot;request_interpretation&quot;] = request_interpretation</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">108</span><code data-code-text>        return fallback, warnings</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">109</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">110</span><code data-code-text>    if not any(block.get(&quot;block_id&quot;) == &quot;report_header&quot; for block in blocks) and &quot;report_header&quot; in allowed_blocks:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">111</span><code data-code-text>        blocks.insert(0, _normalize_block({&quot;block_id&quot;: &quot;report_header&quot;, &quot;width&quot;: &quot;full&quot;, &quot;emphasis&quot;: &quot;high&quot;}, _dict(base_by_id.get(&quot;report_header&quot;)), columns, data_view_ids, warnings))</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">112</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">113</span><code data-code-text>    plan = deepcopy(base_plan)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">114</span><code data-code-text>    plan[&quot;plan_version&quot;] = &quot;html-report-plan-llm-v1&quot;</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">115</span><code data-code-text>    plan[&quot;plan_source&quot;] = &quot;llm&quot;</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">116</span><code data-code-text>    plan[&quot;title&quot;] = _short_text(llm_plan.get(&quot;title&quot;), base_plan.get(&quot;title&quot;) or &quot;HTML 데이터 리포트&quot;, 90)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">117</span><code data-code-text>    plan[&quot;subtitle&quot;] = _short_text(llm_plan.get(&quot;subtitle&quot;), base_plan.get(&quot;subtitle&quot;) or &quot;&quot;, 160)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">118</span><code data-code-text>    plan[&quot;filename_hint&quot;] = _short_text(llm_plan.get(&quot;filename_hint&quot;), base_plan.get(&quot;filename_hint&quot;) or plan[&quot;title&quot;], 80)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">119</span><code data-code-text>    plan[&quot;audience&quot;] = _choice(llm_plan.get(&quot;audience&quot;), AUDIENCES, base_plan.get(&quot;audience&quot;) or &quot;general&quot;)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">120</span><code data-code-text>    plan[&quot;report_goal&quot;] = _choice(llm_plan.get(&quot;report_goal&quot;), REPORT_GOALS, base_plan.get(&quot;report_goal&quot;) or &quot;explore&quot;)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">121</span><code data-code-text>    plan[&quot;layout&quot;] = _choice(llm_plan.get(&quot;layout&quot;), LAYOUTS, base_plan.get(&quot;layout&quot;) or &quot;dashboard&quot;)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">122</span><code data-code-text>    plan[&quot;visual_style&quot;] = _normalize_visual_style(_dict(llm_plan.get(&quot;visual_style&quot;)), _dict(base_plan.get(&quot;visual_style&quot;)))</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">123</span><code data-code-text>    plan[&quot;narrative&quot;] = _normalize_narrative(_dict(llm_plan.get(&quot;narrative&quot;)), _dict(base_plan.get(&quot;narrative&quot;)))</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">124</span><code data-code-text>    plan[&quot;dataset_strategy&quot;] = _normalize_dataset_strategy(_dict(llm_plan.get(&quot;dataset_strategy&quot;)), _dict(base_plan.get(&quot;dataset_strategy&quot;)), data_view_ids, warnings)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">125</span><code data-code-text>    if request_interpretation:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">126</span><code data-code-text>        plan[&quot;request_interpretation&quot;] = request_interpretation</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">127</span><code data-code-text>    reading_order = _normalize_string_list(llm_plan.get(&quot;reading_order&quot;), 8, 40)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">128</span><code data-code-text>    if reading_order:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">129</span><code data-code-text>        plan[&quot;reading_order&quot;] = reading_order</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">130</span><code data-code-text>    plan[&quot;blocks&quot;] = blocks[:10]</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">131</span><code data-code-text>    plan[&quot;warnings&quot;] = _list(base_plan.get(&quot;warnings&quot;))</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">132</span><code data-code-text>    notes = _list(llm_plan.get(&quot;reasoning_notes&quot;)) or _list(llm_json.get(&quot;reasoning_notes&quot;))</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">133</span><code data-code-text>    plan[&quot;llm_reasoning_notes&quot;] = [str(item)[:200] for item in notes[:6]]</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">134</span><code data-code-text>    return plan, warnings</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">135</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">136</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">137</span><code data-code-text>def _normalize_block(raw: dict[str, Any], base: dict[str, Any], columns: set[str], data_view_ids: set[str], warnings: list[str]) -&gt; dict[str, Any]:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">138</span><code data-code-text>    &quot;&quot;&quot;LLM이 만든 block 하나를 렌더러가 안전하게 쓸 수 있는 형태로 정리합니다.</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">139</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">140</span><code data-code-text>    컬럼명은 실제 데이터 컬럼에 있는 경우만 허용하고,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">141</span><code data-code-text>    width/emphasis/density 같은 레이아웃 값도 미리 정한 후보 안에서만 통과시킵니다.</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">142</span><code data-code-text>    &quot;&quot;&quot;</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">143</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">144</span><code data-code-text>    block_id = str(raw.get(&quot;block_id&quot;) or base.get(&quot;block_id&quot;) or &quot;&quot;).strip()</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">145</span><code data-code-text>    block = deepcopy(base)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">146</span><code data-code-text>    block[&quot;block_id&quot;] = block_id</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">147</span><code data-code-text>    block[&quot;title&quot;] = _short_text(raw.get(&quot;title&quot;), base.get(&quot;title&quot;) or block_id.replace(&quot;_&quot;, &quot; &quot;).title(), 80)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">148</span><code data-code-text>    block[&quot;width&quot;] = _choice(raw.get(&quot;width&quot;), WIDTHS, base.get(&quot;width&quot;) or _default_width(block_id))</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">149</span><code data-code-text>    block[&quot;emphasis&quot;] = _choice(raw.get(&quot;emphasis&quot;), EMPHASIS, base.get(&quot;emphasis&quot;) or &quot;medium&quot;)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">150</span><code data-code-text>    block[&quot;density&quot;] = _choice(raw.get(&quot;density&quot;), DENSITIES, base.get(&quot;density&quot;) or &quot;comfortable&quot;)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">151</span><code data-code-text>    block[&quot;font_scale&quot;] = _choice(raw.get(&quot;font_scale&quot;), FONT_SCALES, base.get(&quot;font_scale&quot;) or &quot;normal&quot;)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">152</span><code data-code-text>    data_view_id = str(raw.get(&quot;data_view_id&quot;) or base.get(&quot;data_view_id&quot;) or &quot;&quot;).strip()</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">153</span><code data-code-text>    if data_view_id:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">154</span><code data-code-text>        if data_view_id in data_view_ids:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">155</span><code data-code-text>            block[&quot;data_view_id&quot;] = data_view_id</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">156</span><code data-code-text>        else:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">157</span><code data-code-text>            warnings.append(f&quot;Ignored invalid data_view_id for {block_id}: {data_view_id}&quot;)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">158</span><code data-code-text>    for key, limit in (</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">159</span><code data-code-text>        (&quot;section&quot;, 48),</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">160</span><code data-code-text>        (&quot;description&quot;, 180),</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">161</span><code data-code-text>        (&quot;insight&quot;, 220),</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">162</span><code data-code-text>        (&quot;badge&quot;, 32),</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">163</span><code data-code-text>        (&quot;footnote&quot;, 180),</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">164</span><code data-code-text>    ):</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">165</span><code data-code-text>        value = str(raw.get(key) or &quot;&quot;).strip()</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">166</span><code data-code-text>        if value:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">167</span><code data-code-text>            block[key] = value[:limit]</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">168</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">169</span><code data-code-text>    lines = _normalize_string_list(raw.get(&quot;lines&quot;) or raw.get(&quot;bullets&quot;), 8, 180)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">170</span><code data-code-text>    if lines:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">171</span><code data-code-text>        block[&quot;lines&quot;] = lines</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">172</span><code data-code-text>    items = _normalize_string_list(raw.get(&quot;items&quot;), 8, 180)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">173</span><code data-code-text>    if items:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">174</span><code data-code-text>        block[&quot;items&quot;] = items</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">175</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">176</span><code data-code-text>    style = _dict(base.get(&quot;style&quot;))</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">177</span><code data-code-text>    raw_style = _dict(raw.get(&quot;style&quot;))</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">178</span><code data-code-text>    accent = _safe_color(raw_style.get(&quot;accent_color&quot;) or raw.get(&quot;accent_color&quot;))</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">179</span><code data-code-text>    if accent:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">180</span><code data-code-text>        style[&quot;accent_color&quot;] = accent</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">181</span><code data-code-text>    if style:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">182</span><code data-code-text>        block[&quot;style&quot;] = style</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">183</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">184</span><code data-code-text>    for key in (&quot;x&quot;, &quot;y&quot;, &quot;series&quot;):</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">185</span><code data-code-text>        value = str(raw.get(key) or &quot;&quot;).strip()</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">186</span><code data-code-text>        if value and value in columns:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">187</span><code data-code-text>            block[key] = value</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">188</span><code data-code-text>        elif value:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">189</span><code data-code-text>            # LLM이 존재하지 않는 컬럼명을 만들면 무시하고 warning만 남깁니다.</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">190</span><code data-code-text>            warnings.append(f&quot;Ignored invalid column for {block_id}.{key}: {value}&quot;)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">191</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">192</span><code data-code-text>    raw_columns = _valid_columns(_list(raw.get(&quot;columns&quot;)), columns)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">193</span><code data-code-text>    if raw_columns:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">194</span><code data-code-text>        block[&quot;columns&quot;] = raw_columns[:14]</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">195</span><code data-code-text>    elif &quot;columns&quot; in raw and raw.get(&quot;columns&quot;):</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">196</span><code data-code-text>        warnings.append(f&quot;Ignored invalid columns for {block_id}.columns&quot;)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">197</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">198</span><code data-code-text>    raw_metrics = _normalize_metrics(_list(raw.get(&quot;metrics&quot;)), columns, warnings, block_id)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">199</span><code data-code-text>    if raw_metrics:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">200</span><code data-code-text>        block[&quot;metrics&quot;] = raw_metrics[:4]</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">201</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">202</span><code data-code-text>    raw_sort = _dict(raw.get(&quot;sort&quot;))</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">203</span><code data-code-text>    sort_by = str(raw_sort.get(&quot;by&quot;) or &quot;&quot;).strip()</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">204</span><code data-code-text>    if sort_by in columns:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">205</span><code data-code-text>        block[&quot;sort&quot;] = {&quot;by&quot;: sort_by, &quot;direction&quot;: _choice(raw_sort.get(&quot;direction&quot;), {&quot;asc&quot;, &quot;desc&quot;}, &quot;desc&quot;)}</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">206</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">207</span><code data-code-text>    if raw.get(&quot;limit&quot;) is not None:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">208</span><code data-code-text>        block[&quot;limit&quot;] = min(max(_positive_int(raw.get(&quot;limit&quot;), _positive_int(base.get(&quot;limit&quot;), 10)), 1), 200)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">209</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">210</span><code data-code-text>    chart_policy = _normalize_chart_policy(_dict(raw.get(&quot;chart_policy&quot;)), columns, warnings, block_id)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">211</span><code data-code-text>    if chart_policy:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">212</span><code data-code-text>        block[&quot;chart_policy&quot;] = chart_policy</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">213</span><code data-code-text>        for key in (</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">214</span><code data-code-text>            &quot;x&quot;,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">215</span><code data-code-text>            &quot;y&quot;,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">216</span><code data-code-text>            &quot;series&quot;,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">217</span><code data-code-text>            &quot;limit&quot;,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">218</span><code data-code-text>            &quot;show_values&quot;,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">219</span><code data-code-text>            &quot;show_legend&quot;,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">220</span><code data-code-text>            &quot;show_percent&quot;,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">221</span><code data-code-text>            &quot;normalize&quot;,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">222</span><code data-code-text>            &quot;bin_count&quot;,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">223</span><code data-code-text>            &quot;orientation&quot;,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">224</span><code data-code-text>            &quot;chart_type&quot;,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">225</span><code data-code-text>        ):</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">226</span><code data-code-text>            if key in chart_policy:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">227</span><code data-code-text>                block[key] = chart_policy[key]</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">228</span><code data-code-text>        if chart_policy.get(&quot;metrics&quot;):</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">229</span><code data-code-text>            block[&quot;metrics&quot;] = chart_policy[&quot;metrics&quot;]</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">230</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">231</span><code data-code-text>    table_policy = _normalize_table_policy(_dict(raw.get(&quot;table_policy&quot;)), columns, warnings, block_id)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">232</span><code data-code-text>    if table_policy:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">233</span><code data-code-text>        block[&quot;table_policy&quot;] = table_policy</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">234</span><code data-code-text>        if table_policy.get(&quot;columns&quot;):</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">235</span><code data-code-text>            block[&quot;columns&quot;] = table_policy[&quot;columns&quot;]</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">236</span><code data-code-text>        if table_policy.get(&quot;sort&quot;):</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">237</span><code data-code-text>            block[&quot;sort&quot;] = table_policy[&quot;sort&quot;]</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">238</span><code data-code-text>        if table_policy.get(&quot;limit&quot;) is not None:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">239</span><code data-code-text>            block[&quot;limit&quot;] = table_policy[&quot;limit&quot;]</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">240</span><code data-code-text>        if table_policy.get(&quot;show_row_numbers&quot;) is not None:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">241</span><code data-code-text>            block[&quot;show_row_numbers&quot;] = table_policy[&quot;show_row_numbers&quot;]</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">242</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">243</span><code data-code-text>    raw_filter_rules = raw.get(&quot;filter_rules&quot;)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">244</span><code data-code-text>    if raw_filter_rules is None:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">245</span><code data-code-text>        raw_filter_rules = _dict(raw.get(&quot;table_policy&quot;)).get(&quot;filter_rules&quot;)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">246</span><code data-code-text>    filter_rules = _normalize_filter_rules(_list(raw_filter_rules), columns, warnings, block_id)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">247</span><code data-code-text>    if filter_rules:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">248</span><code data-code-text>        block[&quot;filter_rules&quot;] = filter_rules[:10]</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">249</span><code data-code-text>        block[&quot;filter_logic&quot;] = _choice(raw.get(&quot;filter_logic&quot;) or _dict(raw.get(&quot;table_policy&quot;)).get(&quot;filter_logic&quot;), {&quot;and&quot;, &quot;or&quot;}, &quot;and&quot;)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">250</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">251</span><code data-code-text>    annotations = _normalize_annotations(_list(raw.get(&quot;annotations&quot;)))</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">252</span><code data-code-text>    if annotations:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">253</span><code data-code-text>        block[&quot;annotations&quot;] = annotations[:6]</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">254</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">255</span><code data-code-text>    highlight_rules = _normalize_highlight_rules(_list(raw.get(&quot;highlight_rules&quot;)), columns, warnings, block_id)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">256</span><code data-code-text>    if highlight_rules:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">257</span><code data-code-text>        block[&quot;highlight_rules&quot;] = highlight_rules[:8]</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">258</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">259</span><code data-code-text>    return block</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">260</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">261</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">262</span><code data-code-text>def _normalize_narrative(raw: dict[str, Any], base: dict[str, Any]) -&gt; dict[str, Any]:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">263</span><code data-code-text>    &quot;&quot;&quot;LLM이 작성한 요약/해석/주의사항 문장을 길이 제한 안에서 정리합니다.&quot;&quot;&quot;</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">264</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">265</span><code data-code-text>    result = deepcopy(base)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">266</span><code data-code-text>    summary = str(raw.get(&quot;executive_summary&quot;) or raw.get(&quot;summary&quot;) or &quot;&quot;).strip()</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">267</span><code data-code-text>    if summary:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">268</span><code data-code-text>        result[&quot;executive_summary&quot;] = summary[:320]</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">269</span><code data-code-text>    for key in (&quot;key_findings&quot;, &quot;caveats&quot;, &quot;recommendations&quot;, &quot;data_quality_notes&quot;):</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">270</span><code data-code-text>        values = _normalize_string_list(raw.get(key), 8, 220)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">271</span><code data-code-text>        if values:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">272</span><code data-code-text>            result[key] = values</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">273</span><code data-code-text>    return result</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">274</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">275</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">276</span><code data-code-text>def _normalize_request_interpretation(raw: dict[str, Any]) -&gt; dict[str, Any]:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">277</span><code data-code-text>    &quot;&quot;&quot;Keep the LLM&#x27;s request understanding in a compact, renderer-safe form.&quot;&quot;&quot;</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">278</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">279</span><code data-code-text>    if not raw:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">280</span><code data-code-text>        return {}</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">281</span><code data-code-text>    result: dict[str, Any] = {}</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">282</span><code data-code-text>    for key, limit in (</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">283</span><code data-code-text>        (&quot;user_goal&quot;, 240),</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">284</span><code data-code-text>        (&quot;data_focus&quot;, 200),</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">285</span><code data-code-text>        (&quot;layout_intent&quot;, 240),</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">286</span><code data-code-text>        (&quot;style_intent&quot;, 200),</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">287</span><code data-code-text>    ):</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">288</span><code data-code-text>        value = str(raw.get(key) or &quot;&quot;).strip()</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">289</span><code data-code-text>        if value:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">290</span><code data-code-text>            result[key] = value[:limit]</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">291</span><code data-code-text>    for key in (&quot;requested_visuals&quot;, &quot;requested_blocks&quot;, &quot;requested_order&quot;, &quot;requested_columns&quot;, &quot;data_binding_plan&quot;):</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">292</span><code data-code-text>        values = _normalize_string_list(raw.get(key), 12, 80)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">293</span><code data-code-text>        if values:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">294</span><code data-code-text>            result[key] = values</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">295</span><code data-code-text>    value_conditions = []</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">296</span><code data-code-text>    for item in _list(raw.get(&quot;requested_value_conditions&quot;)):</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">297</span><code data-code-text>        if isinstance(item, dict):</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">298</span><code data-code-text>            column = str(item.get(&quot;column&quot;) or &quot;&quot;).strip()</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">299</span><code data-code-text>            operator = str(item.get(&quot;operator&quot;) or &quot;&quot;).strip()</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">300</span><code data-code-text>            value = item.get(&quot;value&quot;)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">301</span><code data-code-text>            purpose = str(item.get(&quot;purpose&quot;) or &quot;&quot;).strip()</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">302</span><code data-code-text>            compact = {key: val for key, val in {&quot;column&quot;: column, &quot;operator&quot;: operator, &quot;value&quot;: value, &quot;purpose&quot;: purpose}.items() if val not in (&quot;&quot;, None, [], {})}</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">303</span><code data-code-text>            if compact:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">304</span><code data-code-text>                value_conditions.append(compact)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">305</span><code data-code-text>        else:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">306</span><code data-code-text>            text = str(item or &quot;&quot;).strip()</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">307</span><code data-code-text>            if text:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">308</span><code data-code-text>                value_conditions.append({&quot;text&quot;: text[:160]})</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">309</span><code data-code-text>        if len(value_conditions) &gt;= 12:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">310</span><code data-code-text>            break</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">311</span><code data-code-text>    if value_conditions:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">312</span><code data-code-text>        result[&quot;requested_value_conditions&quot;] = value_conditions</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">313</span><code data-code-text>    unmet = []</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">314</span><code data-code-text>    for item in _list(raw.get(&quot;unmet_requests&quot;)):</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">315</span><code data-code-text>        if isinstance(item, dict):</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">316</span><code data-code-text>            request = str(item.get(&quot;request&quot;) or item.get(&quot;item&quot;) or item.get(&quot;label&quot;) or &quot;&quot;).strip()</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">317</span><code data-code-text>            reason = str(item.get(&quot;reason&quot;) or item.get(&quot;why&quot;) or item.get(&quot;value&quot;) or &quot;&quot;).strip()</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">318</span><code data-code-text>            text = &quot;: &quot;.join(part for part in (request, reason) if part)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">319</span><code data-code-text>        else:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">320</span><code data-code-text>            text = str(item or &quot;&quot;).strip()</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">321</span><code data-code-text>        if text and text not in unmet:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">322</span><code data-code-text>            unmet.append(text[:220])</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">323</span><code data-code-text>        if len(unmet) &gt;= 8:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">324</span><code data-code-text>            break</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">325</span><code data-code-text>    if unmet:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">326</span><code data-code-text>        result[&quot;unmet_requests&quot;] = unmet</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">327</span><code data-code-text>    try:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">328</span><code data-code-text>        target = int(raw.get(&quot;target_block_count&quot;) or 0)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">329</span><code data-code-text>    except Exception:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">330</span><code data-code-text>        target = 0</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">331</span><code data-code-text>    if target:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">332</span><code data-code-text>        result[&quot;target_block_count&quot;] = max(1, min(target, 12))</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">333</span><code data-code-text>    return result</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">334</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">335</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">336</span><code data-code-text>def _normalize_visual_style(raw: dict[str, Any], base: dict[str, Any]) -&gt; dict[str, Any]:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">337</span><code data-code-text>    &quot;&quot;&quot;density, font_scale, 색상 같은 전체 스타일 설정을 검증합니다.&quot;&quot;&quot;</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">338</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">339</span><code data-code-text>    result = deepcopy(base)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">340</span><code data-code-text>    result[&quot;density&quot;] = _choice(raw.get(&quot;density&quot;), DENSITIES, base.get(&quot;density&quot;) or &quot;comfortable&quot;)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">341</span><code data-code-text>    result[&quot;font_scale&quot;] = _choice(raw.get(&quot;font_scale&quot;), FONT_SCALES, base.get(&quot;font_scale&quot;) or &quot;normal&quot;)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">342</span><code data-code-text>    result[&quot;max_width&quot;] = _choice(raw.get(&quot;max_width&quot;), {&quot;normal&quot;, &quot;wide&quot;}, base.get(&quot;max_width&quot;) or &quot;normal&quot;)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">343</span><code data-code-text>    accent = _safe_color(raw.get(&quot;accent_color&quot;) or base.get(&quot;accent_color&quot;))</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">344</span><code data-code-text>    secondary = _safe_color(raw.get(&quot;secondary_color&quot;) or base.get(&quot;secondary_color&quot;))</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">345</span><code data-code-text>    if accent:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">346</span><code data-code-text>        result[&quot;accent_color&quot;] = accent</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">347</span><code data-code-text>    if secondary:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">348</span><code data-code-text>        result[&quot;secondary_color&quot;] = secondary</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">349</span><code data-code-text>    return result</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">350</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">351</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">352</span><code data-code-text>def _normalize_dataset_strategy(raw: dict[str, Any], base: dict[str, Any], data_view_ids: set[str], warnings: list[str]) -&gt; dict[str, Any]:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">353</span><code data-code-text>    &quot;&quot;&quot;LLM이 적은 dataset/data view 사용 계획을 안전하게 보존합니다.&quot;&quot;&quot;</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">354</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">355</span><code data-code-text>    result = deepcopy(base)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">356</span><code data-code-text>    active = str(raw.get(&quot;active_data_view_id&quot;) or raw.get(&quot;data_view_id&quot;) or base.get(&quot;active_data_view_id&quot;) or &quot;&quot;).strip()</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">357</span><code data-code-text>    if active:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">358</span><code data-code-text>        if active in data_view_ids:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">359</span><code data-code-text>            result[&quot;active_data_view_id&quot;] = active</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">360</span><code data-code-text>        else:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">361</span><code data-code-text>            warnings.append(f&quot;Ignored invalid dataset_strategy active_data_view_id: {active}&quot;)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">362</span><code data-code-text>    mode = str(raw.get(&quot;mode&quot;) or raw.get(&quot;strategy&quot;) or base.get(&quot;mode&quot;) or &quot;&quot;).strip().lower()</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">363</span><code data-code-text>    if mode in {&quot;select&quot;, &quot;join&quot;, &quot;union&quot;, &quot;separate_sections&quot;}:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">364</span><code data-code-text>        result[&quot;mode&quot;] = mode</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">365</span><code data-code-text>    for key in (&quot;source_dataset_ids&quot;, &quot;join_keys&quot;):</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">366</span><code data-code-text>        values = _normalize_string_list(raw.get(key), 12, 80)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">367</span><code data-code-text>        if values:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">368</span><code data-code-text>            result[key] = values</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">369</span><code data-code-text>    return result</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">370</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">371</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">372</span><code data-code-text>def _normalize_chart_policy(policy: dict[str, Any], columns: set[str], warnings: list[str], block_id: str) -&gt; dict[str, Any]:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">373</span><code data-code-text>    &quot;&quot;&quot;차트 설정을 검증합니다.</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">374</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">375</span><code data-code-text>    chart_type, orientation, x/y/series, limit 같은 값만 통과시키고,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">376</span><code data-code-text>    컬럼명이 실제 데이터에 없으면 해당 값은 버립니다.</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">377</span><code data-code-text>    &quot;&quot;&quot;</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">378</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">379</span><code data-code-text>    result: dict[str, Any] = {}</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">380</span><code data-code-text>    for key in (&quot;x&quot;, &quot;y&quot;, &quot;series&quot;):</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">381</span><code data-code-text>        value = str(policy.get(key) or &quot;&quot;).strip()</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">382</span><code data-code-text>        if value and value in columns:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">383</span><code data-code-text>            result[key] = value</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">384</span><code data-code-text>        elif value:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">385</span><code data-code-text>            warnings.append(f&quot;Ignored invalid chart_policy column for {block_id}.{key}: {value}&quot;)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">386</span><code data-code-text>    if policy.get(&quot;limit&quot;) is not None:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">387</span><code data-code-text>        result[&quot;limit&quot;] = min(max(_positive_int(policy.get(&quot;limit&quot;), 10), 1), 100)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">388</span><code data-code-text>    if policy.get(&quot;bin_count&quot;) is not None:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">389</span><code data-code-text>        result[&quot;bin_count&quot;] = min(max(_positive_int(policy.get(&quot;bin_count&quot;), 8), 3), 20)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">390</span><code data-code-text>    chart_type = _choice(policy.get(&quot;chart_type&quot;), CHART_TYPES, &quot;&quot;)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">391</span><code data-code-text>    if chart_type:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">392</span><code data-code-text>        result[&quot;chart_type&quot;] = chart_type</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">393</span><code data-code-text>    orientation = _choice(policy.get(&quot;orientation&quot;), ORIENTATIONS, &quot;&quot;)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">394</span><code data-code-text>    if orientation:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">395</span><code data-code-text>        result[&quot;orientation&quot;] = orientation</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">396</span><code data-code-text>    if policy.get(&quot;show_values&quot;) is not None:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">397</span><code data-code-text>        result[&quot;show_values&quot;] = _bool(policy.get(&quot;show_values&quot;))</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">398</span><code data-code-text>    if policy.get(&quot;show_legend&quot;) is not None:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">399</span><code data-code-text>        result[&quot;show_legend&quot;] = _bool(policy.get(&quot;show_legend&quot;))</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">400</span><code data-code-text>    if policy.get(&quot;show_percent&quot;) is not None:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">401</span><code data-code-text>        result[&quot;show_percent&quot;] = _bool(policy.get(&quot;show_percent&quot;))</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">402</span><code data-code-text>    if policy.get(&quot;normalize&quot;) is not None:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">403</span><code data-code-text>        result[&quot;normalize&quot;] = _bool(policy.get(&quot;normalize&quot;))</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">404</span><code data-code-text>    metrics = _normalize_metrics(_list(policy.get(&quot;metrics&quot;)), columns, warnings, block_id)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">405</span><code data-code-text>    if metrics:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">406</span><code data-code-text>        result[&quot;metrics&quot;] = metrics[:4]</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">407</span><code data-code-text>    return result</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">408</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">409</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">410</span><code data-code-text>def _normalize_table_policy(policy: dict[str, Any], columns: set[str], warnings: list[str], block_id: str) -&gt; dict[str, Any]:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">411</span><code data-code-text>    &quot;&quot;&quot;표 설정을 검증합니다. 컬럼 목록, 정렬 컬럼, row 수 제한을 안전한 값으로 보정합니다.&quot;&quot;&quot;</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">412</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">413</span><code data-code-text>    result: dict[str, Any] = {}</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">414</span><code data-code-text>    valid_columns = _valid_columns(_list(policy.get(&quot;columns&quot;)), columns)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">415</span><code data-code-text>    if valid_columns:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">416</span><code data-code-text>        result[&quot;columns&quot;] = valid_columns[:14]</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">417</span><code data-code-text>    elif policy.get(&quot;columns&quot;):</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">418</span><code data-code-text>        warnings.append(f&quot;Ignored invalid table_policy columns for {block_id}&quot;)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">419</span><code data-code-text>    sort_by = str(policy.get(&quot;sort_by&quot;) or _dict(policy.get(&quot;sort&quot;)).get(&quot;by&quot;) or &quot;&quot;).strip()</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">420</span><code data-code-text>    if sort_by:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">421</span><code data-code-text>        if sort_by in columns:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">422</span><code data-code-text>            result[&quot;sort&quot;] = {</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">423</span><code data-code-text>                &quot;by&quot;: sort_by,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">424</span><code data-code-text>                &quot;direction&quot;: _choice(policy.get(&quot;sort_direction&quot;) or _dict(policy.get(&quot;sort&quot;)).get(&quot;direction&quot;), {&quot;asc&quot;, &quot;desc&quot;}, &quot;desc&quot;),</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">425</span><code data-code-text>            }</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">426</span><code data-code-text>        else:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">427</span><code data-code-text>            warnings.append(f&quot;Ignored invalid table_policy sort column for {block_id}: {sort_by}&quot;)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">428</span><code data-code-text>    if policy.get(&quot;limit&quot;) is not None:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">429</span><code data-code-text>        result[&quot;limit&quot;] = min(max(_positive_int(policy.get(&quot;limit&quot;), 50), 1), 200)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">430</span><code data-code-text>    if policy.get(&quot;show_row_numbers&quot;) is not None:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">431</span><code data-code-text>        result[&quot;show_row_numbers&quot;] = _bool(policy.get(&quot;show_row_numbers&quot;))</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">432</span><code data-code-text>    return result</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">433</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">434</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">435</span><code data-code-text>def _normalize_annotations(values: list[Any]) -&gt; list[dict[str, str]]:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">436</span><code data-code-text>    &quot;&quot;&quot;차트/카드에 표시할 짧은 주석 chip 목록을 정리합니다.&quot;&quot;&quot;</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">437</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">438</span><code data-code-text>    result = []</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">439</span><code data-code-text>    for item in values:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">440</span><code data-code-text>        if isinstance(item, dict):</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">441</span><code data-code-text>            label = _short_text(item.get(&quot;label&quot;), &quot;&quot;, 42)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">442</span><code data-code-text>            value = _short_text(item.get(&quot;value&quot;) or item.get(&quot;text&quot;), &quot;&quot;, 90)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">443</span><code data-code-text>            tone = _choice(item.get(&quot;tone&quot;), TONES, &quot;info&quot;)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">444</span><code data-code-text>        else:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">445</span><code data-code-text>            label = &quot;&quot;</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">446</span><code data-code-text>            value = _short_text(item, &quot;&quot;, 90)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">447</span><code data-code-text>            tone = &quot;info&quot;</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">448</span><code data-code-text>        if label or value:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">449</span><code data-code-text>            result.append({&quot;label&quot;: label, &quot;value&quot;: value, &quot;tone&quot;: tone})</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">450</span><code data-code-text>    return result</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">451</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">452</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">453</span><code data-code-text>def _normalize_highlight_rules(values: list[Any], columns: set[str], warnings: list[str], block_id: str) -&gt; list[dict[str, Any]]:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">454</span><code data-code-text>    &quot;&quot;&quot;테이블 row 강조 규칙을 검증합니다.&quot;&quot;&quot;</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">455</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">456</span><code data-code-text>    result = []</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">457</span><code data-code-text>    for item in values:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">458</span><code data-code-text>        if not isinstance(item, dict):</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">459</span><code data-code-text>            continue</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">460</span><code data-code-text>        column = str(item.get(&quot;column&quot;) or &quot;&quot;).strip()</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">461</span><code data-code-text>        if column not in columns:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">462</span><code data-code-text>            warnings.append(f&quot;Ignored invalid highlight column for {block_id}: {column}&quot;)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">463</span><code data-code-text>            continue</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">464</span><code data-code-text>        result.append(</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">465</span><code data-code-text>            {</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">466</span><code data-code-text>                &quot;column&quot;: column,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">467</span><code data-code-text>                &quot;operator&quot;: _choice(item.get(&quot;operator&quot;), OPERATORS, &quot;eq&quot;),</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">468</span><code data-code-text>                &quot;value&quot;: _normalize_rule_value(item.get(&quot;value&quot;)),</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">469</span><code data-code-text>                &quot;tone&quot;: _choice(item.get(&quot;tone&quot;), TONES, &quot;warning&quot;),</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">470</span><code data-code-text>            }</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">471</span><code data-code-text>        )</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">472</span><code data-code-text>    return result</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">473</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">474</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">475</span><code data-code-text>def _normalize_filter_rules(values: list[Any], columns: set[str], warnings: list[str], block_id: str) -&gt; list[dict[str, Any]]:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">476</span><code data-code-text>    &quot;&quot;&quot;차트/표에 적용할 row 필터 규칙을 검증합니다.&quot;&quot;&quot;</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">477</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">478</span><code data-code-text>    result = []</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">479</span><code data-code-text>    for item in values:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">480</span><code data-code-text>        if not isinstance(item, dict):</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">481</span><code data-code-text>            continue</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">482</span><code data-code-text>        column = str(item.get(&quot;column&quot;) or &quot;&quot;).strip()</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">483</span><code data-code-text>        if column not in columns:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">484</span><code data-code-text>            warnings.append(f&quot;Ignored invalid filter column for {block_id}: {column}&quot;)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">485</span><code data-code-text>            continue</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">486</span><code data-code-text>        result.append(</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">487</span><code data-code-text>            {</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">488</span><code data-code-text>                &quot;column&quot;: column,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">489</span><code data-code-text>                &quot;operator&quot;: _choice(item.get(&quot;operator&quot;), OPERATORS, &quot;eq&quot;),</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">490</span><code data-code-text>                &quot;value&quot;: _normalize_rule_value(item.get(&quot;value&quot;)),</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">491</span><code data-code-text>            }</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">492</span><code data-code-text>        )</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">493</span><code data-code-text>    return result</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">494</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">495</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">496</span><code data-code-text>def _normalize_rule_value(value: Any) -&gt; Any:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">497</span><code data-code-text>    &quot;&quot;&quot;filter/highlight 비교값을 JSON으로 안전하게 보존합니다.&quot;&quot;&quot;</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">498</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">499</span><code data-code-text>    if isinstance(value, list):</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">500</span><code data-code-text>        result = []</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">501</span><code data-code-text>        for item in value[:20]:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">502</span><code data-code-text>            if isinstance(item, (str, int, float, bool)) or item is None:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">503</span><code data-code-text>                result.append(item)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">504</span><code data-code-text>            else:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">505</span><code data-code-text>                result.append(str(item))</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">506</span><code data-code-text>        return result</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">507</span><code data-code-text>    if isinstance(value, (str, int, float, bool)) or value is None:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">508</span><code data-code-text>        return value</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">509</span><code data-code-text>    return str(value)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">510</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">511</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">512</span><code data-code-text>def _mark_plan(plan: dict[str, Any], source: str, warnings: list[str]) -&gt; dict[str, Any]:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">513</span><code data-code-text>    &quot;&quot;&quot;plan에 출처와 경고 메모를 붙입니다.&quot;&quot;&quot;</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">514</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">515</span><code data-code-text>    result = deepcopy(plan)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">516</span><code data-code-text>    result[&quot;plan_source&quot;] = source</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">517</span><code data-code-text>    result[&quot;llm_reasoning_notes&quot;] = warnings[:6]</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">518</span><code data-code-text>    return result</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">519</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">520</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">521</span><code data-code-text>def _allowed_blocks(catalog: dict[str, Any]) -&gt; set[str]:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">522</span><code data-code-text>    &quot;&quot;&quot;카탈로그에서 허용된 block_id 목록을 가져옵니다.&quot;&quot;&quot;</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">523</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">524</span><code data-code-text>    result = {str(item.get(&quot;component_id&quot;)) for item in _list(catalog.get(&quot;components&quot;)) if isinstance(item, dict) and item.get(&quot;component_id&quot;)}</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">525</span><code data-code-text>    return result or {</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">526</span><code data-code-text>        &quot;report_header&quot;,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">527</span><code data-code-text>        &quot;scope_summary&quot;,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">528</span><code data-code-text>        &quot;warning_box&quot;,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">529</span><code data-code-text>        &quot;empty_state&quot;,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">530</span><code data-code-text>        &quot;kpi_card_grid&quot;,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">531</span><code data-code-text>        &quot;trend_line_chart&quot;,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">532</span><code data-code-text>        &quot;comparison_bar_chart&quot;,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">533</span><code data-code-text>        &quot;ranking_table&quot;,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">534</span><code data-code-text>        &quot;detail_data_table&quot;,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">535</span><code data-code-text>        &quot;insight_bullets&quot;,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">536</span><code data-code-text>        &quot;method_note&quot;,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">537</span><code data-code-text>    }</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">538</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">539</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">540</span><code data-code-text>def _available_columns(payload: dict[str, Any]) -&gt; set[str]:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">541</span><code data-code-text>    &quot;&quot;&quot;데이터 프로파일과 실제 row에서 사용할 수 있는 컬럼명을 모읍니다.&quot;&quot;&quot;</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">542</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">543</span><code data-code-text>    llm_context = _dict(payload.get(&quot;llm_context&quot;))</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">544</span><code data-code-text>    profile = _dict(payload.get(&quot;data_profile&quot;)) or _dict(llm_context.get(&quot;data_profile&quot;))</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">545</span><code data-code-text>    data = _dict(_dict(payload.get(&quot;api_response&quot;)).get(&quot;data&quot;))</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">546</span><code data-code-text>    result = {str(item.get(&quot;name&quot;)) for item in _list(profile.get(&quot;columns&quot;)) if isinstance(item, dict) and item.get(&quot;name&quot;)}</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">547</span><code data-code-text>    result.update(str(item) for item in _list(data.get(&quot;columns&quot;)) if item)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">548</span><code data-code-text>    for view in _list(payload.get(&quot;data_views&quot;)):</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">549</span><code data-code-text>        if isinstance(view, dict):</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">550</span><code data-code-text>            result.update(str(item) for item in _list(view.get(&quot;columns&quot;)) if item)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">551</span><code data-code-text>            for row in _rows(view.get(&quot;rows&quot;))[:20]:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">552</span><code data-code-text>                result.update(str(key) for key in row.keys())</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">553</span><code data-code-text>    for view_profile in _list(profile.get(&quot;data_view_profiles&quot;)):</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">554</span><code data-code-text>        if isinstance(view_profile, dict):</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">555</span><code data-code-text>            for column in _list(view_profile.get(&quot;columns&quot;)):</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">556</span><code data-code-text>                if isinstance(column, dict) and column.get(&quot;name&quot;):</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">557</span><code data-code-text>                    result.add(str(column.get(&quot;name&quot;)))</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">558</span><code data-code-text>    for row in _rows(data.get(&quot;rows&quot;)):</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">559</span><code data-code-text>        result.update(str(key) for key in row.keys())</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">560</span><code data-code-text>    return result</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">561</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">562</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">563</span><code data-code-text>def _available_data_view_ids(payload: dict[str, Any]) -&gt; set[str]:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">564</span><code data-code-text>    &quot;&quot;&quot;payload 안에서 block.data_view_id로 지정 가능한 view id를 모읍니다.&quot;&quot;&quot;</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">565</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">566</span><code data-code-text>    result = set()</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">567</span><code data-code-text>    request = _dict(payload.get(&quot;request&quot;))</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">568</span><code data-code-text>    if request.get(&quot;active_data_view_id&quot;):</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">569</span><code data-code-text>        result.add(str(request.get(&quot;active_data_view_id&quot;)))</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">570</span><code data-code-text>    data = _dict(_dict(payload.get(&quot;api_response&quot;)).get(&quot;data&quot;))</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">571</span><code data-code-text>    if data.get(&quot;data_view_id&quot;):</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">572</span><code data-code-text>        result.add(str(data.get(&quot;data_view_id&quot;)))</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">573</span><code data-code-text>    for view in _list(payload.get(&quot;data_views&quot;)) + _list(payload.get(&quot;available_data_views&quot;)):</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">574</span><code data-code-text>        if isinstance(view, dict) and view.get(&quot;data_view_id&quot;):</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">575</span><code data-code-text>            result.add(str(view.get(&quot;data_view_id&quot;)))</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">576</span><code data-code-text>    return result</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">577</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">578</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">579</span><code data-code-text>def _normalize_metrics(metrics: list[Any], columns: set[str], warnings: list[str], block_id: str) -&gt; list[dict[str, Any]]:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">580</span><code data-code-text>    &quot;&quot;&quot;KPI/차트 metric 설정을 검증합니다.&quot;&quot;&quot;</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">581</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">582</span><code data-code-text>    result = []</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">583</span><code data-code-text>    for item in metrics:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">584</span><code data-code-text>        if not isinstance(item, dict):</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">585</span><code data-code-text>            continue</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">586</span><code data-code-text>        column = str(item.get(&quot;column&quot;) or &quot;&quot;).strip()</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">587</span><code data-code-text>        if column not in columns:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">588</span><code data-code-text>            warnings.append(f&quot;Ignored invalid metric column for {block_id}: {column}&quot;)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">589</span><code data-code-text>            continue</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">590</span><code data-code-text>        result.append(</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">591</span><code data-code-text>            {</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">592</span><code data-code-text>                &quot;label&quot;: _short_text(item.get(&quot;label&quot;), column, 32),</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">593</span><code data-code-text>                &quot;column&quot;: column,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">594</span><code data-code-text>                &quot;aggregation&quot;: _choice(item.get(&quot;aggregation&quot;), AGGREGATIONS, &quot;sum&quot;),</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">595</span><code data-code-text>            }</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">596</span><code data-code-text>        )</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">597</span><code data-code-text>    return result</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">598</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">599</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">600</span><code data-code-text>def _valid_columns(values: list[Any], columns: set[str]) -&gt; list[str]:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">601</span><code data-code-text>    &quot;&quot;&quot;후보 컬럼 목록에서 실제 존재하는 컬럼만 남깁니다.&quot;&quot;&quot;</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">602</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">603</span><code data-code-text>    result = []</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">604</span><code data-code-text>    for value in values:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">605</span><code data-code-text>        text = str(value or &quot;&quot;).strip()</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">606</span><code data-code-text>        if text and text in columns and text not in result:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">607</span><code data-code-text>            result.append(text)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">608</span><code data-code-text>    return result</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">609</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">610</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">611</span><code data-code-text>def _normalize_string_list(value: Any, limit: int, item_limit: int) -&gt; list[str]:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">612</span><code data-code-text>    &quot;&quot;&quot;문자열 또는 문자열 목록을 개수/길이 제한에 맞게 정리합니다.&quot;&quot;&quot;</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">613</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">614</span><code data-code-text>    result = []</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">615</span><code data-code-text>    values = _list(value)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">616</span><code data-code-text>    if isinstance(value, str):</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">617</span><code data-code-text>        values = [value]</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">618</span><code data-code-text>    for item in values:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">619</span><code data-code-text>        if isinstance(item, dict):</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">620</span><code data-code-text>            text = str(item.get(&quot;text&quot;) or item.get(&quot;label&quot;) or item.get(&quot;value&quot;) or &quot;&quot;).strip()</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">621</span><code data-code-text>        else:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">622</span><code data-code-text>            text = str(item or &quot;&quot;).strip()</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">623</span><code data-code-text>        if text and text not in result:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">624</span><code data-code-text>            result.append(text[:item_limit])</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">625</span><code data-code-text>        if len(result) &gt;= limit:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">626</span><code data-code-text>            break</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">627</span><code data-code-text>    return result</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">628</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">629</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">630</span><code data-code-text>def _extract_json_object(text: str) -&gt; dict[str, Any]:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">631</span><code data-code-text>    &quot;&quot;&quot;LLM 응답 텍스트에서 JSON 객체를 찾아 파싱합니다.</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">632</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">633</span><code data-code-text>    LLM이 ```json 코드블록으로 감싸거나 앞뒤 설명을 붙이는 경우도 있어,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">634</span><code data-code-text>    여러 후보 문자열을 순서대로 시도합니다.</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">635</span><code data-code-text>    &quot;&quot;&quot;</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">636</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">637</span><code data-code-text>    raw = str(text or &quot;&quot;).strip()</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">638</span><code data-code-text>    if not raw:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">639</span><code data-code-text>        return {}</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">640</span><code data-code-text>    fenced = re.search(r&quot;```(?:json)?\s*(\{.*?\})\s*```&quot;, raw, flags=re.S | re.I)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">641</span><code data-code-text>    candidates = [fenced.group(1)] if fenced else []</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">642</span><code data-code-text>    candidates.append(raw)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">643</span><code data-code-text>    start = raw.find(&quot;{&quot;)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">644</span><code data-code-text>    end = raw.rfind(&quot;}&quot;)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">645</span><code data-code-text>    if start &gt;= 0 and end &gt; start:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">646</span><code data-code-text>        candidates.append(raw[start : end + 1])</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">647</span><code data-code-text>    for candidate in candidates:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">648</span><code data-code-text>        try:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">649</span><code data-code-text>            parsed = json.loads(candidate)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">650</span><code data-code-text>        except Exception:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">651</span><code data-code-text>            continue</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">652</span><code data-code-text>        if isinstance(parsed, dict):</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">653</span><code data-code-text>            return parsed</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">654</span><code data-code-text>    return {}</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">655</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">656</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">657</span><code data-code-text>def _text(value: Any) -&gt; str:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">658</span><code data-code-text>    &quot;&quot;&quot;Langflow Message/Data/dict 등에서 LLM 응답 텍스트를 꺼냅니다.&quot;&quot;&quot;</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">659</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">660</span><code data-code-text>    if value is None:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">661</span><code data-code-text>        return &quot;&quot;</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">662</span><code data-code-text>    if isinstance(value, str):</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">663</span><code data-code-text>        return value</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">664</span><code data-code-text>    data = getattr(value, &quot;data&quot;, None)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">665</span><code data-code-text>    if isinstance(data, dict):</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">666</span><code data-code-text>        for key in (&quot;llm_text&quot;, &quot;text&quot;, &quot;content&quot;, &quot;response&quot;, &quot;message&quot;):</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">667</span><code data-code-text>            if isinstance(data.get(key), str):</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">668</span><code data-code-text>                return data[key]</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">669</span><code data-code-text>    for attr in (&quot;text&quot;, &quot;content&quot;):</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">670</span><code data-code-text>        text = getattr(value, attr, None)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">671</span><code data-code-text>        if isinstance(text, str):</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">672</span><code data-code-text>            return text</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">673</span><code data-code-text>    if isinstance(value, dict):</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">674</span><code data-code-text>        return json.dumps(value, ensure_ascii=False, default=str)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">675</span><code data-code-text>    return str(value)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">676</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">677</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">678</span><code data-code-text>def _payload(value: Any) -&gt; dict[str, Any]:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">679</span><code data-code-text>    &quot;&quot;&quot;Langflow Data/Message/dict/JSON 문자열을 일반 dict로 맞춥니다.&quot;&quot;&quot;</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">680</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">681</span><code data-code-text>    if isinstance(value, dict):</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">682</span><code data-code-text>        return deepcopy(value)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">683</span><code data-code-text>    data = getattr(value, &quot;data&quot;, None)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">684</span><code data-code-text>    if isinstance(data, dict):</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">685</span><code data-code-text>        return deepcopy(data)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">686</span><code data-code-text>    text = getattr(value, &quot;text&quot;, None) or getattr(value, &quot;content&quot;, None)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">687</span><code data-code-text>    if isinstance(text, str) and text.strip():</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">688</span><code data-code-text>        try:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">689</span><code data-code-text>            parsed = json.loads(text)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">690</span><code data-code-text>        except Exception:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">691</span><code data-code-text>            return {&quot;text&quot;: text}</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">692</span><code data-code-text>        return deepcopy(parsed) if isinstance(parsed, dict) else {&quot;text&quot;: text}</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">693</span><code data-code-text>    return {}</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">694</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">695</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">696</span><code data-code-text>def _dict(value: Any) -&gt; dict[str, Any]:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">697</span><code data-code-text>    &quot;&quot;&quot;dict면 복사본을, 아니면 빈 dict를 반환합니다.&quot;&quot;&quot;</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">698</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">699</span><code data-code-text>    return deepcopy(value) if isinstance(value, dict) else {}</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">700</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">701</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">702</span><code data-code-text>def _list(value: Any) -&gt; list[Any]:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">703</span><code data-code-text>    &quot;&quot;&quot;list면 복사본을, 아니면 빈 list를 반환합니다.&quot;&quot;&quot;</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">704</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">705</span><code data-code-text>    return deepcopy(value) if isinstance(value, list) else []</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">706</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">707</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">708</span><code data-code-text>def _rows(value: Any) -&gt; list[dict[str, Any]]:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">709</span><code data-code-text>    &quot;&quot;&quot;dict row 목록만 안전하게 복사해서 반환합니다.&quot;&quot;&quot;</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">710</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">711</span><code data-code-text>    return [deepcopy(row) for row in value if isinstance(row, dict)] if isinstance(value, list) else []</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">712</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">713</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">714</span><code data-code-text>def _short_text(value: Any, fallback: Any, limit: int) -&gt; str:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">715</span><code data-code-text>    &quot;&quot;&quot;문자열을 최대 길이로 잘라 UI가 깨지지 않게 합니다.&quot;&quot;&quot;</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">716</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">717</span><code data-code-text>    text = str(value or fallback or &quot;&quot;).strip()</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">718</span><code data-code-text>    return text[:limit]</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">719</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">720</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">721</span><code data-code-text>def _choice(value: Any, allowed: set[str], fallback: Any) -&gt; str:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">722</span><code data-code-text>    &quot;&quot;&quot;허용된 후보 값이면 사용하고, 아니면 fallback을 사용합니다.&quot;&quot;&quot;</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">723</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">724</span><code data-code-text>    text = str(value or &quot;&quot;).strip().lower().replace(&quot;-&quot;, &quot;_&quot;)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">725</span><code data-code-text>    return text if text in allowed else str(fallback or &quot;&quot;).strip().lower().replace(&quot;-&quot;, &quot;_&quot;)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">726</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">727</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">728</span><code data-code-text>def _safe_color(value: Any) -&gt; str:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">729</span><code data-code-text>    &quot;&quot;&quot;`#RRGGBB` 형식의 안전한 색상 값만 통과시킵니다.&quot;&quot;&quot;</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">730</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">731</span><code data-code-text>    text = str(value or &quot;&quot;).strip()</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">732</span><code data-code-text>    return text if re.fullmatch(r&quot;#[0-9a-fA-F]{6}&quot;, text) else &quot;&quot;</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">733</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">734</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">735</span><code data-code-text>def _default_width(block_id: str) -&gt; str:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">736</span><code data-code-text>    &quot;&quot;&quot;block 종류별 기본 너비를 정합니다.&quot;&quot;&quot;</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">737</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">738</span><code data-code-text>    if block_id in {&quot;report_header&quot;, &quot;trend_line_chart&quot;, &quot;grouped_bar_chart&quot;, &quot;stacked_comparison_bar&quot;, &quot;heatmap_matrix&quot;, &quot;detail_data_table&quot;, &quot;ranking_table&quot;, &quot;outlier_exception_table&quot;, &quot;pivot_matrix_table&quot;}:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">739</span><code data-code-text>        return &quot;full&quot;</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">740</span><code data-code-text>    if block_id in {&quot;kpi_card_grid&quot;, &quot;comparison_bar_chart&quot;, &quot;donut_chart&quot;, &quot;distribution_histogram&quot;, &quot;scatter_plot&quot;, &quot;insight_bullets&quot;}:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">741</span><code data-code-text>        return &quot;half&quot;</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">742</span><code data-code-text>    return &quot;full&quot;</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">743</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">744</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">745</span><code data-code-text>def _positive_int(value: Any, default: int) -&gt; int:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">746</span><code data-code-text>    &quot;&quot;&quot;값을 양의 정수로 바꾸고 실패하면 default를 사용합니다.&quot;&quot;&quot;</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">747</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">748</span><code data-code-text>    try:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">749</span><code data-code-text>        parsed = int(value)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">750</span><code data-code-text>    except Exception:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">751</span><code data-code-text>        parsed = default</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">752</span><code data-code-text>    return max(1, parsed)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">753</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">754</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">755</span><code data-code-text>def _bool(value: Any) -&gt; bool:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">756</span><code data-code-text>    &quot;&quot;&quot;문자열/숫자 형태의 boolean 값을 True/False로 해석합니다.&quot;&quot;&quot;</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">757</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">758</span><code data-code-text>    if isinstance(value, bool):</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">759</span><code data-code-text>        return value</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">760</span><code data-code-text>    return str(value or &quot;&quot;).strip().lower() in {&quot;1&quot;, &quot;true&quot;, &quot;yes&quot;, &quot;y&quot;, &quot;on&quot;}</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">761</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">762</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">763</span><code data-code-text>class LlmHtmlPlanNormalizer(Component):</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">764</span><code data-code-text>    &quot;&quot;&quot;Langflow 화면에 표시되는 03b 커스텀 컴포넌트 클래스.&quot;&quot;&quot;</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">765</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">766</span><code data-code-text>    display_name = &quot;03b LLM 계획 검증&quot;</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">767</span><code data-code-text>    description = &quot;LLM이 만든 리포트 계획 JSON을 검증하고 렌더러가 쓸 최종 계획으로 정리합니다.&quot;</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">768</span><code data-code-text>    icon = &quot;ShieldCheck&quot;</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">769</span><code data-code-text>    inputs = [</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">770</span><code data-code-text>        DataInput(name=&quot;base_payload&quot;, display_name=&quot;기본 계획&quot;, required=True),</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">771</span><code data-code-text>        MessageTextInput(name=&quot;llm_response&quot;, display_name=&quot;LLM 응답&quot;, required=True),</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">772</span><code data-code-text>    ]</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">773</span><code data-code-text>    outputs = [Output(name=&quot;payload_out&quot;, display_name=&quot;최종 계획&quot;, method=&quot;build_payload&quot;)]</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">774</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">775</span><code data-code-text>    def build_payload(self) -&gt; Data:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">776</span><code data-code-text>        &quot;&quot;&quot;기본 계획과 LLM 응답을 받아 검증된 최종 계획을 출력합니다.&quot;&quot;&quot;</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">777</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">778</span><code data-code-text>        result = normalize_llm_html_plan(</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">779</span><code data-code-text>            getattr(self, &quot;base_payload&quot;, None),</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">780</span><code data-code-text>            getattr(self, &quot;llm_response&quot;, &quot;&quot;),</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">781</span><code data-code-text>        )</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">782</span><code data-code-text>        plan = result.get(&quot;report_plan&quot;, {})</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">783</span><code data-code-text>        self.status = {</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">784</span><code data-code-text>            &quot;source&quot;: plan.get(&quot;plan_source&quot;),</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">785</span><code data-code-text>            &quot;layout&quot;: plan.get(&quot;layout&quot;),</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">786</span><code data-code-text>            &quot;blocks&quot;: [block.get(&quot;block_id&quot;) for block in plan.get(&quot;blocks&quot;, [])],</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">787</span><code data-code-text>        }</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">788</span><code data-code-text>        return Data(data=result)</code></div></div></div>
+  <footer class="code-status"><span>Python</span><span>Flow internal</span><span data-copy-status aria-live="polite">복사할 때 외부 서버를 호출하지 않습니다.</span></footer>
+</section>
+<div class="page-actions"><button class="back-button" type="button" data-back data-fallback="flows/html_report_flow/nodes/llm_html_plan_normalizer/index.html">← 이전 화면</button><a class="button button-soft" href="flows/html_report_flow/nodes/llm_html_plan_normalizer/index.html#contract">입출력 계약</a><a class="button button-soft" href="flows/html_report_flow/index.html">HTML 보고서 Flow</a></div>
+
+  </main>
+  <footer class="site-footer">
+    <div class="footer-inner">
+      <div><strong>Agent Ground</strong><p>실제 Agent Builder 환경에서 검증된 교육자료, Standalone Component와 Flow를 함께 쌓아갑니다.</p></div>
+      <div class="footer-links"><a href="training/index.html">처음 배우기</a><a href="troubleshooting/index.html">실패와 해결</a><a href="../AGENT_GROUND_PROJECT_MASTER_GUIDE.md">프로젝트 기준</a></div>
+    </div>
+  </footer>
+  <script src="assets/js/site.js"></script>
+  
+</body>
+</html>

@@ -1,4 +1,4 @@
-# Retrieval Quality Gate
+# 05 검색 품질 판정
 
 ACL 적용 여부·검색 점수·문서 지시 신호를 확인하고 근거가 부족하면 LLM 앞에서 답변을 차단합니다.
 
@@ -7,20 +7,22 @@ ACL 적용 여부·검색 점수·문서 지시 신호를 확인하고 근거가
 - ID: `retrieval_quality_gate`
 - 버전: `0.1.0`
 - 상태: `user_testing`
-- Standalone: `true`
+- 패키징: `standalone`
+- Component 범위: `domain`
+- 자격 판정: `qualified_component`
 - 사용 범위: `enterprise_document_rag_flow`
 
 ## 입력
 
 | 화면 이름 | 코드 이름 | 타입 | 목록 | 필수 | 고급 |
 | --- | --- | --- | --- | --- | --- |
-| Retrieval | `retrieval` | `Data, JSON` | False | True | False |
+| 검색 결과 | `retrieval` | `Data, JSON` | False | True | False |
 
 ## 출력
 
 | 화면 이름 | 코드 이름 | 타입 | 실행 method |
 | --- | --- | --- | --- |
-| Gate | `gate` | `Data` | `build_gate` |
+| 품질 판정 결과 | `gate` | `Data` | `build_gate` |
 
 
 

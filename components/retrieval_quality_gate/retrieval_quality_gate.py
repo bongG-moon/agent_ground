@@ -108,15 +108,15 @@ def apply_quality_gate(retrieval_value: Any) -> dict[str, Any]:
 
 
 class RetrievalQualityGate(Component):
-    display_name = "Retrieval Quality Gate"
+    display_name = "05 검색 품질 판정"
     description = "ACL 적용 여부·검색 점수·문서 지시 신호를 확인하고 근거가 부족하면 LLM 앞에서 답변을 차단합니다."
     icon = "ShieldAlert"
     name = "RetrievalQualityGate"
 
-    inputs = [DataInput(name="retrieval", display_name="Retrieval", input_types=["Data", "JSON"], required=True)]
-    outputs = [Output(name="gate", display_name="Gate", method="build_gate", types=["Data"])]
+    inputs = [DataInput(name="retrieval", display_name="검색 결과", input_types=["Data", "JSON"], required=True)]
+    outputs = [Output(name="gate", display_name="품질 판정 결과", method="build_gate", types=["Data"])]
 
     def build_gate(self) -> Data:
         result = apply_quality_gate(getattr(self, "retrieval", None))
-        self.status = "answer allowed" if result["allowed"] else "abstain"
+        self.status = "답변 생성 허용" if result["allowed"] else "근거 부족으로 답변 중단"
         return Data(data=result)

@@ -373,18 +373,18 @@ def retrieve_authorized(request_value: Any, index_value: Any) -> dict[str, Any]:
 
 
 class AclEvidenceRetriever(Component):
-    display_name = "ACL Evidence Retriever"
+    display_name = "04 권한 기반 근거 검색"
     description = "문서 ACL을 먼저 적용한 뒤 허용된 문서만 점수화하며, 의심스러운 문서 지시는 검색 근거에서 제외합니다."
     icon = "ShieldSearch"
     name = "AclEvidenceRetriever"
 
     inputs = [
-        DataInput(name="request", display_name="Request", input_types=["Data", "JSON"], required=True),
-        DataInput(name="document_index", display_name="Document Index", input_types=["Data", "JSON"], required=True),
+        DataInput(name="request", display_name="요청 컨텍스트", input_types=["Data", "JSON"], required=True),
+        DataInput(name="document_index", display_name="문서 색인", input_types=["Data", "JSON"], required=True),
     ]
-    outputs = [Output(name="retrieval", display_name="Retrieval", method="build_retrieval", types=["Data"])]
+    outputs = [Output(name="retrieval", display_name="권한 적용 검색 결과", method="build_retrieval", types=["Data"])]
 
     def build_retrieval(self) -> Data:
         result = retrieve_authorized(getattr(self, "request", None), getattr(self, "document_index", None))
-        self.status = "authorized evidence ready" if result["evidence"] else "no authorized evidence"
+        self.status = "권한이 확인된 근거 준비 완료" if result["evidence"] else "허용된 근거 없음"
         return Data(data=result)

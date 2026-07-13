@@ -1,12 +1,32 @@
 {
   "id": "acl_evidence_retriever",
-  "name_ko": "ACL Evidence Retriever",
+  "name_ko": "04 권한 기반 근거 검색",
   "class_name": "AclEvidenceRetriever",
   "asset_type": "component",
   "status": "user_testing",
   "version": "0.1.0",
+  "packaging": "standalone",
   "standalone": true,
   "reusability": "shared",
+  "component_scope": "domain",
+  "qualification": {
+    "decision": "qualified_component",
+    "criteria": {
+      "independent_input_output": true,
+      "functional_completeness": true,
+      "reusable_unit": true,
+      "payload_coupling": "domain_contract",
+      "validation_or_error_handling": true
+    },
+    "review_rule": "Flow에서 사용된다는 사실만으로 Component 자격을 부여하지 않습니다."
+  },
+  "owner_usage": {
+    "owner": "enterprise_document_rag_flow",
+    "usage": "문서 RAG 도메인에서 독립적으로 재사용하는 기능",
+    "used_by_flows": [
+      "enterprise_document_rag_flow"
+    ]
+  },
   "source_family": "enterprise_document_rag_flow",
   "summary_ko": "문서 ACL을 먼저 적용한 뒤 허용된 문서만 점수화하며, 의심스러운 문서 지시는 검색 근거에서 제외합니다.",
   "source_file": "acl_evidence_retriever.py",
@@ -14,7 +34,7 @@
     {
       "type": "DataInput",
       "name": "request",
-      "display_name": "Request",
+      "display_name": "요청 컨텍스트",
       "input_types": [
         "Data",
         "JSON"
@@ -24,7 +44,7 @@
     {
       "type": "DataInput",
       "name": "document_index",
-      "display_name": "Document Index",
+      "display_name": "문서 색인",
       "input_types": [
         "Data",
         "JSON"
@@ -36,7 +56,7 @@
     {
       "type": "Output",
       "name": "retrieval",
-      "display_name": "Retrieval",
+      "display_name": "권한 적용 검색 결과",
       "method": "build_retrieval",
       "types": [
         "Data"

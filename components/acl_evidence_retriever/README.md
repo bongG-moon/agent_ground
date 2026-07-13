@@ -1,4 +1,4 @@
-# ACL Evidence Retriever
+# 04 권한 기반 근거 검색
 
 문서 ACL을 먼저 적용한 뒤 허용된 문서만 점수화하며, 의심스러운 문서 지시는 검색 근거에서 제외합니다.
 
@@ -7,21 +7,23 @@
 - ID: `acl_evidence_retriever`
 - 버전: `0.1.0`
 - 상태: `user_testing`
-- Standalone: `true`
+- 패키징: `standalone`
+- Component 범위: `domain`
+- 자격 판정: `qualified_component`
 - 사용 범위: `enterprise_document_rag_flow`
 
 ## 입력
 
 | 화면 이름 | 코드 이름 | 타입 | 목록 | 필수 | 고급 |
 | --- | --- | --- | --- | --- | --- |
-| Request | `request` | `Data, JSON` | False | True | False |
-| Document Index | `document_index` | `Data, JSON` | False | True | False |
+| 요청 컨텍스트 | `request` | `Data, JSON` | False | True | False |
+| 문서 색인 | `document_index` | `Data, JSON` | False | True | False |
 
 ## 출력
 
 | 화면 이름 | 코드 이름 | 타입 | 실행 method |
 | --- | --- | --- | --- |
-| Retrieval | `retrieval` | `Data` | `build_retrieval` |
+| 권한 적용 검색 결과 | `retrieval` | `Data` | `build_retrieval` |
 
 
 

@@ -6,15 +6,15 @@
 
 - 개별 Flow: [`flow/business_agent_design_complete.json`](flow/business_agent_design_complete.json)
 - Business Bundle: [`flow/00_business_agent_design_ALL_FLOWS.json`](flow/00_business_agent_design_ALL_FLOWS.json)
-- Agent Ground 6개 Flow Bundle: [`../flows/00_AGENT_GROUND_ALL_FLOWS.json`](../flows/00_AGENT_GROUND_ALL_FLOWS.json)
+- Agent Ground 실행 가능 6개 Flow Bundle: [`../flows/00_AGENT_GROUND_ALL_FLOWS.json`](../flows/00_AGENT_GROUND_ALL_FLOWS.json)
 
 개별 Flow를 Import하면 메인 영역과 카탈로그 운영 영역이 한 Canvas에 표시됩니다. 기본 실행 경로는 Report API가 없어도 확인할 수 있도록 `07 사용자 요약 출력 → Chat Output`으로 연결되어 있습니다. `08 HTML 원문 출력`과 `09 공유 링크 발행`은 필요할 때 Chat Output 연결을 바꾸어 사용합니다.
 
 Import 후 두 Agent node의 Model Provider만 실제 환경에 맞게 지정하고, `Text Input`에 업무 설명을 넣어 실행합니다. Mongo URI는 첫 확인에서 비워 두어도 됩니다.
 
-## 1. 컴포넌트 등록
+## 1. 서비스 전용 Custom Python Node 등록
 
-Langflow 커스텀 컴포넌트 경로에 아래 폴더를 추가합니다.
+Langflow 커스텀 컴포넌트 경로에 아래 폴더를 추가합니다. Builder의 등록 방식은 Custom Component이지만, 프로젝트 분류상 이 파일들은 Business Agent Design Flow에 종속된 전용 실행 Node이며 공용 Component Library에는 포함하지 않습니다.
 
 ```text
 C:\Users\<사용자명>\Desktop\Agent_ground\business_agent_design\components

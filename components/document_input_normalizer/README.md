@@ -1,35 +1,37 @@
-# 00 Document Input Normalizer
+# 00 문서 입력 정규화
 
-Normalize Data, Message, text, or JSON into documents with citation and ACL metadata.
+Data, Message, 텍스트 또는 JSON을 인용·접근권한 메타데이터가 포함된 문서 목록으로 정규화합니다.
 
 ## 상태
 
 - ID: `document_input_normalizer`
 - 버전: `0.1.0`
 - 상태: `user_testing`
-- Standalone: `true`
+- 패키징: `standalone`
+- Component 범위: `domain`
+- 자격 판정: `qualified_component`
 - 사용 범위: `enterprise_document_rag_flow`
 
 ## 입력
 
 | 화면 이름 | 코드 이름 | 타입 | 목록 | 필수 | 고급 |
 | --- | --- | --- | --- | --- | --- |
-| Document Input | `document_input` | `Data, Message, Text, JSON` | False | False | False |
-| Use Demo Corpus When Empty | `use_demo_corpus` | `BoolInput` | False | False | False |
-| Default Source Name | `default_source_name` | `MessageTextInput` | False | False | True |
-| Default Tenant ID | `default_tenant_id` | `MessageTextInput` | False | False | True |
-| Default Classification | `default_classification` | `DropdownInput` | False | False | True |
-| Default Allowed Roles | `default_allowed_roles` | `MessageTextInput` | False | False | True |
-| Default Allowed Groups | `default_allowed_groups` | `MessageTextInput` | False | False | True |
-| Page Break Marker | `page_break_marker` | `MessageTextInput` | False | False | True |
-| Max Documents or Pages | `max_documents` | `IntInput` | False | False | True |
-| Max Characters per Document | `max_chars_per_document` | `IntInput` | False | False | True |
+| 문서 입력 | `document_input` | `Data, Message, Text, JSON` | False | False | False |
+| 빈 입력 시 데모 문서 사용 | `use_demo_corpus` | `BoolInput` | False | False | False |
+| 기본 소스 이름 | `default_source_name` | `MessageTextInput` | False | False | True |
+| 기본 테넌트 ID | `default_tenant_id` | `MessageTextInput` | False | False | True |
+| 기본 보안 등급 | `default_classification` | `DropdownInput` | False | False | True |
+| 기본 허용 역할 | `default_allowed_roles` | `MessageTextInput` | False | False | True |
+| 기본 허용 그룹 | `default_allowed_groups` | `MessageTextInput` | False | False | True |
+| 페이지 구분 표식 | `page_break_marker` | `MessageTextInput` | False | False | True |
+| 최대 문서·페이지 수 | `max_documents` | `IntInput` | False | False | True |
+| 문서당 최대 글자 수 | `max_chars_per_document` | `IntInput` | False | False | True |
 
 ## 출력
 
 | 화면 이름 | 코드 이름 | 타입 | 실행 method |
 | --- | --- | --- | --- |
-| Documents | `documents` | `Data` | `build_documents` |
+| 정규화 문서 | `documents` | `Data` | `build_documents` |
 
 
 

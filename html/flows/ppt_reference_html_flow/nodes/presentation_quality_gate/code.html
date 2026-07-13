@@ -1,0 +1,377 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <base href="../../../../" />
+  <title>07 HTML 프레젠테이션 품질 Gate Python 코드 · Agent Ground</title>
+  <meta name="description" content="PPT 참조 이미지 HTML 프레젠테이션 Flow 내부 Node 07 HTML 프레젠테이션 품질 Gate Python 코드 뷰어" />
+  <link rel="stylesheet" href="assets/css/site.css" />
+  
+</head>
+<body>
+  <a class="skip-link" href="#main">본문으로 바로가기</a>
+  <header class="site-header">
+    <div class="header-inner">
+      <a class="brand" href="index.html" aria-label="Agent Ground 홈">
+        <span class="brand-mark" aria-hidden="true">AG</span>
+        <span class="brand-copy"><strong>Agent Ground</strong><small>Learn · Build · Validate</small></span>
+      </a>
+      <button class="menu-button" type="button" data-menu-button aria-expanded="false" aria-controls="site-nav" aria-label="메뉴 열기"><span class="menu-lines"></span></button>
+      <nav class="site-nav" id="site-nav" data-site-nav data-open="false" aria-label="주요 메뉴"><a href="index.html">홈</a><a href="training/index.html">처음 배우기</a><a href="flows/index.html" aria-current="page">Flows</a><a href="components/index.html">Components</a><a href="troubleshooting/index.html">실패와 해결</a><a href="business-agent-design/index.html">업무 Agent 설계</a></nav>
+    </div>
+  </header>
+  <main class="page-wrap" id="main">
+    <nav class="breadcrumbs" aria-label="현재 위치"><a href="index.html">홈</a><span aria-hidden="true">/</span><a href="flows/index.html">Flows</a><span aria-hidden="true">/</span><a href="flows/ppt_reference_html_flow/index.html">PPT 참조 이미지 HTML 프레젠테이션 Flow</a><span aria-hidden="true">/</span><a href="flows/ppt_reference_html_flow/nodes/presentation_quality_gate/index.html">07 HTML 프레젠테이션 품질 Gate</a><span aria-hidden="true">/</span><span>Python 코드</span></nav>
+    
+<section class="code-page-intro"><div><p class="eyebrow">Flow internal Python source</p><h1>07 HTML 프레젠테이션 품질 Gate</h1><p><code>presentation_quality_gate.py</code> 원문을 포털 안에서 확인합니다. 이 코드는 Component Library가 아니라 <strong>PPT 참조 이미지 HTML 프레젠테이션 Flow</strong>의 내부 구현입니다.</p></div><div class="code-page-actions"><a class="button button-soft" href="flows/ppt_reference_html_flow/nodes/presentation_quality_gate/index.html">내부 Node 설명으로 돌아가기</a></div></section>
+<section class="code-workspace" aria-label="Python 코드 뷰어">
+  <header class="code-toolbar"><div class="code-window-dots" aria-hidden="true"><span></span><span></span><span></span></div><div class="code-file-meta"><strong>presentation_quality_gate.py</strong><span>333줄 · 15.0KB · UTF-8</span></div><button class="code-copy-button" type="button" data-copy-code>코드 복사</button></header>
+  <div class="code-editor-scroll" tabindex="0" aria-label="가로와 세로로 스크롤할 수 있는 Python 코드"><div class="code-lines" data-code-source><div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">1</span><code data-code-text>from __future__ import annotations</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">2</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">3</span><code data-code-text>&quot;&quot;&quot;발표 계획과 생성 HTML의 구조·접근성·보안·밀도 위험을 검사한다.&quot;&quot;&quot;</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">4</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">5</span><code data-code-text>import json</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">6</span><code data-code-text>import re</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">7</span><code data-code-text>from copy import deepcopy</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">8</span><code data-code-text>from html.parser import HTMLParser</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">9</span><code data-code-text>from typing import Any</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">10</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">11</span><code data-code-text>from lfx.custom.custom_component.component import Component</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">12</span><code data-code-text>from lfx.io import BoolInput, DataInput, IntInput, Output</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">13</span><code data-code-text>from lfx.schema.data import Data</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">14</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">15</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">16</span><code data-code-text>_EXTERNAL_URL_RE = re.compile(r&quot;(?:https?:)?//|\b(?:javascript|vbscript|file):&quot;, re.I)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">17</span><code data-code-text>_CSS_EXTERNAL_RE = re.compile(r&quot;(?:@import|url\s*\(\s*[&#x27;\&quot;]?(?:https?:)?//)&quot;, re.I)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">18</span><code data-code-text>_DYNAMIC_NETWORK_RE = re.compile(r&quot;\b(?:fetch|XMLHttpRequest|WebSocket|EventSource)\s*\(&quot;, re.I)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">19</span><code data-code-text>_PROHIBITED_TAGS = {&quot;iframe&quot;, &quot;object&quot;, &quot;embed&quot;, &quot;form&quot;, &quot;base&quot;}</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">20</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">21</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">22</span><code data-code-text>def _make_data(payload: dict[str, Any]) -&gt; Data:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">23</span><code data-code-text>    try:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">24</span><code data-code-text>        return Data(data=payload)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">25</span><code data-code-text>    except TypeError:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">26</span><code data-code-text>        return Data(payload)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">27</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">28</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">29</span><code data-code-text>def _payload(value: Any) -&gt; dict[str, Any]:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">30</span><code data-code-text>    if isinstance(value, dict):</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">31</span><code data-code-text>        return deepcopy(value)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">32</span><code data-code-text>    data = getattr(value, &quot;data&quot;, None)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">33</span><code data-code-text>    if isinstance(data, dict):</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">34</span><code data-code-text>        return deepcopy(data)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">35</span><code data-code-text>    text = getattr(value, &quot;text&quot;, None) or getattr(value, &quot;content&quot;, None)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">36</span><code data-code-text>    if isinstance(text, str) and text.strip():</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">37</span><code data-code-text>        try:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">38</span><code data-code-text>            parsed = json.loads(text)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">39</span><code data-code-text>            return deepcopy(parsed) if isinstance(parsed, dict) else {}</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">40</span><code data-code-text>        except Exception:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">41</span><code data-code-text>            return {}</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">42</span><code data-code-text>    return {}</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">43</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">44</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">45</span><code data-code-text>def _plan(value: Any) -&gt; tuple[dict[str, Any], dict[str, Any]]:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">46</span><code data-code-text>    payload = _payload(value)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">47</span><code data-code-text>    plan = payload.get(&quot;presentation_plan&quot;)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">48</span><code data-code-text>    if not isinstance(plan, dict):</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">49</span><code data-code-text>        plan = payload.get(&quot;plan&quot;) if isinstance(payload.get(&quot;plan&quot;), dict) else payload</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">50</span><code data-code-text>    return deepcopy(plan), payload</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">51</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">52</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">53</span><code data-code-text>def _html(value: Any) -&gt; tuple[str, bool]:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">54</span><code data-code-text>    payload = _payload(value)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">55</span><code data-code-text>    for key in (&quot;presentation_artifact&quot;, &quot;html_presentation&quot;, &quot;html_report&quot;, &quot;presentation&quot;, &quot;artifact&quot;):</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">56</span><code data-code-text>        container = payload.get(key)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">57</span><code data-code-text>        if isinstance(container, dict) and isinstance(container.get(&quot;html&quot;), str):</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">58</span><code data-code-text>            return container[&quot;html&quot;], True</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">59</span><code data-code-text>    if isinstance(payload.get(&quot;html&quot;), str):</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">60</span><code data-code-text>        return payload[&quot;html&quot;], True</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">61</span><code data-code-text>    return &quot;&quot;, bool(payload)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">62</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">63</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">64</span><code data-code-text>class _PresentationHTMLInspector(HTMLParser):</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">65</span><code data-code-text>    def __init__(self) -&gt; None:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">66</span><code data-code-text>        super().__init__(convert_charrefs=True)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">67</span><code data-code-text>        self.tags: dict[str, int] = {}</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">68</span><code data-code-text>        self.prohibited_tags: list[str] = []</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">69</span><code data-code-text>        self.external_urls: list[str] = []</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">70</span><code data-code-text>        self.event_attributes: list[str] = []</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">71</span><code data-code-text>        self.images = 0</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">72</span><code data-code-text>        self.images_without_alt = 0</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">73</span><code data-code-text>        self.tables = 0</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">74</span><code data-code-text>        self.tables_without_header = 0</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">75</span><code data-code-text>        self.slide_sections = 0</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">76</span><code data-code-text>        self.html_lang = &quot;&quot;</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">77</span><code data-code-text>        self.has_title = False</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">78</span><code data-code-text>        self.has_main = False</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">79</span><code data-code-text>        self.external_script_or_link = False</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">80</span><code data-code-text>        self._table_has_th: list[bool] = []</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">81</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">82</span><code data-code-text>    def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -&gt; None:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">83</span><code data-code-text>        tag = tag.lower()</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">84</span><code data-code-text>        self.tags[tag] = self.tags.get(tag, 0) + 1</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">85</span><code data-code-text>        attributes = {str(key).lower(): str(value or &quot;&quot;) for key, value in attrs}</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">86</span><code data-code-text>        if tag in _PROHIBITED_TAGS:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">87</span><code data-code-text>            self.prohibited_tags.append(tag)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">88</span><code data-code-text>        if tag == &quot;html&quot;:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">89</span><code data-code-text>            self.html_lang = attributes.get(&quot;lang&quot;, &quot;&quot;).strip()</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">90</span><code data-code-text>        if tag == &quot;title&quot;:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">91</span><code data-code-text>            self.has_title = True</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">92</span><code data-code-text>        if tag == &quot;main&quot;:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">93</span><code data-code-text>            self.has_main = True</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">94</span><code data-code-text>        if tag == &quot;section&quot;:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">95</span><code data-code-text>            classes = set(attributes.get(&quot;class&quot;, &quot;&quot;).split())</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">96</span><code data-code-text>            if &quot;slide&quot; in classes or &quot;presentation-slide&quot; in classes or &quot;data-slide&quot; in attributes:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">97</span><code data-code-text>                self.slide_sections += 1</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">98</span><code data-code-text>        if tag == &quot;img&quot;:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">99</span><code data-code-text>            self.images += 1</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">100</span><code data-code-text>            if not attributes.get(&quot;alt&quot;, &quot;&quot;).strip():</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">101</span><code data-code-text>                self.images_without_alt += 1</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">102</span><code data-code-text>        if tag == &quot;table&quot;:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">103</span><code data-code-text>            self.tables += 1</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">104</span><code data-code-text>            self._table_has_th.append(False)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">105</span><code data-code-text>        if tag == &quot;th&quot; and self._table_has_th:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">106</span><code data-code-text>            self._table_has_th[-1] = True</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">107</span><code data-code-text>        for key, value in attributes.items():</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">108</span><code data-code-text>            if key.startswith(&quot;on&quot;):</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">109</span><code data-code-text>                self.event_attributes.append(key)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">110</span><code data-code-text>            if key in {&quot;href&quot;, &quot;src&quot;, &quot;action&quot;, &quot;poster&quot;, &quot;data&quot;} and value:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">111</span><code data-code-text>                if _EXTERNAL_URL_RE.search(value):</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">112</span><code data-code-text>                    self.external_urls.append(value[:200])</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">113</span><code data-code-text>            if tag == &quot;script&quot; and key == &quot;src&quot; and value:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">114</span><code data-code-text>                self.external_script_or_link = True</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">115</span><code data-code-text>            if tag == &quot;link&quot; and key == &quot;href&quot; and value:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">116</span><code data-code-text>                self.external_script_or_link = True</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">117</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">118</span><code data-code-text>    def handle_endtag(self, tag: str) -&gt; None:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">119</span><code data-code-text>        if tag.lower() == &quot;table&quot; and self._table_has_th:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">120</span><code data-code-text>            if not self._table_has_th.pop():</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">121</span><code data-code-text>                self.tables_without_header += 1</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">122</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">123</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">124</span><code data-code-text>def _check(checks: list[dict[str, Any]], check_id: str, status: str, message: str, slide_no: int = 0) -&gt; None:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">125</span><code data-code-text>    checks.append({&quot;check_id&quot;: check_id, &quot;status&quot;: status, &quot;message&quot;: message, &quot;slide_no&quot;: slide_no})</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">126</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">127</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">128</span><code data-code-text>def _content_length(value: Any) -&gt; int:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">129</span><code data-code-text>    if isinstance(value, list):</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">130</span><code data-code-text>        return sum(len(str(item)) for item in value)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">131</span><code data-code-text>    return len(str(value or &quot;&quot;))</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">132</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">133</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">134</span><code data-code-text>def evaluate_presentation_quality(</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">135</span><code data-code-text>    presentation_plan_value: Any,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">136</span><code data-code-text>    presentation_artifact_value: Any = None,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">137</span><code data-code-text>    *,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">138</span><code data-code-text>    require_html: Any = False,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">139</span><code data-code-text>    max_html_size_kb: Any = 8_000,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">140</span><code data-code-text>) -&gt; dict[str, Any]:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">141</span><code data-code-text>    &quot;&quot;&quot;계획과 선택적 HTML을 검사하고 HTML 원문을 포함하지 않는 보고서를 반환한다.&quot;&quot;&quot;</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">142</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">143</span><code data-code-text>    plan, plan_payload = _plan(presentation_plan_value)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">144</span><code data-code-text>    html_source, artifact_supplied = _html(presentation_artifact_value)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">145</span><code data-code-text>    checks: list[dict[str, Any]] = []</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">146</span><code data-code-text>    blocking: list[str] = []</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">147</span><code data-code-text>    warnings: list[str] = []</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">148</span><code data-code-text>    slides = plan.get(&quot;slides&quot;) if isinstance(plan.get(&quot;slides&quot;), list) else []</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">149</span><code data-code-text>    target = plan.get(&quot;target_slide_count&quot;)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">150</span><code data-code-text>    try:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">151</span><code data-code-text>        target_count = int(target)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">152</span><code data-code-text>    except Exception:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">153</span><code data-code-text>        target_count = len(slides)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">154</span><code data-code-text>    if not slides:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">155</span><code data-code-text>        message = &quot;발표 계획에 표시할 슬라이드가 없습니다.&quot;</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">156</span><code data-code-text>        _check(checks, &quot;plan-slide-count&quot;, &quot;fail&quot;, message)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">157</span><code data-code-text>        blocking.append(message)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">158</span><code data-code-text>    elif len(slides) != target_count:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">159</span><code data-code-text>        message = f&quot;계획 슬라이드 {len(slides)}장과 목표 {target_count}장이 다릅니다.&quot;</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">160</span><code data-code-text>        _check(checks, &quot;plan-slide-count&quot;, &quot;warning&quot;, message)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">161</span><code data-code-text>        warnings.append(message)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">162</span><code data-code-text>    else:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">163</span><code data-code-text>        _check(checks, &quot;plan-slide-count&quot;, &quot;pass&quot;, f&quot;계획 슬라이드 수가 목표 {target_count}장과 일치합니다.&quot;)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">164</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">165</span><code data-code-text>    overflow_count = 0</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">166</span><code data-code-text>    for index, slide in enumerate(slides, 1):</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">167</span><code data-code-text>        if not isinstance(slide, dict):</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">168</span><code data-code-text>            continue</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">169</span><code data-code-text>        risks: list[str] = []</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">170</span><code data-code-text>        if len(str(slide.get(&quot;title&quot;) or &quot;&quot;)) &gt; 80:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">171</span><code data-code-text>            risks.append(&quot;제목 80자 초과&quot;)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">172</span><code data-code-text>        if len(str(slide.get(&quot;subtitle&quot;) or &quot;&quot;)) &gt; 180:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">173</span><code data-code-text>            risks.append(&quot;부제 180자 초과&quot;)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">174</span><code data-code-text>        elements = slide.get(&quot;elements&quot;) if isinstance(slide.get(&quot;elements&quot;), list) else []</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">175</span><code data-code-text>        if len(elements) &gt; 8:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">176</span><code data-code-text>            risks.append(&quot;요소 8개 초과&quot;)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">177</span><code data-code-text>        for element in elements:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">178</span><code data-code-text>            if not isinstance(element, dict):</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">179</span><code data-code-text>                continue</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">180</span><code data-code-text>            element_type = str(element.get(&quot;element_type&quot;) or &quot;&quot;)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">181</span><code data-code-text>            content = element.get(&quot;content&quot;)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">182</span><code data-code-text>            if element_type in {&quot;text&quot;, &quot;speaker_note&quot;} and _content_length(content) &gt; 500:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">183</span><code data-code-text>                risks.append(&quot;본문 500자 초과&quot;)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">184</span><code data-code-text>            if element_type == &quot;bullet_list&quot; and isinstance(content, list) and len(content) &gt; 8:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">185</span><code data-code-text>                risks.append(&quot;글머리 8개 초과&quot;)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">186</span><code data-code-text>            rows = element.get(&quot;rows&quot;)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">187</span><code data-code-text>            if element_type == &quot;table&quot; and isinstance(rows, list) and len(rows) &gt; 12:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">188</span><code data-code-text>                risks.append(&quot;표 12행 초과&quot;)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">189</span><code data-code-text>        if risks:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">190</span><code data-code-text>            overflow_count += 1</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">191</span><code data-code-text>            message = f&quot;슬라이드 {index} 오버플로 위험: {&#x27;, &#x27;.join(dict.fromkeys(risks))}&quot;</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">192</span><code data-code-text>            _check(checks, &quot;overflow-risk&quot;, &quot;warning&quot;, message, index)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">193</span><code data-code-text>            warnings.append(message)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">194</span><code data-code-text>    if not overflow_count:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">195</span><code data-code-text>        _check(checks, &quot;overflow-risk&quot;, &quot;pass&quot;, &quot;계획에서 뚜렷한 텍스트·요소 과밀 위험을 찾지 못했습니다.&quot;)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">196</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">197</span><code data-code-text>    try:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">198</span><code data-code-text>        max_bytes = max(100, min(100_000, int(max_html_size_kb))) * 1024</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">199</span><code data-code-text>    except Exception:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">200</span><code data-code-text>        max_bytes = 8_000 * 1024</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">201</span><code data-code-text>    require = bool(require_html)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">202</span><code data-code-text>    inspector = _PresentationHTMLInspector()</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">203</span><code data-code-text>    if not html_source:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">204</span><code data-code-text>        if require or artifact_supplied:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">205</span><code data-code-text>            message = &quot;검사할 HTML 원문이 없습니다.&quot;</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">206</span><code data-code-text>            _check(checks, &quot;html-present&quot;, &quot;fail&quot;, message)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">207</span><code data-code-text>            blocking.append(message)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">208</span><code data-code-text>        else:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">209</span><code data-code-text>            message = &quot;HTML 생성 전 계획만 검사했습니다. Renderer 이후 다시 검사하세요.&quot;</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">210</span><code data-code-text>            _check(checks, &quot;html-present&quot;, &quot;warning&quot;, message)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">211</span><code data-code-text>            warnings.append(message)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">212</span><code data-code-text>    else:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">213</span><code data-code-text>        encoded_size = len(html_source.encode(&quot;utf-8&quot;))</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">214</span><code data-code-text>        if encoded_size &gt; max_bytes:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">215</span><code data-code-text>            message = f&quot;HTML 크기가 제한({max_bytes // 1024}KB)을 초과했습니다.&quot;</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">216</span><code data-code-text>            _check(checks, &quot;html-size&quot;, &quot;fail&quot;, message)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">217</span><code data-code-text>            blocking.append(message)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">218</span><code data-code-text>        else:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">219</span><code data-code-text>            _check(checks, &quot;html-size&quot;, &quot;pass&quot;, &quot;HTML 크기가 허용 범위입니다.&quot;)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">220</span><code data-code-text>        try:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">221</span><code data-code-text>            inspector.feed(html_source)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">222</span><code data-code-text>        except Exception as exc:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">223</span><code data-code-text>            message = f&quot;HTML 구조를 분석할 수 없습니다: {str(exc)[:300]}&quot;</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">224</span><code data-code-text>            _check(checks, &quot;html-parse&quot;, &quot;fail&quot;, message)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">225</span><code data-code-text>            blocking.append(message)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">226</span><code data-code-text>        if inspector.prohibited_tags:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">227</span><code data-code-text>            message = f&quot;금지된 HTML 태그가 있습니다: {&#x27;, &#x27;.join(sorted(set(inspector.prohibited_tags)))}&quot;</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">228</span><code data-code-text>            _check(checks, &quot;prohibited-tags&quot;, &quot;fail&quot;, message)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">229</span><code data-code-text>            blocking.append(message)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">230</span><code data-code-text>        else:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">231</span><code data-code-text>            _check(checks, &quot;prohibited-tags&quot;, &quot;pass&quot;, &quot;iframe, object, embed, form 등 금지 태그가 없습니다.&quot;)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">232</span><code data-code-text>        external_found = bool(inspector.external_urls or inspector.external_script_or_link or _CSS_EXTERNAL_RE.search(html_source))</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">233</span><code data-code-text>        if external_found:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">234</span><code data-code-text>            message = &quot;HTML에서 외부 URL 또는 외부 리소스 참조를 찾았습니다.&quot;</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">235</span><code data-code-text>            _check(checks, &quot;external-resources&quot;, &quot;fail&quot;, message)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">236</span><code data-code-text>            blocking.append(message)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">237</span><code data-code-text>        else:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">238</span><code data-code-text>            _check(checks, &quot;external-resources&quot;, &quot;pass&quot;, &quot;HTML이 외부 URL이나 외부 리소스를 참조하지 않습니다.&quot;)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">239</span><code data-code-text>        if inspector.event_attributes or _DYNAMIC_NETWORK_RE.search(html_source):</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">240</span><code data-code-text>            message = &quot;인라인 이벤트 속성 또는 동적 네트워크 호출 코드를 찾았습니다.&quot;</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">241</span><code data-code-text>            _check(checks, &quot;active-content&quot;, &quot;fail&quot;, message)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">242</span><code data-code-text>            blocking.append(message)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">243</span><code data-code-text>        else:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">244</span><code data-code-text>            _check(checks, &quot;active-content&quot;, &quot;pass&quot;, &quot;인라인 이벤트 속성과 동적 네트워크 호출이 없습니다.&quot;)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">245</span><code data-code-text>        accessibility_missing: list[str] = []</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">246</span><code data-code-text>        if not inspector.html_lang:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">247</span><code data-code-text>            accessibility_missing.append(&quot;html lang&quot;)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">248</span><code data-code-text>        if not inspector.has_title:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">249</span><code data-code-text>            accessibility_missing.append(&quot;title&quot;)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">250</span><code data-code-text>        if not inspector.has_main:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">251</span><code data-code-text>            accessibility_missing.append(&quot;main&quot;)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">252</span><code data-code-text>        if inspector.images_without_alt:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">253</span><code data-code-text>            accessibility_missing.append(f&quot;alt 없는 이미지 {inspector.images_without_alt}개&quot;)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">254</span><code data-code-text>        if inspector.tables_without_header:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">255</span><code data-code-text>            accessibility_missing.append(f&quot;th 없는 표 {inspector.tables_without_header}개&quot;)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">256</span><code data-code-text>        if accessibility_missing:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">257</span><code data-code-text>            message = f&quot;접근성 보완 필요: {&#x27;, &#x27;.join(accessibility_missing)}&quot;</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">258</span><code data-code-text>            _check(checks, &quot;accessibility&quot;, &quot;warning&quot;, message)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">259</span><code data-code-text>            warnings.append(message)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">260</span><code data-code-text>        else:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">261</span><code data-code-text>            _check(checks, &quot;accessibility&quot;, &quot;pass&quot;, &quot;기본 문서 구조, 이미지 대체 텍스트와 표 머리글을 확인했습니다.&quot;)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">262</span><code data-code-text>        if inspector.slide_sections and inspector.slide_sections != len(slides):</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">263</span><code data-code-text>            message = f&quot;HTML 슬라이드 {inspector.slide_sections}개와 계획 슬라이드 {len(slides)}개가 다릅니다.&quot;</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">264</span><code data-code-text>            _check(checks, &quot;rendered-slide-count&quot;, &quot;fail&quot;, message)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">265</span><code data-code-text>            blocking.append(message)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">266</span><code data-code-text>        elif not inspector.slide_sections:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">267</span><code data-code-text>            message = &quot;HTML에서 class=&#x27;slide&#x27;인 section을 찾지 못했습니다.&quot;</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">268</span><code data-code-text>            _check(checks, &quot;rendered-slide-count&quot;, &quot;warning&quot;, message)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">269</span><code data-code-text>            warnings.append(message)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">270</span><code data-code-text>        else:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">271</span><code data-code-text>            _check(checks, &quot;rendered-slide-count&quot;, &quot;pass&quot;, &quot;HTML과 계획의 슬라이드 수가 일치합니다.&quot;)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">272</span><code data-code-text>        if re.search(r&quot;overflow\s*:\s*(?:auto|scroll)&quot;, html_source, re.I):</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">273</span><code data-code-text>            message = &quot;슬라이드 CSS에 auto/scroll overflow가 있어 내용 잘림 또는 내부 스크롤을 확인해야 합니다.&quot;</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">274</span><code data-code-text>            _check(checks, &quot;css-overflow&quot;, &quot;warning&quot;, message)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">275</span><code data-code-text>            warnings.append(message)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">276</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">277</span><code data-code-text>    status = &quot;fail&quot; if blocking else (&quot;warning&quot; if warnings else &quot;pass&quot;)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">278</span><code data-code-text>    report = {</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">279</span><code data-code-text>        &quot;status&quot;: status,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">280</span><code data-code-text>        &quot;checks&quot;: checks,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">281</span><code data-code-text>        &quot;blocking_errors&quot;: blocking,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">282</span><code data-code-text>        &quot;warnings&quot;: warnings,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">283</span><code data-code-text>        &quot;metrics&quot;: {</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">284</span><code data-code-text>            &quot;planned_slide_count&quot;: len(slides),</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">285</span><code data-code-text>            &quot;target_slide_count&quot;: target_count,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">286</span><code data-code-text>            &quot;rendered_slide_count&quot;: inspector.slide_sections if html_source else 0,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">287</span><code data-code-text>            &quot;html_bytes&quot;: len(html_source.encode(&quot;utf-8&quot;)) if html_source else 0,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">288</span><code data-code-text>            &quot;overflow_risk_slide_count&quot;: overflow_count,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">289</span><code data-code-text>        },</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">290</span><code data-code-text>    }</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">291</span><code data-code-text>    result = {</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">292</span><code data-code-text>        &quot;payload_version&quot;: &quot;ppt-reference-html-v1&quot;,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">293</span><code data-code-text>        &quot;quality_report&quot;: report,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">294</span><code data-code-text>        &quot;presentation_plan&quot;: plan,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">295</span><code data-code-text>        &quot;warnings&quot;: warnings,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">296</span><code data-code-text>        &quot;errors&quot;: [{&quot;code&quot;: &quot;quality_gate_failed&quot;, &quot;message&quot;: item} for item in blocking],</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">297</span><code data-code-text>        &quot;meta&quot;: {&quot;status&quot;: status, **report[&quot;metrics&quot;]},</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">298</span><code data-code-text>    }</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">299</span><code data-code-text>    # 공유 링크 발행 경로는 이 Gate 출력만 받습니다. 실패 시 HTML alias를 넣지 않아</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">300</span><code data-code-text>    # Publisher가 검사 전 원문을 우회 발행할 수 없게 합니다.</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">301</span><code data-code-text>    if status != &quot;fail&quot;:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">302</span><code data-code-text>        artifact_payload = _payload(presentation_artifact_value)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">303</span><code data-code-text>        for key in (&quot;presentation_artifact&quot;, &quot;html_report&quot;):</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">304</span><code data-code-text>            if isinstance(artifact_payload.get(key), dict):</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">305</span><code data-code-text>                result[key] = deepcopy(artifact_payload[key])</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">306</span><code data-code-text>    return result</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">307</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">308</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">309</span><code data-code-text>class PresentationQualityGate(Component):</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">310</span><code data-code-text>    &quot;&quot;&quot;발표 계획과 선택적 HTML 산출물을 검사하는 Flow 전용 Node.&quot;&quot;&quot;</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">311</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">312</span><code data-code-text>    display_name = &quot;07 프레젠테이션 품질 검사&quot;</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">313</span><code data-code-text>    description = &quot;슬라이드 수, 과밀 위험, 접근성, 외부 URL과 위험한 HTML 구조를 검사해 품질 보고서를 반환합니다.&quot;</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">314</span><code data-code-text>    icon = &quot;ShieldCheck&quot;</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">315</span><code data-code-text>    name = &quot;PresentationQualityGate&quot;</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">316</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">317</span><code data-code-text>    inputs = [</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">318</span><code data-code-text>        DataInput(name=&quot;presentation_plan&quot;, display_name=&quot;검증된 발표 계획&quot;, required=True),</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">319</span><code data-code-text>        DataInput(name=&quot;presentation_artifact&quot;, display_name=&quot;HTML 프레젠테이션&quot;, required=False),</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">320</span><code data-code-text>        BoolInput(name=&quot;require_html&quot;, display_name=&quot;HTML 필수 검사&quot;, value=False, advanced=True),</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">321</span><code data-code-text>        IntInput(name=&quot;max_html_size_kb&quot;, display_name=&quot;최대 HTML 크기(KB)&quot;, value=8000, advanced=True),</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">322</span><code data-code-text>    ]</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">323</span><code data-code-text>    outputs = [Output(name=&quot;quality_report&quot;, display_name=&quot;프레젠테이션 품질 보고서&quot;, method=&quot;build_quality_report&quot;, types=[&quot;Data&quot;])]</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">324</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">325</span><code data-code-text>    def build_quality_report(self) -&gt; Data:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">326</span><code data-code-text>        result = evaluate_presentation_quality(</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">327</span><code data-code-text>            getattr(self, &quot;presentation_plan&quot;, None),</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">328</span><code data-code-text>            getattr(self, &quot;presentation_artifact&quot;, None),</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">329</span><code data-code-text>            require_html=getattr(self, &quot;require_html&quot;, False),</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">330</span><code data-code-text>            max_html_size_kb=getattr(self, &quot;max_html_size_kb&quot;, 8000),</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">331</span><code data-code-text>        )</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">332</span><code data-code-text>        self.status = result[&quot;meta&quot;]</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">333</span><code data-code-text>        return _make_data(result)</code></div></div></div>
+  <footer class="code-status"><span>Python</span><span>Flow internal</span><span data-copy-status aria-live="polite">복사할 때 외부 서버를 호출하지 않습니다.</span></footer>
+</section>
+<div class="page-actions"><button class="back-button" type="button" data-back data-fallback="flows/ppt_reference_html_flow/nodes/presentation_quality_gate/index.html">← 이전 화면</button><a class="button button-soft" href="flows/ppt_reference_html_flow/nodes/presentation_quality_gate/index.html#contract">입출력 계약</a><a class="button button-soft" href="flows/ppt_reference_html_flow/index.html">PPT 참조 이미지 HTML 프레젠테이션 Flow</a></div>
+
+  </main>
+  <footer class="site-footer">
+    <div class="footer-inner">
+      <div><strong>Agent Ground</strong><p>실제 Agent Builder 환경에서 검증된 교육자료, Standalone Component와 Flow를 함께 쌓아갑니다.</p></div>
+      <div class="footer-links"><a href="training/index.html">처음 배우기</a><a href="troubleshooting/index.html">실패와 해결</a><a href="../AGENT_GROUND_PROJECT_MASTER_GUIDE.md">프로젝트 기준</a></div>
+    </div>
+  </footer>
+  <script src="assets/js/site.js"></script>
+  
+</body>
+</html>

@@ -1,0 +1,614 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <base href="../../../../" />
+  <title>03 기본 리포트 계획 Python 코드 · Agent Ground</title>
+  <meta name="description" content="HTML 보고서 Flow 내부 Node 03 기본 리포트 계획 Python 코드 뷰어" />
+  <link rel="stylesheet" href="assets/css/site.css" />
+  
+</head>
+<body>
+  <a class="skip-link" href="#main">본문으로 바로가기</a>
+  <header class="site-header">
+    <div class="header-inner">
+      <a class="brand" href="index.html" aria-label="Agent Ground 홈">
+        <span class="brand-mark" aria-hidden="true">AG</span>
+        <span class="brand-copy"><strong>Agent Ground</strong><small>Learn · Build · Validate</small></span>
+      </a>
+      <button class="menu-button" type="button" data-menu-button aria-expanded="false" aria-controls="site-nav" aria-label="메뉴 열기"><span class="menu-lines"></span></button>
+      <nav class="site-nav" id="site-nav" data-site-nav data-open="false" aria-label="주요 메뉴"><a href="index.html">홈</a><a href="training/index.html">처음 배우기</a><a href="flows/index.html" aria-current="page">Flows</a><a href="components/index.html">Components</a><a href="troubleshooting/index.html">실패와 해결</a><a href="business-agent-design/index.html">업무 Agent 설계</a></nav>
+    </div>
+  </header>
+  <main class="page-wrap" id="main">
+    <nav class="breadcrumbs" aria-label="현재 위치"><a href="index.html">홈</a><span aria-hidden="true">/</span><a href="flows/index.html">Flows</a><span aria-hidden="true">/</span><a href="flows/html_report_flow/index.html">HTML 보고서 Flow</a><span aria-hidden="true">/</span><a href="flows/html_report_flow/nodes/auto_html_plan_builder/index.html">03 기본 리포트 계획</a><span aria-hidden="true">/</span><span>Python 코드</span></nav>
+    
+<section class="code-page-intro"><div><p class="eyebrow">Flow internal Python source</p><h1>03 기본 리포트 계획</h1><p><code>auto_html_plan_builder.py</code> 원문을 포털 안에서 확인합니다. 이 코드는 Component Library가 아니라 <strong>HTML 보고서 Flow</strong>의 내부 구현입니다.</p></div><div class="code-page-actions"><a class="button button-soft" href="flows/html_report_flow/nodes/auto_html_plan_builder/index.html">내부 Node 설명으로 돌아가기</a></div></section>
+<section class="code-workspace" aria-label="Python 코드 뷰어">
+  <header class="code-toolbar"><div class="code-window-dots" aria-hidden="true"><span></span><span></span><span></span></div><div class="code-file-meta"><strong>auto_html_plan_builder.py</strong><span>570줄 · 25.0KB · UTF-8</span></div><button class="code-copy-button" type="button" data-copy-code>코드 복사</button></header>
+  <div class="code-editor-scroll" tabindex="0" aria-label="가로와 세로로 스크롤할 수 있는 Python 코드"><div class="code-lines" data-code-source><div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">1</span><code data-code-text>from __future__ import annotations</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">2</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">3</span><code data-code-text>&quot;&quot;&quot;03 기본 리포트 계획 노드.</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">4</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">5</span><code data-code-text>이 파일은 02번에서 추천된 요소를 실제 렌더러가 이해할 수 있는 `report_plan`</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">6</span><code data-code-text>형식으로 바꿉니다. 이 계획은 그대로 HTML 렌더링에 사용할 수도 있고,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">7</span><code data-code-text>03a/03b를 거쳐 LLM이 더 풍부하게 보완한 계획으로 바꿀 수도 있습니다.</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">8</span><code data-code-text>&quot;&quot;&quot;</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">9</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">10</span><code data-code-text>import json</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">11</span><code data-code-text>from copy import deepcopy</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">12</span><code data-code-text>from typing import Any</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">13</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">14</span><code data-code-text>from lfx.custom.custom_component.component import Component</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">15</span><code data-code-text>from lfx.io import DataInput, MessageTextInput, Output</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">16</span><code data-code-text>from lfx.schema.data import Data</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">17</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">18</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">19</span><code data-code-text>def build_auto_html_plan(payload_value: Any, data_profile_value: Any, component_catalog_value: Any, max_blocks: Any = &quot;auto&quot;) -&gt; dict[str, Any]:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">20</span><code data-code-text>    &quot;&quot;&quot;요청 데이터, 데이터 프로파일, 요소 카탈로그를 합쳐 기본 report_plan을 만듭니다.&quot;&quot;&quot;</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">21</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">22</span><code data-code-text>    payload = _payload(payload_value)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">23</span><code data-code-text>    profile = _payload(data_profile_value)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">24</span><code data-code-text>    catalog = _payload(component_catalog_value)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">25</span><code data-code-text>    request = _dict(payload.get(&quot;request&quot;))</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">26</span><code data-code-text>    groups = _dict(profile.get(&quot;column_groups&quot;))</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">27</span><code data-code-text>    shape = _dict(profile.get(&quot;shape&quot;))</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">28</span><code data-code-text>    recommendations = _prioritize_recommendations(</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">29</span><code data-code-text>        _list(catalog.get(&quot;recommended_components&quot;)),</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">30</span><code data-code-text>        _strings(_dict(request.get(&quot;visual_request&quot;)).get(&quot;requested_blocks&quot;)),</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">31</span><code data-code-text>    )</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">32</span><code data-code-text>    max_count, max_count_source = _resolve_max_blocks(max_blocks, request, profile)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">33</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">34</span><code data-code-text>    title = _title(request, profile)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">35</span><code data-code-text>    blocks: list[dict[str, Any]] = []</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">36</span><code data-code-text>    for recommendation in recommendations:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">37</span><code data-code-text>        # 추천된 component_id를 렌더러가 바로 사용할 block dict로 변환합니다.</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">38</span><code data-code-text>        if not isinstance(recommendation, dict):</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">39</span><code data-code-text>            continue</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">40</span><code data-code-text>        block_id = str(recommendation.get(&quot;component_id&quot;) or &quot;&quot;)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">41</span><code data-code-text>        block = _block_from_recommendation(block_id, recommendation, groups, shape)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">42</span><code data-code-text>        if block and not any(existing.get(&quot;block_id&quot;) == block_id for existing in blocks):</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">43</span><code data-code-text>            blocks.append(block)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">44</span><code data-code-text>        if len(blocks) &gt;= max_count:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">45</span><code data-code-text>            break</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">46</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">47</span><code data-code-text>    if not blocks:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">48</span><code data-code-text>        # 추천 결과가 비어도 최소한 제목과 상세표는 나오도록 fallback 계획을 둡니다.</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">49</span><code data-code-text>        blocks = [</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">50</span><code data-code-text>            {&quot;block_id&quot;: &quot;report_header&quot;, &quot;title&quot;: title},</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">51</span><code data-code-text>            {&quot;block_id&quot;: &quot;detail_data_table&quot;, &quot;title&quot;: &quot;상세 데이터&quot;, &quot;columns&quot;: _display_columns(groups, limit=12), &quot;limit&quot;: 50},</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">52</span><code data-code-text>        ]</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">53</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">54</span><code data-code-text>    plan = {</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">55</span><code data-code-text>        &quot;plan_version&quot;: &quot;html-report-plan-v1&quot;,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">56</span><code data-code-text>        &quot;title&quot;: title,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">57</span><code data-code-text>        &quot;subtitle&quot;: str(request.get(&quot;view_request&quot;) or request.get(&quot;question&quot;) or &quot;&quot;),</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">58</span><code data-code-text>        &quot;layout&quot;: _layout(request, profile),</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">59</span><code data-code-text>        &quot;composition&quot;: {</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">60</span><code data-code-text>            &quot;planning_role&quot;: &quot;deterministic_fallback_draft&quot;,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">61</span><code data-code-text>            &quot;target_block_count&quot;: max_count,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">62</span><code data-code-text>            &quot;block_count_source&quot;: max_count_source,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">63</span><code data-code-text>            &quot;visual_request&quot;: _dict(request.get(&quot;visual_request&quot;)),</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">64</span><code data-code-text>            &quot;llm_usage_note&quot;: &quot;LLM should treat this as a safe draft only and prioritize raw question/view_request.&quot;,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">65</span><code data-code-text>        },</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">66</span><code data-code-text>        &quot;dataset_strategy&quot;: _dataset_strategy(payload, profile),</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">67</span><code data-code-text>        &quot;blocks&quot;: blocks,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">68</span><code data-code-text>        &quot;warnings&quot;: _list(profile.get(&quot;warnings&quot;)),</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">69</span><code data-code-text>    }</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">70</span><code data-code-text>    plan = _apply_template_defaults(plan, catalog)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">71</span><code data-code-text>    result = _compact_report_payload(payload, profile)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">72</span><code data-code-text>    result[&quot;report_plan&quot;] = plan</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">73</span><code data-code-text>    # 03a 프롬프트 노드가 너무 큰 payload 전체를 보지 않아도 되도록 LLM용 요약을 따로 넣습니다.</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">74</span><code data-code-text>    result[&quot;llm_context&quot;] = _llm_context(profile, catalog)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">75</span><code data-code-text>    return result</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">76</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">77</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">78</span><code data-code-text>def _apply_template_defaults(plan: dict[str, Any], catalog: dict[str, Any]) -&gt; dict[str, Any]:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">79</span><code data-code-text>    &quot;&quot;&quot;카탈로그 JSON에 들어온 기본 스타일/블록 기본값을 plan에 반영합니다.&quot;&quot;&quot;</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">80</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">81</span><code data-code-text>    defaults = _dict(catalog.get(&quot;template_defaults&quot;))</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">82</span><code data-code-text>    if not defaults:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">83</span><code data-code-text>        return plan</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">84</span><code data-code-text>    result = deepcopy(plan)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">85</span><code data-code-text>    for key in (&quot;audience&quot;, &quot;report_goal&quot;, &quot;layout&quot;):</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">86</span><code data-code-text>        value = defaults.get(key)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">87</span><code data-code-text>        if value and not result.get(key):</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">88</span><code data-code-text>            result[key] = value</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">89</span><code data-code-text>    for key in (&quot;visual_style&quot;, &quot;narrative&quot;):</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">90</span><code data-code-text>        value = _dict(defaults.get(key))</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">91</span><code data-code-text>        if value:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">92</span><code data-code-text>            merged = _dict(result.get(key))</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">93</span><code data-code-text>            merged.update(value)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">94</span><code data-code-text>            result[key] = merged</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">95</span><code data-code-text>    block_defaults = _dict(defaults.get(&quot;block_defaults&quot;) or defaults.get(&quot;blocks&quot;))</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">96</span><code data-code-text>    if block_defaults:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">97</span><code data-code-text>        result[&quot;blocks&quot;] = [_apply_block_default(block, block_defaults) for block in _list(result.get(&quot;blocks&quot;))]</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">98</span><code data-code-text>    return result</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">99</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">100</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">101</span><code data-code-text>def _apply_block_default(block: Any, block_defaults: dict[str, Any]) -&gt; Any:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">102</span><code data-code-text>    &quot;&quot;&quot;특정 block_id에 대한 기본 설정을 하나의 block에 병합합니다.&quot;&quot;&quot;</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">103</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">104</span><code data-code-text>    if not isinstance(block, dict):</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">105</span><code data-code-text>        return block</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">106</span><code data-code-text>    block_id = str(block.get(&quot;block_id&quot;) or &quot;&quot;)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">107</span><code data-code-text>    defaults = _dict(block_defaults.get(block_id))</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">108</span><code data-code-text>    if not defaults:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">109</span><code data-code-text>        return block</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">110</span><code data-code-text>    result = deepcopy(defaults)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">111</span><code data-code-text>    result.update(deepcopy(block))</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">112</span><code data-code-text>    style = _dict(defaults.get(&quot;style&quot;))</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">113</span><code data-code-text>    style.update(_dict(block.get(&quot;style&quot;)))</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">114</span><code data-code-text>    if style:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">115</span><code data-code-text>        result[&quot;style&quot;] = style</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">116</span><code data-code-text>    return result</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">117</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">118</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">119</span><code data-code-text>def _prioritize_recommendations(recommendations: list[Any], preferred_ids: list[str]) -&gt; list[dict[str, Any]]:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">120</span><code data-code-text>    &quot;&quot;&quot;00번 표시 요구에서 직접 요청한 요소를 추천 목록 앞쪽으로 옮깁니다.&quot;&quot;&quot;</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">121</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">122</span><code data-code-text>    pinned_ids = {&quot;report_header&quot;, &quot;scope_summary&quot;}</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">123</span><code data-code-text>    by_id: dict[str, dict[str, Any]] = {}</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">124</span><code data-code-text>    original_order: list[str] = []</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">125</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">126</span><code data-code-text>    for item in recommendations:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">127</span><code data-code-text>        if not isinstance(item, dict):</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">128</span><code data-code-text>            continue</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">129</span><code data-code-text>        component_id = str(item.get(&quot;component_id&quot;) or &quot;&quot;).strip()</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">130</span><code data-code-text>        if not component_id:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">131</span><code data-code-text>            continue</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">132</span><code data-code-text>        if component_id not in by_id:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">133</span><code data-code-text>            by_id[component_id] = item</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">134</span><code data-code-text>            original_order.append(component_id)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">135</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">136</span><code data-code-text>    result: list[dict[str, Any]] = []</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">137</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">138</span><code data-code-text>    def append_component(component_id: str) -&gt; None:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">139</span><code data-code-text>        if not component_id or any(existing.get(&quot;component_id&quot;) == component_id for existing in result):</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">140</span><code data-code-text>            return</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">141</span><code data-code-text>        result.append(deepcopy(by_id.get(component_id) or {&quot;component_id&quot;: component_id}))</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">142</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">143</span><code data-code-text>    for component_id in original_order:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">144</span><code data-code-text>        if component_id in pinned_ids:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">145</span><code data-code-text>            append_component(component_id)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">146</span><code data-code-text>    for component_id in preferred_ids:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">147</span><code data-code-text>        if component_id not in pinned_ids:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">148</span><code data-code-text>            append_component(component_id)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">149</span><code data-code-text>    for component_id in original_order:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">150</span><code data-code-text>        append_component(component_id)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">151</span><code data-code-text>    return result</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">152</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">153</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">154</span><code data-code-text>def _block_from_recommendation(block_id: str, recommendation: dict[str, Any], groups: dict[str, Any], shape: dict[str, Any]) -&gt; dict[str, Any]:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">155</span><code data-code-text>    &quot;&quot;&quot;추천 컴포넌트를 렌더러용 block 설정으로 변환합니다.</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">156</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">157</span><code data-code-text>    예를 들어 `comparison_bar_chart` 추천은 x/y 컬럼, limit, chart_policy를 가진</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">158</span><code data-code-text>    block dict로 바뀝니다. 필요한 컬럼이 부족하면 빈 dict를 반환해 건너뜁니다.</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">159</span><code data-code-text>    &quot;&quot;&quot;</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">160</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">161</span><code data-code-text>    bindings = _dict(recommendation.get(&quot;suggested_bindings&quot;))</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">162</span><code data-code-text>    numeric = _strings(groups.get(&quot;numeric_columns&quot;))</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">163</span><code data-code-text>    dims = _strings(groups.get(&quot;dimension_columns&quot;))</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">164</span><code data-code-text>    times = _strings(groups.get(&quot;time_columns&quot;))</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">165</span><code data-code-text>    texts = _strings(groups.get(&quot;text_columns&quot;))</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">166</span><code data-code-text>    columns = _display_columns(groups, limit=12)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">167</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">168</span><code data-code-text>    if block_id == &quot;report_header&quot;:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">169</span><code data-code-text>        return {&quot;block_id&quot;: block_id, &quot;title&quot;: &quot;리포트 개요&quot;}</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">170</span><code data-code-text>    if block_id == &quot;scope_summary&quot;:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">171</span><code data-code-text>        return {&quot;block_id&quot;: block_id, &quot;title&quot;: &quot;데이터 범위&quot;}</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">172</span><code data-code-text>    if block_id == &quot;warning_box&quot;:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">173</span><code data-code-text>        return {&quot;block_id&quot;: block_id, &quot;title&quot;: &quot;확인 필요 사항&quot;}</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">174</span><code data-code-text>    if block_id == &quot;empty_state&quot;:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">175</span><code data-code-text>        return {&quot;block_id&quot;: block_id, &quot;title&quot;: &quot;조회 결과 없음&quot;}</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">176</span><code data-code-text>    if block_id == &quot;kpi_card_grid&quot;:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">177</span><code data-code-text>        metrics = _list(bindings.get(&quot;metrics&quot;))</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">178</span><code data-code-text>        if not metrics:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">179</span><code data-code-text>            metrics = [{&quot;label&quot;: column, &quot;column&quot;: column, &quot;aggregation&quot;: &quot;sum&quot;} for column in numeric[:4]]</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">180</span><code data-code-text>        return {&quot;block_id&quot;: block_id, &quot;title&quot;: &quot;주요 지표&quot;, &quot;metrics&quot;: metrics[:4]}</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">181</span><code data-code-text>    if block_id == &quot;metric_delta_card_grid&quot;:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">182</span><code data-code-text>        metrics = _list(bindings.get(&quot;metrics&quot;)) or [{&quot;label&quot;: column, &quot;column&quot;: column, &quot;aggregation&quot;: &quot;avg&quot;} for column in numeric[:4]]</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">183</span><code data-code-text>        return {&quot;block_id&quot;: block_id, &quot;title&quot;: &quot;증감 지표&quot;, &quot;metrics&quot;: metrics[:4]}</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">184</span><code data-code-text>    if block_id == &quot;trend_line_chart&quot; and times and numeric:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">185</span><code data-code-text>        return {&quot;block_id&quot;: block_id, &quot;title&quot;: &quot;시간에 따른 변화&quot;, &quot;x&quot;: str(bindings.get(&quot;x&quot;) or times[0]), &quot;y&quot;: str(bindings.get(&quot;y&quot;) or numeric[0])}</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">186</span><code data-code-text>    if block_id == &quot;period_comparison_table&quot;:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">187</span><code data-code-text>        return {&quot;block_id&quot;: block_id, &quot;title&quot;: &quot;기간별 상세 비교&quot;, &quot;columns&quot;: _unique([*times[:1], *dims[:3], *numeric[:4], *texts[:2]])}</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">188</span><code data-code-text>    if block_id == &quot;comparison_bar_chart&quot; and dims and numeric:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">189</span><code data-code-text>        return {</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">190</span><code data-code-text>            &quot;block_id&quot;: block_id,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">191</span><code data-code-text>            &quot;title&quot;: &quot;그룹별 비교&quot;,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">192</span><code data-code-text>            &quot;x&quot;: str(bindings.get(&quot;x&quot;) or dims[0]),</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">193</span><code data-code-text>            &quot;y&quot;: str(bindings.get(&quot;y&quot;) or numeric[0]),</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">194</span><code data-code-text>            &quot;limit&quot;: _positive_int(bindings.get(&quot;limit&quot;), 10),</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">195</span><code data-code-text>            &quot;chart_policy&quot;: {&quot;orientation&quot;: &quot;horizontal&quot;, &quot;show_values&quot;: True, &quot;limit&quot;: _positive_int(bindings.get(&quot;limit&quot;), 10)},</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">196</span><code data-code-text>        }</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">197</span><code data-code-text>    if block_id == &quot;donut_chart&quot; and dims and numeric:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">198</span><code data-code-text>        return {</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">199</span><code data-code-text>            &quot;block_id&quot;: block_id,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">200</span><code data-code-text>            &quot;title&quot;: &quot;구성비&quot;,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">201</span><code data-code-text>            &quot;x&quot;: str(bindings.get(&quot;x&quot;) or dims[0]),</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">202</span><code data-code-text>            &quot;y&quot;: str(bindings.get(&quot;y&quot;) or numeric[0]),</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">203</span><code data-code-text>            &quot;limit&quot;: _positive_int(bindings.get(&quot;limit&quot;), 8),</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">204</span><code data-code-text>            &quot;width&quot;: &quot;half&quot;,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">205</span><code data-code-text>            &quot;chart_policy&quot;: {&quot;show_percent&quot;: True, &quot;show_legend&quot;: True, &quot;limit&quot;: _positive_int(bindings.get(&quot;limit&quot;), 8)},</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">206</span><code data-code-text>        }</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">207</span><code data-code-text>    if block_id == &quot;grouped_bar_chart&quot; and dims and len(numeric) &gt;= 2:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">208</span><code data-code-text>        metrics = _list(bindings.get(&quot;metrics&quot;)) or [{&quot;label&quot;: column, &quot;column&quot;: column, &quot;aggregation&quot;: &quot;sum&quot;} for column in numeric[:3]]</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">209</span><code data-code-text>        return {</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">210</span><code data-code-text>            &quot;block_id&quot;: block_id,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">211</span><code data-code-text>            &quot;title&quot;: &quot;복수 지표 비교&quot;,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">212</span><code data-code-text>            &quot;x&quot;: str(bindings.get(&quot;x&quot;) or dims[0]),</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">213</span><code data-code-text>            &quot;metrics&quot;: metrics[:3],</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">214</span><code data-code-text>            &quot;limit&quot;: _positive_int(bindings.get(&quot;limit&quot;), 8),</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">215</span><code data-code-text>            &quot;width&quot;: &quot;full&quot;,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">216</span><code data-code-text>            &quot;chart_policy&quot;: {&quot;show_values&quot;: True, &quot;limit&quot;: _positive_int(bindings.get(&quot;limit&quot;), 8)},</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">217</span><code data-code-text>        }</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">218</span><code data-code-text>    if block_id == &quot;stacked_comparison_bar&quot; and len(dims) &gt;= 2 and numeric:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">219</span><code data-code-text>        return {</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">220</span><code data-code-text>            &quot;block_id&quot;: block_id,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">221</span><code data-code-text>            &quot;title&quot;: &quot;구성 비교&quot;,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">222</span><code data-code-text>            &quot;x&quot;: str(bindings.get(&quot;x&quot;) or dims[0]),</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">223</span><code data-code-text>            &quot;series&quot;: str(bindings.get(&quot;series&quot;) or dims[1]),</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">224</span><code data-code-text>            &quot;y&quot;: str(bindings.get(&quot;y&quot;) or numeric[0]),</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">225</span><code data-code-text>            &quot;limit&quot;: _positive_int(bindings.get(&quot;limit&quot;), 8),</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">226</span><code data-code-text>            &quot;chart_policy&quot;: {&quot;show_legend&quot;: True, &quot;limit&quot;: _positive_int(bindings.get(&quot;limit&quot;), 8)},</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">227</span><code data-code-text>        }</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">228</span><code data-code-text>    if block_id == &quot;ranking_table&quot; and numeric:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">229</span><code data-code-text>        sort = _dict(bindings.get(&quot;sort&quot;)) or {&quot;by&quot;: numeric[0], &quot;direction&quot;: &quot;desc&quot;}</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">230</span><code data-code-text>        return {</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">231</span><code data-code-text>            &quot;block_id&quot;: block_id,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">232</span><code data-code-text>            &quot;title&quot;: &quot;상위 항목&quot;,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">233</span><code data-code-text>            &quot;columns&quot;: _strings(bindings.get(&quot;columns&quot;)) or _unique([*dims[:4], *numeric[:4], *texts[:2]]),</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">234</span><code data-code-text>            &quot;sort&quot;: sort,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">235</span><code data-code-text>            &quot;limit&quot;: _positive_int(bindings.get(&quot;limit&quot;), 10),</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">236</span><code data-code-text>        }</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">237</span><code data-code-text>    if block_id == &quot;detail_data_table&quot;:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">238</span><code data-code-text>        return {&quot;block_id&quot;: block_id, &quot;title&quot;: &quot;상세 데이터&quot;, &quot;columns&quot;: _strings(bindings.get(&quot;columns&quot;)) or columns, &quot;limit&quot;: _positive_int(bindings.get(&quot;limit&quot;), 50)}</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">239</span><code data-code-text>    if block_id == &quot;pivot_matrix_table&quot; and len(dims) &gt;= 2 and numeric:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">240</span><code data-code-text>        return {&quot;block_id&quot;: block_id, &quot;title&quot;: &quot;교차표&quot;, &quot;x&quot;: str(bindings.get(&quot;x&quot;) or dims[0]), &quot;series&quot;: str(bindings.get(&quot;series&quot;) or dims[1]), &quot;y&quot;: str(bindings.get(&quot;y&quot;) or numeric[0])}</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">241</span><code data-code-text>    if block_id == &quot;heatmap_matrix&quot; and len(dims) &gt;= 2 and numeric:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">242</span><code data-code-text>        return {</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">243</span><code data-code-text>            &quot;block_id&quot;: block_id,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">244</span><code data-code-text>            &quot;title&quot;: &quot;교차 히트맵&quot;,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">245</span><code data-code-text>            &quot;x&quot;: str(bindings.get(&quot;x&quot;) or dims[0]),</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">246</span><code data-code-text>            &quot;series&quot;: str(bindings.get(&quot;series&quot;) or dims[1]),</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">247</span><code data-code-text>            &quot;y&quot;: str(bindings.get(&quot;y&quot;) or numeric[0]),</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">248</span><code data-code-text>            &quot;limit&quot;: _positive_int(bindings.get(&quot;limit&quot;), 8),</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">249</span><code data-code-text>            &quot;width&quot;: &quot;full&quot;,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">250</span><code data-code-text>            &quot;chart_policy&quot;: {&quot;show_values&quot;: True, &quot;limit&quot;: _positive_int(bindings.get(&quot;limit&quot;), 8)},</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">251</span><code data-code-text>        }</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">252</span><code data-code-text>    if block_id == &quot;distribution_histogram&quot; and numeric:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">253</span><code data-code-text>        return {</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">254</span><code data-code-text>            &quot;block_id&quot;: block_id,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">255</span><code data-code-text>            &quot;title&quot;: &quot;분포&quot;,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">256</span><code data-code-text>            &quot;x&quot;: str(bindings.get(&quot;x&quot;) or bindings.get(&quot;column&quot;) or numeric[0]),</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">257</span><code data-code-text>            &quot;width&quot;: &quot;half&quot;,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">258</span><code data-code-text>            &quot;chart_policy&quot;: {&quot;bin_count&quot;: _positive_int(bindings.get(&quot;bin_count&quot;), 8), &quot;show_values&quot;: True},</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">259</span><code data-code-text>        }</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">260</span><code data-code-text>    if block_id == &quot;scatter_plot&quot; and len(numeric) &gt;= 2:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">261</span><code data-code-text>        return {</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">262</span><code data-code-text>            &quot;block_id&quot;: block_id,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">263</span><code data-code-text>            &quot;title&quot;: &quot;상관/산포&quot;,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">264</span><code data-code-text>            &quot;x&quot;: str(bindings.get(&quot;x&quot;) or numeric[0]),</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">265</span><code data-code-text>            &quot;y&quot;: str(bindings.get(&quot;y&quot;) or numeric[1]),</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">266</span><code data-code-text>            &quot;limit&quot;: _positive_int(bindings.get(&quot;limit&quot;), 120),</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">267</span><code data-code-text>            &quot;width&quot;: &quot;half&quot;,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">268</span><code data-code-text>        }</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">269</span><code data-code-text>    if block_id == &quot;outlier_exception_table&quot;:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">270</span><code data-code-text>        status_columns = _strings(groups.get(&quot;status_columns&quot;))</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">271</span><code data-code-text>        return {&quot;block_id&quot;: block_id, &quot;title&quot;: &quot;이상/예외 항목&quot;, &quot;columns&quot;: _unique([*status_columns, *dims[:4], *numeric[:4], *texts[:2]]) or columns, &quot;limit&quot;: 50}</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">272</span><code data-code-text>    if block_id == &quot;insight_bullets&quot;:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">273</span><code data-code-text>        return {&quot;block_id&quot;: block_id, &quot;title&quot;: &quot;핵심 해석&quot;}</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">274</span><code data-code-text>    if block_id == &quot;recommendation_list&quot;:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">275</span><code data-code-text>        return {&quot;block_id&quot;: block_id, &quot;title&quot;: &quot;다음 확인 사항&quot;}</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">276</span><code data-code-text>    if block_id == &quot;method_note&quot;:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">277</span><code data-code-text>        return {&quot;block_id&quot;: block_id, &quot;title&quot;: &quot;생성 기준&quot;}</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">278</span><code data-code-text>    return {}</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">279</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">280</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">281</span><code data-code-text>def _resolve_max_blocks(max_blocks: Any, request: dict[str, Any], profile: dict[str, Any]) -&gt; tuple[int, str]:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">282</span><code data-code-text>    &quot;&quot;&quot;수동 블록 수 대신 00번의 표시 요구를 우선 사용해 블록 수 제한을 정합니다.&quot;&quot;&quot;</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">283</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">284</span><code data-code-text>    raw = str(max_blocks or &quot;auto&quot;).strip().lower()</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">285</span><code data-code-text>    if raw not in {&quot;&quot;, &quot;auto&quot;, &quot;\uc790\ub3d9&quot;}:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">286</span><code data-code-text>        return max(3, min(_positive_int(max_blocks, 8), 10)), &quot;manual&quot;</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">287</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">288</span><code data-code-text>    visual_request = _dict(request.get(&quot;visual_request&quot;))</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">289</span><code data-code-text>    try:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">290</span><code data-code-text>        target = int(visual_request.get(&quot;target_block_count&quot;) or 0)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">291</span><code data-code-text>    except Exception:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">292</span><code data-code-text>        target = 0</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">293</span><code data-code-text>    if target:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">294</span><code data-code-text>        return max(3, min(target, 10)), &quot;visual_request&quot;</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">295</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">296</span><code data-code-text>    text = &quot; &quot;.join(</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">297</span><code data-code-text>        str(item or &quot;&quot;)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">298</span><code data-code-text>        for item in (</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">299</span><code data-code-text>            request.get(&quot;question&quot;),</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">300</span><code data-code-text>            request.get(&quot;view_request&quot;),</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">301</span><code data-code-text>            profile.get(&quot;intent_text&quot;),</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">302</span><code data-code-text>        )</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">303</span><code data-code-text>    ).lower()</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">304</span><code data-code-text>    if _contains(text, [&quot;\uac04\ub2e8&quot;, &quot;\uc9e7\uac8c&quot;, &quot;simple&quot;, &quot;brief&quot;]):</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">305</span><code data-code-text>        return 5, &quot;auto_simple&quot;</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">306</span><code data-code-text>    if _contains(text, [&quot;\uc0c1\uc138&quot;, &quot;\ud48d\ubd80&quot;, &quot;detailed&quot;, &quot;full&quot;]):</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">307</span><code data-code-text>        return 10, &quot;auto_detailed&quot;</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">308</span><code data-code-text>    return 8, &quot;auto_default&quot;</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">309</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">310</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">311</span><code data-code-text>def _title(request: dict[str, Any], profile: dict[str, Any]) -&gt; str:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">312</span><code data-code-text>    &quot;&quot;&quot;질문 문장을 바탕으로 기본 리포트 제목을 만듭니다.&quot;&quot;&quot;</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">313</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">314</span><code data-code-text>    question = str(request.get(&quot;question&quot;) or profile.get(&quot;question&quot;) or &quot;&quot;).strip()</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">315</span><code data-code-text>    if &quot;리포트&quot; in question or &quot;보고서&quot; in question:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">316</span><code data-code-text>        return question[:80]</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">317</span><code data-code-text>    if question:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">318</span><code data-code-text>        return f&quot;{question[:60]} 리포트&quot;</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">319</span><code data-code-text>    return &quot;HTML 데이터 리포트&quot;</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">320</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">321</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">322</span><code data-code-text>def _layout(request: dict[str, Any], profile: dict[str, Any]) -&gt; str:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">323</span><code data-code-text>    &quot;&quot;&quot;질문 힌트를 바탕으로 기본 레이아웃 유형을 고릅니다.&quot;&quot;&quot;</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">324</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">325</span><code data-code-text>    hints = _dict(profile.get(&quot;question_hints&quot;))</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">326</span><code data-code-text>    if hints.get(&quot;detail&quot;):</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">327</span><code data-code-text>        return &quot;query_review&quot;</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">328</span><code data-code-text>    if hints.get(&quot;exception&quot;):</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">329</span><code data-code-text>        return &quot;diagnosis&quot;</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">330</span><code data-code-text>    if hints.get(&quot;summary&quot;) or hints.get(&quot;comparison&quot;) or hints.get(&quot;trend&quot;):</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">331</span><code data-code-text>        return &quot;dashboard&quot;</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">332</span><code data-code-text>    return &quot;report&quot;</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">333</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">334</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">335</span><code data-code-text>def _display_columns(groups: dict[str, Any], limit: int) -&gt; list[str]:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">336</span><code data-code-text>    &quot;&quot;&quot;표나 LLM 컨텍스트에 보여줄 대표 컬럼을 고릅니다.&quot;&quot;&quot;</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">337</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">338</span><code data-code-text>    return _unique(</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">339</span><code data-code-text>        [</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">340</span><code data-code-text>            *_strings(groups.get(&quot;time_columns&quot;)),</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">341</span><code data-code-text>            *_strings(groups.get(&quot;dimension_columns&quot;)),</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">342</span><code data-code-text>            *_strings(groups.get(&quot;numeric_columns&quot;)),</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">343</span><code data-code-text>            *_strings(groups.get(&quot;status_columns&quot;)),</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">344</span><code data-code-text>            *_strings(groups.get(&quot;text_columns&quot;)),</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">345</span><code data-code-text>        ]</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">346</span><code data-code-text>    )[:limit]</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">347</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">348</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">349</span><code data-code-text>def _compact_report_payload(payload: dict[str, Any], profile: dict[str, Any]) -&gt; dict[str, Any]:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">350</span><code data-code-text>    &quot;&quot;&quot;뒤 노드에 필요한 최소 payload만 남깁니다.</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">351</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">352</span><code data-code-text>    앞 노드의 중복 정보를 모두 넘기면 Langflow 연결도 복잡하고 LLM 입력도 커지므로,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">353</span><code data-code-text>    요청/데이터/API 응답/요약 정도만 정리해 전달합니다.</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">354</span><code data-code-text>    &quot;&quot;&quot;</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">355</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">356</span><code data-code-text>    shape = _dict(profile.get(&quot;shape&quot;))</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">357</span><code data-code-text>    groups = _dict(profile.get(&quot;column_groups&quot;))</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">358</span><code data-code-text>    api = _dict(payload.get(&quot;api_response&quot;))</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">359</span><code data-code-text>    data = _dict(api.get(&quot;data&quot;)) or _dict(payload.get(&quot;data&quot;))</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">360</span><code data-code-text>    result: dict[str, Any] = {</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">361</span><code data-code-text>        &quot;payload_version&quot;: payload.get(&quot;payload_version&quot;, &quot;html-report-demo-v1&quot;),</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">362</span><code data-code-text>        &quot;flow_type&quot;: payload.get(&quot;flow_type&quot;, &quot;html_report_demo&quot;),</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">363</span><code data-code-text>        &quot;status&quot;: payload.get(&quot;status&quot;, &quot;ok&quot;),</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">364</span><code data-code-text>        &quot;request&quot;: _dict(payload.get(&quot;request&quot;)),</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">365</span><code data-code-text>        &quot;available_datasets&quot;: _list(payload.get(&quot;available_datasets&quot;)),</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">366</span><code data-code-text>        &quot;available_data_views&quot;: _list(payload.get(&quot;available_data_views&quot;)),</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">367</span><code data-code-text>        &quot;data_views&quot;: _list(payload.get(&quot;data_views&quot;)),</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">368</span><code data-code-text>        &quot;relationship_candidates&quot;: _list(payload.get(&quot;relationship_candidates&quot;)),</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">369</span><code data-code-text>        &quot;api_response&quot;: {</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">370</span><code data-code-text>            &quot;status&quot;: api.get(&quot;status&quot;, payload.get(&quot;status&quot;, &quot;ok&quot;)),</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">371</span><code data-code-text>            &quot;response_type&quot;: api.get(&quot;response_type&quot;, &quot;demo_data&quot;),</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">372</span><code data-code-text>            &quot;message&quot;: api.get(&quot;message&quot;, &quot;&quot;),</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">373</span><code data-code-text>            &quot;data&quot;: data,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">374</span><code data-code-text>        },</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">375</span><code data-code-text>        &quot;data_summary&quot;: {</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">376</span><code data-code-text>            &quot;row_count&quot;: shape.get(&quot;row_count&quot;, data.get(&quot;row_count&quot;, 0)),</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">377</span><code data-code-text>            &quot;preview_row_count&quot;: shape.get(&quot;preview_row_count&quot;, len(_list(data.get(&quot;rows&quot;)))),</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">378</span><code data-code-text>            &quot;column_count&quot;: shape.get(&quot;column_count&quot;, len(_list(data.get(&quot;columns&quot;)))),</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">379</span><code data-code-text>            &quot;data_is_preview&quot;: bool(shape.get(&quot;data_is_preview&quot;) or data.get(&quot;data_is_preview&quot;)),</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">380</span><code data-code-text>            &quot;numeric_columns&quot;: _strings(groups.get(&quot;numeric_columns&quot;)),</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">381</span><code data-code-text>            &quot;dimension_columns&quot;: _strings(groups.get(&quot;dimension_columns&quot;)),</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">382</span><code data-code-text>            &quot;time_columns&quot;: _strings(groups.get(&quot;time_columns&quot;)),</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">383</span><code data-code-text>            &quot;status_columns&quot;: _strings(groups.get(&quot;status_columns&quot;)),</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">384</span><code data-code-text>            &quot;active_data_view_id&quot;: shape.get(&quot;active_data_view_id&quot;) or data.get(&quot;data_view_id&quot;) or &quot;&quot;,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">385</span><code data-code-text>            &quot;active_data_view_strategy&quot;: shape.get(&quot;active_data_view_strategy&quot;) or data.get(&quot;strategy&quot;) or &quot;&quot;,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">386</span><code data-code-text>        },</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">387</span><code data-code-text>        &quot;warnings&quot;: _list(payload.get(&quot;warnings&quot;)) or _list(profile.get(&quot;warnings&quot;)),</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">388</span><code data-code-text>        &quot;errors&quot;: _list(payload.get(&quot;errors&quot;)) or _list(profile.get(&quot;errors&quot;)),</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">389</span><code data-code-text>    }</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">390</span><code data-code-text>    return result</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">391</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">392</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">393</span><code data-code-text>def _llm_context(profile: dict[str, Any], catalog: dict[str, Any]) -&gt; dict[str, Any]:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">394</span><code data-code-text>    &quot;&quot;&quot;LLM 프롬프트에 넣기 좋은 크기로 데이터 프로파일과 카탈로그를 요약합니다.&quot;&quot;&quot;</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">395</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">396</span><code data-code-text>    return {</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">397</span><code data-code-text>        &quot;data_profile&quot;: _compact_profile_for_llm(profile),</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">398</span><code data-code-text>        &quot;html_component_catalog&quot;: _compact_catalog_for_llm(catalog),</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">399</span><code data-code-text>    }</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">400</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">401</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">402</span><code data-code-text>def _compact_profile_for_llm(profile: dict[str, Any]) -&gt; dict[str, Any]:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">403</span><code data-code-text>    &quot;&quot;&quot;데이터 프로파일 중 LLM 계획 수립에 필요한 항목만 추립니다.&quot;&quot;&quot;</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">404</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">405</span><code data-code-text>    return {</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">406</span><code data-code-text>        &quot;question&quot;: profile.get(&quot;question&quot;) or &quot;&quot;,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">407</span><code data-code-text>        &quot;shape&quot;: _dict(profile.get(&quot;shape&quot;)),</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">408</span><code data-code-text>        &quot;column_groups&quot;: _dict(profile.get(&quot;column_groups&quot;)),</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">409</span><code data-code-text>        &quot;columns&quot;: [</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">410</span><code data-code-text>            {</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">411</span><code data-code-text>                &quot;name&quot;: item.get(&quot;name&quot;),</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">412</span><code data-code-text>                &quot;inferred_type&quot;: item.get(&quot;inferred_type&quot;),</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">413</span><code data-code-text>                &quot;semantic_hint&quot;: item.get(&quot;semantic_hint&quot;, &quot;&quot;),</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">414</span><code data-code-text>                &quot;sample_values&quot;: _list(item.get(&quot;sample_values&quot;))[:3],</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">415</span><code data-code-text>            }</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">416</span><code data-code-text>            for item in _list(profile.get(&quot;columns&quot;))</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">417</span><code data-code-text>            if isinstance(item, dict)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">418</span><code data-code-text>        ],</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">419</span><code data-code-text>        &quot;question_hints&quot;: _dict(profile.get(&quot;question_hints&quot;)),</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">420</span><code data-code-text>        &quot;report_signals&quot;: _dict(profile.get(&quot;report_signals&quot;)),</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">421</span><code data-code-text>        &quot;available_datasets&quot;: _list(profile.get(&quot;available_datasets&quot;)),</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">422</span><code data-code-text>        &quot;available_data_views&quot;: _list(profile.get(&quot;available_data_views&quot;)),</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">423</span><code data-code-text>        &quot;relationship_candidates&quot;: _list(profile.get(&quot;relationship_candidates&quot;)),</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">424</span><code data-code-text>        &quot;data_view_profiles&quot;: _list(profile.get(&quot;data_view_profiles&quot;)),</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">425</span><code data-code-text>        &quot;warnings&quot;: _list(profile.get(&quot;warnings&quot;)),</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">426</span><code data-code-text>        &quot;errors&quot;: _list(profile.get(&quot;errors&quot;)),</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">427</span><code data-code-text>    }</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">428</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">429</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">430</span><code data-code-text>def _dataset_strategy(payload: dict[str, Any], profile: dict[str, Any]) -&gt; dict[str, Any]:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">431</span><code data-code-text>    &quot;&quot;&quot;현재 active data view가 어떤 방식으로 만들어졌는지 plan에 기록합니다.&quot;&quot;&quot;</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">432</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">433</span><code data-code-text>    data = _dict(_dict(payload.get(&quot;api_response&quot;)).get(&quot;data&quot;))</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">434</span><code data-code-text>    shape = _dict(profile.get(&quot;shape&quot;))</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">435</span><code data-code-text>    active_view_id = str(data.get(&quot;data_view_id&quot;) or shape.get(&quot;active_data_view_id&quot;) or &quot;&quot;)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">436</span><code data-code-text>    strategy = str(data.get(&quot;strategy&quot;) or shape.get(&quot;active_data_view_strategy&quot;) or &quot;select&quot;)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">437</span><code data-code-text>    return {</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">438</span><code data-code-text>        &quot;mode&quot;: strategy,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">439</span><code data-code-text>        &quot;active_data_view_id&quot;: active_view_id,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">440</span><code data-code-text>        &quot;source_dataset_ids&quot;: _strings(data.get(&quot;source_dataset_ids&quot;)),</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">441</span><code data-code-text>        &quot;join_keys&quot;: _strings(data.get(&quot;join_keys&quot;)),</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">442</span><code data-code-text>        &quot;relationship_candidates&quot;: _list(payload.get(&quot;relationship_candidates&quot;))[:6],</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">443</span><code data-code-text>    }</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">444</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">445</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">446</span><code data-code-text>def _compact_catalog_for_llm(catalog: dict[str, Any]) -&gt; dict[str, Any]:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">447</span><code data-code-text>    &quot;&quot;&quot;컴포넌트 카탈로그 중 LLM이 선택/배치에 참고할 정보만 추립니다.&quot;&quot;&quot;</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">448</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">449</span><code data-code-text>    return {</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">450</span><code data-code-text>        &quot;components&quot;: [</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">451</span><code data-code-text>            _compact_dict(</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">452</span><code data-code-text>                {</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">453</span><code data-code-text>                    &quot;component_id&quot;: item.get(&quot;component_id&quot;),</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">454</span><code data-code-text>                    &quot;display_name&quot;: item.get(&quot;display_name&quot;),</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">455</span><code data-code-text>                    &quot;description&quot;: item.get(&quot;description&quot;),</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">456</span><code data-code-text>                    &quot;layout_role&quot;: item.get(&quot;layout_role&quot;),</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">457</span><code data-code-text>                    &quot;data_contract&quot;: _dict(item.get(&quot;data_contract&quot;)),</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">458</span><code data-code-text>                    &quot;template_guidance&quot;: item.get(&quot;template_guidance&quot;) or item.get(&quot;usage_guidance&quot;),</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">459</span><code data-code-text>                    &quot;style_defaults&quot;: _dict(item.get(&quot;style_defaults&quot;)),</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">460</span><code data-code-text>                    &quot;default_spec&quot;: _dict(item.get(&quot;default_spec&quot;)),</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">461</span><code data-code-text>                    &quot;example_spec&quot;: _dict(item.get(&quot;example_spec&quot;)),</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">462</span><code data-code-text>                }</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">463</span><code data-code-text>            )</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">464</span><code data-code-text>            for item in _list(catalog.get(&quot;components&quot;))</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">465</span><code data-code-text>            if isinstance(item, dict)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">466</span><code data-code-text>        ],</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">467</span><code data-code-text>        &quot;recommended_components&quot;: _list(catalog.get(&quot;recommended_components&quot;)),</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">468</span><code data-code-text>        &quot;template_defaults&quot;: _dict(catalog.get(&quot;template_defaults&quot;)),</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">469</span><code data-code-text>        &quot;style_presets&quot;: deepcopy(catalog.get(&quot;style_presets&quot;)) if isinstance(catalog.get(&quot;style_presets&quot;), (dict, list)) else {},</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">470</span><code data-code-text>        &quot;report_presets&quot;: deepcopy(catalog.get(&quot;report_presets&quot;)) if isinstance(catalog.get(&quot;report_presets&quot;), (dict, list)) else {},</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">471</span><code data-code-text>        &quot;catalog_notes&quot;: _list(catalog.get(&quot;catalog_notes&quot;)),</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">472</span><code data-code-text>    }</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">473</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">474</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">475</span><code data-code-text>def _compact_dict(value: dict[str, Any]) -&gt; dict[str, Any]:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">476</span><code data-code-text>    &quot;&quot;&quot;빈 문자열/빈 dict/빈 list/None 값을 제거해 JSON을 작게 만듭니다.&quot;&quot;&quot;</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">477</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">478</span><code data-code-text>    return {key: item for key, item in value.items() if item not in (&quot;&quot;, {}, [], None)}</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">479</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">480</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">481</span><code data-code-text>def _payload(value: Any) -&gt; dict[str, Any]:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">482</span><code data-code-text>    &quot;&quot;&quot;Langflow Data/Message/dict/JSON 문자열을 일반 dict로 맞춥니다.&quot;&quot;&quot;</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">483</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">484</span><code data-code-text>    if isinstance(value, dict):</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">485</span><code data-code-text>        return deepcopy(value)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">486</span><code data-code-text>    data = getattr(value, &quot;data&quot;, None)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">487</span><code data-code-text>    if isinstance(data, dict):</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">488</span><code data-code-text>        return deepcopy(data)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">489</span><code data-code-text>    text = getattr(value, &quot;text&quot;, None) or getattr(value, &quot;content&quot;, None)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">490</span><code data-code-text>    if isinstance(text, str) and text.strip():</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">491</span><code data-code-text>        try:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">492</span><code data-code-text>            parsed = json.loads(text)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">493</span><code data-code-text>        except Exception:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">494</span><code data-code-text>            return {&quot;text&quot;: text}</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">495</span><code data-code-text>        return deepcopy(parsed) if isinstance(parsed, dict) else {&quot;text&quot;: text}</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">496</span><code data-code-text>    return {}</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">497</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">498</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">499</span><code data-code-text>def _dict(value: Any) -&gt; dict[str, Any]:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">500</span><code data-code-text>    &quot;&quot;&quot;dict면 복사본을, 아니면 빈 dict를 반환합니다.&quot;&quot;&quot;</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">501</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">502</span><code data-code-text>    return deepcopy(value) if isinstance(value, dict) else {}</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">503</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">504</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">505</span><code data-code-text>def _list(value: Any) -&gt; list[Any]:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">506</span><code data-code-text>    &quot;&quot;&quot;list면 복사본을, 아니면 빈 list를 반환합니다.&quot;&quot;&quot;</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">507</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">508</span><code data-code-text>    return deepcopy(value) if isinstance(value, list) else []</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">509</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">510</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">511</span><code data-code-text>def _strings(value: Any) -&gt; list[str]:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">512</span><code data-code-text>    &quot;&quot;&quot;문자열 목록을 정리하고 중복을 제거합니다.&quot;&quot;&quot;</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">513</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">514</span><code data-code-text>    if not isinstance(value, list):</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">515</span><code data-code-text>        return []</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">516</span><code data-code-text>    result = []</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">517</span><code data-code-text>    for item in value:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">518</span><code data-code-text>        text = str(item or &quot;&quot;).strip()</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">519</span><code data-code-text>        if text and text not in result:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">520</span><code data-code-text>            result.append(text)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">521</span><code data-code-text>    return result</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">522</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">523</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">524</span><code data-code-text>def _unique(values: list[Any]) -&gt; list[str]:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">525</span><code data-code-text>    &quot;&quot;&quot;값을 문자열로 바꾼 뒤 빈 값과 중복을 제거합니다.&quot;&quot;&quot;</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">526</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">527</span><code data-code-text>    result = []</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">528</span><code data-code-text>    for value in values:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">529</span><code data-code-text>        text = str(value or &quot;&quot;).strip()</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">530</span><code data-code-text>        if text and text not in result:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">531</span><code data-code-text>            result.append(text)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">532</span><code data-code-text>    return result</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">533</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">534</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">535</span><code data-code-text>def _positive_int(value: Any, default: int) -&gt; int:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">536</span><code data-code-text>    &quot;&quot;&quot;값을 양의 정수로 바꾸고 실패하면 default를 사용합니다.&quot;&quot;&quot;</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">537</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">538</span><code data-code-text>    try:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">539</span><code data-code-text>        parsed = int(value)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">540</span><code data-code-text>    except Exception:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">541</span><code data-code-text>        parsed = default</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">542</span><code data-code-text>    return max(1, parsed)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">543</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">544</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">545</span><code data-code-text>class AutoHtmlPlanBuilder(Component):</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">546</span><code data-code-text>    &quot;&quot;&quot;Langflow 화면에 표시되는 03번 커스텀 컴포넌트 클래스.&quot;&quot;&quot;</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">547</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">548</span><code data-code-text>    display_name = &quot;03 기본 리포트 계획&quot;</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">549</span><code data-code-text>    description = &quot;요소 추천 결과를 바탕으로 LLM이 보완할 수 있는 기본 리포트 계획을 만듭니다.&quot;</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">550</span><code data-code-text>    icon = &quot;ListChecks&quot;</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">551</span><code data-code-text>    inputs = [</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">552</span><code data-code-text>        DataInput(name=&quot;payload&quot;, display_name=&quot;요청 데이터&quot;, required=True),</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">553</span><code data-code-text>        DataInput(name=&quot;data_profile&quot;, display_name=&quot;데이터 분석 결과&quot;, required=True),</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">554</span><code data-code-text>        DataInput(name=&quot;html_component_catalog&quot;, display_name=&quot;요소 추천 결과&quot;, required=True),</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">555</span><code data-code-text>        MessageTextInput(name=&quot;max_blocks&quot;, display_name=&quot;블록 수 제한&quot;, value=&quot;auto&quot;, advanced=True),</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">556</span><code data-code-text>    ]</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">557</span><code data-code-text>    outputs = [Output(name=&quot;payload_out&quot;, display_name=&quot;기본 계획&quot;, method=&quot;build_payload&quot;)]</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">558</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">559</span><code data-code-text>    def build_payload(self) -&gt; Data:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">560</span><code data-code-text>        &quot;&quot;&quot;요소 추천 결과를 받아 기본 계획 payload를 출력합니다.&quot;&quot;&quot;</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">561</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">562</span><code data-code-text>        result = build_auto_html_plan(</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">563</span><code data-code-text>            getattr(self, &quot;payload&quot;, None),</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">564</span><code data-code-text>            getattr(self, &quot;data_profile&quot;, None),</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">565</span><code data-code-text>            getattr(self, &quot;html_component_catalog&quot;, None),</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">566</span><code data-code-text>            getattr(self, &quot;max_blocks&quot;, &quot;auto&quot;),</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">567</span><code data-code-text>        )</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">568</span><code data-code-text>        plan = result.get(&quot;report_plan&quot;, {})</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">569</span><code data-code-text>        self.status = {&quot;blocks&quot;: [block.get(&quot;block_id&quot;) for block in plan.get(&quot;blocks&quot;, [])], &quot;layout&quot;: plan.get(&quot;layout&quot;)}</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">570</span><code data-code-text>        return Data(data=result)</code></div></div></div>
+  <footer class="code-status"><span>Python</span><span>Flow internal</span><span data-copy-status aria-live="polite">복사할 때 외부 서버를 호출하지 않습니다.</span></footer>
+</section>
+<div class="page-actions"><button class="back-button" type="button" data-back data-fallback="flows/html_report_flow/nodes/auto_html_plan_builder/index.html">← 이전 화면</button><a class="button button-soft" href="flows/html_report_flow/nodes/auto_html_plan_builder/index.html#contract">입출력 계약</a><a class="button button-soft" href="flows/html_report_flow/index.html">HTML 보고서 Flow</a></div>
+
+  </main>
+  <footer class="site-footer">
+    <div class="footer-inner">
+      <div><strong>Agent Ground</strong><p>실제 Agent Builder 환경에서 검증된 교육자료, Standalone Component와 Flow를 함께 쌓아갑니다.</p></div>
+      <div class="footer-links"><a href="training/index.html">처음 배우기</a><a href="troubleshooting/index.html">실패와 해결</a><a href="../AGENT_GROUND_PROJECT_MASTER_GUIDE.md">프로젝트 기준</a></div>
+    </div>
+  </footer>
+  <script src="assets/js/site.js"></script>
+  
+</body>
+</html>

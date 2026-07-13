@@ -5,8 +5,26 @@
   "asset_type": "component",
   "status": "user_testing",
   "version": "0.1.0",
+  "packaging": "standalone",
   "standalone": true,
   "reusability": "shared",
+  "component_scope": "general",
+  "qualification": {
+    "decision": "qualified_component",
+    "criteria": {
+      "independent_input_output": true,
+      "functional_completeness": true,
+      "reusable_unit": true,
+      "payload_coupling": "low",
+      "validation_or_error_handling": true
+    },
+    "review_rule": "Flow에서 사용된다는 사실만으로 Component 자격을 부여하지 않습니다."
+  },
+  "owner_usage": {
+    "owner": "component_library",
+    "usage": "여러 Flow에서 직접 조합하는 공용 최소 기능",
+    "used_by_flows": []
+  },
   "source_family": "direct_data_access_components",
   "summary_ko": "문서 ID와 인증값으로 GooDocs 문서 한 개를 조회하고 데이터 테이블만 출력합니다. 실제 사내 GooDocs 모듈을 코드의 교체 구역에 넣어야 합니다.",
   "source_file": "goodocs_table_reader.py",

@@ -1,0 +1,4 @@
+interface:
+  display_name: "Langflow 기능 Component"
+  short_description: "Python 자산을 Component와 Flow 내부 노드로 판정·구현합니다."
+  default_prompt: "Use $build-langflow-standalone-component to 이 Python 자산의 Component 자격을 판정하고 구현·검증하세요."

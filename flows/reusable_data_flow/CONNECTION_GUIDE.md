@@ -1,8 +1,8 @@
 # 재사용 데이터 조회 Flow 연결 가이드
 
-## 1. 먼저 등록할 Component
+## 1. 먼저 등록할 Flow 내부 노드
 
-`component_refs.json`에 있는 12개 Component의 `.py` 파일을 각각 Agent Builder에 등록합니다. 모든 파일은 형제 모듈 import가 없는 Standalone 구조입니다.
+`internal_nodes.json`에 있는 12개 `.py` 파일을 각각 Agent Builder에 등록합니다. 모두 형제 모듈 import가 없는 Standalone 구조이지만, 이 Flow의 요청 envelope와 앞뒤 단계에 종속되어 공용 Component로 분류하지 않습니다.
 
 ## 2. 데이터 조회 메인 연결
 

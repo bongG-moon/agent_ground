@@ -48,6 +48,17 @@
     document.querySelector("[data-code-collapsible]")?.scrollIntoView({ behavior: "smooth", block: "center" });
   });
 
+  // 넓은 표는 키보드로도 포커스한 뒤 방향키/스크롤로 확인할 수 있게 합니다.
+  document.querySelectorAll(".table-wrap").forEach((wrapper, index) => {
+    if (!wrapper.hasAttribute("tabindex")) wrapper.tabIndex = 0;
+    if (!wrapper.hasAttribute("role")) wrapper.setAttribute("role", "region");
+    if (!wrapper.hasAttribute("aria-label")) {
+      const firstHeader = wrapper.querySelector("th")?.textContent?.trim();
+      const label = firstHeader ? `표 ${index + 1}: ${firstHeader}` : `표 ${index + 1}`;
+      wrapper.setAttribute("aria-label", `${label}. 좌우로 스크롤하면 전체 열을 확인할 수 있습니다.`);
+    }
+  });
+
   document.querySelectorAll("[data-check]").forEach((checkbox) => {
     const key = `langflow-training-check-${checkbox.dataset.check}`;
     checkbox.checked = localStorage.getItem(key) === "true";

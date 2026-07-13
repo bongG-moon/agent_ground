@@ -1,0 +1,4 @@
+interface:
+  display_name: "Agent Ground 포털"
+  short_description: "Component와 내부 노드를 구분해 포털과 교육 화면을 관리합니다."
+  default_prompt: "Use $maintain-agent-ground-portal to Component와 Flow 내부 노드가 구분되는 포털을 갱신·검증하세요."

@@ -7,7 +7,9 @@
 - ID: `multi_image_base64_encoder`
 - 버전: `0.1.0`
 - 상태: `user_testing`
-- Standalone: `true`
+- 패키징: `standalone`
+- Component 범위: `general`
+- 자격 판정: `qualified_component`
 - 사용 범위: `사내 공용 독립 Component (특정 Flow 미지정)`
 
 ## 입력

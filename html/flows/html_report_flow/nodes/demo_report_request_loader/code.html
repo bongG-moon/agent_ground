@@ -1,0 +1,794 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <base href="../../../../" />
+  <title>00 리포트 요청/데이터 불러오기 Python 코드 · Agent Ground</title>
+  <meta name="description" content="HTML 보고서 Flow 내부 Node 00 리포트 요청/데이터 불러오기 Python 코드 뷰어" />
+  <link rel="stylesheet" href="assets/css/site.css" />
+  
+</head>
+<body>
+  <a class="skip-link" href="#main">본문으로 바로가기</a>
+  <header class="site-header">
+    <div class="header-inner">
+      <a class="brand" href="index.html" aria-label="Agent Ground 홈">
+        <span class="brand-mark" aria-hidden="true">AG</span>
+        <span class="brand-copy"><strong>Agent Ground</strong><small>Learn · Build · Validate</small></span>
+      </a>
+      <button class="menu-button" type="button" data-menu-button aria-expanded="false" aria-controls="site-nav" aria-label="메뉴 열기"><span class="menu-lines"></span></button>
+      <nav class="site-nav" id="site-nav" data-site-nav data-open="false" aria-label="주요 메뉴"><a href="index.html">홈</a><a href="training/index.html">처음 배우기</a><a href="flows/index.html" aria-current="page">Flows</a><a href="components/index.html">Components</a><a href="troubleshooting/index.html">실패와 해결</a><a href="business-agent-design/index.html">업무 Agent 설계</a></nav>
+    </div>
+  </header>
+  <main class="page-wrap" id="main">
+    <nav class="breadcrumbs" aria-label="현재 위치"><a href="index.html">홈</a><span aria-hidden="true">/</span><a href="flows/index.html">Flows</a><span aria-hidden="true">/</span><a href="flows/html_report_flow/index.html">HTML 보고서 Flow</a><span aria-hidden="true">/</span><a href="flows/html_report_flow/nodes/demo_report_request_loader/index.html">00 리포트 요청/데이터 불러오기</a><span aria-hidden="true">/</span><span>Python 코드</span></nav>
+    
+<section class="code-page-intro"><div><p class="eyebrow">Flow internal Python source</p><h1>00 리포트 요청/데이터 불러오기</h1><p><code>demo_report_request_loader.py</code> 원문을 포털 안에서 확인합니다. 이 코드는 Component Library가 아니라 <strong>HTML 보고서 Flow</strong>의 내부 구현입니다.</p></div><div class="code-page-actions"><a class="button button-soft" href="flows/html_report_flow/nodes/demo_report_request_loader/index.html">내부 Node 설명으로 돌아가기</a></div></section>
+<section class="code-workspace" aria-label="Python 코드 뷰어">
+  <header class="code-toolbar"><div class="code-window-dots" aria-hidden="true"><span></span><span></span><span></span></div><div class="code-file-meta"><strong>demo_report_request_loader.py</strong><span>750줄 · 31.4KB · UTF-8</span></div><button class="code-copy-button" type="button" data-copy-code>코드 복사</button></header>
+  <div class="code-editor-scroll" tabindex="0" aria-label="가로와 세로로 스크롤할 수 있는 Python 코드"><div class="code-lines" data-code-source><div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">1</span><code data-code-text>from __future__ import annotations</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">2</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">3</span><code data-code-text>&quot;&quot;&quot;00 리포트 요청/데이터 불러오기 노드.</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">4</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">5</span><code data-code-text>이 파일은 Langflow 체험용 첫 번째 노드입니다.</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">6</span><code data-code-text>사용자가 입력한 질문, 보고 싶은 방식, CSV/JSON 텍스트, File Read 결과를 하나의</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">7</span><code data-code-text>표준 payload로 정리해서 뒤 노드들이 같은 형식으로 처리할 수 있게 합니다.</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">8</span><code data-code-text>&quot;&quot;&quot;</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">9</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">10</span><code data-code-text>import csv</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">11</span><code data-code-text>import io</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">12</span><code data-code-text>import json</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">13</span><code data-code-text>from copy import deepcopy</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">14</span><code data-code-text>from typing import Any</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">15</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">16</span><code data-code-text>from lfx.custom.custom_component.component import Component</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">17</span><code data-code-text>from lfx.io import DataInput, MessageTextInput, Output</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">18</span><code data-code-text>from lfx.schema.data import Data</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">19</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">20</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">21</span><code data-code-text>def build_demo_report_request(</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">22</span><code data-code-text>    question: str,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">23</span><code data-code-text>    view_request: str = &quot;&quot;,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">24</span><code data-code-text>    data_text: str = &quot;&quot;,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">25</span><code data-code-text>    file_data: Any = None,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">26</span><code data-code-text>) -&gt; dict[str, Any]:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">27</span><code data-code-text>    &quot;&quot;&quot;질문과 입력 데이터를 HTML 리포트 flow의 표준 요청 payload로 만듭니다.</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">28</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">29</span><code data-code-text>    `data_text`에 직접 붙여넣은 CSV/JSON이 있으면 그것을 우선 사용하고,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">30</span><code data-code-text>    비어 있으면 `file_data`에 연결된 File Read 결과에서 텍스트를 꺼냅니다.</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">31</span><code data-code-text>    이후 CSV/JSON/JSONL 여부를 판단해 rows/columns 형태로 맞춰 둡니다.</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">32</span><code data-code-text>    여러 dataset이 들어온 경우에는 공통 key를 찾아 자동으로 결합 view를 만들고,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">33</span><code data-code-text>    단일 CSV/rows 입력은 기존처럼 하나의 입력 데이터 view로 처리합니다.</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">34</span><code data-code-text>    &quot;&quot;&quot;</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">35</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">36</span><code data-code-text>    text = _select_input_text(data_text, file_data)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">37</span><code data-code-text>    datasets = _parse_datasets(text)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">38</span><code data-code-text>    visual_request = _infer_visual_request(question, view_request)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">39</span><code data-code-text>    data_views, relationship_candidates, active_view = _build_data_views(datasets, str(question or &quot;&quot;), str(view_request or &quot;&quot;))</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">40</span><code data-code-text>    rows = _rows(active_view.get(&quot;rows&quot;))</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">41</span><code data-code-text>    columns = _strings(active_view.get(&quot;columns&quot;)) or _columns_from_rows(rows)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">42</span><code data-code-text>    row_count = _positive_int(active_view.get(&quot;row_count&quot;), len(rows))</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">43</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">44</span><code data-code-text>    compact_datasets = []</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">45</span><code data-code-text>    for item in datasets:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">46</span><code data-code-text>        # 뒤 노드에는 전체 rows를 여러 번 넘기지 않고, 데이터셋 목록에는 요약만 남깁니다.</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">47</span><code data-code-text>        item_rows = _rows(item.get(&quot;rows&quot;))</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">48</span><code data-code-text>        item_columns = _strings(item.get(&quot;columns&quot;)) or _columns_from_rows(item_rows)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">49</span><code data-code-text>        compact_datasets.append(</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">50</span><code data-code-text>            {</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">51</span><code data-code-text>                &quot;dataset_id&quot;: str(item.get(&quot;dataset_id&quot;) or &quot;&quot;),</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">52</span><code data-code-text>                &quot;label&quot;: str(item.get(&quot;label&quot;) or item.get(&quot;dataset_id&quot;) or &quot;&quot;),</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">53</span><code data-code-text>                &quot;columns&quot;: item_columns,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">54</span><code data-code-text>                &quot;row_count&quot;: _positive_int(item.get(&quot;row_count&quot;), len(item_rows)),</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">55</span><code data-code-text>                &quot;data_ref&quot;: _dict(item.get(&quot;data_ref&quot;)),</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">56</span><code data-code-text>            }</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">57</span><code data-code-text>        )</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">58</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">59</span><code data-code-text>    compact_views = []</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">60</span><code data-code-text>    for view in data_views:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">61</span><code data-code-text>        compact_views.append(</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">62</span><code data-code-text>            {</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">63</span><code data-code-text>                &quot;data_view_id&quot;: str(view.get(&quot;data_view_id&quot;) or &quot;&quot;),</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">64</span><code data-code-text>                &quot;label&quot;: str(view.get(&quot;label&quot;) or view.get(&quot;data_view_id&quot;) or &quot;&quot;),</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">65</span><code data-code-text>                &quot;strategy&quot;: str(view.get(&quot;strategy&quot;) or &quot;select&quot;),</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">66</span><code data-code-text>                &quot;source_dataset_ids&quot;: _strings(view.get(&quot;source_dataset_ids&quot;)),</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">67</span><code data-code-text>                &quot;join_keys&quot;: _strings(view.get(&quot;join_keys&quot;)),</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">68</span><code data-code-text>                &quot;columns&quot;: _strings(view.get(&quot;columns&quot;)),</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">69</span><code data-code-text>                &quot;row_count&quot;: _positive_int(view.get(&quot;row_count&quot;), len(_rows(view.get(&quot;rows&quot;)))),</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">70</span><code data-code-text>            }</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">71</span><code data-code-text>        )</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">72</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">73</span><code data-code-text>    payload = {</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">74</span><code data-code-text>        &quot;payload_version&quot;: &quot;html-report-demo-v1&quot;,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">75</span><code data-code-text>        &quot;flow_type&quot;: &quot;html_report_demo&quot;,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">76</span><code data-code-text>        &quot;status&quot;: &quot;ok&quot;,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">77</span><code data-code-text>        &quot;request&quot;: {</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">78</span><code data-code-text>            &quot;question&quot;: str(question or &quot;&quot;),</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">79</span><code data-code-text>            &quot;view_request&quot;: str(view_request or &quot;&quot;),</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">80</span><code data-code-text>            &quot;selected_dataset_id&quot;: str(active_view.get(&quot;source_dataset_ids&quot;, [&quot;&quot;])[0] if active_view.get(&quot;source_dataset_ids&quot;) else &quot;&quot;),</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">81</span><code data-code-text>            &quot;active_data_view_id&quot;: str(active_view.get(&quot;data_view_id&quot;) or &quot;&quot;),</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">82</span><code data-code-text>            &quot;visual_request&quot;: visual_request,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">83</span><code data-code-text>        },</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">84</span><code data-code-text>        &quot;available_datasets&quot;: compact_datasets,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">85</span><code data-code-text>        &quot;available_data_views&quot;: compact_views,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">86</span><code data-code-text>        &quot;data_views&quot;: data_views,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">87</span><code data-code-text>        &quot;relationship_candidates&quot;: relationship_candidates,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">88</span><code data-code-text>        &quot;api_response&quot;: {</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">89</span><code data-code-text>            &quot;status&quot;: &quot;ok&quot;,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">90</span><code data-code-text>            &quot;response_type&quot;: &quot;demo_data&quot;,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">91</span><code data-code-text>            &quot;message&quot;: &quot;Demo data loaded for HTML report generation.&quot;,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">92</span><code data-code-text>            &quot;data&quot;: {</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">93</span><code data-code-text>                &quot;data_view_id&quot;: str(active_view.get(&quot;data_view_id&quot;) or &quot;&quot;),</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">94</span><code data-code-text>                &quot;label&quot;: str(active_view.get(&quot;label&quot;) or &quot;&quot;),</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">95</span><code data-code-text>                &quot;strategy&quot;: str(active_view.get(&quot;strategy&quot;) or &quot;select&quot;),</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">96</span><code data-code-text>                &quot;source_dataset_ids&quot;: _strings(active_view.get(&quot;source_dataset_ids&quot;)),</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">97</span><code data-code-text>                &quot;join_keys&quot;: _strings(active_view.get(&quot;join_keys&quot;)),</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">98</span><code data-code-text>                &quot;columns&quot;: columns,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">99</span><code data-code-text>                &quot;rows&quot;: rows,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">100</span><code data-code-text>                &quot;row_count&quot;: row_count,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">101</span><code data-code-text>                &quot;data_ref&quot;: _dict(active_view.get(&quot;data_ref&quot;)),</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">102</span><code data-code-text>                &quot;data_is_preview&quot;: row_count &gt; len(rows),</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">103</span><code data-code-text>            },</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">104</span><code data-code-text>        },</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">105</span><code data-code-text>        &quot;warnings&quot;: [],</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">106</span><code data-code-text>        &quot;errors&quot;: [],</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">107</span><code data-code-text>    }</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">108</span><code data-code-text>    if not rows:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">109</span><code data-code-text>        payload[&quot;warnings&quot;].append(&quot;No rows were loaded from data_text or file_data.&quot;)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">110</span><code data-code-text>    if len(datasets) &gt; 1:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">111</span><code data-code-text>        payload[&quot;warnings&quot;].append(</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">112</span><code data-code-text>            f&quot;Multiple datasets loaded; active data view is &#x27;{active_view.get(&#x27;data_view_id&#x27;)}&#x27; using strategy &#x27;{active_view.get(&#x27;strategy&#x27;)}&#x27;.&quot;</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">113</span><code data-code-text>        )</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">114</span><code data-code-text>    return payload</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">115</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">116</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">117</span><code data-code-text>def _infer_visual_request(question: str, view_request: str) -&gt; dict[str, Any]:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">118</span><code data-code-text>    &quot;&quot;&quot;질문/표시 요구에 직접 드러난 키워드만 약한 힌트로 추출합니다.</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">119</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">120</span><code data-code-text>    사람마다 작성 방식이 다르기 때문에 이 값은 최종 해석이 아닙니다.</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">121</span><code data-code-text>    LLM은 원문 질문과 원문 표시 요구를 우선하고, 이 힌트는 fallback 초안에만 참고합니다.</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">122</span><code data-code-text>    &quot;&quot;&quot;</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">123</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">124</span><code data-code-text>    raw_view_request = str(view_request or &quot;&quot;).strip()</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">125</span><code data-code-text>    text = &quot; &quot;.join(part for part in (str(question or &quot;&quot;), raw_view_request) if part).lower()</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">126</span><code data-code-text>    requested_blocks: list[str] = []</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">127</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">128</span><code data-code-text>    def add(block_id: str) -&gt; None:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">129</span><code data-code-text>        if block_id not in requested_blocks:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">130</span><code data-code-text>            requested_blocks.append(block_id)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">131</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">132</span><code data-code-text>    if _contains(text, [&quot;kpi&quot;, &quot;card&quot;, &quot;\uce74\ub4dc&quot;, &quot;\uc9c0\ud45c&quot;, &quot;\uc8fc\uc694\uac12&quot;, &quot;\uc8fc\uc694 \uac12&quot;]):</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">133</span><code data-code-text>        add(&quot;kpi_card_grid&quot;)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">134</span><code data-code-text>    if _contains(text, [&quot;\ucd94\uc774&quot;, &quot;\uc2dc\uacc4\uc5f4&quot;, &quot;\uc120\uadf8\ub798\ud504&quot;, &quot;\ub77c\uc778&quot;, &quot;trend&quot;, &quot;line&quot;]):</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">135</span><code data-code-text>        add(&quot;trend_line_chart&quot;)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">136</span><code data-code-text>    if _contains(text, [&quot;\ube44\uad50&quot;, &quot;\ub9c9\ub300&quot;, &quot;bar&quot;, &quot;comparison&quot;, &quot;\ud56d\ubaa9\ubcc4&quot;, &quot;\uc720\ud615\ubcc4&quot;, &quot;\ubb38\ud56d\ubcc4&quot;]):</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">137</span><code data-code-text>        add(&quot;comparison_bar_chart&quot;)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">138</span><code data-code-text>    if _contains(text, [&quot;\ub3c4\ub11b&quot;, &quot;\uc6d0\ud615&quot;, &quot;\ud30c\uc774&quot;, &quot;donut&quot;, &quot;pie&quot;, &quot;\ube44\uc911&quot;, &quot;\uad6c\uc131\ube44&quot;, &quot;\uc810\uc720\uc728&quot;]):</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">139</span><code data-code-text>        add(&quot;donut_chart&quot;)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">140</span><code data-code-text>    if _contains(text, [&quot;\ubb36\uc74c&quot;, &quot;\ub098\ub780\ud788&quot;, &quot;\ubcf5\uc218 \uc9c0\ud45c&quot;, &quot;grouped&quot;, &quot;clustered&quot;]):</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">141</span><code data-code-text>        add(&quot;grouped_bar_chart&quot;)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">142</span><code data-code-text>    if _contains(text, [&quot;\ub204\uc801&quot;, &quot;stacked&quot;, &quot;breakdown&quot;, &quot;\uc0c1\ud0dc\ubcc4&quot;, &quot;\uad6c\ubd84\ubcc4&quot;]):</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">143</span><code data-code-text>        add(&quot;stacked_comparison_bar&quot;)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">144</span><code data-code-text>    if _contains(text, [&quot;\ud788\ud2b8\ub9f5&quot;, &quot;\uad50\ucc28&quot;, &quot;\uad50\ucc28\ud45c&quot;, &quot;\ub9e4\ud2b8\ub9ad\uc2a4&quot;, &quot;pivot&quot;, &quot;matrix&quot;, &quot;heatmap&quot;]):</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">145</span><code data-code-text>        add(&quot;heatmap_matrix&quot;)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">146</span><code data-code-text>    if _contains(text, [&quot;\ubd84\ud3ec&quot;, &quot;\ud3b8\ucc28&quot;, &quot;\uc0b0\ud3ec&quot;, &quot;histogram&quot;, &quot;distribution&quot;]):</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">147</span><code data-code-text>        add(&quot;distribution_histogram&quot;)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">148</span><code data-code-text>    if _contains(text, [&quot;\uc0c1\uad00&quot;, &quot;\uc0b0\uc810\ub3c4&quot;, &quot;scatter&quot;, &quot;correlation&quot;, &quot;relationship&quot;]):</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">149</span><code data-code-text>        add(&quot;scatter_plot&quot;)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">150</span><code data-code-text>    if _contains(text, [&quot;\uc21c\uc704&quot;, &quot;\ub7ad\ud0b9&quot;, &quot;top&quot;, &quot;bottom&quot;, &quot;ranking&quot;]):</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">151</span><code data-code-text>        add(&quot;ranking_table&quot;)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">152</span><code data-code-text>    if _contains(text, [&quot;\uc0c1\uc138&quot;, &quot;\uc0c1\uc138\ud45c&quot;, &quot;\ud45c&quot;, &quot;\ud14c\uc774\ube14&quot;, &quot;\ubaa9\ub85d&quot;, &quot;\ub9ac\uc2a4\ud2b8&quot;, &quot;detail&quot;, &quot;table&quot;, &quot;raw&quot;]):</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">153</span><code data-code-text>        add(&quot;detail_data_table&quot;)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">154</span><code data-code-text>    if _contains(text, [&quot;\ud574\uc11d&quot;, &quot;\uc694\uc57d&quot;, &quot;insight&quot;, &quot;\ud575\uc2ec&quot;]):</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">155</span><code data-code-text>        add(&quot;insight_bullets&quot;)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">156</span><code data-code-text>    if _contains(text, [&quot;\ucd94\ucc9c&quot;, &quot;\uc870\uce58&quot;, &quot;\uac1c\uc120&quot;, &quot;\ub2e4\uc74c \ud655\uc778&quot;, &quot;recommend&quot;]):</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">157</span><code data-code-text>        add(&quot;recommendation_list&quot;)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">158</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">159</span><code data-code-text>    complexity = &quot;auto&quot;</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">160</span><code data-code-text>    if _contains(text, [&quot;\uac04\ub2e8&quot;, &quot;\uc9e7\uac8c&quot;, &quot;\uc694\uc57d\ub9cc&quot;, &quot;simple&quot;, &quot;brief&quot;]):</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">161</span><code data-code-text>        complexity = &quot;simple&quot;</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">162</span><code data-code-text>    elif _contains(text, [&quot;\uc0c1\uc138&quot;, &quot;\ud48d\ubd80&quot;, &quot;\ub9ce\uc774&quot;, &quot;\uc804\uccb4&quot;, &quot;detailed&quot;, &quot;full&quot;]):</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">163</span><code data-code-text>        complexity = &quot;detailed&quot;</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">164</span><code data-code-text>    elif _contains(text, [&quot;\ucd18\ucd18&quot;, &quot;\uc791\uac8c&quot;, &quot;compact&quot;]):</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">165</span><code data-code-text>        complexity = &quot;compact&quot;</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">166</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">167</span><code data-code-text>    target_block_count = _target_block_count(text, requested_blocks, complexity)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">168</span><code data-code-text>    return {</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">169</span><code data-code-text>        &quot;source&quot;: &quot;rule_based_keyword_hint&quot;,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">170</span><code data-code-text>        &quot;confidence&quot;: &quot;low&quot;,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">171</span><code data-code-text>        &quot;usage_note&quot;: &quot;Raw question and view_request must win over this hint; use it only for deterministic fallback drafts.&quot;,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">172</span><code data-code-text>        &quot;raw_text&quot;: raw_view_request,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">173</span><code data-code-text>        &quot;complexity&quot;: complexity,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">174</span><code data-code-text>        &quot;requested_blocks&quot;: requested_blocks,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">175</span><code data-code-text>        &quot;target_block_count&quot;: target_block_count,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">176</span><code data-code-text>        &quot;style_keywords&quot;: _style_keywords(text),</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">177</span><code data-code-text>    }</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">178</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">179</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">180</span><code data-code-text>def _target_block_count(text: str, requested_blocks: list[str], complexity: str) -&gt; int:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">181</span><code data-code-text>    &quot;&quot;&quot;요청 문장과 선택된 요소를 보고 목표 블록 수를 정합니다.&quot;&quot;&quot;</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">182</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">183</span><code data-code-text>    explicit = _explicit_count(text)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">184</span><code data-code-text>    if explicit:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">185</span><code data-code-text>        # 사용자가 KPI/차트/표 같은 콘텐츠 요소를 함께 적은 경우에는</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">186</span><code data-code-text>        # 보고서 헤더와 데이터 범위 요약이 앞에서 잘라먹지 않도록 여유를 둡니다.</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">187</span><code data-code-text>        content_floor = len(requested_blocks) + 2 if requested_blocks else explicit</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">188</span><code data-code-text>        return max(3, min(max(explicit, content_floor), 10))</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">189</span><code data-code-text>    if complexity == &quot;simple&quot;:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">190</span><code data-code-text>        return 5</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">191</span><code data-code-text>    if complexity == &quot;detailed&quot;:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">192</span><code data-code-text>        return 10</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">193</span><code data-code-text>    base_count = 2 + len(requested_blocks)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">194</span><code data-code-text>    if &quot;insight_bullets&quot; not in requested_blocks and _contains(text, [&quot;\ud574\uc11d&quot;, &quot;\uc694\uc57d&quot;, &quot;\ub9ac\ud3ec\ud2b8&quot;, &quot;report&quot;]):</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">195</span><code data-code-text>        base_count += 1</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">196</span><code data-code-text>    return max(5, min(base_count, 10))</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">197</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">198</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">199</span><code data-code-text>def _explicit_count(text: str) -&gt; int:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">200</span><code data-code-text>    &quot;&quot;&quot;&#x27;5개&#x27;, &#x27;5 blocks&#x27;처럼 직접 적은 개수를 읽습니다.&quot;&quot;&quot;</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">201</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">202</span><code data-code-text>    import re</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">203</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">204</span><code data-code-text>    match = re.search(r&quot;(\d{1,2})\s*(?:\uac1c|blocks?|components?|\ube14\ub85d|\uc694\uc18c)&quot;, text)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">205</span><code data-code-text>    return int(match.group(1)) if match else 0</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">206</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">207</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">208</span><code data-code-text>def _style_keywords(text: str) -&gt; list[str]:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">209</span><code data-code-text>    &quot;&quot;&quot;색상/분위기 관련 표현을 모읍니다.&quot;&quot;&quot;</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">210</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">211</span><code data-code-text>    result: list[str] = []</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">212</span><code data-code-text>    for keyword in [&quot;\ud30c\ub780\uc0c9&quot;, &quot;\ucd08\ub85d&quot;, &quot;\ud68c\uc0c9&quot;, &quot;\ube68\uac04\uc0c9&quot;, &quot;\uacbd\uace0&quot;, &quot;\uac15\uc870&quot;, &quot;\ucc28\ubd84\ud55c&quot;, &quot;\uae54\ub054\ud55c&quot;, &quot;\uc784\uc6d0\uc6a9&quot;, &quot;compact&quot;, &quot;comfortable&quot;]:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">213</span><code data-code-text>        if keyword.lower() in text and keyword not in result:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">214</span><code data-code-text>            result.append(keyword)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">215</span><code data-code-text>    return result</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">216</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">217</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">218</span><code data-code-text>def _contains(text: str, needles: list[str]) -&gt; bool:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">219</span><code data-code-text>    &quot;&quot;&quot;문장 안에 지정한 키워드 중 하나라도 포함됐는지 확인합니다.&quot;&quot;&quot;</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">220</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">221</span><code data-code-text>    haystack = str(text or &quot;&quot;).lower()</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">222</span><code data-code-text>    return any(needle.lower() in haystack for needle in needles)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">223</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">224</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">225</span><code data-code-text>def _select_input_text(data_text: str, file_data: Any) -&gt; str:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">226</span><code data-code-text>    &quot;&quot;&quot;직접 입력 텍스트와 File Read 결과 중 실제로 사용할 텍스트를 고릅니다.&quot;&quot;&quot;</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">227</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">228</span><code data-code-text>    direct = str(data_text or &quot;&quot;).strip()</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">229</span><code data-code-text>    file_text = _extract_text(file_data).strip()</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">230</span><code data-code-text>    return direct or file_text</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">231</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">232</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">233</span><code data-code-text>def _extract_text(value: Any) -&gt; str:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">234</span><code data-code-text>    &quot;&quot;&quot;Langflow의 다양한 데이터 객체에서 가능한 텍스트 내용을 꺼냅니다.</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">235</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">236</span><code data-code-text>    File Read 컴포넌트는 Langflow 버전/파일 유형에 따라 Data, Message, DataFrame 등</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">237</span><code data-code-text>    서로 다른 모양으로 값을 넘길 수 있습니다. 그래서 흔히 쓰이는 속성과 key를</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">238</span><code data-code-text>    차례로 확인하면서 CSV/JSON으로 변환 가능한 값을 찾습니다.</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">239</span><code data-code-text>    &quot;&quot;&quot;</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">240</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">241</span><code data-code-text>    if value is None:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">242</span><code data-code-text>        return &quot;&quot;</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">243</span><code data-code-text>    if isinstance(value, str):</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">244</span><code data-code-text>        return value</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">245</span><code data-code-text>    if hasattr(value, &quot;to_csv&quot;):</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">246</span><code data-code-text>        try:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">247</span><code data-code-text>            # pandas DataFrame처럼 `to_csv`가 있으면 CSV 문자열로 바꿉니다.</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">248</span><code data-code-text>            return value.to_csv(index=False)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">249</span><code data-code-text>        except Exception:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">250</span><code data-code-text>            pass</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">251</span><code data-code-text>    if hasattr(value, &quot;to_dict&quot;):</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">252</span><code data-code-text>        try:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">253</span><code data-code-text>            # pandas DataFrame처럼 `to_dict`가 있으면 row dict 목록으로 바꿉니다.</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">254</span><code data-code-text>            rows = value.to_dict(orient=&quot;records&quot;)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">255</span><code data-code-text>            if isinstance(rows, list):</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">256</span><code data-code-text>                return json.dumps(rows, ensure_ascii=False, default=str)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">257</span><code data-code-text>        except Exception:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">258</span><code data-code-text>            pass</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">259</span><code data-code-text>    data = getattr(value, &quot;data&quot;, None)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">260</span><code data-code-text>    if isinstance(data, dict):</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">261</span><code data-code-text>        for key in (&quot;text&quot;, &quot;content&quot;, &quot;data&quot;, &quot;raw&quot;, &quot;file_content&quot;, &quot;file_contents&quot;):</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">262</span><code data-code-text>            if isinstance(data.get(key), str):</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">263</span><code data-code-text>                return data[key]</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">264</span><code data-code-text>        for key in (&quot;dataframe&quot;, &quot;structured_content&quot;, &quot;structuredContent&quot;):</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">265</span><code data-code-text>            if data.get(key) is not None:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">266</span><code data-code-text>                extracted = _extract_text(data.get(key))</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">267</span><code data-code-text>                if extracted:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">268</span><code data-code-text>                    return extracted</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">269</span><code data-code-text>        if isinstance(data.get(&quot;rows&quot;), list):</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">270</span><code data-code-text>            return json.dumps(data, ensure_ascii=False, default=str)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">271</span><code data-code-text>        if isinstance(data.get(&quot;records&quot;), list):</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">272</span><code data-code-text>            return json.dumps(data[&quot;records&quot;], ensure_ascii=False, default=str)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">273</span><code data-code-text>        if isinstance(data.get(&quot;columns&quot;), list) and isinstance(data.get(&quot;data&quot;), list):</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">274</span><code data-code-text>            return json.dumps(data, ensure_ascii=False, default=str)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">275</span><code data-code-text>    if isinstance(data, list):</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">276</span><code data-code-text>        return json.dumps(data, ensure_ascii=False, default=str)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">277</span><code data-code-text>    for attr in (&quot;text&quot;, &quot;content&quot;):</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">278</span><code data-code-text>        text = getattr(value, attr, None)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">279</span><code data-code-text>        if isinstance(text, str):</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">280</span><code data-code-text>            return text</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">281</span><code data-code-text>    for attr in (&quot;dataframe&quot;, &quot;structured_content&quot;, &quot;structuredContent&quot;, &quot;value&quot;):</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">282</span><code data-code-text>        nested = getattr(value, attr, None)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">283</span><code data-code-text>        if nested is not None and nested is not value:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">284</span><code data-code-text>            extracted = _extract_text(nested)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">285</span><code data-code-text>            if extracted:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">286</span><code data-code-text>                return extracted</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">287</span><code data-code-text>    if isinstance(value, dict):</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">288</span><code data-code-text>        return json.dumps(value, ensure_ascii=False, default=str)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">289</span><code data-code-text>    if isinstance(value, list):</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">290</span><code data-code-text>        return json.dumps(value, ensure_ascii=False, default=str)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">291</span><code data-code-text>    return str(value)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">292</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">293</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">294</span><code data-code-text>def _parse_datasets(text: str) -&gt; list[dict[str, Any]]:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">295</span><code data-code-text>    &quot;&quot;&quot;입력 문자열을 데이터셋 목록으로 파싱합니다.</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">296</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">297</span><code data-code-text>    우선 JSON을 시도하고, 실패하면 JSONL, 마지막으로 CSV로 해석합니다.</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">298</span><code data-code-text>    아무 입력도 없으면 빈 demo 데이터셋을 만들어 flow가 끊기지 않게 합니다.</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">299</span><code data-code-text>    &quot;&quot;&quot;</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">300</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">301</span><code data-code-text>    raw = str(text or &quot;&quot;).strip()</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">302</span><code data-code-text>    if not raw:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">303</span><code data-code-text>        return [_dataset(&quot;demo_dataset&quot;, &quot;입력 데이터&quot;, [], [])]</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">304</span><code data-code-text>    parsed = _try_json(raw)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">305</span><code data-code-text>    if parsed is not None:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">306</span><code data-code-text>        return _datasets_from_json(parsed)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">307</span><code data-code-text>    parsed_rows = _try_jsonl(raw)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">308</span><code data-code-text>    if parsed_rows is not None:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">309</span><code data-code-text>        return [_dataset(&quot;demo_dataset&quot;, &quot;입력 데이터&quot;, _columns_from_rows(parsed_rows), parsed_rows)]</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">310</span><code data-code-text>    rows = _parse_csv(raw)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">311</span><code data-code-text>    return [_dataset(&quot;demo_dataset&quot;, &quot;입력 데이터&quot;, _columns_from_rows(rows), rows)]</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">312</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">313</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">314</span><code data-code-text>def _datasets_from_json(value: Any) -&gt; list[dict[str, Any]]:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">315</span><code data-code-text>    &quot;&quot;&quot;JSON 값에서 rows/columns/data_ref 구조를 찾아 데이터셋 목록으로 바꿉니다.&quot;&quot;&quot;</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">316</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">317</span><code data-code-text>    if isinstance(value, list):</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">318</span><code data-code-text>        if all(isinstance(item, dict) for item in value):</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">319</span><code data-code-text>            return [_dataset(&quot;demo_dataset&quot;, &quot;입력 데이터&quot;, _columns_from_rows(value), value)]</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">320</span><code data-code-text>        return [_dataset(&quot;demo_dataset&quot;, &quot;입력 데이터&quot;, [&quot;value&quot;], [{&quot;value&quot;: item} for item in value])]</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">321</span><code data-code-text>    if not isinstance(value, dict):</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">322</span><code data-code-text>        return [_dataset(&quot;demo_dataset&quot;, &quot;입력 데이터&quot;, [&quot;value&quot;], [{&quot;value&quot;: value}])]</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">323</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">324</span><code data-code-text>    if isinstance(value.get(&quot;datasets&quot;), list):</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">325</span><code data-code-text>        datasets = []</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">326</span><code data-code-text>        for index, item in enumerate(value[&quot;datasets&quot;], start=1):</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">327</span><code data-code-text>            if not isinstance(item, dict):</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">328</span><code data-code-text>                continue</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">329</span><code data-code-text>            rows = _rows(item.get(&quot;rows&quot;) or _dict(item.get(&quot;data&quot;)).get(&quot;rows&quot;))</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">330</span><code data-code-text>            columns = _strings(item.get(&quot;columns&quot;)) or _strings(_dict(item.get(&quot;data&quot;)).get(&quot;columns&quot;)) or _columns_from_rows(rows)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">331</span><code data-code-text>            datasets.append(</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">332</span><code data-code-text>                _dataset(</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">333</span><code data-code-text>                    str(item.get(&quot;dataset_id&quot;) or item.get(&quot;id&quot;) or f&quot;dataset_{index}&quot;),</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">334</span><code data-code-text>                    str(item.get(&quot;label&quot;) or item.get(&quot;name&quot;) or item.get(&quot;dataset_id&quot;) or f&quot;Dataset {index}&quot;),</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">335</span><code data-code-text>                    columns,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">336</span><code data-code-text>                    rows,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">337</span><code data-code-text>                    data_ref=_dict(item.get(&quot;data_ref&quot;)),</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">338</span><code data-code-text>                    row_count=_positive_int(item.get(&quot;row_count&quot;), len(rows)),</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">339</span><code data-code-text>                )</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">340</span><code data-code-text>            )</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">341</span><code data-code-text>        return datasets or [_dataset(&quot;demo_dataset&quot;, &quot;입력 데이터&quot;, [], [])]</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">342</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">343</span><code data-code-text>    data = _dict(value.get(&quot;data&quot;))</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">344</span><code data-code-text>    rows = _rows(value.get(&quot;rows&quot;) or data.get(&quot;rows&quot;))</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">345</span><code data-code-text>    columns = _strings(value.get(&quot;columns&quot;)) or _strings(data.get(&quot;columns&quot;)) or _columns_from_rows(rows)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">346</span><code data-code-text>    return [</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">347</span><code data-code-text>        _dataset(</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">348</span><code data-code-text>            str(value.get(&quot;dataset_id&quot;) or value.get(&quot;id&quot;) or &quot;demo_dataset&quot;),</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">349</span><code data-code-text>            str(value.get(&quot;label&quot;) or value.get(&quot;name&quot;) or &quot;입력 데이터&quot;),</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">350</span><code data-code-text>            columns,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">351</span><code data-code-text>            rows,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">352</span><code data-code-text>            data_ref=_dict(value.get(&quot;data_ref&quot;) or data.get(&quot;data_ref&quot;)),</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">353</span><code data-code-text>            row_count=_positive_int(value.get(&quot;row_count&quot;) or data.get(&quot;row_count&quot;), len(rows)),</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">354</span><code data-code-text>        )</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">355</span><code data-code-text>    ]</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">356</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">357</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">358</span><code data-code-text>def _try_json(text: str) -&gt; Any | None:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">359</span><code data-code-text>    &quot;&quot;&quot;문자열 전체를 JSON으로 읽어 봅니다. 실패하면 None을 반환합니다.&quot;&quot;&quot;</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">360</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">361</span><code data-code-text>    try:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">362</span><code data-code-text>        return json.loads(text)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">363</span><code data-code-text>    except Exception:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">364</span><code data-code-text>        return None</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">365</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">366</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">367</span><code data-code-text>def _try_jsonl(text: str) -&gt; list[dict[str, Any]] | None:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">368</span><code data-code-text>    &quot;&quot;&quot;한 줄에 JSON 객체 하나씩 있는 JSONL 형식을 읽어 봅니다.&quot;&quot;&quot;</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">369</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">370</span><code data-code-text>    rows = []</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">371</span><code data-code-text>    for line in text.splitlines():</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">372</span><code data-code-text>        line = line.strip()</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">373</span><code data-code-text>        if not line:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">374</span><code data-code-text>            continue</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">375</span><code data-code-text>        try:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">376</span><code data-code-text>            parsed = json.loads(line)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">377</span><code data-code-text>        except Exception:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">378</span><code data-code-text>            return None</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">379</span><code data-code-text>        if not isinstance(parsed, dict):</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">380</span><code data-code-text>            return None</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">381</span><code data-code-text>        rows.append(parsed)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">382</span><code data-code-text>    return rows if rows else None</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">383</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">384</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">385</span><code data-code-text>def _parse_csv(text: str) -&gt; list[dict[str, Any]]:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">386</span><code data-code-text>    &quot;&quot;&quot;CSV 문자열을 dict row 목록으로 변환합니다.&quot;&quot;&quot;</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">387</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">388</span><code data-code-text>    sample = text[:2048]</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">389</span><code data-code-text>    try:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">390</span><code data-code-text>        # 구분자가 쉼표인지 탭인지 등을 csv.Sniffer가 샘플을 보고 추정합니다.</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">391</span><code data-code-text>        dialect = csv.Sniffer().sniff(sample)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">392</span><code data-code-text>    except Exception:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">393</span><code data-code-text>        dialect = csv.excel</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">394</span><code data-code-text>    reader = csv.DictReader(io.StringIO(text), dialect=dialect)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">395</span><code data-code-text>    return [_clean_row(row) for row in reader if isinstance(row, dict)]</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">396</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">397</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">398</span><code data-code-text>def _clean_row(row: dict[str, Any]) -&gt; dict[str, Any]:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">399</span><code data-code-text>    &quot;&quot;&quot;CSV row에서 빈 컬럼명은 제거하고 값은 숫자면 숫자로 변환합니다.&quot;&quot;&quot;</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">400</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">401</span><code data-code-text>    return {str(key or &quot;&quot;).strip(): _coerce(value) for key, value in row.items() if str(key or &quot;&quot;).strip()}</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">402</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">403</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">404</span><code data-code-text>def _coerce(value: Any) -&gt; Any:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">405</span><code data-code-text>    &quot;&quot;&quot;문자열 값을 가능한 경우 int/float 숫자로 바꿉니다.&quot;&quot;&quot;</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">406</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">407</span><code data-code-text>    text = str(value or &quot;&quot;).strip()</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">408</span><code data-code-text>    if text == &quot;&quot;:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">409</span><code data-code-text>        return &quot;&quot;</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">410</span><code data-code-text>    normalized = text.replace(&quot;,&quot;, &quot;&quot;)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">411</span><code data-code-text>    try:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">412</span><code data-code-text>        number = float(normalized)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">413</span><code data-code-text>    except Exception:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">414</span><code data-code-text>        return text</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">415</span><code data-code-text>    return int(number) if number.is_integer() else number</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">416</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">417</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">418</span><code data-code-text>def _dataset(</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">419</span><code data-code-text>    dataset_id: str,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">420</span><code data-code-text>    label: str,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">421</span><code data-code-text>    columns: list[str],</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">422</span><code data-code-text>    rows: list[dict[str, Any]],</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">423</span><code data-code-text>    data_ref: dict[str, Any] | None = None,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">424</span><code data-code-text>    row_count: int | None = None,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">425</span><code data-code-text>) -&gt; dict[str, Any]:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">426</span><code data-code-text>    &quot;&quot;&quot;뒤 노드들이 기대하는 데이터셋 딕셔너리 형식을 만듭니다.&quot;&quot;&quot;</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">427</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">428</span><code data-code-text>    return {</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">429</span><code data-code-text>        &quot;dataset_id&quot;: str(dataset_id or &quot;demo_dataset&quot;),</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">430</span><code data-code-text>        &quot;label&quot;: str(label or dataset_id or &quot;Demo Dataset&quot;),</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">431</span><code data-code-text>        &quot;columns&quot;: columns,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">432</span><code data-code-text>        &quot;rows&quot;: rows,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">433</span><code data-code-text>        &quot;row_count&quot;: len(rows) if row_count is None else int(row_count),</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">434</span><code data-code-text>        &quot;data_ref&quot;: data_ref or {},</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">435</span><code data-code-text>    }</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">436</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">437</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">438</span><code data-code-text>def _build_data_views(</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">439</span><code data-code-text>    datasets: list[dict[str, Any]],</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">440</span><code data-code-text>    question: str = &quot;&quot;,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">441</span><code data-code-text>    view_request: str = &quot;&quot;,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">442</span><code data-code-text>) -&gt; tuple[list[dict[str, Any]], list[dict[str, Any]], dict[str, Any]]:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">443</span><code data-code-text>    &quot;&quot;&quot;여러 dataset을 렌더러가 사용할 수 있는 data view 목록으로 변환합니다.</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">444</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">445</span><code data-code-text>    - 단일 dataset이면 기존과 동일하게 해당 rows를 active view로 사용합니다.</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">446</span><code data-code-text>    - 여러 dataset이면 개별 view를 유지하면서, 공통 key가 있으면 자동 join view를 추가합니다.</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">447</span><code data-code-text>    - 같은 구조의 dataset 묶음이면 union view도 만들 수 있습니다.</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">448</span><code data-code-text>    &quot;&quot;&quot;</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">449</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">450</span><code data-code-text>    normalized = [deepcopy(item) for item in datasets if isinstance(item, dict)]</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">451</span><code data-code-text>    if not normalized:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">452</span><code data-code-text>        normalized = [_dataset(&quot;demo_dataset&quot;, &quot;입력 데이터&quot;, [], [])]</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">453</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">454</span><code data-code-text>    views = [_view_from_dataset(item) for item in normalized]</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">455</span><code data-code-text>    candidates = _relationship_candidates(normalized)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">456</span><code data-code-text>    intent_text = f&quot;{question} {view_request}&quot;.lower()</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">457</span><code data-code-text>    union_view = _union_view(normalized)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">458</span><code data-code-text>    join_view = _joined_view(normalized, candidates)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">459</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">460</span><code data-code-text>    if union_view:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">461</span><code data-code-text>        views.append(union_view)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">462</span><code data-code-text>    if join_view:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">463</span><code data-code-text>        views.append(join_view)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">464</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">465</span><code data-code-text>    active = views[0]</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">466</span><code data-code-text>    if len(normalized) &gt; 1:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">467</span><code data-code-text>        if _contains_text(intent_text, [&quot;union&quot;, &quot;append&quot;, &quot;concat&quot;, &quot;세로&quot;, &quot;합쳐&quot;, &quot;누적&quot;]) and union_view:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">468</span><code data-code-text>            active = union_view</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">469</span><code data-code-text>        elif join_view:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">470</span><code data-code-text>            active = join_view</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">471</span><code data-code-text>        elif union_view:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">472</span><code data-code-text>            active = union_view</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">473</span><code data-code-text>    return views, candidates, active</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">474</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">475</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">476</span><code data-code-text>def _view_from_dataset(dataset: dict[str, Any]) -&gt; dict[str, Any]:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">477</span><code data-code-text>    &quot;&quot;&quot;하나의 원본 dataset을 select 전략 data view로 감쌉니다.&quot;&quot;&quot;</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">478</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">479</span><code data-code-text>    rows = _rows(dataset.get(&quot;rows&quot;))</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">480</span><code data-code-text>    columns = _strings(dataset.get(&quot;columns&quot;)) or _columns_from_rows(rows)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">481</span><code data-code-text>    dataset_id = str(dataset.get(&quot;dataset_id&quot;) or &quot;demo_dataset&quot;)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">482</span><code data-code-text>    return {</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">483</span><code data-code-text>        &quot;data_view_id&quot;: dataset_id,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">484</span><code data-code-text>        &quot;label&quot;: str(dataset.get(&quot;label&quot;) or dataset_id),</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">485</span><code data-code-text>        &quot;strategy&quot;: &quot;select&quot;,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">486</span><code data-code-text>        &quot;source_dataset_ids&quot;: [dataset_id],</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">487</span><code data-code-text>        &quot;join_keys&quot;: [],</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">488</span><code data-code-text>        &quot;columns&quot;: columns,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">489</span><code data-code-text>        &quot;rows&quot;: rows,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">490</span><code data-code-text>        &quot;row_count&quot;: _positive_int(dataset.get(&quot;row_count&quot;), len(rows)),</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">491</span><code data-code-text>        &quot;data_ref&quot;: _dict(dataset.get(&quot;data_ref&quot;)),</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">492</span><code data-code-text>    }</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">493</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">494</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">495</span><code data-code-text>def _relationship_candidates(datasets: list[dict[str, Any]]) -&gt; list[dict[str, Any]]:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">496</span><code data-code-text>    &quot;&quot;&quot;dataset 쌍 사이의 공통 key 후보를 찾습니다.&quot;&quot;&quot;</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">497</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">498</span><code data-code-text>    candidates = []</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">499</span><code data-code-text>    for left_index, left in enumerate(datasets):</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">500</span><code data-code-text>        for right in datasets[left_index + 1 :]:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">501</span><code data-code-text>            keys = _common_join_keys(left, right)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">502</span><code data-code-text>            candidates.append(</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">503</span><code data-code-text>                {</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">504</span><code data-code-text>                    &quot;left_dataset&quot;: str(left.get(&quot;dataset_id&quot;) or &quot;&quot;),</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">505</span><code data-code-text>                    &quot;right_dataset&quot;: str(right.get(&quot;dataset_id&quot;) or &quot;&quot;),</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">506</span><code data-code-text>                    &quot;join_keys&quot;: keys,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">507</span><code data-code-text>                    &quot;confidence&quot;: &quot;high&quot; if keys else &quot;none&quot;,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">508</span><code data-code-text>                    &quot;reason&quot;: &quot;공통 key 후보가 있어 자동 결합할 수 있습니다.&quot; if keys else &quot;공통 key 후보가 부족해 자동 결합하지 않습니다.&quot;,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">509</span><code data-code-text>                }</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">510</span><code data-code-text>            )</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">511</span><code data-code-text>    return candidates</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">512</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">513</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">514</span><code data-code-text>def _common_join_keys(left: dict[str, Any], right: dict[str, Any]) -&gt; list[str]:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">515</span><code data-code-text>    &quot;&quot;&quot;두 dataset 사이에서 join key로 쓰기 좋은 공통 컬럼을 고릅니다.&quot;&quot;&quot;</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">516</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">517</span><code data-code-text>    left_rows = _rows(left.get(&quot;rows&quot;))</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">518</span><code data-code-text>    right_rows = _rows(right.get(&quot;rows&quot;))</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">519</span><code data-code-text>    common = [</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">520</span><code data-code-text>        column</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">521</span><code data-code-text>        for column in _strings(left.get(&quot;columns&quot;)) or _columns_from_rows(left_rows)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">522</span><code data-code-text>        if column in set(_strings(right.get(&quot;columns&quot;)) or _columns_from_rows(right_rows))</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">523</span><code data-code-text>    ]</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">524</span><code data-code-text>    preferred = []</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">525</span><code data-code-text>    for column in common:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">526</span><code data-code-text>        if _looks_like_join_key(column, left_rows, right_rows):</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">527</span><code data-code-text>            preferred.append(column)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">528</span><code data-code-text>    if preferred:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">529</span><code data-code-text>        return preferred[:4]</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">530</span><code data-code-text>    # 컬럼명이 같고 값이 숫자 metric처럼 보이지 않는 경우를 마지막 후보로 사용합니다.</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">531</span><code data-code-text>    fallback = [column for column in common if not _looks_numeric_metric(column, left_rows + right_rows)]</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">532</span><code data-code-text>    return fallback[:3]</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">533</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">534</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">535</span><code data-code-text>def _looks_like_join_key(column: str, left_rows: list[dict[str, Any]], right_rows: list[dict[str, Any]]) -&gt; bool:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">536</span><code data-code-text>    &quot;&quot;&quot;컬럼명과 값 분포를 보고 join key 가능성을 판단합니다.&quot;&quot;&quot;</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">537</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">538</span><code data-code-text>    text = str(column or &quot;&quot;).lower()</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">539</span><code data-code-text>    if any(token in text for token in [&quot;date&quot;, &quot;dt&quot;, &quot;day&quot;, &quot;month&quot;, &quot;week&quot;, &quot;year&quot;, &quot;날짜&quot;, &quot;일자&quot;, &quot;기준일&quot;]):</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">540</span><code data-code-text>        return True</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">541</span><code data-code-text>    if any(token in text for token in [&quot;process&quot;, &quot;oper&quot;, &quot;line&quot;, &quot;product&quot;, &quot;item&quot;, &quot;category&quot;, &quot;shift&quot;, &quot;region&quot;, &quot;warehouse&quot;, &quot;공정&quot;, &quot;라인&quot;, &quot;제품&quot;, &quot;구분&quot;]):</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">542</span><code data-code-text>        return True</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">543</span><code data-code-text>    if any(token in text for token in [&quot;id&quot;, &quot;code&quot;, &quot;key&quot;, &quot;no&quot;, &quot;seq&quot;, &quot;코드&quot;, &quot;번호&quot;]):</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">544</span><code data-code-text>        return True</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">545</span><code data-code-text>    return not _looks_numeric_metric(column, left_rows + right_rows)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">546</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">547</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">548</span><code data-code-text>def _looks_numeric_metric(column: str, rows: list[dict[str, Any]]) -&gt; bool:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">549</span><code data-code-text>    &quot;&quot;&quot;값 대부분이 숫자이고 key 이름이 아니면 metric 컬럼으로 봅니다.&quot;&quot;&quot;</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">550</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">551</span><code data-code-text>    values = [row.get(column) for row in rows if row.get(column) not in (None, &quot;&quot;)]</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">552</span><code data-code-text>    if not values:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">553</span><code data-code-text>        return False</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">554</span><code data-code-text>    if any(token in str(column).lower() for token in [&quot;id&quot;, &quot;code&quot;, &quot;no&quot;, &quot;seq&quot;, &quot;date&quot;, &quot;dt&quot;]):</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">555</span><code data-code-text>        return False</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">556</span><code data-code-text>    numeric_count = sum(1 for value in values if isinstance(value, (int, float)) and not isinstance(value, bool))</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">557</span><code data-code-text>    return numeric_count / max(len(values), 1) &gt;= 0.8</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">558</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">559</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">560</span><code data-code-text>def _joined_view(datasets: list[dict[str, Any]], candidates: list[dict[str, Any]]) -&gt; dict[str, Any] | None:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">561</span><code data-code-text>    &quot;&quot;&quot;여러 dataset을 공통 key 기준으로 outer join한 view를 만듭니다.&quot;&quot;&quot;</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">562</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">563</span><code data-code-text>    if len(datasets) &lt; 2:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">564</span><code data-code-text>        return None</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">565</span><code data-code-text>    common_keys = set(_strings(candidates[0].get(&quot;join_keys&quot;)) if candidates else [])</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">566</span><code data-code-text>    for candidate in candidates[1:]:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">567</span><code data-code-text>        common_keys &amp;= set(_strings(candidate.get(&quot;join_keys&quot;)))</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">568</span><code data-code-text>    join_keys = [column for column in (_strings(datasets[0].get(&quot;columns&quot;)) or _columns_from_rows(_rows(datasets[0].get(&quot;rows&quot;)))) if column in common_keys]</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">569</span><code data-code-text>    if not join_keys:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">570</span><code data-code-text>        return None</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">571</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">572</span><code data-code-text>    joined_by_key: dict[tuple[str, ...], dict[str, Any]] = {}</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">573</span><code data-code-text>    output_columns = list(join_keys)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">574</span><code data-code-text>    source_ids = [str(item.get(&quot;dataset_id&quot;) or f&quot;dataset_{index}&quot;) for index, item in enumerate(datasets, start=1)]</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">575</span><code data-code-text>    non_key_counts: dict[str, int] = {}</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">576</span><code data-code-text>    for dataset in datasets:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">577</span><code data-code-text>        for column in _strings(dataset.get(&quot;columns&quot;)) or _columns_from_rows(_rows(dataset.get(&quot;rows&quot;))):</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">578</span><code data-code-text>            if column not in join_keys:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">579</span><code data-code-text>                non_key_counts[column] = non_key_counts.get(column, 0) + 1</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">580</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">581</span><code data-code-text>    for dataset in datasets:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">582</span><code data-code-text>        dataset_id = str(dataset.get(&quot;dataset_id&quot;) or &quot;&quot;)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">583</span><code data-code-text>        rows = _rows(dataset.get(&quot;rows&quot;))</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">584</span><code data-code-text>        for row in rows:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">585</span><code data-code-text>            key = tuple(str(row.get(column, &quot;&quot;)) for column in join_keys)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">586</span><code data-code-text>            target = joined_by_key.setdefault(key, {column: row.get(column, &quot;&quot;) for column in join_keys})</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">587</span><code data-code-text>            for column, value in row.items():</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">588</span><code data-code-text>                if column in join_keys:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">589</span><code data-code-text>                    continue</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">590</span><code data-code-text>                output_name = _merged_column_name(column, dataset_id, non_key_counts.get(column, 0) &gt; 1, output_columns)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">591</span><code data-code-text>                target[output_name] = value</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">592</span><code data-code-text>                if output_name not in output_columns:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">593</span><code data-code-text>                    output_columns.append(output_name)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">594</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">595</span><code data-code-text>    rows = list(joined_by_key.values())</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">596</span><code data-code-text>    label = &quot; + &quot;.join(str(item.get(&quot;label&quot;) or item.get(&quot;dataset_id&quot;) or &quot;&quot;) for item in datasets[:3])</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">597</span><code data-code-text>    return {</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">598</span><code data-code-text>        &quot;data_view_id&quot;: &quot;joined_auto&quot;,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">599</span><code data-code-text>        &quot;label&quot;: f&quot;자동 결합 데이터 ({label})&quot;,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">600</span><code data-code-text>        &quot;strategy&quot;: &quot;join&quot;,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">601</span><code data-code-text>        &quot;source_dataset_ids&quot;: source_ids,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">602</span><code data-code-text>        &quot;join_keys&quot;: join_keys,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">603</span><code data-code-text>        &quot;columns&quot;: output_columns,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">604</span><code data-code-text>        &quot;rows&quot;: rows,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">605</span><code data-code-text>        &quot;row_count&quot;: len(rows),</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">606</span><code data-code-text>        &quot;data_ref&quot;: {},</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">607</span><code data-code-text>    }</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">608</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">609</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">610</span><code data-code-text>def _merged_column_name(column: str, dataset_id: str, duplicated: bool, output_columns: list[str]) -&gt; str:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">611</span><code data-code-text>    &quot;&quot;&quot;join 시 같은 이름의 metric이 충돌하면 dataset_id suffix를 붙입니다.&quot;&quot;&quot;</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">612</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">613</span><code data-code-text>    if not duplicated:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">614</span><code data-code-text>        return column</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">615</span><code data-code-text>    suffix = &quot;&quot;.join(ch if ch.isalnum() else &quot;_&quot; for ch in str(dataset_id or &quot;dataset&quot;)).strip(&quot;_&quot;) or &quot;dataset&quot;</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">616</span><code data-code-text>    return f&quot;{column}__{suffix}&quot;</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">617</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">618</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">619</span><code data-code-text>def _union_view(datasets: list[dict[str, Any]]) -&gt; dict[str, Any] | None:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">620</span><code data-code-text>    &quot;&quot;&quot;같은 구조의 여러 dataset을 세로로 붙인 union view를 만듭니다.&quot;&quot;&quot;</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">621</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">622</span><code data-code-text>    if len(datasets) &lt; 2:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">623</span><code data-code-text>        return None</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">624</span><code data-code-text>    column_sets = [set(_strings(item.get(&quot;columns&quot;)) or _columns_from_rows(_rows(item.get(&quot;rows&quot;)))) for item in datasets]</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">625</span><code data-code-text>    if not column_sets or len({tuple(sorted(cols)) for cols in column_sets}) != 1:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">626</span><code data-code-text>        return None</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">627</span><code data-code-text>    columns = list(_strings(datasets[0].get(&quot;columns&quot;)) or _columns_from_rows(_rows(datasets[0].get(&quot;rows&quot;))))</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">628</span><code data-code-text>    output_columns = [&quot;__dataset_id&quot;, &quot;__dataset_label&quot;, *columns]</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">629</span><code data-code-text>    rows = []</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">630</span><code data-code-text>    for dataset in datasets:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">631</span><code data-code-text>        dataset_id = str(dataset.get(&quot;dataset_id&quot;) or &quot;&quot;)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">632</span><code data-code-text>        label = str(dataset.get(&quot;label&quot;) or dataset_id)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">633</span><code data-code-text>        for row in _rows(dataset.get(&quot;rows&quot;)):</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">634</span><code data-code-text>            rows.append({&quot;__dataset_id&quot;: dataset_id, &quot;__dataset_label&quot;: label, **{column: row.get(column, &quot;&quot;) for column in columns}})</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">635</span><code data-code-text>    return {</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">636</span><code data-code-text>        &quot;data_view_id&quot;: &quot;union_auto&quot;,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">637</span><code data-code-text>        &quot;label&quot;: &quot;자동 통합 데이터&quot;,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">638</span><code data-code-text>        &quot;strategy&quot;: &quot;union&quot;,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">639</span><code data-code-text>        &quot;source_dataset_ids&quot;: [str(item.get(&quot;dataset_id&quot;) or &quot;&quot;) for item in datasets],</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">640</span><code data-code-text>        &quot;join_keys&quot;: [],</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">641</span><code data-code-text>        &quot;columns&quot;: output_columns,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">642</span><code data-code-text>        &quot;rows&quot;: rows,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">643</span><code data-code-text>        &quot;row_count&quot;: len(rows),</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">644</span><code data-code-text>        &quot;data_ref&quot;: {},</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">645</span><code data-code-text>    }</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">646</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">647</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">648</span><code data-code-text>def _contains_text(text: str, needles: list[str]) -&gt; bool:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">649</span><code data-code-text>    &quot;&quot;&quot;문장에 특정 단어가 하나라도 포함되어 있는지 확인합니다.&quot;&quot;&quot;</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">650</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">651</span><code data-code-text>    haystack = str(text or &quot;&quot;).lower()</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">652</span><code data-code-text>    return any(needle.lower() in haystack for needle in needles)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">653</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">654</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">655</span><code data-code-text>def _select_dataset(datasets: list[dict[str, Any]]) -&gt; dict[str, Any]:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">656</span><code data-code-text>    &quot;&quot;&quot;현재 체험 flow에서는 첫 번째 데이터셋을 분석 대상으로 선택합니다.&quot;&quot;&quot;</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">657</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">658</span><code data-code-text>    return deepcopy(datasets[0]) if datasets else _dataset(&quot;demo_dataset&quot;, &quot;Demo Dataset&quot;, [], [])</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">659</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">660</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">661</span><code data-code-text>def _rows(value: Any) -&gt; list[dict[str, Any]]:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">662</span><code data-code-text>    &quot;&quot;&quot;값이 dict 목록이면 안전하게 복사해서 반환하고, 아니면 빈 목록을 반환합니다.&quot;&quot;&quot;</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">663</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">664</span><code data-code-text>    return [deepcopy(row) for row in value if isinstance(row, dict)] if isinstance(value, list) else []</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">665</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">666</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">667</span><code data-code-text>def _columns_from_rows(rows: list[dict[str, Any]]) -&gt; list[str]:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">668</span><code data-code-text>    &quot;&quot;&quot;rows에 실제로 등장한 컬럼명을 처음 나온 순서대로 모읍니다.&quot;&quot;&quot;</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">669</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">670</span><code data-code-text>    columns: list[str] = []</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">671</span><code data-code-text>    for row in rows:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">672</span><code data-code-text>        for key in row:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">673</span><code data-code-text>            text = str(key)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">674</span><code data-code-text>            if text not in columns:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">675</span><code data-code-text>                columns.append(text)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">676</span><code data-code-text>    return columns</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">677</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">678</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">679</span><code data-code-text>def _strings(value: Any) -&gt; list[str]:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">680</span><code data-code-text>    &quot;&quot;&quot;문자열 목록만 깨끗하게 정리하고 중복을 제거합니다.&quot;&quot;&quot;</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">681</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">682</span><code data-code-text>    if not isinstance(value, list):</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">683</span><code data-code-text>        return []</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">684</span><code data-code-text>    result = []</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">685</span><code data-code-text>    for item in value:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">686</span><code data-code-text>        text = str(item or &quot;&quot;).strip()</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">687</span><code data-code-text>        if text and text not in result:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">688</span><code data-code-text>            result.append(text)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">689</span><code data-code-text>    return result</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">690</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">691</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">692</span><code data-code-text>def _dict(value: Any) -&gt; dict[str, Any]:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">693</span><code data-code-text>    &quot;&quot;&quot;값이 dict면 복사본을, 아니면 빈 dict를 반환합니다.&quot;&quot;&quot;</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">694</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">695</span><code data-code-text>    return deepcopy(value) if isinstance(value, dict) else {}</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">696</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">697</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">698</span><code data-code-text>def _positive_int(value: Any, default: int) -&gt; int:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">699</span><code data-code-text>    &quot;&quot;&quot;정수로 변환하되 음수는 0으로 보정합니다.&quot;&quot;&quot;</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">700</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">701</span><code data-code-text>    try:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">702</span><code data-code-text>        parsed = int(value)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">703</span><code data-code-text>    except Exception:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">704</span><code data-code-text>        parsed = default</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">705</span><code data-code-text>    return max(0, parsed)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">706</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">707</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">708</span><code data-code-text>class DemoReportRequestLoader(Component):</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">709</span><code data-code-text>    &quot;&quot;&quot;Langflow 화면에 표시되는 00번 커스텀 컴포넌트 클래스.&quot;&quot;&quot;</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">710</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">711</span><code data-code-text>    display_name = &quot;00 리포트 요청/데이터 불러오기&quot;</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">712</span><code data-code-text>    description = &quot;질문, 표시 요청, 직접 입력 데이터 또는 File Read 결과를 HTML 리포트용 요청으로 정리합니다.&quot;</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">713</span><code data-code-text>    icon = &quot;FileInput&quot;</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">714</span><code data-code-text>    inputs = [</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">715</span><code data-code-text>        MessageTextInput(name=&quot;question&quot;, display_name=&quot;질문&quot;, required=True),</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">716</span><code data-code-text>        MessageTextInput(name=&quot;view_request&quot;, display_name=&quot;보고 싶은 방식&quot;, required=False),</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">717</span><code data-code-text>        MessageTextInput(name=&quot;data_text&quot;, display_name=&quot;데이터 직접 입력&quot;, required=False),</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">718</span><code data-code-text>        DataInput(</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">719</span><code data-code-text>            name=&quot;file_data&quot;,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">720</span><code data-code-text>            display_name=&quot;파일 데이터&quot;,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">721</span><code data-code-text>            input_types=[</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">722</span><code data-code-text>                &quot;Data&quot;,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">723</span><code data-code-text>                &quot;DataFrame&quot;,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">724</span><code data-code-text>                &quot;Message&quot;,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">725</span><code data-code-text>                &quot;Text&quot;,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">726</span><code data-code-text>                &quot;File&quot;,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">727</span><code data-code-text>                &quot;JSON&quot;,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">728</span><code data-code-text>                &quot;StructuredContent&quot;,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">729</span><code data-code-text>                &quot;Structured Content&quot;,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">730</span><code data-code-text>            ],</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">731</span><code data-code-text>            required=False,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">732</span><code data-code-text>        ),</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">733</span><code data-code-text>    ]</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">734</span><code data-code-text>    outputs = [Output(name=&quot;payload&quot;, display_name=&quot;요청 데이터&quot;, method=&quot;build_payload&quot;)]</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">735</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">736</span><code data-code-text>    def build_payload(self) -&gt; Data:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">737</span><code data-code-text>        &quot;&quot;&quot;Langflow가 이 노드를 실행할 때 호출하는 출력 생성 함수입니다.&quot;&quot;&quot;</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">738</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">739</span><code data-code-text>        result = build_demo_report_request(</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">740</span><code data-code-text>            getattr(self, &quot;question&quot;, &quot;&quot;),</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">741</span><code data-code-text>            getattr(self, &quot;view_request&quot;, &quot;&quot;),</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">742</span><code data-code-text>            getattr(self, &quot;data_text&quot;, &quot;&quot;),</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">743</span><code data-code-text>            getattr(self, &quot;file_data&quot;, None),</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">744</span><code data-code-text>        )</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">745</span><code data-code-text>        self.status = {</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">746</span><code data-code-text>            &quot;datasets&quot;: len(result.get(&quot;available_datasets&quot;, [])),</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">747</span><code data-code-text>            &quot;selected&quot;: (result.get(&quot;request&quot;) or {}).get(&quot;selected_dataset_id&quot;),</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">748</span><code data-code-text>            &quot;rows&quot;: ((result.get(&quot;api_response&quot;) or {}).get(&quot;data&quot;) or {}).get(&quot;row_count&quot;, 0),</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">749</span><code data-code-text>        }</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">750</span><code data-code-text>        return Data(data=result)</code></div></div></div>
+  <footer class="code-status"><span>Python</span><span>Flow internal</span><span data-copy-status aria-live="polite">복사할 때 외부 서버를 호출하지 않습니다.</span></footer>
+</section>
+<div class="page-actions"><button class="back-button" type="button" data-back data-fallback="flows/html_report_flow/nodes/demo_report_request_loader/index.html">← 이전 화면</button><a class="button button-soft" href="flows/html_report_flow/nodes/demo_report_request_loader/index.html#contract">입출력 계약</a><a class="button button-soft" href="flows/html_report_flow/index.html">HTML 보고서 Flow</a></div>
+
+  </main>
+  <footer class="site-footer">
+    <div class="footer-inner">
+      <div><strong>Agent Ground</strong><p>실제 Agent Builder 환경에서 검증된 교육자료, Standalone Component와 Flow를 함께 쌓아갑니다.</p></div>
+      <div class="footer-links"><a href="training/index.html">처음 배우기</a><a href="troubleshooting/index.html">실패와 해결</a><a href="../AGENT_GROUND_PROJECT_MASTER_GUIDE.md">프로젝트 기준</a></div>
+    </div>
+  </footer>
+  <script src="assets/js/site.js"></script>
+  
+</body>
+</html>

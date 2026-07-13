@@ -309,32 +309,32 @@ def guard_documents(
 
 
 class PiiConfidentialDataGuard(Component):
-    display_name = "01 PII & Confidential Data Guard"
-    description = "Redact or block common sensitive patterns before documents enter the retrieval index."
+    display_name = "01 개인정보·기밀정보 보호"
+    description = "문서가 검색 색인에 들어가기 전에 일반적인 개인정보와 비밀값 패턴을 마스킹하거나 차단합니다."
     icon = "ShieldCheck"
     name = "PiiConfidentialDataGuard"
 
     inputs = [
         DataInput(
             name="documents",
-            display_name="Documents",
+            display_name="문서",
             input_types=["Data", "JSON"],
             required=True,
         ),
         DropdownInput(
             name="guard_mode",
-            display_name="Guard Mode",
+            display_name="보호 방식",
             options=["redact", "block"],
             value="redact",
         ),
-        BoolInput(name="detect_emails", display_name="Detect Email Addresses", value=True, advanced=True),
-        BoolInput(name="detect_phone_numbers", display_name="Detect Phone Numbers", value=True, advanced=True),
-        BoolInput(name="detect_national_ids", display_name="Detect National IDs", value=True, advanced=True),
-        BoolInput(name="detect_employee_ids", display_name="Detect Employee IDs", value=True, advanced=True),
-        BoolInput(name="detect_secrets", display_name="Detect Secret-like Values", value=True, advanced=True),
+        BoolInput(name="detect_emails", display_name="이메일 주소 탐지", value=True, advanced=True),
+        BoolInput(name="detect_phone_numbers", display_name="전화번호 탐지", value=True, advanced=True),
+        BoolInput(name="detect_national_ids", display_name="주민등록번호 형태 탐지", value=True, advanced=True),
+        BoolInput(name="detect_employee_ids", display_name="사번 형태 탐지", value=True, advanced=True),
+        BoolInput(name="detect_secrets", display_name="비밀값 형태 탐지", value=True, advanced=True),
         BoolInput(
             name="upgrade_classification",
-            display_name="Upgrade Classification When Detected",
+            display_name="탐지 시 보안 등급 상향",
             value=True,
             advanced=True,
         ),
@@ -343,7 +343,7 @@ class PiiConfidentialDataGuard(Component):
     outputs = [
         Output(
             name="safe_documents",
-            display_name="Safe Documents",
+            display_name="보호 처리된 문서",
             method="build_safe_documents",
             types=["Data"],
         )
@@ -360,8 +360,7 @@ class PiiConfidentialDataGuard(Component):
             detect_secrets=getattr(self, "detect_secrets", True),
             upgrade_classification=getattr(self, "upgrade_classification", True),
         )
-        # Only aggregate counts are displayed. Raw matched values never enter
-        # self.status, errors, warnings, or trace.
+        # 탐지 건수만 상태에 표시하며 실제 민감값은 status, 오류, 경고, trace에 넣지 않습니다.
         self.status = {
             "success": result["success"],
             "safe_document_count": result["document_count"],

@@ -1,8 +1,8 @@
 # HTML 분석 리포트 Flow 연결 가이드
 
-## 1. Component 등록
+## 1. Custom Python 자산 등록
 
-`component_refs.json`에 있는 9개 Standalone `.py` 파일을 Agent Builder에 등록합니다.
+`component_refs.json`의 기능 단위 Component 3개와 `internal_nodes.json`의 Flow 내부 노드 6개를 Agent Builder에 등록합니다. 모두 한 파일로 등록하는 Standalone 형식이지만, 내부 노드는 이 Flow 밖의 Component Library에는 노출하지 않습니다.
 
 ## 2. 기본 연결
 

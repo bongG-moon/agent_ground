@@ -2,7 +2,7 @@
 
 ## 1. 가져오기
 
-가장 간단한 방법은 `enterprise_document_rag_flow.json` 한 파일을 Langflow Builder로 가져오는 것입니다. JSON에는 9개 Standalone Component code와 Chat Input/Output node가 모두 포함됩니다. 별도 Python 파일 등록은 수정·재사용할 때만 필요합니다.
+가장 간단한 방법은 `enterprise_document_rag_flow.json` 한 파일을 Langflow Builder로 가져오는 것입니다. JSON에는 6개 기능 단위 Component, 3개 Flow 내부 노드의 Standalone code와 Chat Input/Output node가 모두 포함됩니다. 별도 Python 파일 등록은 수정·재사용할 때만 필요합니다.
 
 ## 2. 기본 연결표
 

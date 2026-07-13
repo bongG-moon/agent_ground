@@ -436,5 +436,10 @@ def test_goodocs_adapter_contract_and_cleanup(modules: dict[str, ModuleType]) ->
 def test_new_components_do_not_modify_legacy_flow_contracts() -> None:
     refs = json.loads((ROOT / "flows/reusable_data_flow/component_refs.json").read_text(encoding="utf-8"))
     referenced_ids = {item["id"] for item in refs["components"]}
-    assert {"oracle_data", "h_api_data", "datalake_data", "goodocs_data"}.issubset(referenced_ids)
     assert not set(COMPONENT_IDS).intersection(referenced_ids)
+
+    internal_nodes = json.loads(
+        (ROOT / "flows/reusable_data_flow/internal_nodes.json").read_text(encoding="utf-8")
+    )
+    internal_ids = {item["id"] for item in internal_nodes["nodes"]}
+    assert {"oracle_data", "h_api_data", "datalake_data", "goodocs_data"}.issubset(internal_ids)

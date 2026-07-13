@@ -7,7 +7,9 @@
 - ID: `html_report_data_profile_builder`
 - 버전: `0.9.0`
 - 상태: `user_testing`
-- Standalone: `true`
+- 패키징: `standalone`
+- Component 범위: `domain`
+- 자격 판정: `qualified_component`
 - 사용 범위: `html_report_flow`
 
 ## 입력
@@ -20,7 +22,7 @@
 
 | 화면 이름 | 코드 이름 | 타입 | 실행 method |
 | --- | --- | --- | --- |
-| 데이터 분석 결과 | `data_profile` | `Output` | `build_profile` |
+| 데이터 분석 결과 | `data_profile` | `Data` | `build_profile` |
 
 
 

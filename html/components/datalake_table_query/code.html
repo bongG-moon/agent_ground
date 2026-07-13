@@ -1,0 +1,954 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <base href="../../" />
+  <title>Datalake 테이블 조회 Python 코드 · Agent Ground</title>
+  <meta name="description" content="Datalake 테이블 조회 Standalone Python 코드 뷰어" />
+  <link rel="stylesheet" href="assets/css/site.css" />
+  
+</head>
+<body>
+  <a class="skip-link" href="#main">본문으로 바로가기</a>
+  <header class="site-header">
+    <div class="header-inner">
+      <a class="brand" href="index.html" aria-label="Agent Ground 홈">
+        <span class="brand-mark" aria-hidden="true">AG</span>
+        <span class="brand-copy"><strong>Agent Ground</strong><small>Learn · Build · Validate</small></span>
+      </a>
+      <button class="menu-button" type="button" data-menu-button aria-expanded="false" aria-controls="site-nav" aria-label="메뉴 열기"><span class="menu-lines"></span></button>
+      <nav class="site-nav" id="site-nav" data-site-nav data-open="false" aria-label="주요 메뉴"><a href="index.html">홈</a><a href="training/index.html">처음 배우기</a><a href="flows/index.html">Flows</a><a href="components/index.html" aria-current="page">Components</a><a href="troubleshooting/index.html">실패와 해결</a><a href="business-agent-design/index.html">업무 Agent 설계</a></nav>
+    </div>
+  </header>
+  <main class="page-wrap" id="main">
+    <nav class="breadcrumbs" aria-label="현재 위치"><a href="index.html">홈</a><span aria-hidden="true">/</span><a href="components/index.html">Components</a><span aria-hidden="true">/</span><a href="components/datalake_table_query/index.html">Datalake 테이블 조회</a><span aria-hidden="true">/</span><span>Python 코드</span></nav>
+    
+<section class="code-page-intro"><div><p class="eyebrow">Standalone Python source</p><h1>Datalake 테이블 조회</h1><p><code>datalake_table_query.py</code> 원문을 포털 안에서 확인합니다. 코드는 이 HTML에 함께 저장되어 <code>file://</code>로 열어도 표시됩니다.</p></div><div class="code-page-actions"><a class="button button-soft" href="components/datalake_table_query/index.html">Component 설명으로 돌아가기</a></div></section>
+<section class="code-workspace" aria-label="Python 코드 뷰어">
+  <header class="code-toolbar"><div class="code-window-dots" aria-hidden="true"><span></span><span></span><span></span></div><div class="code-file-meta"><strong>datalake_table_query.py</strong><span>910줄 · 35.1KB · UTF-8</span></div><button class="code-copy-button" type="button" data-copy-code>코드 복사</button></header>
+  <div class="code-editor-scroll" tabindex="0" aria-label="가로와 세로로 스크롤할 수 있는 Python 코드"><div class="code-lines" data-code-source><div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">1</span><code data-code-text>from __future__ import annotations</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">2</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">3</span><code data-code-text>&quot;&quot;&quot;Datalake Cluster를 찾고 읽기 SQL 결과 테이블만 반환하는 Standalone Component입니다.&quot;&quot;&quot;</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">4</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">5</span><code data-code-text>import asyncio</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">6</span><code data-code-text>import base64</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">7</span><code data-code-text>import ipaddress</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">8</span><code data-code-text>import inspect</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">9</span><code data-code-text>import json</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">10</span><code data-code-text>import re</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">11</span><code data-code-text>import time</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">12</span><code data-code-text>from datetime import date, datetime</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">13</span><code data-code-text>from decimal import Decimal</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">14</span><code data-code-text>from importlib import import_module</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">15</span><code data-code-text>from pathlib import Path</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">16</span><code data-code-text>from typing import Any, Awaitable, Callable, Mapping</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">17</span><code data-code-text>from urllib.parse import quote, unquote, urljoin, urlsplit</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">18</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">19</span><code data-code-text>from lfx.custom.custom_component.component import Component</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">20</span><code data-code-text>from lfx.io import BoolInput, DictInput, IntInput, MultilineInput, Output, SecretStrInput, StrInput</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">21</span><code data-code-text>from lfx.schema import DataFrame</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">22</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">23</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">24</span><code data-code-text>DEFAULT_API_BASE_URL = &quot;https://api-server.lake.skhynix.com/api/v4/&quot;</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">25</span><code data-code-text>DEFAULT_CLUSTER_STATUS_PATH = &quot;runtime/cluster/{cluster_type}/running&quot;</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">26</span><code data-code-text>DEFAULT_CLUSTER_TYPE = &quot;starrocks&quot;</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">27</span><code data-code-text>DEFAULT_JDBC_ENDPOINT_KEY = &quot;jdbc-external&quot;</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">28</span><code data-code-text>DEFAULT_ALLOWED_MYSQL_HOSTS = &quot;.skhynix.com&quot;</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">29</span><code data-code-text>DEFAULT_MAX_ROWS = 5000</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">30</span><code data-code-text>MAX_ALLOWED_ROWS = 100000</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">31</span><code data-code-text>DEFAULT_API_TIMEOUT_SECONDS = 15</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">32</span><code data-code-text>DEFAULT_CLUSTER_WAIT_SECONDS = 120</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">33</span><code data-code-text>DEFAULT_POLL_INTERVAL_SECONDS = 3</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">34</span><code data-code-text>MYSQL_AUTH_PLUGIN = &quot;mysql_clear_password&quot;</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">35</span><code data-code-text>MAX_CLUSTER_RESPONSE_BYTES = 1024 * 1024</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">36</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">37</span><code data-code-text># 이 목록은 실수로 변경 SQL을 실행하는 것을 막는 보조 안전장치입니다.</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">38</span><code data-code-text># 실제 Datalake 계정에도 조회 권한만 부여해야 합니다.</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">39</span><code data-code-text>FORBIDDEN_SQL_KEYWORDS = {</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">40</span><code data-code-text>    &quot;ALTER&quot;,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">41</span><code data-code-text>    &quot;BEGIN&quot;,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">42</span><code data-code-text>    &quot;CALL&quot;,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">43</span><code data-code-text>    &quot;COMMIT&quot;,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">44</span><code data-code-text>    &quot;CREATE&quot;,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">45</span><code data-code-text>    &quot;DECLARE&quot;,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">46</span><code data-code-text>    &quot;DELETE&quot;,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">47</span><code data-code-text>    &quot;DROP&quot;,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">48</span><code data-code-text>    &quot;DUMPFILE&quot;,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">49</span><code data-code-text>    &quot;EXEC&quot;,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">50</span><code data-code-text>    &quot;EXECUTE&quot;,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">51</span><code data-code-text>    &quot;FUNCTION&quot;,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">52</span><code data-code-text>    &quot;GRANT&quot;,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">53</span><code data-code-text>    &quot;INSERT&quot;,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">54</span><code data-code-text>    &quot;INTO&quot;,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">55</span><code data-code-text>    &quot;LOCK&quot;,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">56</span><code data-code-text>    &quot;MERGE&quot;,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">57</span><code data-code-text>    &quot;PROCEDURE&quot;,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">58</span><code data-code-text>    &quot;REVOKE&quot;,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">59</span><code data-code-text>    &quot;ROLLBACK&quot;,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">60</span><code data-code-text>    &quot;SAVEPOINT&quot;,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">61</span><code data-code-text>    &quot;TRUNCATE&quot;,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">62</span><code data-code-text>    &quot;UPDATE&quot;,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">63</span><code data-code-text>    &quot;UPSERT&quot;,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">64</span><code data-code-text>    &quot;OUTFILE&quot;,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">65</span><code data-code-text>}</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">66</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">67</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">68</span><code data-code-text>def _secret_text(value: Any) -&gt; str:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">69</span><code data-code-text>    &quot;&quot;&quot;SecretStr 또는 일반 문자열에서 실제 인증 토큰을 가져옵니다.&quot;&quot;&quot;</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">70</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">71</span><code data-code-text>    getter = getattr(value, &quot;get_secret_value&quot;, None)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">72</span><code data-code-text>    if callable(getter):</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">73</span><code data-code-text>        return str(getter())</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">74</span><code data-code-text>    return &quot;&quot; if value is None else str(value)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">75</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">76</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">77</span><code data-code-text>def _sql_guard_text(sql: str) -&gt; str:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">78</span><code data-code-text>    &quot;&quot;&quot;SQL 주석과 문자열 literal을 같은 길이의 공백으로 바꿉니다.&quot;&quot;&quot;</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">79</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">80</span><code data-code-text>    result: list[str] = []</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">81</span><code data-code-text>    index = 0</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">82</span><code data-code-text>    state = &quot;normal&quot;</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">83</span><code data-code-text>    while index &lt; len(sql):</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">84</span><code data-code-text>        char = sql[index]</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">85</span><code data-code-text>        next_char = sql[index + 1] if index + 1 &lt; len(sql) else &quot;&quot;</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">86</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">87</span><code data-code-text>        if state == &quot;normal&quot;:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">88</span><code data-code-text>            if char == &quot;-&quot; and next_char == &quot;-&quot;:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">89</span><code data-code-text>                result.extend((&quot; &quot;, &quot; &quot;))</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">90</span><code data-code-text>                index += 2</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">91</span><code data-code-text>                state = &quot;line_comment&quot;</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">92</span><code data-code-text>                continue</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">93</span><code data-code-text>            if char == &quot;/&quot; and next_char == &quot;*&quot;:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">94</span><code data-code-text>                result.extend((&quot; &quot;, &quot; &quot;))</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">95</span><code data-code-text>                index += 2</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">96</span><code data-code-text>                state = &quot;block_comment&quot;</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">97</span><code data-code-text>                continue</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">98</span><code data-code-text>            if char == &quot;&#x27;&quot;:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">99</span><code data-code-text>                result.append(&quot; &quot;)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">100</span><code data-code-text>                index += 1</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">101</span><code data-code-text>                state = &quot;single_quote&quot;</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">102</span><code data-code-text>                continue</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">103</span><code data-code-text>            if char == &#x27;&quot;&#x27;:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">104</span><code data-code-text>                result.append(&quot; &quot;)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">105</span><code data-code-text>                index += 1</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">106</span><code data-code-text>                state = &quot;double_quote&quot;</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">107</span><code data-code-text>                continue</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">108</span><code data-code-text>            result.append(char)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">109</span><code data-code-text>            index += 1</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">110</span><code data-code-text>            continue</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">111</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">112</span><code data-code-text>        if state == &quot;line_comment&quot;:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">113</span><code data-code-text>            if char in &quot;\r\n&quot;:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">114</span><code data-code-text>                result.append(char)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">115</span><code data-code-text>                state = &quot;normal&quot;</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">116</span><code data-code-text>            else:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">117</span><code data-code-text>                result.append(&quot; &quot;)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">118</span><code data-code-text>            index += 1</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">119</span><code data-code-text>            continue</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">120</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">121</span><code data-code-text>        if state == &quot;block_comment&quot;:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">122</span><code data-code-text>            if char == &quot;*&quot; and next_char == &quot;/&quot;:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">123</span><code data-code-text>                result.extend((&quot; &quot;, &quot; &quot;))</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">124</span><code data-code-text>                index += 2</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">125</span><code data-code-text>                state = &quot;normal&quot;</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">126</span><code data-code-text>            else:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">127</span><code data-code-text>                result.append(&quot;\n&quot; if char == &quot;\n&quot; else &quot; &quot;)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">128</span><code data-code-text>                index += 1</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">129</span><code data-code-text>            continue</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">130</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">131</span><code data-code-text>        quote_char = &quot;&#x27;&quot; if state == &quot;single_quote&quot; else &#x27;&quot;&#x27;</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">132</span><code data-code-text>        if char == quote_char and next_char == quote_char:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">133</span><code data-code-text>            result.extend((&quot; &quot;, &quot; &quot;))</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">134</span><code data-code-text>            index += 2</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">135</span><code data-code-text>            continue</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">136</span><code data-code-text>        result.append(&quot;\n&quot; if char == &quot;\n&quot; else &quot; &quot;)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">137</span><code data-code-text>        index += 1</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">138</span><code data-code-text>        if char == quote_char:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">139</span><code data-code-text>            state = &quot;normal&quot;</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">140</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">141</span><code data-code-text>    if state in {&quot;single_quote&quot;, &quot;double_quote&quot;, &quot;block_comment&quot;}:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">142</span><code data-code-text>        raise ValueError(&quot;조회 SQL의 따옴표 또는 블록 주석이 닫히지 않았습니다.&quot;)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">143</span><code data-code-text>    return &quot;&quot;.join(result)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">144</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">145</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">146</span><code data-code-text>def validate_read_only_sql(sql: Any) -&gt; str:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">147</span><code data-code-text>    &quot;&quot;&quot;단일 SELECT/WITH 조회문인지 확인합니다.&quot;&quot;&quot;</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">148</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">149</span><code data-code-text>    text = str(sql or &quot;&quot;).strip()</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">150</span><code data-code-text>    if not text:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">151</span><code data-code-text>        raise ValueError(&quot;조회 SQL을 입력해 주세요.&quot;)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">152</span><code data-code-text>    if re.search(r&quot;/\*!&quot;, text):</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">153</span><code data-code-text>        raise ValueError(&quot;실행 가능한 MySQL 주석(/*! ... */)은 조회 SQL에 사용할 수 없습니다.&quot;)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">154</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">155</span><code data-code-text>    guard_text = _sql_guard_text(text)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">156</span><code data-code-text>    semicolon_indexes = [index for index, char in enumerate(guard_text) if char == &quot;;&quot;]</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">157</span><code data-code-text>    if len(semicolon_indexes) &gt; 1:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">158</span><code data-code-text>        raise ValueError(&quot;한 번에 하나의 조회 SQL만 실행할 수 있습니다.&quot;)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">159</span><code data-code-text>    if semicolon_indexes:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">160</span><code data-code-text>        semicolon_index = semicolon_indexes[0]</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">161</span><code data-code-text>        if guard_text[semicolon_index + 1 :].strip():</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">162</span><code data-code-text>            raise ValueError(&quot;조회 SQL 뒤에 다른 문장을 함께 실행할 수 없습니다.&quot;)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">163</span><code data-code-text>        text = (text[:semicolon_index] + text[semicolon_index + 1 :]).strip()</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">164</span><code data-code-text>        guard_text = _sql_guard_text(text)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">165</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">166</span><code data-code-text>    tokens = re.findall(r&quot;[A-Za-z_][A-Za-z0-9_$]*&quot;, guard_text.upper())</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">167</span><code data-code-text>    if not tokens or tokens[0] not in {&quot;SELECT&quot;, &quot;WITH&quot;}:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">168</span><code data-code-text>        raise ValueError(&quot;조회 전용 Component에서는 SELECT 또는 WITH로 시작하는 SQL만 허용합니다.&quot;)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">169</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">170</span><code data-code-text>    forbidden = sorted(set(tokens).intersection(FORBIDDEN_SQL_KEYWORDS))</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">171</span><code data-code-text>    if forbidden:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">172</span><code data-code-text>        raise ValueError(f&quot;조회 SQL에 허용되지 않는 명령이 포함되어 있습니다: {&#x27;, &#x27;.join(forbidden)}&quot;)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">173</span><code data-code-text>    return text</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">174</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">175</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">176</span><code data-code-text>def normalize_bind_parameters(value: Any) -&gt; dict[str, Any]:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">177</span><code data-code-text>    &quot;&quot;&quot;DictInput 또는 Langflow Data에 담긴 MySQL native bind 변수 map을 정리합니다.&quot;&quot;&quot;</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">178</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">179</span><code data-code-text>    if value in (None, &quot;&quot;):</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">180</span><code data-code-text>        return {}</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">181</span><code data-code-text>    if isinstance(value, Mapping):</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">182</span><code data-code-text>        source = value</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">183</span><code data-code-text>    else:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">184</span><code data-code-text>        data = getattr(value, &quot;data&quot;, None)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">185</span><code data-code-text>        if not isinstance(data, Mapping):</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">186</span><code data-code-text>            raise ValueError(&quot;바인드 변수는 JSON 객체 형태로 입력해 주세요.&quot;)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">187</span><code data-code-text>        source = data</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">188</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">189</span><code data-code-text>    result: dict[str, Any] = {}</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">190</span><code data-code-text>    for key, item in source.items():</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">191</span><code data-code-text>        name = str(key).strip()</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">192</span><code data-code-text>        if not name:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">193</span><code data-code-text>            raise ValueError(&quot;바인드 변수 이름은 비어 있을 수 없습니다.&quot;)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">194</span><code data-code-text>        result[name] = item</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">195</span><code data-code-text>    return result</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">196</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">197</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">198</span><code data-code-text>def normalize_int(value: Any, *, label: str, minimum: int, maximum: int) -&gt; int:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">199</span><code data-code-text>    &quot;&quot;&quot;정수 입력을 지정한 운영 안전 범위로 제한합니다.&quot;&quot;&quot;</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">200</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">201</span><code data-code-text>    try:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">202</span><code data-code-text>        number = int(value)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">203</span><code data-code-text>    except (TypeError, ValueError) as exc:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">204</span><code data-code-text>        raise ValueError(f&quot;{label}은(는) 정수여야 합니다.&quot;) from exc</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">205</span><code data-code-text>    if not minimum &lt;= number &lt;= maximum:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">206</span><code data-code-text>        raise ValueError(f&quot;{label}은(는) {minimum:,}~{maximum:,} 사이여야 합니다.&quot;)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">207</span><code data-code-text>    return number</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">208</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">209</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">210</span><code data-code-text>def normalize_bool(value: Any, *, label: str) -&gt; bool:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">211</span><code data-code-text>    &quot;&quot;&quot;BoolInput 또는 문자열 형태의 명시적 동의 값을 안전하게 해석합니다.&quot;&quot;&quot;</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">212</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">213</span><code data-code-text>    if isinstance(value, bool):</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">214</span><code data-code-text>        return value</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">215</span><code data-code-text>    text = str(value or &quot;&quot;).strip().lower()</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">216</span><code data-code-text>    if text in {&quot;true&quot;, &quot;1&quot;, &quot;yes&quot;, &quot;y&quot;, &quot;on&quot;}:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">217</span><code data-code-text>        return True</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">218</span><code data-code-text>    if text in {&quot;false&quot;, &quot;0&quot;, &quot;no&quot;, &quot;n&quot;, &quot;off&quot;, &quot;&quot;}:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">219</span><code data-code-text>        return False</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">220</span><code data-code-text>    raise ValueError(f&quot;{label} 값은 true 또는 false여야 합니다.&quot;)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">221</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">222</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">223</span><code data-code-text>def validate_api_base_url(value: Any, *, allow_insecure_http: bool = False) -&gt; str:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">224</span><code data-code-text>    &quot;&quot;&quot;Bearer Token을 보낼 API 기준 URL의 기본 구조를 확인합니다.&quot;&quot;&quot;</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">225</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">226</span><code data-code-text>    text = str(value or &quot;&quot;).strip()</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">227</span><code data-code-text>    parsed = urlsplit(text)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">228</span><code data-code-text>    if parsed.scheme not in {&quot;http&quot;, &quot;https&quot;} or not parsed.hostname:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">229</span><code data-code-text>        raise ValueError(&quot;Datalake API 기준 URL은 http 또는 https 전체 URL이어야 합니다.&quot;)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">230</span><code data-code-text>    if parsed.username or parsed.password or parsed.query or parsed.fragment:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">231</span><code data-code-text>        raise ValueError(&quot;Datalake API 기준 URL에는 계정, query string, fragment를 넣을 수 없습니다.&quot;)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">232</span><code data-code-text>    if parsed.scheme == &quot;http&quot; and not allow_insecure_http:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">233</span><code data-code-text>        raise ValueError(</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">234</span><code data-code-text>            &quot;Datalake JWT를 HTTP로 보낼 수 없습니다. HTTPS URL을 사용하거나, &quot;</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">235</span><code data-code-text>            &quot;폐쇄된 테스트망에서만 &#x27;HTTP API 사용 허용&#x27;을 명시적으로 켜 주세요.&quot;</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">236</span><code data-code-text>        )</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">237</span><code data-code-text>    return text.rstrip(&quot;/&quot;) + &quot;/&quot;</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">238</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">239</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">240</span><code data-code-text>def _normalize_host(value: Any) -&gt; str:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">241</span><code data-code-text>    &quot;&quot;&quot;비교용 host를 소문자와 후행점 제거 형태로 정규화합니다.&quot;&quot;&quot;</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">242</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">243</span><code data-code-text>    host = str(value or &quot;&quot;).strip().lower().rstrip(&quot;.&quot;)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">244</span><code data-code-text>    if not host:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">245</span><code data-code-text>        raise ValueError(&quot;MySQL host가 비어 있습니다.&quot;)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">246</span><code data-code-text>    return host</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">247</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">248</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">249</span><code data-code-text>def normalize_allowed_mysql_hosts(value: Any) -&gt; tuple[str, ...]:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">250</span><code data-code-text>    &quot;&quot;&quot;정확한 host 또는 `.example.com` suffix 허용 목록을 정리합니다.&quot;&quot;&quot;</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">251</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">252</span><code data-code-text>    raw_items = re.split(r&quot;[,;\r\n]+&quot;, str(value or &quot;&quot;))</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">253</span><code data-code-text>    rules: list[str] = []</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">254</span><code data-code-text>    for raw in raw_items:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">255</span><code data-code-text>        rule = raw.strip().lower().rstrip(&quot;.&quot;)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">256</span><code data-code-text>        if not rule:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">257</span><code data-code-text>            continue</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">258</span><code data-code-text>        if rule.startswith(&quot;*.&quot;):</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">259</span><code data-code-text>            rule = &quot;.&quot; + rule[2:]</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">260</span><code data-code-text>        is_suffix = rule.startswith(&quot;.&quot;)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">261</span><code data-code-text>        host_part = rule[1:] if is_suffix else rule</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">262</span><code data-code-text>        if not host_part or &quot;://&quot; in host_part or &quot;/&quot; in host_part or &quot;:&quot; in host_part:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">263</span><code data-code-text>            raise ValueError(&quot;허용 MySQL host에는 scheme, path, port를 넣을 수 없습니다.&quot;)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">264</span><code data-code-text>        try:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">265</span><code data-code-text>            ipaddress.ip_address(host_part)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">266</span><code data-code-text>            if is_suffix:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">267</span><code data-code-text>                raise ValueError(&quot;IP 주소는 suffix가 아닌 정확한 주소로만 허용할 수 있습니다.&quot;)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">268</span><code data-code-text>        except ValueError as exc:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">269</span><code data-code-text>            if &quot;suffix&quot; in str(exc):</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">270</span><code data-code-text>                raise</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">271</span><code data-code-text>            labels = host_part.split(&quot;.&quot;)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">272</span><code data-code-text>            if any(</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">273</span><code data-code-text>                not label</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">274</span><code data-code-text>                or len(label) &gt; 63</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">275</span><code data-code-text>                or not re.fullmatch(r&quot;[a-z0-9](?:[a-z0-9-]*[a-z0-9])?&quot;, label)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">276</span><code data-code-text>                for label in labels</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">277</span><code data-code-text>            ):</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">278</span><code data-code-text>                raise ValueError(f&quot;허용 MySQL host 형식이 올바르지 않습니다: {raw.strip()}&quot;) from exc</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">279</span><code data-code-text>        normalized = f&quot;.{host_part}&quot; if is_suffix else host_part</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">280</span><code data-code-text>        if normalized not in rules:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">281</span><code data-code-text>            rules.append(normalized)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">282</span><code data-code-text>    if not rules:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">283</span><code data-code-text>        raise ValueError(&quot;허용 MySQL host를 한 개 이상 입력해 주세요.&quot;)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">284</span><code data-code-text>    return tuple(rules)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">285</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">286</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">287</span><code data-code-text>def ensure_allowed_mysql_host(host: Any, allowed_hosts: tuple[str, ...]) -&gt; str:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">288</span><code data-code-text>    &quot;&quot;&quot;Cluster API가 돌려준 host가 사용자가 지정한 허용 범위인지 확인합니다.&quot;&quot;&quot;</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">289</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">290</span><code data-code-text>    normalized = _normalize_host(host)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">291</span><code data-code-text>    try:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">292</span><code data-code-text>        ipaddress.ip_address(normalized)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">293</span><code data-code-text>        is_ip = True</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">294</span><code data-code-text>    except ValueError:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">295</span><code data-code-text>        is_ip = False</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">296</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">297</span><code data-code-text>    for rule in allowed_hosts:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">298</span><code data-code-text>        if rule.startswith(&quot;.&quot;):</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">299</span><code data-code-text>            if is_ip:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">300</span><code data-code-text>                continue</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">301</span><code data-code-text>            suffix = rule[1:]</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">302</span><code data-code-text>            if normalized == suffix or normalized.endswith(&quot;.&quot; + suffix):</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">303</span><code data-code-text>                return normalized</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">304</span><code data-code-text>        elif normalized == rule:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">305</span><code data-code-text>            return normalized</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">306</span><code data-code-text>    raise PermissionError(&quot;Cluster API가 반환한 MySQL host가 허용 목록에 없습니다.&quot;)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">307</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">308</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">309</span><code data-code-text>def validate_mysql_ssl_ca_path(value: Any) -&gt; str:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">310</span><code data-code-text>    &quot;&quot;&quot;MySQL 서버 인증서 검증에 사용할 CA 파일을 확인합니다.&quot;&quot;&quot;</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">311</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">312</span><code data-code-text>    text = str(value or &quot;&quot;).strip()</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">313</span><code data-code-text>    if not text:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">314</span><code data-code-text>        raise ValueError(&quot;MySQL 서버 인증서 검증용 CA 파일 경로를 입력해 주세요.&quot;)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">315</span><code data-code-text>    path = Path(text).expanduser()</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">316</span><code data-code-text>    if not path.is_file():</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">317</span><code data-code-text>        raise ValueError(&quot;MySQL CA 파일을 찾을 수 없습니다. Agent Builder 실행 환경의 경로를 확인해 주세요.&quot;)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">318</span><code data-code-text>    return str(path.resolve())</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">319</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">320</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">321</span><code data-code-text>def build_cluster_status_url(api_base_url: str, status_path: Any, cluster_type: Any) -&gt; str:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">322</span><code data-code-text>    &quot;&quot;&quot;입력한 API 기준 URL과 상대 경로를 안전하게 결합합니다.&quot;&quot;&quot;</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">323</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">324</span><code data-code-text>    cluster = str(cluster_type or &quot;&quot;).strip()</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">325</span><code data-code-text>    if not re.fullmatch(r&quot;[A-Za-z0-9_-]{1,64}&quot;, cluster):</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">326</span><code data-code-text>        raise ValueError(&quot;Cluster 유형은 영문, 숫자, 밑줄, 하이픈만 사용할 수 있습니다.&quot;)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">327</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">328</span><code data-code-text>    path_template = str(status_path or &quot;&quot;).strip().replace(&quot;{cluster_type}&quot;, quote(cluster, safe=&quot;&quot;))</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">329</span><code data-code-text>    if not path_template:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">330</span><code data-code-text>        raise ValueError(&quot;Cluster 상태 경로를 입력해 주세요.&quot;)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">331</span><code data-code-text>    if &quot;{&quot; in path_template or &quot;}&quot; in path_template:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">332</span><code data-code-text>        raise ValueError(&quot;Cluster 상태 경로에는 {cluster_type} 변수만 사용할 수 있습니다.&quot;)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">333</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">334</span><code data-code-text>    parsed_path = urlsplit(path_template)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">335</span><code data-code-text>    if parsed_path.scheme or parsed_path.netloc or parsed_path.query or parsed_path.fragment:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">336</span><code data-code-text>        raise ValueError(&quot;Cluster 상태 경로는 query string이 없는 상대 경로여야 합니다.&quot;)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">337</span><code data-code-text>    path_segments = [segment for segment in parsed_path.path.replace(&quot;\\&quot;, &quot;/&quot;).split(&quot;/&quot;) if segment]</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">338</span><code data-code-text>    if any(segment == &quot;..&quot; for segment in path_segments):</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">339</span><code data-code-text>        raise ValueError(&quot;Cluster 상태 경로에는 상위 경로 이동(..)을 사용할 수 없습니다.&quot;)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">340</span><code data-code-text>    return urljoin(api_base_url, &quot;/&quot;.join(path_segments))</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">341</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">342</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">343</span><code data-code-text>def validate_endpoint_key(value: Any) -&gt; str:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">344</span><code data-code-text>    &quot;&quot;&quot;Cluster 응답에서 MySQL 주소를 찾을 endpoints key를 확인합니다.&quot;&quot;&quot;</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">345</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">346</span><code data-code-text>    key = str(value or &quot;&quot;).strip()</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">347</span><code data-code-text>    if not re.fullmatch(r&quot;[A-Za-z0-9_.-]{1,100}&quot;, key):</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">348</span><code data-code-text>        raise ValueError(&quot;MySQL Endpoint 필드는 영문, 숫자, 점, 밑줄, 하이픈만 사용할 수 있습니다.&quot;)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">349</span><code data-code-text>    return key</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">350</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">351</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">352</span><code data-code-text>def parse_mysql_endpoint(value: Any) -&gt; tuple[str, int, str]:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">353</span><code data-code-text>    &quot;&quot;&quot;host:port, mysql://, jdbc:mysql:// 주소를 MySQL 연결값으로 나눕니다.&quot;&quot;&quot;</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">354</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">355</span><code data-code-text>    text = str(value or &quot;&quot;).strip()</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">356</span><code data-code-text>    if not text:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">357</span><code data-code-text>        raise ValueError(&quot;Cluster 응답에 MySQL 접속 주소가 없습니다.&quot;)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">358</span><code data-code-text>    if text.lower().startswith(&quot;jdbc:mysql://&quot;):</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">359</span><code data-code-text>        text = text[5:]</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">360</span><code data-code-text>    if &quot;://&quot; not in text:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">361</span><code data-code-text>        text = &quot;mysql://&quot; + text</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">362</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">363</span><code data-code-text>    parsed = urlsplit(text)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">364</span><code data-code-text>    if parsed.scheme.lower() != &quot;mysql&quot; or not parsed.hostname:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">365</span><code data-code-text>        raise ValueError(&quot;MySQL 접속 주소 형식이 올바르지 않습니다.&quot;)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">366</span><code data-code-text>    if parsed.username or parsed.password:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">367</span><code data-code-text>        raise ValueError(&quot;Cluster 응답의 MySQL 주소에 계정 정보가 포함되어서는 안 됩니다.&quot;)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">368</span><code data-code-text>    if parsed.query or parsed.fragment:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">369</span><code data-code-text>        raise ValueError(&quot;Cluster 응답의 MySQL 주소에는 query string이나 fragment가 없어야 합니다.&quot;)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">370</span><code data-code-text>    try:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">371</span><code data-code-text>        port = parsed.port</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">372</span><code data-code-text>    except ValueError as exc:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">373</span><code data-code-text>        raise ValueError(&quot;MySQL 접속 주소의 port가 올바르지 않습니다.&quot;) from exc</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">374</span><code data-code-text>    if port is None or not 1 &lt;= port &lt;= 65535:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">375</span><code data-code-text>        raise ValueError(&quot;MySQL 접속 주소에는 1~65535 범위의 port가 필요합니다.&quot;)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">376</span><code data-code-text>    database = unquote(parsed.path.lstrip(&quot;/&quot;).split(&quot;/&quot;, 1)[0]) if parsed.path.strip(&quot;/&quot;) else &quot;&quot;</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">377</span><code data-code-text>    return parsed.hostname, port, database</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">378</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">379</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">380</span><code data-code-text>def _load_aiohttp() -&gt; Any:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">381</span><code data-code-text>    &quot;&quot;&quot;설치된 aiohttp를 불러오며 실행 중 패키지를 설치하지 않습니다.&quot;&quot;&quot;</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">382</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">383</span><code data-code-text>    try:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">384</span><code data-code-text>        return import_module(&quot;aiohttp&quot;)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">385</span><code data-code-text>    except (ImportError, ModuleNotFoundError) as exc:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">386</span><code data-code-text>        raise RuntimeError(</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">387</span><code data-code-text>            &quot;Datalake Cluster API 호출에 필요한 &#x27;aiohttp&#x27; 패키지가 없습니다. &quot;</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">388</span><code data-code-text>            &quot;Agent Builder 운영 환경에 관리자가 패키지를 먼저 설치해야 합니다.&quot;</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">389</span><code data-code-text>        ) from exc</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">390</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">391</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">392</span><code data-code-text>def _load_mysql_connect() -&gt; Callable[..., Any]:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">393</span><code data-code-text>    &quot;&quot;&quot;설치된 mysql-connector-python의 connect 함수를 불러옵니다.&quot;&quot;&quot;</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">394</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">395</span><code data-code-text>    try:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">396</span><code data-code-text>        module = import_module(&quot;mysql.connector&quot;)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">397</span><code data-code-text>    except (ImportError, ModuleNotFoundError) as exc:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">398</span><code data-code-text>        raise RuntimeError(</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">399</span><code data-code-text>            &quot;Datalake SQL 조회에 필요한 &#x27;mysql-connector-python&#x27; 패키지가 없습니다. &quot;</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">400</span><code data-code-text>            &quot;Agent Builder 운영 환경에 관리자가 패키지를 먼저 설치해야 합니다.&quot;</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">401</span><code data-code-text>        ) from exc</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">402</span><code data-code-text>    return module.connect</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">403</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">404</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">405</span><code data-code-text>async def _poll_cluster_status(</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">406</span><code data-code-text>    *,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">407</span><code data-code-text>    status_url: str,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">408</span><code data-code-text>    headers: Mapping[str, str],</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">409</span><code data-code-text>    endpoint_key: str,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">410</span><code data-code-text>    allowed_mysql_hosts: tuple[str, ...],</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">411</span><code data-code-text>    request_timeout_seconds: int,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">412</span><code data-code-text>    cluster_wait_seconds: int,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">413</span><code data-code-text>    poll_interval_seconds: int,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">414</span><code data-code-text>    status_fetcher: Callable[[str, Mapping[str, str], int], Any],</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">415</span><code data-code-text>    sleep_fn: Callable[[float], Awaitable[Any]] = asyncio.sleep,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">416</span><code data-code-text>    monotonic_fn: Callable[[], float] = time.monotonic,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">417</span><code data-code-text>) -&gt; tuple[str, int, str]:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">418</span><code data-code-text>    &quot;&quot;&quot;실제 전체 deadline 안에서 Cluster 상태와 허용된 MySQL 주소를 확인합니다.&quot;&quot;&quot;</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">419</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">420</span><code data-code-text>    max_attempts = max(1, cluster_wait_seconds // poll_interval_seconds + 1)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">421</span><code data-code-text>    deadline = monotonic_fn() + cluster_wait_seconds</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">422</span><code data-code-text>    last_status = &quot;UNKNOWN&quot;</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">423</span><code data-code-text>    for attempt in range(1, max_attempts + 1):</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">424</span><code data-code-text>        remaining = deadline - monotonic_fn()</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">425</span><code data-code-text>        if remaining &lt;= 0:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">426</span><code data-code-text>            break</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">427</span><code data-code-text>        per_request_timeout = max(1, min(request_timeout_seconds, int(remaining + 0.999)))</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">428</span><code data-code-text>        fetched = status_fetcher(status_url, headers, per_request_timeout)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">429</span><code data-code-text>        if inspect.isawaitable(fetched):</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">430</span><code data-code-text>            try:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">431</span><code data-code-text>                payload = await asyncio.wait_for(fetched, timeout=remaining)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">432</span><code data-code-text>            except asyncio.TimeoutError as exc:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">433</span><code data-code-text>                raise TimeoutError(&quot;Datalake Cluster 상태 조회가 전체 대기시간을 초과했습니다.&quot;) from exc</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">434</span><code data-code-text>        else:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">435</span><code data-code-text>            payload = fetched</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">436</span><code data-code-text>        if not isinstance(payload, Mapping):</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">437</span><code data-code-text>            raise RuntimeError(&quot;Datalake Cluster API 응답이 JSON 객체가 아닙니다.&quot;)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">438</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">439</span><code data-code-text>        last_status = str(payload.get(&quot;status&quot;) or &quot;UNKNOWN&quot;).upper()</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">440</span><code data-code-text>        if last_status == &quot;RUNNING&quot;:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">441</span><code data-code-text>            endpoints = payload.get(&quot;endpoints&quot;)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">442</span><code data-code-text>            if not isinstance(endpoints, Mapping):</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">443</span><code data-code-text>                raise RuntimeError(&quot;RUNNING 응답에 endpoints 객체가 없습니다.&quot;)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">444</span><code data-code-text>            host, port, database = parse_mysql_endpoint(endpoints.get(endpoint_key))</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">445</span><code data-code-text>            return ensure_allowed_mysql_host(host, allowed_mysql_hosts), port, database</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">446</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">447</span><code data-code-text>        if attempt &lt; max_attempts:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">448</span><code data-code-text>            remaining = deadline - monotonic_fn()</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">449</span><code data-code-text>            if remaining &lt;= 0:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">450</span><code data-code-text>                break</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">451</span><code data-code-text>            await sleep_fn(min(poll_interval_seconds, remaining))</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">452</span><code data-code-text>    raise TimeoutError(f&quot;Datalake Cluster가 제한시간 안에 RUNNING 상태가 되지 않았습니다. 마지막 상태: {last_status}&quot;)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">453</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">454</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">455</span><code data-code-text>async def discover_mysql_endpoint(</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">456</span><code data-code-text>    *,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">457</span><code data-code-text>    status_url: str,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">458</span><code data-code-text>    user_id: str,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">459</span><code data-code-text>    token: str,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">460</span><code data-code-text>    endpoint_key: str,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">461</span><code data-code-text>    allowed_mysql_hosts: tuple[str, ...],</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">462</span><code data-code-text>    request_timeout_seconds: int,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">463</span><code data-code-text>    cluster_wait_seconds: int,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">464</span><code data-code-text>    poll_interval_seconds: int,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">465</span><code data-code-text>    status_fetcher: Callable[[str, Mapping[str, str], int], Any] | None = None,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">466</span><code data-code-text>    sleep_fn: Callable[[float], Awaitable[Any]] = asyncio.sleep,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">467</span><code data-code-text>    monotonic_fn: Callable[[], float] = time.monotonic,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">468</span><code data-code-text>) -&gt; tuple[str, int, str]:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">469</span><code data-code-text>    &quot;&quot;&quot;Datalake API를 통해 실행 중인 Cluster의 MySQL endpoint를 찾습니다.</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">470</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">471</span><code data-code-text>    테스트에서는 ``status_fetcher``를 주입해 네트워크 호출 없이 상태 전이와</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">472</span><code data-code-text>    endpoint parsing을 확인할 수 있습니다.</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">473</span><code data-code-text>    &quot;&quot;&quot;</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">474</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">475</span><code data-code-text>    headers = {</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">476</span><code data-code-text>        &quot;accept&quot;: &quot;application/json;charset=UTF-8&quot;,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">477</span><code data-code-text>        &quot;Authorization&quot;: f&quot;Bearer {token}&quot;,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">478</span><code data-code-text>        &quot;user_id&quot;: user_id,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">479</span><code data-code-text>    }</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">480</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">481</span><code data-code-text>    if status_fetcher is not None:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">482</span><code data-code-text>        return await _poll_cluster_status(</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">483</span><code data-code-text>            status_url=status_url,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">484</span><code data-code-text>            headers=headers,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">485</span><code data-code-text>            endpoint_key=endpoint_key,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">486</span><code data-code-text>            allowed_mysql_hosts=allowed_mysql_hosts,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">487</span><code data-code-text>            request_timeout_seconds=request_timeout_seconds,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">488</span><code data-code-text>            cluster_wait_seconds=cluster_wait_seconds,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">489</span><code data-code-text>            poll_interval_seconds=poll_interval_seconds,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">490</span><code data-code-text>            status_fetcher=status_fetcher,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">491</span><code data-code-text>            sleep_fn=sleep_fn,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">492</span><code data-code-text>            monotonic_fn=monotonic_fn,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">493</span><code data-code-text>        )</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">494</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">495</span><code data-code-text>    aiohttp = _load_aiohttp()</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">496</span><code data-code-text>    timeout = aiohttp.ClientTimeout(total=request_timeout_seconds)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">497</span><code data-code-text>    async with aiohttp.ClientSession(timeout=timeout) as session:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">498</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">499</span><code data-code-text>        async def fetch_status(url: str, request_headers: Mapping[str, str], _timeout: int) -&gt; Any:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">500</span><code data-code-text>            # redirect를 따라가면 Bearer Token이 다른 host로 전달될 수 있어 차단합니다.</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">501</span><code data-code-text>            async with session.get(url, headers=dict(request_headers), allow_redirects=False) as response:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">502</span><code data-code-text>                if response.status in {401, 403}:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">503</span><code data-code-text>                    raise PermissionError(f&quot;Datalake Cluster API 인증에 실패했습니다. HTTP {response.status}&quot;)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">504</span><code data-code-text>                if not 200 &lt;= response.status &lt; 300:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">505</span><code data-code-text>                    raise RuntimeError(f&quot;Datalake Cluster API 호출에 실패했습니다. HTTP {response.status}&quot;)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">506</span><code data-code-text>                content_length = response.headers.get(&quot;Content-Length&quot;, &quot;&quot;)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">507</span><code data-code-text>                if content_length:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">508</span><code data-code-text>                    try:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">509</span><code data-code-text>                        if int(content_length) &gt; MAX_CLUSTER_RESPONSE_BYTES:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">510</span><code data-code-text>                            raise RuntimeError(&quot;Datalake Cluster API 응답이 허용 크기를 초과했습니다.&quot;)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">511</span><code data-code-text>                    except ValueError:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">512</span><code data-code-text>                        pass</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">513</span><code data-code-text>                try:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">514</span><code data-code-text>                    raw = await response.content.read(MAX_CLUSTER_RESPONSE_BYTES + 1)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">515</span><code data-code-text>                    if len(raw) &gt; MAX_CLUSTER_RESPONSE_BYTES:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">516</span><code data-code-text>                        raise RuntimeError(&quot;Datalake Cluster API 응답이 허용 크기를 초과했습니다.&quot;)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">517</span><code data-code-text>                    return json.loads(raw)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">518</span><code data-code-text>                except RuntimeError:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">519</span><code data-code-text>                    raise</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">520</span><code data-code-text>                except Exception as exc:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">521</span><code data-code-text>                    raise RuntimeError(&quot;Datalake Cluster API 응답을 JSON으로 해석할 수 없습니다.&quot;) from exc</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">522</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">523</span><code data-code-text>        return await _poll_cluster_status(</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">524</span><code data-code-text>            status_url=status_url,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">525</span><code data-code-text>            headers=headers,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">526</span><code data-code-text>            endpoint_key=endpoint_key,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">527</span><code data-code-text>            allowed_mysql_hosts=allowed_mysql_hosts,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">528</span><code data-code-text>            request_timeout_seconds=request_timeout_seconds,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">529</span><code data-code-text>            cluster_wait_seconds=cluster_wait_seconds,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">530</span><code data-code-text>            poll_interval_seconds=poll_interval_seconds,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">531</span><code data-code-text>            status_fetcher=fetch_status,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">532</span><code data-code-text>            sleep_fn=sleep_fn,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">533</span><code data-code-text>            monotonic_fn=monotonic_fn,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">534</span><code data-code-text>        )</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">535</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">536</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">537</span><code data-code-text>def _column_names(cursor: Any) -&gt; list[str]:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">538</span><code data-code-text>    &quot;&quot;&quot;MySQL cursor에서 중복되지 않는 컬럼명을 생성합니다.&quot;&quot;&quot;</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">539</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">540</span><code data-code-text>    raw_columns = getattr(cursor, &quot;column_names&quot;, None)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">541</span><code data-code-text>    if not raw_columns:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">542</span><code data-code-text>        description = getattr(cursor, &quot;description&quot;, None) or []</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">543</span><code data-code-text>        raw_columns = [getattr(item, &quot;name&quot;, None) or item[0] for item in description]</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">544</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">545</span><code data-code-text>    columns: list[str] = []</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">546</span><code data-code-text>    counts: dict[str, int] = {}</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">547</span><code data-code-text>    for index, raw_name in enumerate(raw_columns or [], 1):</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">548</span><code data-code-text>        base_name = str(raw_name or f&quot;COLUMN_{index}&quot;)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">549</span><code data-code-text>        counts[base_name] = counts.get(base_name, 0) + 1</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">550</span><code data-code-text>        suffix = counts[base_name]</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">551</span><code data-code-text>        columns.append(base_name if suffix == 1 else f&quot;{base_name}_{suffix}&quot;)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">552</span><code data-code-text>    return columns</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">553</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">554</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">555</span><code data-code-text>def _table_value(value: Any) -&gt; Any:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">556</span><code data-code-text>    &quot;&quot;&quot;StarRocks/MySQL 결과 값을 DataFrame 화면에서 안전하게 확인 가능한 값으로 바꿉니다.&quot;&quot;&quot;</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">557</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">558</span><code data-code-text>    if value is None or isinstance(value, (str, int, float, bool)):</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">559</span><code data-code-text>        return value</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">560</span><code data-code-text>    if isinstance(value, (datetime, date)):</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">561</span><code data-code-text>        return value.isoformat()</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">562</span><code data-code-text>    if isinstance(value, Decimal):</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">563</span><code data-code-text>        return float(value)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">564</span><code data-code-text>    if isinstance(value, (bytes, bytearray, memoryview)):</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">565</span><code data-code-text>        return base64.b64encode(bytes(value)).decode(&quot;ascii&quot;)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">566</span><code data-code-text>    try:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">567</span><code data-code-text>        if value != value:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">568</span><code data-code-text>            return None</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">569</span><code data-code-text>    except Exception:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">570</span><code data-code-text>        pass</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">571</span><code data-code-text>    return str(value)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">572</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">573</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">574</span><code data-code-text>def _rows_to_records(rows: list[Any], columns: list[str]) -&gt; list[dict[str, Any]]:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">575</span><code data-code-text>    &quot;&quot;&quot;MySQL cursor row를 컬럼명이 있는 record 목록으로 변환합니다.&quot;&quot;&quot;</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">576</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">577</span><code data-code-text>    records: list[dict[str, Any]] = []</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">578</span><code data-code-text>    for row in rows:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">579</span><code data-code-text>        if isinstance(row, Mapping):</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">580</span><code data-code-text>            record = {str(key): _table_value(item) for key, item in row.items()}</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">581</span><code data-code-text>        else:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">582</span><code data-code-text>            record = {column: _table_value(item) for column, item in zip(columns, row, strict=False)}</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">583</span><code data-code-text>        records.append(record)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">584</span><code data-code-text>    return records</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">585</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">586</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">587</span><code data-code-text>def _close_quietly(resource: Any) -&gt; None:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">588</span><code data-code-text>    &quot;&quot;&quot;원래 조회 오류를 가리지 않도록 cursor/connection 종료 오류는 무시합니다.&quot;&quot;&quot;</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">589</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">590</span><code data-code-text>    closer = getattr(resource, &quot;close&quot;, None)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">591</span><code data-code-text>    if callable(closer):</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">592</span><code data-code-text>        try:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">593</span><code data-code-text>            closer()</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">594</span><code data-code-text>        except Exception:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">595</span><code data-code-text>            pass</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">596</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">597</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">598</span><code data-code-text>def execute_mysql_query(</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">599</span><code data-code-text>    *,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">600</span><code data-code-text>    host: str,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">601</span><code data-code-text>    port: int,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">602</span><code data-code-text>    database: str,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">603</span><code data-code-text>    user_id: str,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">604</span><code data-code-text>    token: str,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">605</span><code data-code-text>    sql: str,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">606</span><code data-code-text>    bind_parameters: Mapping[str, Any] | None,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">607</span><code data-code-text>    max_rows: int,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">608</span><code data-code-text>    connect_timeout_seconds: int,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">609</span><code data-code-text>    query_timeout_seconds: int,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">610</span><code data-code-text>    ssl_ca_path: str,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">611</span><code data-code-text>    connect_fn: Callable[..., Any] | None = None,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">612</span><code data-code-text>) -&gt; tuple[list[dict[str, Any]], list[str], bool]:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">613</span><code data-code-text>    &quot;&quot;&quot;StarRocks MySQL endpoint에서 SQL을 실행합니다.</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">614</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">615</span><code data-code-text>    ``connect_fn``을 주입할 수 있어 실제 Datalake 없이 connection/cursor 가짜</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">616</span><code data-code-text>    객체로 native bind, 최대 행 수, 리소스 종료 계약을 테스트할 수 있습니다.</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">617</span><code data-code-text>    &quot;&quot;&quot;</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">618</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">619</span><code data-code-text>    connection_factory = connect_fn or _load_mysql_connect()</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">620</span><code data-code-text>    connection = None</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">621</span><code data-code-text>    cursor = None</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">622</span><code data-code-text>    try:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">623</span><code data-code-text>        connect_kwargs: dict[str, Any] = {</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">624</span><code data-code-text>            &quot;host&quot;: host,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">625</span><code data-code-text>            &quot;port&quot;: port,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">626</span><code data-code-text>            &quot;user&quot;: user_id,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">627</span><code data-code-text>            &quot;password&quot;: token,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">628</span><code data-code-text>            &quot;use_pure&quot;: True,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">629</span><code data-code-text>            &quot;ssl_disabled&quot;: False,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">630</span><code data-code-text>            &quot;ssl_ca&quot;: ssl_ca_path,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">631</span><code data-code-text>            &quot;ssl_verify_cert&quot;: True,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">632</span><code data-code-text>            &quot;ssl_verify_identity&quot;: True,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">633</span><code data-code-text>            &quot;auth_plugin&quot;: MYSQL_AUTH_PLUGIN,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">634</span><code data-code-text>            &quot;allow_local_infile&quot;: False,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">635</span><code data-code-text>            &quot;connection_timeout&quot;: connect_timeout_seconds,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">636</span><code data-code-text>            &quot;read_timeout&quot;: query_timeout_seconds,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">637</span><code data-code-text>            &quot;write_timeout&quot;: query_timeout_seconds,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">638</span><code data-code-text>        }</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">639</span><code data-code-text>        if database:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">640</span><code data-code-text>            connect_kwargs[&quot;database&quot;] = database</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">641</span><code data-code-text>        connection = connection_factory(**connect_kwargs)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">642</span><code data-code-text>        cursor = connection.cursor()</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">643</span><code data-code-text>        parameters = dict(bind_parameters or {})</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">644</span><code data-code-text>        if parameters:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">645</span><code data-code-text>            cursor.execute(sql, parameters)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">646</span><code data-code-text>        else:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">647</span><code data-code-text>            cursor.execute(sql)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">648</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">649</span><code data-code-text>        columns = _column_names(cursor)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">650</span><code data-code-text>        if not columns:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">651</span><code data-code-text>            raise RuntimeError(&quot;Datalake 조회 결과에 컬럼 정보가 없습니다.&quot;)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">652</span><code data-code-text>        fetched = list(cursor.fetchmany(max_rows + 1))</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">653</span><code data-code-text>        truncated = len(fetched) &gt; max_rows</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">654</span><code data-code-text>        return _rows_to_records(fetched[:max_rows], columns), columns, truncated</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">655</span><code data-code-text>    finally:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">656</span><code data-code-text>        _close_quietly(cursor)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">657</span><code data-code-text>        _close_quietly(connection)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">658</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">659</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">660</span><code data-code-text>def _safe_error_text(error: Exception, sensitive_values: list[str]) -&gt; str:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">661</span><code data-code-text>    &quot;&quot;&quot;인증 정보와 내부 주소가 노출되지 않도록 오류 문자열을 정리합니다.&quot;&quot;&quot;</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">662</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">663</span><code data-code-text>    if error.__class__.__module__ not in {&quot;builtins&quot;, __name__}:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">664</span><code data-code-text>        return f&quot;외부 MySQL driver 오류가 발생했습니다 ({error.__class__.__name__}).&quot;</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">665</span><code data-code-text>    text = str(error).strip() or error.__class__.__name__</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">666</span><code data-code-text>    for value in sensitive_values:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">667</span><code data-code-text>        if value:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">668</span><code data-code-text>            text = text.replace(value, &quot;[보호됨]&quot;)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">669</span><code data-code-text>    return text[:500]</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">670</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">671</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">672</span><code data-code-text>def build_dataframe(rows: list[dict[str, Any]], columns: list[str]) -&gt; DataFrame:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">673</span><code data-code-text>    &quot;&quot;&quot;0행 결과도 컬럼 구조를 유지하는 Langflow DataFrame을 만듭니다.&quot;&quot;&quot;</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">674</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">675</span><code data-code-text>    if rows:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">676</span><code data-code-text>        return DataFrame(rows)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">677</span><code data-code-text>    return DataFrame({column: [] for column in columns})</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">678</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">679</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">680</span><code data-code-text>class DatalakeTableQuery(Component):</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">681</span><code data-code-text>    &quot;&quot;&quot;Datalake의 StarRocks Cluster를 찾아 단일 조회 결과 테이블만 반환합니다.&quot;&quot;&quot;</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">682</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">683</span><code data-code-text>    display_name = &quot;Datalake 테이블 조회&quot;</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">684</span><code data-code-text>    description = &quot;Cluster API와 MySQL 조회 설정을 직접 입력받아 Datalake 결과를 DataFrame으로 반환합니다.&quot;</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">685</span><code data-code-text>    icon = &quot;Waves&quot;</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">686</span><code data-code-text>    name = &quot;DatalakeTableQuery&quot;</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">687</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">688</span><code data-code-text>    inputs = [</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">689</span><code data-code-text>        StrInput(</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">690</span><code data-code-text>            name=&quot;api_base_url&quot;,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">691</span><code data-code-text>            display_name=&quot;Datalake API 기준 URL&quot;,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">692</span><code data-code-text>            value=DEFAULT_API_BASE_URL,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">693</span><code data-code-text>            required=True,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">694</span><code data-code-text>            info=&quot;Cluster 상태 API의 기준 URL입니다. 신뢰할 수 있는 사내 주소만 사용하세요.&quot;,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">695</span><code data-code-text>        ),</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">696</span><code data-code-text>        BoolInput(</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">697</span><code data-code-text>            name=&quot;allow_insecure_api_http&quot;,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">698</span><code data-code-text>            display_name=&quot;HTTP API 사용 허용&quot;,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">699</span><code data-code-text>            value=False,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">700</span><code data-code-text>            advanced=True,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">701</span><code data-code-text>            info=&quot;기본값은 꺼짐입니다. HTTPS를 지원하지 않는 폐쇄된 테스트망에서만 명시적으로 켜세요.&quot;,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">702</span><code data-code-text>        ),</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">703</span><code data-code-text>        StrInput(</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">704</span><code data-code-text>            name=&quot;cluster_status_path&quot;,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">705</span><code data-code-text>            display_name=&quot;Cluster 상태 경로&quot;,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">706</span><code data-code-text>            value=DEFAULT_CLUSTER_STATUS_PATH,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">707</span><code data-code-text>            required=True,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">708</span><code data-code-text>            info=&quot;기준 URL 뒤에 붙는 상대 경로입니다. {cluster_type} 변수를 사용할 수 있습니다.&quot;,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">709</span><code data-code-text>        ),</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">710</span><code data-code-text>        StrInput(</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">711</span><code data-code-text>            name=&quot;cluster_type&quot;,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">712</span><code data-code-text>            display_name=&quot;Cluster 유형&quot;,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">713</span><code data-code-text>            value=DEFAULT_CLUSTER_TYPE,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">714</span><code data-code-text>            required=True,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">715</span><code data-code-text>            info=&quot;기본값은 starrocks입니다.&quot;,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">716</span><code data-code-text>        ),</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">717</span><code data-code-text>        StrInput(</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">718</span><code data-code-text>            name=&quot;jdbc_endpoint_key&quot;,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">719</span><code data-code-text>            display_name=&quot;MySQL Endpoint 필드&quot;,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">720</span><code data-code-text>            value=DEFAULT_JDBC_ENDPOINT_KEY,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">721</span><code data-code-text>            required=True,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">722</span><code data-code-text>            advanced=True,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">723</span><code data-code-text>            info=&quot;Cluster 응답의 endpoints 객체에서 MySQL 주소를 찾을 필드명입니다.&quot;,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">724</span><code data-code-text>        ),</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">725</span><code data-code-text>        MultilineInput(</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">726</span><code data-code-text>            name=&quot;allowed_mysql_hosts&quot;,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">727</span><code data-code-text>            display_name=&quot;허용 MySQL Host&quot;,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">728</span><code data-code-text>            value=DEFAULT_ALLOWED_MYSQL_HOSTS,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">729</span><code data-code-text>            required=True,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">730</span><code data-code-text>            info=&quot;정확한 host 또는 .example.com suffix를 쉼표/줄바꿈으로 입력합니다. API가 다른 host를 반환하면 차단합니다.&quot;,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">731</span><code data-code-text>        ),</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">732</span><code data-code-text>        StrInput(</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">733</span><code data-code-text>            name=&quot;lake_user_id&quot;,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">734</span><code data-code-text>            display_name=&quot;Datalake 사용자 ID&quot;,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">735</span><code data-code-text>            required=True,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">736</span><code data-code-text>            info=&quot;Cluster API의 user_id와 MySQL 접속 사용자로 전달됩니다.&quot;,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">737</span><code data-code-text>        ),</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">738</span><code data-code-text>        SecretStrInput(</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">739</span><code data-code-text>            name=&quot;lake_jwt_token&quot;,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">740</span><code data-code-text>            display_name=&quot;Datalake JWT 토큰&quot;,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">741</span><code data-code-text>            required=True,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">742</span><code data-code-text>            info=&quot;Bearer Token과 MySQL 비밀번호로 전달되는 보호 필드입니다.&quot;,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">743</span><code data-code-text>        ),</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">744</span><code data-code-text>        StrInput(</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">745</span><code data-code-text>            name=&quot;mysql_ssl_ca_path&quot;,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">746</span><code data-code-text>            display_name=&quot;MySQL CA 파일 경로&quot;,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">747</span><code data-code-text>            required=True,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">748</span><code data-code-text>            info=&quot;MySQL 서버 인증서와 host 신원을 검증할 CA PEM 파일의 Agent Builder 실행 환경 경로입니다.&quot;,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">749</span><code data-code-text>        ),</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">750</span><code data-code-text>        MultilineInput(</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">751</span><code data-code-text>            name=&quot;sql_query&quot;,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">752</span><code data-code-text>            display_name=&quot;조회 SQL&quot;,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">753</span><code data-code-text>            required=True,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">754</span><code data-code-text>            info=&quot;SELECT 또는 조회용 WITH 문 한 개만 입력합니다. 값은 native bind를 사용하세요.&quot;,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">755</span><code data-code-text>        ),</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">756</span><code data-code-text>        DictInput(</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">757</span><code data-code-text>            name=&quot;bind_parameters&quot;,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">758</span><code data-code-text>            display_name=&quot;바인드 변수&quot;,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">759</span><code data-code-text>            value={},</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">760</span><code data-code-text>            info=&quot;SQL의 %(from_ym)s 같은 변수에 전달할 JSON 객체입니다.&quot;,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">761</span><code data-code-text>        ),</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">762</span><code data-code-text>        IntInput(</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">763</span><code data-code-text>            name=&quot;max_rows&quot;,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">764</span><code data-code-text>            display_name=&quot;최대 조회 행 수&quot;,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">765</span><code data-code-text>            value=DEFAULT_MAX_ROWS,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">766</span><code data-code-text>            advanced=True,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">767</span><code data-code-text>            info=f&quot;1~{MAX_ALLOWED_ROWS:,}행 사이에서 설정합니다.&quot;,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">768</span><code data-code-text>        ),</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">769</span><code data-code-text>        IntInput(</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">770</span><code data-code-text>            name=&quot;api_timeout_seconds&quot;,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">771</span><code data-code-text>            display_name=&quot;API/DB 연결 제한시간(초)&quot;,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">772</span><code data-code-text>            value=DEFAULT_API_TIMEOUT_SECONDS,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">773</span><code data-code-text>            advanced=True,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">774</span><code data-code-text>            info=&quot;Cluster API 한 번의 요청과 MySQL 연결에 적용할 제한시간입니다.&quot;,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">775</span><code data-code-text>        ),</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">776</span><code data-code-text>        IntInput(</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">777</span><code data-code-text>            name=&quot;query_timeout_seconds&quot;,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">778</span><code data-code-text>            display_name=&quot;SQL 읽기 제한시간(초)&quot;,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">779</span><code data-code-text>            value=60,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">780</span><code data-code-text>            advanced=True,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">781</span><code data-code-text>            info=&quot;MySQL SQL 실행과 결과 읽기에 적용할 제한시간입니다.&quot;,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">782</span><code data-code-text>        ),</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">783</span><code data-code-text>        IntInput(</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">784</span><code data-code-text>            name=&quot;cluster_wait_seconds&quot;,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">785</span><code data-code-text>            display_name=&quot;Cluster 전체 대기시간(초)&quot;,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">786</span><code data-code-text>            value=DEFAULT_CLUSTER_WAIT_SECONDS,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">787</span><code data-code-text>            advanced=True,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">788</span><code data-code-text>            info=&quot;Cluster가 RUNNING이 될 때까지 기다릴 전체 시간입니다.&quot;,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">789</span><code data-code-text>        ),</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">790</span><code data-code-text>        IntInput(</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">791</span><code data-code-text>            name=&quot;poll_interval_seconds&quot;,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">792</span><code data-code-text>            display_name=&quot;Cluster 확인 간격(초)&quot;,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">793</span><code data-code-text>            value=DEFAULT_POLL_INTERVAL_SECONDS,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">794</span><code data-code-text>            advanced=True,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">795</span><code data-code-text>            info=&quot;RUNNING 상태를 다시 확인하는 간격입니다.&quot;,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">796</span><code data-code-text>        ),</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">797</span><code data-code-text>    ]</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">798</span><code data-code-text>    outputs = [</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">799</span><code data-code-text>        Output(</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">800</span><code data-code-text>            name=&quot;data_table&quot;,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">801</span><code data-code-text>            display_name=&quot;조회 데이터 테이블&quot;,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">802</span><code data-code-text>            method=&quot;build_data_table&quot;,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">803</span><code data-code-text>            types=[&quot;DataFrame&quot;],</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">804</span><code data-code-text>            cache=False,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">805</span><code data-code-text>            tool_mode=False,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">806</span><code data-code-text>        )</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">807</span><code data-code-text>    ]</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">808</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">809</span><code data-code-text>    async def build_data_table(self) -&gt; DataFrame:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">810</span><code data-code-text>        &quot;&quot;&quot;Cluster endpoint를 찾고 Datalake 조회 결과만 DataFrame으로 반환합니다.&quot;&quot;&quot;</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">811</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">812</span><code data-code-text>        allow_insecure_http = normalize_bool(</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">813</span><code data-code-text>            getattr(self, &quot;allow_insecure_api_http&quot;, False),</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">814</span><code data-code-text>            label=&quot;HTTP API 사용 허용&quot;,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">815</span><code data-code-text>        )</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">816</span><code data-code-text>        api_base_url = validate_api_base_url(</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">817</span><code data-code-text>            getattr(self, &quot;api_base_url&quot;, &quot;&quot;),</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">818</span><code data-code-text>            allow_insecure_http=allow_insecure_http,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">819</span><code data-code-text>        )</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">820</span><code data-code-text>        status_url = build_cluster_status_url(</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">821</span><code data-code-text>            api_base_url,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">822</span><code data-code-text>            getattr(self, &quot;cluster_status_path&quot;, &quot;&quot;),</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">823</span><code data-code-text>            getattr(self, &quot;cluster_type&quot;, &quot;&quot;),</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">824</span><code data-code-text>        )</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">825</span><code data-code-text>        endpoint_key = validate_endpoint_key(getattr(self, &quot;jdbc_endpoint_key&quot;, &quot;&quot;))</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">826</span><code data-code-text>        allowed_hosts = normalize_allowed_mysql_hosts(getattr(self, &quot;allowed_mysql_hosts&quot;, &quot;&quot;))</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">827</span><code data-code-text>        user_id = str(getattr(self, &quot;lake_user_id&quot;, &quot;&quot;) or &quot;&quot;).strip()</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">828</span><code data-code-text>        token = _secret_text(getattr(self, &quot;lake_jwt_token&quot;, &quot;&quot;)).strip()</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">829</span><code data-code-text>        if not user_id:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">830</span><code data-code-text>            raise ValueError(&quot;Datalake 사용자 ID를 입력해 주세요.&quot;)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">831</span><code data-code-text>        if not token:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">832</span><code data-code-text>            raise ValueError(&quot;Datalake JWT 토큰을 입력해 주세요.&quot;)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">833</span><code data-code-text>        ssl_ca_path = validate_mysql_ssl_ca_path(getattr(self, &quot;mysql_ssl_ca_path&quot;, &quot;&quot;))</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">834</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">835</span><code data-code-text>        sql = validate_read_only_sql(getattr(self, &quot;sql_query&quot;, &quot;&quot;))</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">836</span><code data-code-text>        parameters = normalize_bind_parameters(getattr(self, &quot;bind_parameters&quot;, {}))</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">837</span><code data-code-text>        max_rows = normalize_int(</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">838</span><code data-code-text>            getattr(self, &quot;max_rows&quot;, DEFAULT_MAX_ROWS),</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">839</span><code data-code-text>            label=&quot;최대 조회 행 수&quot;,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">840</span><code data-code-text>            minimum=1,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">841</span><code data-code-text>            maximum=MAX_ALLOWED_ROWS,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">842</span><code data-code-text>        )</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">843</span><code data-code-text>        api_timeout = normalize_int(</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">844</span><code data-code-text>            getattr(self, &quot;api_timeout_seconds&quot;, DEFAULT_API_TIMEOUT_SECONDS),</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">845</span><code data-code-text>            label=&quot;API/DB 연결 제한시간&quot;,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">846</span><code data-code-text>            minimum=1,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">847</span><code data-code-text>            maximum=300,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">848</span><code data-code-text>        )</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">849</span><code data-code-text>        query_timeout = normalize_int(</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">850</span><code data-code-text>            getattr(self, &quot;query_timeout_seconds&quot;, 60),</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">851</span><code data-code-text>            label=&quot;SQL 읽기 제한시간&quot;,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">852</span><code data-code-text>            minimum=1,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">853</span><code data-code-text>            maximum=3600,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">854</span><code data-code-text>        )</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">855</span><code data-code-text>        cluster_wait = normalize_int(</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">856</span><code data-code-text>            getattr(self, &quot;cluster_wait_seconds&quot;, DEFAULT_CLUSTER_WAIT_SECONDS),</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">857</span><code data-code-text>            label=&quot;Cluster 전체 대기시간&quot;,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">858</span><code data-code-text>            minimum=1,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">859</span><code data-code-text>            maximum=1800,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">860</span><code data-code-text>        )</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">861</span><code data-code-text>        poll_interval = normalize_int(</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">862</span><code data-code-text>            getattr(self, &quot;poll_interval_seconds&quot;, DEFAULT_POLL_INTERVAL_SECONDS),</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">863</span><code data-code-text>            label=&quot;Cluster 확인 간격&quot;,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">864</span><code data-code-text>            minimum=1,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">865</span><code data-code-text>            maximum=60,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">866</span><code data-code-text>        )</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">867</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">868</span><code data-code-text>        host = &quot;&quot;</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">869</span><code data-code-text>        try:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">870</span><code data-code-text>            # 의존성이 없으면 API를 호출하기 전에 즉시 안내합니다.</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">871</span><code data-code-text>            mysql_connect = _load_mysql_connect()</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">872</span><code data-code-text>            host, port, endpoint_database = await discover_mysql_endpoint(</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">873</span><code data-code-text>                status_url=status_url,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">874</span><code data-code-text>                user_id=user_id,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">875</span><code data-code-text>                token=token,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">876</span><code data-code-text>                endpoint_key=endpoint_key,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">877</span><code data-code-text>                allowed_mysql_hosts=allowed_hosts,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">878</span><code data-code-text>                request_timeout_seconds=api_timeout,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">879</span><code data-code-text>                cluster_wait_seconds=cluster_wait,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">880</span><code data-code-text>                poll_interval_seconds=poll_interval,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">881</span><code data-code-text>            )</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">882</span><code data-code-text>            rows, columns, truncated = await asyncio.to_thread(</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">883</span><code data-code-text>                execute_mysql_query,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">884</span><code data-code-text>                host=host,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">885</span><code data-code-text>                port=port,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">886</span><code data-code-text>                database=endpoint_database,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">887</span><code data-code-text>                user_id=user_id,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">888</span><code data-code-text>                token=token,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">889</span><code data-code-text>                sql=sql,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">890</span><code data-code-text>                bind_parameters=parameters,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">891</span><code data-code-text>                max_rows=max_rows,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">892</span><code data-code-text>                connect_timeout_seconds=api_timeout,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">893</span><code data-code-text>                query_timeout_seconds=query_timeout,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">894</span><code data-code-text>                ssl_ca_path=ssl_ca_path,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">895</span><code data-code-text>                connect_fn=mysql_connect,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">896</span><code data-code-text>            )</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">897</span><code data-code-text>        except Exception as exc:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">898</span><code data-code-text>            message = _safe_error_text(</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">899</span><code data-code-text>                exc,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">900</span><code data-code-text>                [api_base_url, status_url, host, user_id, token, sql, *map(str, parameters.values())],</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">901</span><code data-code-text>            )</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">902</span><code data-code-text>            raise RuntimeError(f&quot;Datalake 데이터 조회에 실패했습니다: {message}&quot;) from None</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">903</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">904</span><code data-code-text>        table = build_dataframe(rows, columns)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">905</span><code data-code-text>        self.status = {</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">906</span><code data-code-text>            &quot;조회 행 수&quot;: len(rows),</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">907</span><code data-code-text>            &quot;컬럼 수&quot;: len(columns),</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">908</span><code data-code-text>            &quot;최대 행 제한 적용&quot;: truncated,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">909</span><code data-code-text>        }</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">910</span><code data-code-text>        return table</code></div></div></div>
+  <footer class="code-status"><span>Python</span><span>UTF-8</span><span data-copy-status aria-live="polite">복사할 때 외부 서버를 호출하지 않습니다.</span></footer>
+</section>
+<div class="page-actions"><button class="back-button" type="button" data-back data-fallback="components/datalake_table_query/index.html">← 이전 화면</button><a class="button button-soft" href="components/datalake_table_query/index.html#contract">입출력 계약</a><a class="button button-soft" href="components/index.html">Component 목록</a></div>
+
+  </main>
+  <footer class="site-footer">
+    <div class="footer-inner">
+      <div><strong>Agent Ground</strong><p>실제 Agent Builder 환경에서 검증된 교육자료, Standalone Component와 Flow를 함께 쌓아갑니다.</p></div>
+      <div class="footer-links"><a href="training/index.html">처음 배우기</a><a href="troubleshooting/index.html">실패와 해결</a><a href="../AGENT_GROUND_PROJECT_MASTER_GUIDE.md">프로젝트 기준</a></div>
+    </div>
+  </footer>
+  <script src="assets/js/site.js"></script>
+  
+</body>
+</html>

@@ -1,14 +1,17 @@
 # 재사용 데이터 조회 Flow
 
-사용자의 자연어 요청을 짧은 `data_request`로 만들고, Source Catalog에서 실행 설정을 채운 뒤 여러 데이터 소스의 결과를 공통 형식으로 합치는 Flow입니다.
+사용자의 자연어 요청을 짧은 `data_request`로 만들고, Source Catalog에서 실행 설정을 채운 뒤 여러 데이터 소스의 결과를 공통 형식으로 합치도록 설계한 Flow입니다.
+
+> **현재 Flow JSON은 가져오면 안 됩니다.** 감사 결과 `reusable_data_flow.json`은 아래 12개 데이터 내부 노드가 연결된 export가 아니라 과거 `업무분석flow`와 동일한 파일로 확인됐습니다. Python 원본과 연결 설계는 보존하지만 올바른 Builder export 제공 또는 신규 재구축 전까지 실행 자산으로 배포하지 않습니다.
 
 ## 현재 상태
 
-- 상태: `user_testing`
-- 기준 Flow: `reusable_data_flow.json`
-- 기존 export 기록: Langflow `1.8.2`
-- Component: 12개 Standalone 파일
-- 남은 확인: 현재 Agent Builder 환경에서 import, 포트 연결, 대표 질문 실행
+- 상태: `building` (Flow export 복구 대기)
+- 격리 파일: `reusable_data_flow.json` (실제 이름 `업무분석flow`, import 금지)
+- 확인 환경: Langflow `1.8.2` export/로컬 DB 읽기 전용 감사
+- 기능 단위 Component: 0개
+- Flow 내부 Standalone 노드: 12개
+- 남은 확인: 올바른 Flow 재구축, import, 포트 연결, 대표 질문 실행
 
 ## 핵심 데이터 흐름
 
@@ -45,9 +48,11 @@ LLM은 데이터베이스 주소나 SQL 전체를 만들지 않고 데이터 소
 
 ## 파일
 
-- [`reusable_data_flow.json`](reusable_data_flow.json): 가져오기용 Flow
+- `reusable_data_flow.json`: 불일치 증거 보존용 격리 파일이며 가져오기용이 아님
 - [`CONNECTION_GUIDE.md`](CONNECTION_GUIDE.md): 초보자용 연결 가이드
-- [`component_refs.json`](component_refs.json): 필요한 Component와 버전
+- [`component_refs.json`](component_refs.json): 현재 직접 참조하는 공용 Component 없음
+- [`internal_nodes.json`](internal_nodes.json), `nodes/`: 재구축할 12개 Flow 내부 단계와 Python 원본
+- [`../../html/troubleshooting/reusable-data-flow-export-mismatch.html`](../../html/troubleshooting/reusable-data-flow-export-mismatch.html): 확인 범위와 복구 조건
 - `references/`: 기존 구현의 상세 프롬프트와 구조 분석 자료
 
 ## 주의
@@ -56,7 +61,7 @@ LLM은 데이터베이스 주소나 SQL 전체를 만들지 않고 데이터 소
 
 ## 최소 단위 직접 조회 Component와의 관계
 
-이 Flow의 기존 12개 Component와 `component_refs.json`은 버전 `0.9.0` 연결 계약을 유지합니다. 기존 Flow JSON을 깨지 않기 위해 Oracle/H-API/Datalake/GooDocs 노드를 덮어쓰지 않았습니다.
+이 Flow의 기존 12개 Python 파일은 Source Catalog, 분기, 병합과 출력 envelope에 결합된 내부 노드로 `internal_nodes.json`에 보존합니다. 현재 JSON에는 이 노드들이 없으므로 Flow 복구 전까지 실행 계약으로 간주하지 않습니다.
 
 단일 소스를 직접 한 번 조회하고 결과 테이블만 받고 싶을 때는 다음 신규 Standalone Component를 별도로 등록합니다.
 

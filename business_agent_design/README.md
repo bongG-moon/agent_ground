@@ -9,8 +9,10 @@
 - 상태: `user_testing`
 - 기준 환경: Langflow `1.8.2`
 - 전체 Canvas: 24 nodes / 34 connections
-- 메인 Standalone Component: 10개 (`00`~`09`)
-- 카탈로그 운영 Standalone Component: 5개 (`2.1`~`2.5`)
+- 메인 전용 Standalone 실행 Node: 10개 (`00`~`09`)
+- 카탈로그 운영 전용 Standalone 실행 Node: 5개 (`2.1`~`2.5`)
+
+이 15개 파일은 Langflow 화면에서는 Custom Component로 등록하지만 Business Agent Design 서비스의 단계 계약에 종속된 전용 실행 Node입니다. 따라서 Agent Ground의 공용 `components/` Library 20개와 Registry에는 포함하지 않습니다.
 - LLM 응답 오류 시 deterministic fallback graph 생성
 - 실제 사용자 Agent Builder 실행 확인 전에는 `approved`로 전환하지 않음
 
@@ -20,7 +22,7 @@
 | --- | --- |
 | [`flow/business_agent_design_complete.json`](flow/business_agent_design_complete.json) | Business Agent 메인 Flow와 카탈로그 운영 Flow를 한 Canvas에서 보는 개별 Import 파일 |
 | [`flow/00_business_agent_design_ALL_FLOWS.json`](flow/00_business_agent_design_ALL_FLOWS.json) | Langflow 전체 Flow Import 화면용 Business Bundle |
-| [`../flows/00_AGENT_GROUND_ALL_FLOWS.json`](../flows/00_AGENT_GROUND_ALL_FLOWS.json) | 재사용 데이터, HTML 리포트, 문서 RAG, Skill Agent 상위·회의 하위 Flow, Business Agent Design까지 6개를 한 번에 넣는 프로젝트 Bundle |
+| [`../flows/00_AGENT_GROUND_ALL_FLOWS.json`](../flows/00_AGENT_GROUND_ALL_FLOWS.json) | HTML 리포트, 문서 RAG, Skill Agent 상위·회의 하위 Flow, PPT 참조 이미지 HTML 프레젠테이션, Business Agent Design까지 실행 가능 6개를 한 번에 넣는 프로젝트 Bundle. 재사용 데이터 Flow는 export 복구 전까지 제외 |
 
 개별 파일은 최상위가 `{ "data": ... }`인 Langflow Flow입니다. Bundle은 반드시 `{"flows":[`로 시작하며, 세 Import 파일 모두 UTF-8 BOM 없이 생성됩니다.
 

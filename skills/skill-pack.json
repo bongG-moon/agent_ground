@@ -1,0 +1,13 @@
+{
+  "schema_version": 1,
+  "name": "agent-ground-portable-skills",
+  "version": "1.0.0",
+  "skills": [
+    "maintain-agent-ground",
+    "build-langflow-standalone-component",
+    "build-langflow-flow-package",
+    "maintain-agent-ground-portal"
+  ],
+  "install_script": "install.ps1",
+  "portable": true
+}

@@ -1,0 +1,20 @@
+{
+  "id": "ppt_reference_html_flow",
+  "name_ko": "PPT 참조 이미지 HTML 프레젠테이션 Flow",
+  "asset_type": "flow",
+  "status": "user_testing",
+  "version": "0.1.0",
+  "source_export_version": "1.8.2",
+  "summary_ko": "표지·본문 참조 이미지를 Base64 Data URL로 변환해 디자인 규칙을 분석하고, 발표 목적·내용·실제 데이터에 맞는 표와 그래프를 선택해 자체 포함형 16:9 HTML 프레젠테이션을 생성합니다.",
+  "categories": ["presentation", "multimodal", "html", "visualization"],
+  "trigger_signals": ["PPT 양식", "표지 이미지", "본문 이미지", "발표자료", "HTML 슬라이드", "프레젠테이션"],
+  "flow_file": "ppt_reference_html_flow.json",
+  "component_refs_file": "component_refs.json",
+  "internal_nodes_file": "internal_nodes.json",
+  "documentation_path": "html/flows/ppt_reference_html_flow/index.html",
+  "runtime_ready": true,
+  "verified_environment": "langflow-1.8.2-lfx-0.3.4-static-and-component-tests",
+  "last_verified_at": "2026-07-13",
+  "approved_by_user_at": null,
+  "risk_tags": ["multimodal_external_model", "reference_image_content", "html_output", "data_visualization", "external_publish_optional"]
+}

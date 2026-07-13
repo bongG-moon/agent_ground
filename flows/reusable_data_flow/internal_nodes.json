@@ -1,0 +1,140 @@
+{
+  "schema_version": "1.0",
+  "asset_type": "flow_node",
+  "owner_flow": "reusable_data_flow",
+  "flow_id": "reusable_data_flow",
+  "nodes": [
+    {
+      "id": "data_request_normalizer",
+      "asset_type": "flow_node",
+      "owner_flow": "reusable_data_flow",
+      "class_name": "DataRequestNormalizer",
+      "name_ko": "Data Request Normalizer",
+      "version": "0.9.0",
+      "source_path": "nodes/data_request_normalizer.py",
+      "summary_ko": "LLM 응답을 data_request로 정규화하고 source_catalog의 실행 설정을 채웁니다.",
+      "embedded_in": []
+    },
+    {
+      "id": "oracle_data",
+      "asset_type": "flow_node",
+      "owner_flow": "reusable_data_flow",
+      "class_name": "OracleData",
+      "name_ko": "Oracle Data",
+      "version": "0.9.0",
+      "source_path": "nodes/oracle_data.py",
+      "summary_ko": "data_request 중 oracle 요청만 골라 실행합니다.",
+      "embedded_in": []
+    },
+    {
+      "id": "h_api_data",
+      "asset_type": "flow_node",
+      "owner_flow": "reusable_data_flow",
+      "class_name": "HApiData",
+      "name_ko": "H-API Data",
+      "version": "0.9.0",
+      "source_path": "nodes/h_api_data.py",
+      "summary_ko": "data_request 중 h_api 요청만 골라 실행합니다.",
+      "embedded_in": []
+    },
+    {
+      "id": "datalake_data",
+      "asset_type": "flow_node",
+      "owner_flow": "reusable_data_flow",
+      "class_name": "DatalakeData",
+      "name_ko": "Datalake Data",
+      "version": "0.9.0",
+      "source_path": "nodes/datalake_data.py",
+      "summary_ko": "data_request 중 datalake 요청만 골라 실행합니다.",
+      "embedded_in": []
+    },
+    {
+      "id": "goodocs_data",
+      "asset_type": "flow_node",
+      "owner_flow": "reusable_data_flow",
+      "class_name": "GoodocsData",
+      "name_ko": "Goodocs Data",
+      "version": "0.9.0",
+      "source_path": "nodes/goodocs_data.py",
+      "summary_ko": "data_request 중 goodocs 요청만 골라 실행합니다.",
+      "embedded_in": []
+    },
+    {
+      "id": "data_result_merger",
+      "asset_type": "flow_node",
+      "owner_flow": "reusable_data_flow",
+      "class_name": "DataResultMerger",
+      "name_ko": "Data Result Merger",
+      "version": "0.9.0",
+      "source_path": "nodes/data_result_merger.py",
+      "summary_ko": "Oracle, H-API, Datalake, Goodocs 조회 결과를 하나의 data_result로 병합합니다.",
+      "embedded_in": []
+    },
+    {
+      "id": "data_output_builder",
+      "asset_type": "flow_node",
+      "owner_flow": "reusable_data_flow",
+      "class_name": "DataOutputBuilder",
+      "name_ko": "Data Output Builder",
+      "version": "0.9.0",
+      "source_path": "nodes/data_output_builder.py",
+      "summary_ko": "조회 결과를 API용 Data JSON과 Chat Output 확인용 표 메시지로 반환합니다.",
+      "embedded_in": []
+    },
+    {
+      "id": "source_catalog_normalizer",
+      "asset_type": "flow_node",
+      "owner_flow": "reusable_data_flow",
+      "class_name": "SourceCatalogNormalizer",
+      "name_ko": "Catalog Normalizer",
+      "version": "0.9.0",
+      "source_path": "nodes/source_catalog_normalizer.py",
+      "summary_ko": "LLM이 만든 source_catalog 후보를 저장하지 않고 조회 Flow용 형태로 정규화합니다.",
+      "embedded_in": []
+    },
+    {
+      "id": "llm_caller",
+      "asset_type": "flow_node",
+      "owner_flow": "reusable_data_flow",
+      "class_name": "LLMCaller",
+      "name_ko": "LLM Caller",
+      "version": "0.9.0",
+      "source_path": "nodes/llm_caller.py",
+      "summary_ko": "Prompt Template 결과를 LLM에 전달하고, 다음 Normalizer가 읽을 llm_result를 반환합니다.",
+      "embedded_in": []
+    },
+    {
+      "id": "source_catalog_mongodb_store",
+      "asset_type": "flow_node",
+      "owner_flow": "reusable_data_flow",
+      "class_name": "SourceCatalogMongoDBStore",
+      "name_ko": "Catalog MongoDB Store",
+      "version": "0.9.0",
+      "source_path": "nodes/source_catalog_mongodb_store.py",
+      "summary_ko": "source_catalog를 source 이름 기준으로 MongoDB에 저장하거나 업데이트합니다.",
+      "embedded_in": []
+    },
+    {
+      "id": "source_catalog_mongodb_loader",
+      "asset_type": "flow_node",
+      "owner_flow": "reusable_data_flow",
+      "class_name": "SourceCatalogMongoDBLoader",
+      "name_ko": "Catalog MongoDB Loader",
+      "version": "0.9.0",
+      "source_path": "nodes/source_catalog_mongodb_loader.py",
+      "summary_ko": "MongoDB collection에서 source_catalog를 읽어옵니다.",
+      "embedded_in": []
+    },
+    {
+      "id": "html_report_datasets_adapter",
+      "asset_type": "flow_node",
+      "owner_flow": "reusable_data_flow",
+      "class_name": "HtmlReportDatasetsAdapter",
+      "name_ko": "11 HTML Report Datasets Adapter",
+      "version": "0.9.0",
+      "source_path": "nodes/html_report_datasets_adapter.py",
+      "summary_ko": "06 Data JSON을 HTML 생성 Flow의 datasets JSON 입력으로 변환합니다.",
+      "embedded_in": []
+    }
+  ]
+}

@@ -1,5 +1,18 @@
 # Changelog
 
+## 2026-07-13 — PPT 참조 이미지 기반 HTML 프레젠테이션 Flow
+
+- 표지 1개와 본문 대표 이미지 여러 개를 `multi_image_base64_encoder`로 Data URL 변환해 입력하는 `ppt_reference_html_flow` 추가
+- Vision 가능한 LanguageModel에는 이미지 속 명령·문구·숫자를 신뢰하지 않고 색상·여백·정렬·타이포 위계·그리드만 관찰하도록 하는 멀티모달 프롬프트 적용
+- 발표 목적·본문·대상·슬라이드 수와 JSON/CSV dataset을 단일 요청 계약으로 정규화하고 `quantitative`, `temporal`, `ordinal`, `nominal`, `text`, `identifier` 의미 타입 보존
+- 사용자 지정 시각화와 데이터 구조를 기준으로 KPI·표·막대·선·산점도를 선택하고 실제 dataset·column 값만 Renderer 요소에 연결
+- LLM은 HTML/CSS/JavaScript를 직접 만들지 않고 구조화 계획만 제안하며, 허용 목록 Normalizer와 결정론적 `html_presentation_renderer`가 자체 포함 16:9 HTML을 생성
+- HTML Renderer를 Flow 전용 조립 Node가 아닌 독립 기능 Component로 분류하고, 키보드·버튼·전체화면·진행률·Print/PDF CSS·semantic table·접근 가능한 inline SVG 차트 구현
+- 외부 URL/CDN, SVG Data URL, raw HTML/CSS/JavaScript와 근거 없는 dataset 참조를 차단하고 품질 Gate·Playground HTML 원문 출력·선택적 Report API 공유 경로 추가
+- 작성 Skill, Vision/계획 Prompt, 표·그래프 선택 규칙, Schema, 샘플 dataset, 연결 가이드와 포털 설명서를 함께 제공
+- 프로젝트 전체 Bundle을 격리된 재사용 데이터 Flow를 제외한 실행 가능 6개 Flow로 갱신
+- 실제 참고 이미지 Vision 분석과 디자인 재현 품질은 사용자 환경의 승인된 멀티모달 모델·API Key로 확인하기 전까지 `user_testing`
+
 ## 2026-07-12 — 하이브리드 Skill 기반 업무 Agent 예시 Flow
 
 - Langflow 공식 Simple Agent의 `component_as_tool → Agent.tools` 계약 위에 직접 계산 Tool과 Run Flow Tool을 함께 연결
@@ -111,7 +124,7 @@
 ## 2026-07-11 — Enterprise Document RAG executable example
 
 - Langflow `1.8.2` / LFX `0.3.4` 실제 runtime 계약으로 `enterprise_document_rag_flow` 신규 구현
-- 문서 정규화, PII baseline guard, stable chunk/index, trusted request context, ACL 선필터 검색, 품질 gate, prompt 경계, 근거 답변, 인용 재구성의 9개 Standalone Component 추가
+- 문서 정규화, PII baseline guard, stable chunk/index, ACL 선필터 검색, 품질 gate, 근거 답변의 기능 단위 Component 6개와 trusted request context, prompt 조립, 인용 재구성의 Flow 내부 Standalone 노드 3개 추가
 - 별도 모델 key·Vector DB 없이 실행할 수 있는 demo corpus와 `payload_lexical_v1` 검색 경로 제공
 - 권한 밖 문서 존재 여부 비노출, 근거 부족 거절, 잘못된 LLM evidence ID 폐기, server-side citation 재구성 규칙 반영
 - 단일 Flow JSON과 4개 Flow 전체 Bundle, 포트 연결 가이드, 운영 전환 기준, 대표 질문·문서 샘플 추가

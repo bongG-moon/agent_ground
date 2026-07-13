@@ -29,10 +29,17 @@ EXPECTED_TOOL_NAMES = {
     "leave_policy_skill_tool": "leave_policy_skill",
     "meeting_action_skill_tool": "meeting_action_skill",
 }
+FLOW_NODE_IDS = {"demo_skill_catalog_builder"}
+
+
+def component_source_path(component_id: str) -> Path:
+    if component_id in FLOW_NODE_IDS:
+        return ROOT / "flows" / "skill_based_agent_flow" / "nodes" / f"{component_id}.py"
+    return ROOT / "components" / component_id / f"{component_id}.py"
 
 
 def load_component(component_id: str) -> ModuleType:
-    path = ROOT / "components" / component_id / f"{component_id}.py"
+    path = component_source_path(component_id)
     spec = importlib.util.spec_from_file_location(f"test_{component_id}", path)
     if spec is None or spec.loader is None:
         raise RuntimeError(f"Component를 불러올 수 없습니다: {path}")
@@ -234,7 +241,7 @@ def test_actual_lfx_tools_invoke_with_bound_catalog(
 
 def test_all_sources_compile_into_langflow_182_templates() -> None:
     for component_id in ALL_COMPONENT_IDS:
-        path = ROOT / "components" / component_id / f"{component_id}.py"
+        path = component_source_path(component_id)
         code = path.read_text(encoding="utf-8")
         component_class = eval_custom_component_code(code)
         config, instance = create_component_template(
@@ -313,7 +320,7 @@ def test_generated_flow_mixes_direct_component_tools_and_run_flow_tool() -> None
         if node["data"]["type"] not in {"ChatInput", "ChatOutput", "Agent", "note"}
     }
     for component_id in expected_parent_components:
-        source = (ROOT / "components" / component_id / f"{component_id}.py").read_text(encoding="utf-8")
+        source = component_source_path(component_id).read_text(encoding="utf-8")
         assert custom_by_type[eval_custom_component_code(source).__name__] == source
 
 
@@ -364,17 +371,18 @@ def test_skill_bundle_imports_child_before_parent() -> None:
     ]
 
 
-def test_project_bundle_contains_six_flows_in_stable_order() -> None:
+def test_project_bundle_contains_six_runnable_flows_in_stable_order() -> None:
     path = ROOT / "flows" / "00_AGENT_GROUND_ALL_FLOWS.json"
     raw = path.read_bytes()
     assert raw.startswith(b'{"flows":[')
     assert not raw.startswith(b"\xef\xbb\xbf")
     bundle = json.loads(raw.decode("utf-8"))
     assert [item["name"] for item in bundle["flows"]] == [
-        "업무분석flow",
         "html_flow_0624",
         "enterprise_document_rag_flow",
         "meeting_action_skill_flow",
         "skill_based_agent_flow",
+        "ppt_reference_html_flow",
         "business_agent_design_complete",
     ]
+    assert "업무분석flow" not in {item["name"] for item in bundle["flows"]}

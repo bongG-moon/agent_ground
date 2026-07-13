@@ -16,7 +16,7 @@ response_path 값 선택
 데이터 테이블(DataFrame) 1개
 ```
 
-기존 `components/h_api_data`는 기존 Flow 호환성을 위해 그대로 유지됩니다. 새 Component의 ID와 class 이름은 각각 `h_api_table_request`, `HApiTableRequest`입니다.
+기존 `h_api_data`는 재사용 데이터 Flow에 종속된 내부 노드이므로 `flows/reusable_data_flow/nodes/h_api_data.py`에 보존됩니다. 새 기능 단위 Component의 ID와 class 이름은 각각 `h_api_table_request`, `HApiTableRequest`입니다.
 
 ## 입력 항목
 

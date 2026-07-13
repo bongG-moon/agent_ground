@@ -45,11 +45,12 @@ PROMPT_BY_NODE_ID = {
 }
 
 PROJECT_FLOW_FILES = [
-    ROOT / "flows" / "reusable_data_flow" / "reusable_data_flow.json",
+    # reusable_data_flow export는 12개 데이터 내부 Node가 아닌 과거 업무분석flow로 확인되어 격리합니다.
     ROOT / "flows" / "html_report_flow" / "html_report_flow.json",
     ROOT / "flows" / "enterprise_document_rag_flow" / "enterprise_document_rag_flow.json",
     ROOT / "flows" / "skill_based_agent_flow" / "meeting_action_skill_flow.json",
     ROOT / "flows" / "skill_based_agent_flow" / "skill_based_agent_flow.json",
+    ROOT / "flows" / "ppt_reference_html_flow" / "ppt_reference_html_flow.json",
     INDIVIDUAL,
 ]
 

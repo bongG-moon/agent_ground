@@ -5,8 +5,28 @@
   "asset_type": "component",
   "status": "user_testing",
   "version": "0.1.0",
+  "packaging": "standalone",
   "standalone": true,
   "reusability": "shared",
+  "component_scope": "domain",
+  "qualification": {
+    "decision": "qualified_component",
+    "criteria": {
+      "independent_input_output": true,
+      "functional_completeness": true,
+      "reusable_unit": true,
+      "payload_coupling": "domain_contract",
+      "validation_or_error_handling": true
+    },
+    "review_rule": "Flow에서 사용된다는 사실만으로 Component 자격을 부여하지 않습니다."
+  },
+  "owner_usage": {
+    "owner": "skill_based_agent_flow",
+    "usage": "Skill 기반 Agent에서 Tool로 사용하는 완결 기능",
+    "used_by_flows": [
+      "meeting_action_skill_flow"
+    ]
+  },
   "source_family": "skill_based_agent_flow",
   "summary_ko": "담당자·할 일·ISO 기한 형식의 여러 줄을 구조화하며 실제 발송이나 시스템 등록은 하지 않습니다.",
   "source_file": "meeting_action_skill_tool.py",

@@ -31,8 +31,8 @@
   <div class="hero-actions"><a class="button button-primary" href="training/index.html">처음부터 시작하기</a><a class="button button-secondary" href="flows/index.html">Flow 둘러보기</a></div>
 </section>
 <div class="metric-strip" aria-label="프로젝트 현황">
-  <div class="metric"><strong>4</strong><span>검증 중 Flow</span></div>
-  <div class="metric"><strong>41</strong><span>Standalone Component</span></div>
+  <div class="metric"><strong>5</strong><span>검증 중 Flow</span></div>
+  <div class="metric"><strong>20</strong><span>재사용 기능 Component</span></div>
   <div class="metric"><strong>0</strong><span>사용자 승인 완료</span></div>
   <div class="metric"><strong>1</strong><span>업무 Agent 설계안</span></div>
 </div>
@@ -40,20 +40,21 @@
   <div class="section-heading"><p class="eyebrow">Choose your path</p><h2>지금 필요한 곳에서 시작하세요</h2><p>처음 배우는 사람과 바로 가져다 쓰려는 사람이 같은 화면에서 길을 잃지 않도록 진입점을 나눴습니다.</p></div>
   <div class="grid grid-3">
     <a class="card card-link" href="training/index.html"><span class="card-number">01</span><h3>처음 배우기</h3><p>노드, 연결점, 입력·출력 타입부터 실제 실행 확인까지 순서대로 배웁니다.</p></a>
-    <a class="card card-link" href="components/index.html"><span class="card-number">02</span><h3>Component 찾기</h3><p>한 파일만 등록하는 Standalone Component의 입력과 출력을 빠르게 비교합니다.</p></a>
-    <a class="card card-link" href="flows/index.html"><span class="card-number">03</span><h3>Flow 가져다 쓰기</h3><p>데이터 조회, HTML 리포트, 문서 RAG와 Skill 기반 Agent의 전체 연결과 성공 기준을 확인합니다.</p></a>
+    <a class="card card-link" href="components/index.html"><span class="card-number">02</span><h3>Component 찾기</h3><p>독립 기능으로 재사용할 수 있는 Component의 역할과 입력·출력을 빠르게 비교합니다.</p></a>
+    <a class="card card-link" href="flows/index.html"><span class="card-number">03</span><h3>Flow 가져다 쓰기</h3><p>데이터 조회, HTML 리포트·프레젠테이션, 문서 RAG와 Skill 기반 Agent의 전체 연결과 성공 기준을 확인합니다.</p></a>
     <a class="card card-link" href="troubleshooting/index.html"><span class="card-number">04</span><h3>실패와 해결</h3><p>실제 환경에서 잘 안 된 증상부터 원인, 수정과 재검증 결과를 찾습니다.</p></a>
     <a class="card card-link" href="business-agent-design/index.html"><span class="card-number">05</span><h3>업무를 Agent로 설계</h3><p>추후 승인된 자산을 근거로 AS-IS와 TO-BE 구현안을 만드는 서비스 계획을 봅니다.</p></a>
     <a class="card card-link" href="../AGENT_GROUND_PROJECT_MASTER_GUIDE.md"><span class="card-number">06</span><h3>프로젝트 기준</h3><p>승인 게이트, 폴더 구조, 검증과 문서 반영 규칙을 확인합니다.</p></a>
   </div>
 </section>
 <section class="section">
-  <div class="section-heading"><p class="eyebrow">Current release</p><h2>현재 검증할 통합 자산</h2><p>기존 구현을 새 구조로 이관한 두 Flow, 문서 RAG와 Skill Agent 예시, 직접 데이터 조회와 공용 Component를 함께 확인합니다.</p></div>
+  <div class="section-heading"><p class="eyebrow">Current release</p><h2>현재 검증할 통합 자산</h2><p>기존 구현을 새 구조로 이관한 Flow, 문서 RAG·Skill Agent·HTML 프레젠테이션 예시와 공용 Component를 함께 확인합니다.</p></div>
   <div class="grid grid-3">
-    <a class="card card-link" href="flows/reusable_data_flow/index.html"><div class="meta-row"><span class="badge badge-testing">검증 중</span><span class="tag">12 Components</span></div><h3>재사용 데이터 조회 Flow</h3><p>자연어 요청을 Oracle, H-API, Datalake, Goodocs 조회로 연결하고 결과 계약을 하나로 통일합니다.</p></a>
-    <a class="card card-link" href="flows/html_report_flow/index.html"><div class="meta-row"><span class="badge badge-testing">검증 중</span><span class="tag">9 Components</span></div><h3>HTML 분석 리포트 Flow</h3><p>데이터와 표현 요청을 검증된 리포트 블록 계획으로 바꾸고 독립 HTML로 렌더링합니다.</p></a>
-    <a class="card card-link" href="flows/enterprise_document_rag_flow/index.html"><div class="meta-row"><span class="badge badge-testing">검증 중</span><span class="tag">9 Components</span></div><h3>사내 문서 RAG Flow</h3><p>권한을 먼저 적용한 검색, 근거 품질 판정, 안전한 거절과 서버측 인용 재구성을 한 번에 검증합니다.</p></a>
-    <a class="card card-link" href="flows/skill_based_agent_flow/index.html"><div class="meta-row"><span class="badge badge-testing">검증 중</span><span class="tag">2 Direct + 1 Run Flow</span></div><h3>Skill 기반 Agent Flow</h3><p>LLM이 직접 계산 Tool과 이름 기반 Run Flow Tool 중 업무에 맞는 실행 경로를 선택합니다.</p></a>
+    <a class="card card-link" href="flows/reusable_data_flow/index.html"><div class="meta-row"><span class="badge badge-neutral">구현 중</span><span class="tag">12 내부 Node</span></div><h3>재사용 데이터 조회 Flow</h3><p>12개 내부 구현 Node와 연결 설계는 보존했지만 현재 JSON이 다른 Flow로 확인되어 import를 중단했습니다.</p></a>
+    <a class="card card-link" href="flows/html_report_flow/index.html"><div class="meta-row"><span class="badge badge-testing">검증 중</span><span class="tag">3 Component · 6 내부 Node</span></div><h3>HTML 분석 리포트 Flow</h3><p>데이터와 표현 요청을 검증된 리포트 블록 계획으로 바꾸고 독립 HTML로 렌더링합니다.</p></a>
+    <a class="card card-link" href="flows/enterprise_document_rag_flow/index.html"><div class="meta-row"><span class="badge badge-testing">검증 중</span><span class="tag">6 Component · 3 내부 Node</span></div><h3>사내 문서 RAG Flow</h3><p>권한을 먼저 적용한 검색, 근거 품질 판정, 안전한 거절과 서버측 인용 재구성을 한 번에 검증합니다.</p></a>
+    <a class="card card-link" href="flows/skill_based_agent_flow/index.html"><div class="meta-row"><span class="badge badge-testing">검증 중</span><span class="tag">4 Component · 1 내부 Node</span></div><h3>Skill 기반 Agent Flow</h3><p>LLM이 직접 계산 Tool과 이름 기반 Run Flow Tool 중 업무에 맞는 실행 경로를 선택합니다.</p></a>
+    <a class="card card-link" href="flows/ppt_reference_html_flow/index.html"><div class="meta-row"><span class="badge badge-testing">검증 중</span><span class="tag">3 Component · 6 내부 Node</span></div><h3>PPT 참조 이미지 HTML 프레젠테이션</h3><p>표지·본문 이미지를 디자인 근거로 분석하고 실제 데이터만 사용해 16:9 자체 포함 HTML 슬라이드를 만듭니다.</p></a>
     <a class="card card-link" href="components/direct-data-access/index.html"><div class="meta-row"><span class="badge badge-testing">검증 중</span><span class="tag">5 Components · DataFrame</span></div><h3>직접 데이터 조회 Component</h3><p>Oracle, H-API, Datalake, GooDocs와 일반 JSON API에 필요한 값을 직접 입력하고 데이터 테이블 하나만 받습니다.</p></a>
     <a class="card card-link" href="components/enterprise-utility/index.html"><div class="meta-row"><span class="badge badge-testing">검증 중</span><span class="tag">30 Recommendations · 2 Selected</span></div><h3>사내 공용 Component 추천·구현 현황</h3><p>웹 조사 후보 중 Multi Image Base64 Encoder와 Cached Named Run Flow Tool을 선택해 Standalone으로 구현했습니다.</p></a>
   </div>

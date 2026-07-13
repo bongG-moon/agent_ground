@@ -7,7 +7,9 @@ Oracle 접속 정보와 읽기 SQL을 직접 입력받아 조회 결과를 DataF
 - ID: `oracle_table_query`
 - 버전: `0.1.0`
 - 상태: `user_testing`
-- Standalone: `true`
+- 패키징: `standalone`
+- Component 범위: `general`
+- 자격 판정: `qualified_component`
 - 사용 범위: `직접 데이터 조회 Component (특정 Flow 미지정)`
 
 ## 입력

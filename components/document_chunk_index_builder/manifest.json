@@ -1,20 +1,40 @@
 {
   "id": "document_chunk_index_builder",
-  "name_ko": "02 Document Chunk Index Builder",
+  "name_ko": "02 문서 청크·색인 생성",
   "class_name": "DocumentChunkIndexBuilder",
   "asset_type": "component",
   "status": "user_testing",
   "version": "0.1.0",
+  "packaging": "standalone",
   "standalone": true,
   "reusability": "shared",
+  "component_scope": "domain",
+  "qualification": {
+    "decision": "qualified_component",
+    "criteria": {
+      "independent_input_output": true,
+      "functional_completeness": true,
+      "reusable_unit": true,
+      "payload_coupling": "domain_contract",
+      "validation_or_error_handling": true
+    },
+    "review_rule": "Flow에서 사용된다는 사실만으로 Component 자격을 부여하지 않습니다."
+  },
+  "owner_usage": {
+    "owner": "enterprise_document_rag_flow",
+    "usage": "문서 RAG 도메인에서 독립적으로 재사용하는 기능",
+    "used_by_flows": [
+      "enterprise_document_rag_flow"
+    ]
+  },
   "source_family": "enterprise_document_rag_flow",
-  "summary_ko": "Build stable, deduplicated chunks and version/tombstone operations for a model-free payload index.",
+  "summary_ko": "문서를 안정적인 ID의 중복 제거 청크로 나누고 버전·삭제 계획이 포함된 검색용 payload 색인을 만듭니다.",
   "source_file": "document_chunk_index_builder.py",
   "inputs": [
     {
       "type": "DataInput",
       "name": "documents",
-      "display_name": "Safe Documents",
+      "display_name": "보호 처리된 문서",
       "input_types": [
         "Data",
         "JSON"
@@ -24,28 +44,28 @@
     {
       "type": "IntInput",
       "name": "chunk_chars",
-      "display_name": "Chunk Characters",
+      "display_name": "청크 글자 수",
       "value": 900,
       "advanced": true
     },
     {
       "type": "IntInput",
       "name": "overlap_chars",
-      "display_name": "Overlap Characters",
+      "display_name": "청크 중복 글자 수",
       "value": 120,
       "advanced": true
     },
     {
       "type": "IntInput",
       "name": "max_chunks",
-      "display_name": "Maximum Chunks",
+      "display_name": "최대 청크 수",
       "value": 5000,
       "advanced": true
     },
     {
       "type": "BoolInput",
       "name": "latest_version_only",
-      "display_name": "Keep Latest Version Only",
+      "display_name": "최신 버전만 유지",
       "value": true,
       "advanced": true
     }
@@ -54,7 +74,7 @@
     {
       "type": "Output",
       "name": "document_index",
-      "display_name": "Document Index",
+      "display_name": "문서 색인",
       "method": "build_document_index",
       "types": [
         "Data"

@@ -1,17 +1,4 @@
 {
   "flow_id": "reusable_data_flow",
-  "components": [
-    {"id": "data_request_normalizer", "version": "0.9.0"},
-    {"id": "oracle_data", "version": "0.9.0"},
-    {"id": "h_api_data", "version": "0.9.0"},
-    {"id": "datalake_data", "version": "0.9.0"},
-    {"id": "goodocs_data", "version": "0.9.0"},
-    {"id": "data_result_merger", "version": "0.9.0"},
-    {"id": "data_output_builder", "version": "0.9.0"},
-    {"id": "source_catalog_normalizer", "version": "0.9.0"},
-    {"id": "llm_caller", "version": "0.9.0"},
-    {"id": "source_catalog_mongodb_store", "version": "0.9.0"},
-    {"id": "source_catalog_mongodb_loader", "version": "0.9.0"},
-    {"id": "html_report_datasets_adapter", "version": "0.9.0"}
-  ]
+  "components": []
 }

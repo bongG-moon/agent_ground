@@ -1,0 +1,41 @@
+{
+  "schema_version": "1.0",
+  "asset_type": "flow_node",
+  "owner_flow": "enterprise_document_rag_flow",
+  "flow_id": "enterprise_document_rag_flow",
+  "nodes": [
+    {
+      "id": "rag_request_context_normalizer",
+      "asset_type": "flow_node",
+      "owner_flow": "enterprise_document_rag_flow",
+      "class_name": "RagRequestContextNormalizer",
+      "name_ko": "RAG Request Context Normalizer",
+      "version": "0.1.0",
+      "source_path": "nodes/rag_request_context_normalizer.py",
+      "summary_ko": "사용자 질문과 서버에서 검증한 사용자·조직·역할 컨텍스트를 fail-closed 요청으로 정규화합니다.",
+      "embedded_in": ["enterprise_document_rag_flow.json"]
+    },
+    {
+      "id": "rag_prompt_builder",
+      "asset_type": "flow_node",
+      "owner_flow": "enterprise_document_rag_flow",
+      "class_name": "RagPromptBuilder",
+      "name_ko": "RAG Prompt Builder",
+      "version": "0.1.0",
+      "source_path": "nodes/rag_prompt_builder.py",
+      "summary_ko": "품질 게이트를 통과한 ACL 허용 근거만 비신뢰 데이터로 감싸고 엄격한 근거 ID 출력 계약을 만듭니다.",
+      "embedded_in": ["enterprise_document_rag_flow.json"]
+    },
+    {
+      "id": "citation_response_builder",
+      "asset_type": "flow_node",
+      "owner_flow": "enterprise_document_rag_flow",
+      "class_name": "CitationResponseBuilder",
+      "name_ko": "Citation Response Builder",
+      "version": "0.1.0",
+      "source_path": "nodes/citation_response_builder.py",
+      "summary_ko": "검증된 authorized evidence에서만 문서명·버전·페이지 Citation을 다시 만들어 최종 Message로 반환합니다.",
+      "embedded_in": ["enterprise_document_rag_flow.json"]
+    }
+  ]
+}

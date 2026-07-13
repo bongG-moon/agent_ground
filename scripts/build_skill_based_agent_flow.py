@@ -32,11 +32,12 @@ PROJECT_BUNDLE_TARGET = ROOT / "flows" / "00_AGENT_GROUND_ALL_FLOWS.json"
 MEETING_SUBFLOW_NAME = "meeting_action_skill_flow"
 
 PROJECT_FLOW_SOURCES = (
-    ROOT / "flows" / "reusable_data_flow" / "reusable_data_flow.json",
+    # reusable_data_flow export는 12개 데이터 내부 Node가 아닌 과거 업무분석flow로 확인되어 격리합니다.
     ROOT / "flows" / "html_report_flow" / "html_report_flow.json",
     ROOT / "flows" / "enterprise_document_rag_flow" / "enterprise_document_rag_flow.json",
     MEETING_SUBFLOW_TARGET,
     FLOW_TARGET,
+    ROOT / "flows" / "ppt_reference_html_flow" / "ppt_reference_html_flow.json",
     ROOT / "business_agent_design" / "flow" / "business_agent_design_complete.json",
 )
 
@@ -55,7 +56,7 @@ class ComponentSpec:
 PARENT_COMPONENT_SPECS = (
     ComponentSpec(
         "catalog",
-        "components/demo_skill_catalog_builder/demo_skill_catalog_builder.py",
+        "flows/skill_based_agent_flow/nodes/demo_skill_catalog_builder.py",
         "DemoSkillCatalogBuilder-skillAgent",
         (0.0, 20.0),
     ),
@@ -101,7 +102,7 @@ PARENT_COMPONENT_SPECS = (
 CHILD_COMPONENT_SPECS = (
     ComponentSpec(
         "catalog",
-        "components/demo_skill_catalog_builder/demo_skill_catalog_builder.py",
+        "flows/skill_based_agent_flow/nodes/demo_skill_catalog_builder.py",
         "DemoSkillCatalogBuilder-meetingSubflow",
         (-40.0, -220.0),
     ),
@@ -652,11 +653,11 @@ def _validate_written_files() -> None:
         raise ValueError(f"Skill Bundle 순서가 다릅니다: {skill_names}")
 
     expected_names = [
-        "업무분석flow",
         "html_flow_0624",
         "enterprise_document_rag_flow",
         MEETING_SUBFLOW_NAME,
         "skill_based_agent_flow",
+        "ppt_reference_html_flow",
         "business_agent_design_complete",
     ]
     actual_names = [

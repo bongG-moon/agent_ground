@@ -33,6 +33,8 @@ meeting_action_skill
 - `leave_policy_skill`: 휴가 Standalone Component를 직접 실행
 - `meeting_action_skill`: `CachedNamedRunFlowTool`이 회의 하위 Flow를 실행
 
+`데모 Skill 카탈로그 빌더`는 이 예시의 고정 카탈로그와 지시사항을 만드는 Flow 내부 노드입니다. Standalone 파일이지만 독립 업무 기능으로 제공하지 않으므로 `internal_nodes.json`에서 관리합니다.
+
 ## 2. 상위 Agent Flow의 정확한 edge
 
 상위 `skill_based_agent_flow`는 9개 노드와 8개 edge로 구성됩니다.

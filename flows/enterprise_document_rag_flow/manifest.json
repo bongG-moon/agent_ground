@@ -10,6 +10,7 @@
   "trigger_signals": ["사내 문서 검색", "규정 질문", "매뉴얼 Q&A", "근거", "출처", "권한별 검색"],
   "flow_file": "enterprise_document_rag_flow.json",
   "component_refs_file": "component_refs.json",
+  "internal_nodes_file": "internal_nodes.json",
   "documentation_path": "html/flows/enterprise_document_rag_flow/index.html",
   "verified_environment": "langflow-1.8.2-local-upload-and-full-build-11-of-11-valid",
   "last_verified_at": "2026-07-11",

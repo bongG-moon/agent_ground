@@ -7,7 +7,9 @@
 - ID: `html_template_renderer`
 - 버전: `0.9.0`
 - 상태: `user_testing`
-- Standalone: `true`
+- 패키징: `standalone`
+- Component 범위: `domain`
+- 자격 판정: `qualified_component`
 - 사용 범위: `html_report_flow`
 
 ## 입력
@@ -20,7 +22,7 @@
 
 | 화면 이름 | 코드 이름 | 타입 | 실행 method |
 | --- | --- | --- | --- |
-| HTML 생성 결과 | `payload_out` | `Output` | `build_payload` |
+| HTML 생성 결과 | `payload_out` | `Data` | `build_payload` |
 
 
 

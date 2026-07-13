@@ -12,6 +12,18 @@ ROOT = Path(__file__).resolve().parents[2]
 BUSINESS = ROOT / "business_agent_design"
 
 
+LFX_STUB_MODULE_NAMES = (
+    "lfx",
+    "lfx.custom",
+    "lfx.custom.custom_component",
+    "lfx.custom.custom_component.component",
+    "lfx.io",
+    "lfx.schema",
+    "lfx.schema.data",
+    "lfx.schema.message",
+)
+
+
 def _install_lfx_stubs() -> None:
     class Component:
         pass
@@ -55,10 +67,19 @@ def _load(name: str, path: Path):
     return module
 
 
-_install_lfx_stubs()
-NORMALIZER = _load("business_design_normalizer", BUSINESS / "components" / "main" / "05_agent_design_normalizer.py")
-RENDERER = _load("business_design_renderer", BUSINESS / "components" / "main" / "06_secure_html_renderer.py")
-BUILDER = _load("business_design_builder", ROOT / "scripts" / "build_business_agent_design_flow.py")
+_original_lfx_modules = {name: sys.modules.get(name) for name in LFX_STUB_MODULE_NAMES}
+try:
+    _install_lfx_stubs()
+    NORMALIZER = _load("business_design_normalizer", BUSINESS / "components" / "main" / "05_agent_design_normalizer.py")
+    RENDERER = _load("business_design_renderer", BUSINESS / "components" / "main" / "06_secure_html_renderer.py")
+    BUILDER = _load("business_design_builder", ROOT / "scripts" / "build_business_agent_design_flow.py")
+finally:
+    # 이 파일의 경량 Stub이 다른 테스트의 실제 Langflow/LFX import를 가리지 않도록 복원한다.
+    for _module_name, _original_module in _original_lfx_modules.items():
+        if _original_module is None:
+            sys.modules.pop(_module_name, None)
+        else:
+            sys.modules[_module_name] = _original_module
 
 
 def _sample_payload(malicious: bool = False) -> dict:
@@ -162,7 +183,9 @@ class LangflowImportTests(unittest.TestCase):
         self.assertFalse(individual_raw.startswith(b'{"flows":['))
         self.assertTrue(bundle_raw.startswith(b'{"flows":['))
         self.assertTrue(project_raw.startswith(b'{"flows":['))
-        self.assertEqual(len(json.loads(project_raw)["flows"]), 6)
+        project_flows = json.loads(project_raw)["flows"]
+        self.assertEqual(len(project_flows), 6)
+        self.assertNotIn("업무분석flow", {flow.get("name") for flow in project_flows})
 
     def test_handles_decode_with_langflow_1_8_2_contract(self):
         flow = json.loads((BUSINESS / "flow" / "business_agent_design_complete.json").read_text(encoding="utf-8"))

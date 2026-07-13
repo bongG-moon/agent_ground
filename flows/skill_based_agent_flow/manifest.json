@@ -12,6 +12,7 @@
   "bundle_file": "00_SKILL_BASED_AGENT_ALL_FLOWS.json",
   "subflow_files": ["meeting_action_skill_flow.json"],
   "component_refs_file": "component_refs.json",
+  "internal_nodes_file": "internal_nodes.json",
   "documentation_path": "html/flows/skill_based_agent_flow/index.html",
   "verified_environment": "langflow-1.8.2-lfx-0.3.4-direct-tool-run-flow-template-schema-and-graph-parse-user-model-db-e2e-pending",
   "last_verified_at": "2026-07-12",

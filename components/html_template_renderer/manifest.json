@@ -5,8 +5,28 @@
   "asset_type": "component",
   "status": "user_testing",
   "version": "0.9.0",
+  "packaging": "standalone",
   "standalone": true,
   "reusability": "shared",
+  "component_scope": "domain",
+  "qualification": {
+    "decision": "qualified_component",
+    "criteria": {
+      "independent_input_output": true,
+      "functional_completeness": true,
+      "reusable_unit": true,
+      "payload_coupling": "domain_contract",
+      "validation_or_error_handling": true
+    },
+    "review_rule": "Flow에서 사용된다는 사실만으로 Component 자격을 부여하지 않습니다."
+  },
+  "owner_usage": {
+    "owner": "html_report_flow",
+    "usage": "HTML 리포트 도메인에서 독립적으로 재사용하는 기능",
+    "used_by_flows": [
+      "html_report_flow"
+    ]
+  },
   "source_family": "html_report_flow",
   "summary_ko": "최종 리포트 계획과 데이터를 이용해 독립 실행 가능한 HTML 원문을 생성합니다.",
   "source_file": "html_template_renderer.py",
@@ -23,7 +43,10 @@
       "type": "Output",
       "name": "payload_out",
       "display_name": "HTML 생성 결과",
-      "method": "build_payload"
+      "method": "build_payload",
+      "types": [
+        "Data"
+      ]
     }
   ],
   "dependencies": [

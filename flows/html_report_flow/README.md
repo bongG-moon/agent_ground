@@ -7,7 +7,8 @@ CSV 또는 JSON 데이터와 사용자가 원하는 표현 방식을 받아, 데
 - 상태: `user_testing`
 - 기준 Flow: `html_report_flow.json`
 - 기존 export 기록: Langflow `1.8.2`
-- Component: 9개 Standalone 파일
+- 기능 단위 Component: 3개
+- Flow 내부 Standalone 노드: 6개
 - 지원 출력: HTML 원문, 선택적 Report API 공유 링크
 
 ## 핵심 원칙
@@ -55,6 +56,7 @@ CSV 또는 JSON 데이터와 사용자가 원하는 표현 방식을 받아, 데
 - [`html_report_flow.json`](html_report_flow.json): 가져오기용 Flow
 - [`CONNECTION_GUIDE.md`](CONNECTION_GUIDE.md): 초보자용 연결 가이드
 - [`component_refs.json`](component_refs.json): 필요한 Component와 버전
+- [`internal_nodes.json`](internal_nodes.json), `nodes/`: 이 Flow에 종속된 요청·카탈로그·계획·출력 단계
 - `samples/`: CSV/JSON 입력과 요소 카탈로그 샘플
 - `report_api/`: HTML 저장·보기·다운로드용 보조 서버
 - `references/`: 블록 분류, Prompt Template, 기존 상세 가이드

@@ -1,38 +1,44 @@
 # Agent Ground 현재 검증 보고서
 
-> 검증일: 2026-07-12  
-> 현재 상태: `user_testing`  
-> 범위: 정적 구조, 원본 일치, JSON, Python, HTML, 링크, Registry, Enterprise Document RAG 실제 Langflow Build, 하이브리드 Skill 기반 Agent 예시, 공용 Component 선택 구현 2종, 최소 단위 직접 데이터 조회 Component 5종
+> 검증일: 2026-07-13  
+> 현재 상태: 실행 가능 자산 `user_testing`, `reusable_data_flow`는 export 불일치로 `building`  
+> 범위: 기능 단위 Component 20개와 Flow 내부 Node 28개, PPT 참고 이미지 기반 HTML 프레젠테이션 Flow, 입출력·코드 포털, 교육 레이아웃, 이동식 Skill 4종, Flow export 무결성, JSON, Python, HTML, 링크, Registry와 기존 Langflow 계약 회귀
 
 ## 통과한 검사
 
 | 검사 | 결과 |
 | --- | --- |
-| 기존 Flow JSON과 새 위치의 파일 일치 | 2개 일치 |
-| 기존 Component 원본과 분리한 파일 일치 | 21개 일치 |
-| 신규 Enterprise Document RAG | 9개 Standalone Component, 13 nodes / 10 edges |
+| 재사용 데이터 Flow export 감사 | 현재·원본 JSON은 같은 `업무분석flow`; 12개 내부 Node class 포함 0개 확인, `building` 격리 |
+| 내부 Node 이동 무결성 | 기존 22개 Python 원본과 이동본의 SHA-256 22/22 일치, 신규 프레젠테이션 내부 Node 6개 포함 총 28개 계약 검증 |
+| 신규 Enterprise Document RAG | 기능 Component 6개 + Flow 내부 Node 3개, 13 nodes / 10 edges |
 | 신규 하이브리드 Skill 기반 Agent | 상위 9 nodes / 8 edges, 회의 하위 5 nodes / 3 edges, 직접 계산 Tool 2개 + Run Flow Tool 1개 |
-| Python 문법 검사 | 83개 통과 |
-| Standalone 단일 파일·상대 import 검사 | 41개 통과 |
-| JSON 파싱 | 79개 통과: 회의 하위 Flow와 Skill 전용 Bundle 포함 |
-| Flow 구조 | `flows/` 아래 등록 자산 4개, 회의 하위 Flow를 포함한 실행 Flow JSON 5개에 node/edge 존재 |
-| Component reference와 버전 | 41개 참조 통과 |
-| HTML 파싱·구조 | 56개 페이지 통과 |
-| 로컬 링크와 자산 경로 | 1,347개 통과 |
-| Registry | 45개 자산 일치 |
+| 신규 PPT 참고 이미지 HTML 프레젠테이션 | 16 nodes / 18 edges, Custom Python 10개, 표지·본문 이미지 분리, 실제 dataset 바인딩, Quality Gate와 HTML 출력 |
+| Python 문법 검사 | 94개 통과 |
+| Standalone 단일 파일·상대 import 검사 | 기능 Component 20개 + Flow 내부 Node 28개 통과 |
+| Component 카탈로그 범위 | General 8개 + Domain 12개 = 기능 단위 20개, Flow 내부 Node 28개는 제외 |
+| Component·내부 Node 상세/코드 | Component 20세트와 Flow 내부 Node 28세트에 실제 AST 입력·출력 계약 및 다크 코드 화면, raw `.py` 링크 0개 |
+| JSON 파싱 | 68개 통과: Skill bundle, 6개 실행 가능 Project bundle과 Skill pack manifest 포함 |
+| Flow 구조 | `flows/` 아래 등록 자산 5개, Project Bundle의 실행 가능 Flow 6개에 node/edge 존재 |
+| Component와 내부 Node 참조 | `component_refs.json`의 기능 Component 16건과 `internal_nodes.json`의 내부 Node 28건 소유·경로·class·version 통과 |
+| Flow refs와 embedded class | runtime-ready Flow는 main/subflow JSON과 자동 대조, 격리 Flow는 명시적 integrity issue 요구 |
+| HTML 파싱·구조 | 113개 페이지 통과 |
+| 로컬 링크와 자산 경로 | 2,544개 통과 |
+| Registry | 기능 Component 20 + 최상위 Flow 5 = 25개 자산 일치, 내부 Node 28개 제외 |
 | JavaScript 문법 | 통과 |
+| 교육 레이아웃 | 단계 grid, 표 내부 스크롤·sticky header, 720px 이하 세로 전환 정적 검증 |
+| 이동식 개발 Skill | 4개 `quick_validate` 통과, 임시 목적지 설치 4/4 확인 |
 | HTML 파일 위치 | 모두 `html/` 아래에 위치 |
-| Business Agent Design 실행 코드 | 메인 10개 + 카탈로그 운영 5개 Standalone Component |
+| Business Agent Design 실행 코드 | 공용 Library와 분리된 메인 10개 + 카탈로그 운영 5개 Standalone 실행 Node |
 | Business Agent Design Flow | 24 nodes / 34 edges, Langflow 1.8.2 Import JSON 생성 |
 | Business Agent Design 기능 테스트 | 6개 통과: graph, 분기, 개선 상세, HTML 보안, Import shape, handle |
-| Business/프로젝트 Bundle | BOM 없음, `{"flows":[` prefix, 프로젝트 6개 Flow 포함 |
+| Business/프로젝트 Bundle | BOM 없음, `{"flows":[` prefix, 격리 donor를 제외한 프로젝트 6개 Flow 포함 |
 | Langflow edge handle | 34개 edge의 `œ` decode 및 `edge.data` 일치 확인, `┇` 없음 |
 | Business Agent BEFORE/AFTER Flow Chart | 2개 Chart, 분기, 변경 설명 action 확인 |
 | 기존 교육 본문 영역 보존 | 전체 markup 포함 확인 |
 | 기존 교육 제목 보존 | 141개 전체 일치 |
 | 기존 교육 링크·자산 참조 보존 | 202개 전체 포함 |
 | Document RAG 기능·보안 테스트 | 13개 통과: ACL, PII, 품질 gate, 거절, injection, version, citation, embedded source |
-| Document RAG runtime template | 실제 Langflow `1.8.2` / LFX `0.3.4`에서 9개 code template 생성·재생성 일치 |
+| Document RAG runtime template | 실제 Langflow `1.8.2` / LFX `0.3.4`에서 Component 6개 + 내부 Node 3개 code template 생성·재생성 일치 |
 | Document RAG 실제 Upload | 임시 Flow HTTP 201, 13 nodes / 10 edges |
 | Document RAG 실제 Full Build | HTTP 200, 실행 node 11/11 `valid=true`, invalid 0 |
 | Document RAG 실제 Chat Output | 답변 322자, 숫자 인용 `[1]`, `RAG lifecycle separation` 및 `p.1` 확인 |
@@ -58,6 +64,8 @@
 | 직접 조회 포털 화면 | 1280px·375px 가로 넘침·깨진 이미지·콘솔 오류 없음, 5개 카드와 보안 안내 확인 |
 | 직접 조회 문서 이동 | 교육 안내 → 직접 조회 카탈로그 → 기존 재사용 Flow 실제 클릭, 기존 Flow의 역방향 링크 확인 |
 | Datalake 상세 화면 | HTTP 토글, 허용 MySQL Host, CA 경로, `data_table`, 설치 패키지명 표시 확인 |
+| PPT HTML 프레젠테이션 회귀 테스트 | 전용 Node·Renderer 17개 통과: 의미 타입·시각화 선택·실데이터 바인딩·HTML escaping·외부 의존성 차단·품질 실패 차단·JS 문법 |
+| 전체 독립 회귀 테스트 | 전체 `pytest` 72개 통과, 테스트용 LFX Stub 격리와 6개 Flow Bundle 순서 포함 |
 
 ## 신규 공용 Component 선택 구현
 
@@ -83,11 +91,21 @@
 
 표준 Agent는 연결된 세 Tool을 모두 볼 수 있으므로 카탈로그 지침은 선택을 유도하지만 per-turn hard filter는 아닙니다. 이 때문에 현재 자산은 읽기 전용 교육 데모입니다. 외부 변경 Skill로 확장할 때는 구조화된 Skill 선택 뒤 exact allowlist만 전달하는 Tool Gate 또는 고정 하위 Workflow가 필요합니다.
 
-개별 계산 Component와 Cached Named Run Flow Tool의 Langflow `1.8.2` / LFX `0.3.4` 계약을 확인했습니다. 현재 0.2.0 상위·하위 JSON의 LFX Graph parse, Tool 입력 3개, Skill 전용 2개 Flow Bundle과 프로젝트 6개 Flow Bundle 순서·BOM 회귀 검증도 통과했습니다. 특정 모델과 API Key를 Flow JSON에 넣지 않았으므로 실제 LLM의 Skill 선택 정확도와 이름 기반 하위 Flow DB 실행은 사용자 승인 Tool Calling 모델을 연결한 뒤 확인해야 합니다.
+개별 계산 Component와 Cached Named Run Flow Tool의 Langflow `1.8.2` / LFX `0.3.4` 계약을 확인했습니다. 현재 0.2.0 상위·하위 JSON의 LFX Graph parse, Tool 입력 3개, Skill 전용 2개 Flow Bundle과 격리 donor를 제외한 프로젝트 6개 Flow Bundle 순서·BOM 회귀 검증도 통과했습니다. 특정 모델과 API Key를 Flow JSON에 넣지 않았으므로 실제 LLM의 Skill 선택 정확도와 이름 기반 하위 Flow DB 실행은 사용자 승인 Tool Calling 모델을 연결한 뒤 확인해야 합니다.
+
+## PPT 참고 이미지 기반 HTML 프레젠테이션 Flow
+
+`ppt_reference_html_flow`는 표지 참고 이미지 1개와 본문 참고 이미지 최대 5개를 `Multi Image Base64 Encoder`로 Data URL로 변환합니다. Vision 분석은 이미지에서 색상, 타이포그래피 계열, 여백, 배치와 시각적 모티프만 관찰하며 이미지 속 문구·숫자·명령은 발표 사실로 사용하지 않습니다. 발표 제목·문장·수치와 표·차트 값은 사용자가 제공한 `brief`와 `datasets`에서만 가져옵니다.
+
+LLM은 실행 가능한 HTML·CSS·JavaScript를 만들지 않고 디자인 관찰 JSON과 슬라이드 계획 JSON만 제안합니다. `presentation_plan_normalizer`가 실제 dataset과 column 참조를 검증하고 값을 바인딩한 뒤, 독립 Component `html_presentation_renderer`가 escaping과 허용 목록을 적용해 외부 CDN이 없는 16:9 HTML을 결정론적으로 생성합니다. 결과 HTML은 이전·다음·처음, 키보드 탐색, 전체 화면, 인쇄/PDF CSS, semantic table, inline SVG 막대·선·산점도를 지원합니다.
+
+표·차트 자동 선택은 데이터 의미 타입을 사용합니다. 단일 핵심값은 KPI, 시간+수치는 선 그래프, 범주+수치는 막대그래프, 수치 2개는 산점도, 상세 행·식별자·혼합 타입은 표를 우선합니다. 현재 Runtime이 직접 렌더링하지 않는 히스토그램과 누적 막대 제안은 실제 데이터 표로 안전하게 낮춥니다. LLM이 존재하지 않는 dataset·column을 요청하거나 HTML 품질 검사가 실패하면 발행 payload를 내보내지 않습니다.
+
+전용 Node·Renderer 테스트 17개와 전체 회귀 테스트 72개, Flow 생성기 `--check`, Python compile, 생성 JavaScript와 포털 JavaScript 문법, Project 검증을 통과했습니다. 다만 이번 최종 회귀 시 로컬 Langflow 서버가 실행 중이 아니므로 실제 Vision 모델/API Key와 진짜 표지·본문 이미지로 수행하는 Builder E2E는 `user_testing`으로 남깁니다.
 
 ## 최소 단위 직접 데이터 조회 Component
 
-기존 `reusable_data_flow`는 자연어 요청, Source Catalog, 소스 분기, 다중 요청과 결과 병합을 포함한 완성 Flow이므로 기존 `0.9.0` Component와 JSON을 그대로 유지했습니다. 단일 소스를 직접 조회하려는 경우를 위해 다음 새 ID를 추가했습니다.
+기존 `reusable_data_flow`는 자연어 요청, Source Catalog, 소스 분기, 다중 요청과 결과 병합을 목표로 한 12개 `0.9.0` Flow 내부 Node와 연결 설계를 보존합니다. 다만 현재 JSON이 이 설계가 아닌 `업무분석flow`로 확인되어 완성 Flow로 취급하지 않으며 import와 Project Bundle에서 제외했습니다. 단일 소스를 직접 조회하려는 경우를 위해 다음 기능 단위 Component ID를 추가했습니다.
 
 | Component | 직접 입력 | 출력 |
 | --- | --- | --- |
@@ -112,24 +130,27 @@
 
 ## 현재 Flow 정보
 
-| Flow | 기존 export 기록 | Node | Edge | Component |
-| --- | --- | ---: | ---: | ---: |
-| `reusable_data_flow` | Langflow `1.8.2` | 16 | 21 | 12 |
-| `html_report_flow` | Langflow `1.8.2` | 18 | 22 | 9 |
-| `enterprise_document_rag_flow` | Langflow `1.8.2` | 13 | 10 | 9 Standalone + Chat I/O + Note |
-| `skill_based_agent_flow` | Langflow `1.8.2` | 9 | 8 | 카탈로그 + 직접 Tool 2 + Run Flow Tool 1 + Agent + Chat I/O + Note |
-| `meeting_action_skill_flow` | Langflow `1.8.2` | 5 | 3 | 카탈로그 + 회의 구조화 Component + Chat I/O + Note |
-| `business_agent_design_complete` | Langflow `1.8.2` | 24 | 34 | 15 Standalone + 기본 node |
+| Flow | 기존 export 기록 | Node | Edge | 기능 Component | Flow 내부 Node |
+| --- | --- | ---: | ---: | ---: | ---: |
+| `reusable_data_flow` | Langflow `1.8.2` | 16 | 21 | 0 | 12, 현재 JSON 포함 0 |
+| `html_report_flow` | Langflow `1.8.2` | 18 | 22 | 3 | 6 |
+| `enterprise_document_rag_flow` | Langflow `1.8.2` | 13 | 10 | 6 | 3 |
+| `skill_based_agent_flow` 패키지 | Langflow `1.8.2` | 상위 9 | 상위 8 | 4 참조 | 1, 상·하위 공용 |
+| `meeting_action_skill_flow` | Langflow `1.8.2` | 5 | 3 | 위 패키지의 회의 Tool 1 | 위 카탈로그 Node 1 |
+| `ppt_reference_html_flow` | Langflow `1.8.2` | 16 | 18 | 이미지 Encoder·HTML Renderer·Publisher 3 | 6 |
+| `business_agent_design_complete` | Langflow `1.8.2` | 24 | 34 | 공용 Registry와 별도 | 서비스 전용 Standalone 구현 15 |
 
 ## 로컬 Langflow 확인
 
-- `http://127.0.0.1:7860/api/v1/version`: `1.8.2`
-- `http://127.0.0.1:7860/health`: `ok`
+- Langflow Desktop 가상환경 패키지: Langflow `1.8.2`, LFX `0.3.4`
+- 2026-07-13 최종 회귀 시 로컬 서버는 실행 중이 아니어서 `/api/v1/version`, `/health`와 라이브 Import를 다시 수행하지 않음
+- 아래 실제 Upload·Full Build·Chat Output 기록은 앞선 같은 버전 검증에서 확인한 결과이며 이번 분류 변경에서는 Flow JSON 내장 code를 유지함
 - `enterprise_document_rag_flow`는 고유한 임시 이름으로 실제 Upload와 Full Build를 수행함
 - 실제 Chat Output에서 답변·숫자 인용·문서명·page를 확인함
 - 현재 0.2.0 상위 Flow는 9 nodes / 8 edges로 생성하고 LFX에서 7 vertices / Agent Tool 입력 3개를 확인함
 - 회의 하위 Flow는 5 nodes / 3 edges로 생성하고 LFX에서 4 vertices / 3 edges를 확인함
 - 경비·휴가·회의 결정론적 Component와 Cached Named Run Flow schema는 개별 검증했지만 실제 모델/API Key 및 하위 Flow Agent E2E는 수행하지 않음
+- PPT 참고 이미지 Flow는 16 nodes / 18 edges와 내장 Python 원본 일치를 검증했지만, 실제 Vision 모델과 실제 이미지 Builder E2E는 수행하지 않음
 - 검증 Flow는 즉시 삭제했고 기존 Flow 수와 잔여 이름을 재확인함
 - 다른 기존 Flow와 전체 Bundle은 현재 검증에서 자동 Import하지 않음
 
@@ -148,7 +169,7 @@
 ## 사용자 환경에서 남은 확인
 
 - [x] 로컬 Agent Builder 버전 `1.8.2`와 health 확인
-- [x] 신규 RAG 9개 Component가 Langflow 1.8.2 runtime template으로 생성되는지 확인
+- [x] 신규 RAG Component 6개 + 내부 Node 3개가 Langflow 1.8.2 runtime template으로 생성되는지 확인
 - [x] 신규 RAG JSON actual upload와 11개 실행 node full build 확인
 - [x] 신규 RAG 대표 질문의 답변·인용·문서명·page 확인
 - [x] 신규 RAG 허용·거절·ACL·PII·injection·version 회귀 테스트 확인
@@ -158,13 +179,16 @@
 - [x] 추천 현황과 Run Flow 상세 페이지를 1280px·375px에서 열어 링크·버튼·가로 넘침 확인
 - [x] 직접 조회 5개 Component의 Langflow 1.8.2 template, 한글 입력, `data_table: DataFrame` 단일 출력 확인
 - [x] Oracle·Datalake native bind, HTTP 기본 차단, H-API body, API 응답 경로·origin redirect, Datalake host·CA·SQL 경계, GooDocs 교체 구역을 격리 테스트로 확인
-- [x] 기존 `reusable_data_flow` JSON과 `component_refs.json`이 신규 Component로 자동 교체되지 않았는지 확인
+- [x] `reusable_data_flow` JSON과 `internal_nodes.json` 불일치 확인, 상태 격리, Project Bundle 제외와 문제 해결 HTML 생성
 - [x] 직접 조회 포털을 1280px·375px에서 열고 교육·카탈로그·기존 Flow 양방향 링크와 Datalake 보안 입력 표시 확인
 - [x] 경비·휴가·회의 결정론적 결과, 비활성 Skill, 미등록 Tool, 지시 덮어쓰기 문구와 외부 변경 금지 계약 확인
 - [x] Cached Named Run Flow Tool의 고정 `question`, 동일 폴더 기본값, 이름 중복·재귀 차단 계약 확인
 - [x] 0.2.0 상위 Flow의 직접 Tool 2개 + Run Flow Tool 1개와 동적 `system_prompt` 연결을 실제 LFX Graph로 재확인
 - [x] `meeting_action_skill_flow`의 Chat Input 하나·Chat Output 하나와 3개 edge를 실제 LFX Graph로 재확인
-- [x] Skill 전용 2개 Flow Bundle과 프로젝트 6개 Flow Bundle의 순서·BOM·원본 일치 재확인
+- [x] Skill 전용 2개 Flow Bundle과 프로젝트 실행 가능 6개 Flow Bundle의 순서·BOM·원본 일치 재확인
+- [x] PPT 참고 이미지 Flow의 16 nodes / 18 edges, Custom Python 10개, 실제 source embed와 Generator 재현성 확인
+- [x] brief·dataset 의미 타입 기반 KPI·표·막대·선·산점도 선택과 존재하지 않는 dataset·column 차단 확인
+- [x] HTML Renderer의 escaping, 외부 CDN·URL 차단, semantic table, inline SVG, 키보드·전체화면·인쇄/PDF와 Quality Gate fail-closed 확인
 - [ ] 두 신규 Python 파일을 Builder에 직접 등록하고 입력·출력 이름 확인
 - [ ] 여러 실제 이미지 업로드 후 순서와 Base64/Data URL 결과 확인
 - [ ] 실제 같은 폴더 하위 Flow로 Cached Run Flow cold/warm 실행과 session 상속 확인
@@ -178,13 +202,15 @@
 - [ ] 승인된 일반 API에서 GET·POST, 인증 header, 응답 경로와 최대 크기 정책 확인
 - [ ] Skill Supervisor Agent에 회사 승인 Tool Calling 모델과 API Key를 연결하고 세 단일 의도의 실제 Tool 선택 확인
 - [ ] Skill Agent의 비대상·복합 의도·Prompt Injection 질문에서 Tool 미호출·요청 분리·외부 변경 금지 확인
-- [ ] 기존 21개 Component가 화면에 정상 등록되는지 확인
-- [ ] 입력 필드, 고급 설정, Output 이름이 HTML 설명서와 같은지 확인
-- [ ] 기존 두 Flow JSON import 후 invalid handle 여부 확인
+- [ ] 실제 사용할 기능 Component를 Builder에 등록하고 20개 카탈로그 중 해당 자산의 입력·출력 이름 확인
+- [ ] 실행 Flow를 가져온 뒤 포함된 내부 Node의 입력 필드, 고급 설정, Output 이름이 Flow 설명서와 같은지 확인
+- [ ] 기존 HTML Report Flow JSON import 후 invalid handle 여부 확인
 - [ ] Business Agent Design 개별 JSON import 후 24 nodes / 34 connections 확인
-- [ ] Agent Ground 전체 Bundle import 화면에서 6개 Flow 확인
+- [ ] Agent Ground 전체 Bundle import 화면에서 실행 가능 6개 Flow 확인
+- [ ] PPT 참고 이미지 Flow에 승인된 Vision 모델/API Key, 표지 1개와 본문 이미지 여러 개를 연결해 실제 디자인 분석 확인
+- [ ] 샘플 dataset과 실제 업무 dataset으로 생성한 HTML의 표·차트 값, 슬라이드 전환, 전체화면과 인쇄/PDF 결과 확인
 - [ ] 실제 업무 설명으로 BEFORE/AFTER 분기와 `개선 설명` 버튼 확인
-- [ ] `reusable_data_flow` 대표 catalog와 질문 실행
+- [ ] 올바른 `reusable_data_flow` export 제공 또는 신규 재구축 후 대표 catalog와 질문 실행
 - [ ] `html_report_flow` 샘플 CSV/JSON 실행과 HTML 확인
 - [ ] 선택적으로 Report API 보기·다운로드 링크 확인
 - [ ] 운영 RAG 전환 전 실제 identity/DLP/vector store adapter 통합 테스트

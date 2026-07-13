@@ -1,0 +1,19 @@
+{
+  "schema_version": "1.0",
+  "asset_type": "flow_node",
+  "owner_flow": "skill_based_agent_flow",
+  "flow_id": "skill_based_agent_flow",
+  "nodes": [
+    {
+      "id": "demo_skill_catalog_builder",
+      "asset_type": "flow_node",
+      "owner_flow": "skill_based_agent_flow",
+      "class_name": "DemoSkillCatalogBuilder",
+      "name_ko": "데모 Skill 카탈로그 빌더",
+      "version": "0.1.0",
+      "source_path": "nodes/demo_skill_catalog_builder.py",
+      "summary_ko": "검증된 세 가지 업무 Skill 카탈로그와 Supervisor Agent용 지시사항을 생성합니다.",
+      "embedded_in": ["skill_based_agent_flow.json", "meeting_action_skill_flow.json"]
+    }
+  ]
+}

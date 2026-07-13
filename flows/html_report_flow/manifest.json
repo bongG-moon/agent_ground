@@ -10,6 +10,7 @@
   "trigger_signals": ["리포트", "대시보드", "KPI", "차트", "HTML", "공유 링크"],
   "flow_file": "html_report_flow.json",
   "component_refs_file": "component_refs.json",
+  "internal_nodes_file": "internal_nodes.json",
   "documentation_path": "html/flows/html_report_flow/index.html",
   "verified_environment": "legacy-export-1.8.2-local-static-check",
   "last_verified_at": "2026-07-10",

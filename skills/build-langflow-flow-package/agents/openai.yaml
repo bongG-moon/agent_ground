@@ -1,0 +1,4 @@
+interface:
+  display_name: "Langflow Flow 패키지"
+  short_description: "Component와 내부 노드를 구분한 Langflow Flow 패키지를 만듭니다."
+  default_prompt: "Use $build-langflow-flow-package to Component와 내부 노드를 구분한 가져오기용 Flow 패키지를 만드세요."

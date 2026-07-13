@@ -10,7 +10,52 @@ from typing import Any
 ROOT = Path(__file__).resolve().parents[1]
 COMPONENTS_DIR = ROOT / "components"
 
-REUSABLE_DATA_IDS = {
+GENERAL_COMPONENT_IDS = {
+    "multi_image_base64_encoder",
+    "cached_named_run_flow_tool",
+    "oracle_table_query",
+    "h_api_table_request",
+    "datalake_table_query",
+    "goodocs_table_reader",
+    "simple_api_table_request",
+}
+
+ENTERPRISE_DOCUMENT_RAG_COMPONENT_IDS = {
+    "document_input_normalizer",
+    "pii_confidential_data_guard",
+    "document_chunk_index_builder",
+    "acl_evidence_retriever",
+    "retrieval_quality_gate",
+    "grounded_answer_builder",
+}
+
+SKILL_COMPONENT_IDS = {
+    "expense_precheck_skill_tool",
+    "leave_policy_skill_tool",
+    "meeting_action_skill_tool",
+}
+
+HTML_REPORT_COMPONENT_IDS = {
+    "html_report_data_profile_builder",
+    "html_template_renderer",
+    "report_api_publisher",
+}
+
+PRESENTATION_COMPONENT_IDS = {
+    "html_presentation_renderer",
+}
+
+DOMAIN_COMPONENT_IDS = (
+    ENTERPRISE_DOCUMENT_RAG_COMPONENT_IDS
+    | SKILL_COMPONENT_IDS
+    | HTML_REPORT_COMPONENT_IDS
+    | PRESENTATION_COMPONENT_IDS
+)
+COMPONENT_IDS = GENERAL_COMPONENT_IDS | DOMAIN_COMPONENT_IDS
+
+# 이 ID들은 더 이상 Component 자산이 아닙니다. 각 Flow의 nodes/와
+# internal_nodes.json이 소유하며, components/에 다시 생기면 생성기가 실패합니다.
+INTERNAL_NODE_IDS = {
     "data_request_normalizer",
     "oracle_data",
     "h_api_data",
@@ -23,30 +68,22 @@ REUSABLE_DATA_IDS = {
     "source_catalog_mongodb_store",
     "source_catalog_mongodb_loader",
     "html_report_datasets_adapter",
-}
-
-ENTERPRISE_DOCUMENT_RAG_IDS = {
-    "document_input_normalizer",
-    "pii_confidential_data_guard",
-    "document_chunk_index_builder",
+    "demo_report_request_loader",
+    "html_component_catalog_builder",
+    "auto_html_plan_builder",
+    "llm_html_plan_prompt_builder",
+    "llm_html_plan_normalizer",
+    "html_source_output",
     "rag_request_context_normalizer",
-    "acl_evidence_retriever",
-    "retrieval_quality_gate",
     "rag_prompt_builder",
-    "grounded_answer_builder",
     "citation_response_builder",
-}
-
-SKILL_BASED_AGENT_IDS = {
     "demo_skill_catalog_builder",
-    "expense_precheck_skill_tool",
-    "leave_policy_skill_tool",
-    "meeting_action_skill_tool",
-}
-
-ENTERPRISE_UTILITY_IDS = {
-    "multi_image_base64_encoder",
-    "cached_named_run_flow_tool",
+    "presentation_request_builder",
+    "presentation_reference_analyzer",
+    "presentation_plan_generator",
+    "presentation_plan_normalizer",
+    "presentation_quality_gate",
+    "presentation_html_source_output",
 }
 
 COMPONENT_VERSION_OVERRIDES = {
@@ -62,6 +99,8 @@ DIRECT_DATA_ACCESS_IDS = {
     "simple_api_table_request",
 }
 
+ENTERPRISE_UTILITY_IDS = GENERAL_COMPONENT_IDS - DIRECT_DATA_ACCESS_IDS
+
 DEPENDENCY_OVERRIDES = {
     "cached_named_run_flow_tool": ["langflow", "lfx"],
     "oracle_table_query": ["oracledb"],
@@ -75,6 +114,10 @@ DEPENDENCY_EXCLUDES = {
 SOURCE_FAMILY_USAGE_LABELS = {
     "direct_data_access_components": "직접 데이터 조회 Component (특정 Flow 미지정)",
     "enterprise_utility_components": "사내 공용 독립 Component (특정 Flow 미지정)",
+    "enterprise_document_rag_flow": "Enterprise Document RAG 도메인 Component",
+    "skill_based_agent_flow": "Skill 기반 Agent 도메인 Component",
+    "html_report_flow": "HTML 리포트 도메인 Component",
+    "ppt_reference_html_flow": "참조 이미지 기반 HTML 프레젠테이션 도메인 Component",
 }
 
 ADDITIONAL_GUIDES = {
@@ -92,30 +135,15 @@ BEGINNER_GUIDES = {
 }
 
 RISK_TAGS = {
-    "oracle_data": ["external_data_access", "credentials_required"],
-    "h_api_data": ["external_api_access", "credentials_required"],
-    "datalake_data": ["external_data_access", "credentials_required"],
-    "goodocs_data": ["external_document_access", "credentials_required"],
-    "llm_caller": ["external_llm", "api_key"],
-    "source_catalog_mongodb_store": ["database_write", "credentials_required"],
-    "source_catalog_mongodb_loader": ["database_read", "credentials_required"],
     "html_template_renderer": ["html_output"],
+    "html_presentation_renderer": ["html_output", "inline_svg", "self_contained_artifact"],
     "report_api_publisher": ["external_publish", "html_output"],
     "document_input_normalizer": ["document_content", "demo_corpus"],
     "pii_confidential_data_guard": ["pii_baseline", "confidential_content"],
     "document_chunk_index_builder": ["ephemeral_index", "document_content"],
-    "rag_request_context_normalizer": ["access_control", "demo_identity"],
     "acl_evidence_retriever": ["access_control", "document_content"],
     "retrieval_quality_gate": ["answer_policy"],
-    "rag_prompt_builder": ["prompt_injection_boundary", "document_content"],
     "grounded_answer_builder": ["llm_output_validation", "document_content"],
-    "citation_response_builder": ["citation_output", "document_content"],
-    "demo_skill_catalog_builder": [
-        "dynamic_agent_instruction",
-        "skill_catalog",
-        "tool_allowlist",
-        "prompt_injection_boundary",
-    ],
     "expense_precheck_skill_tool": [
         "agent_tool",
         "skill_as_tool",
@@ -180,15 +208,13 @@ RISK_TAGS = {
 
 
 def component_release(component_id: str) -> dict[str, Any]:
-    if component_id in REUSABLE_DATA_IDS:
-        return {
-            "source_family": "reusable_data_flow",
-            "version": "0.9.0",
-            "verified_environment": "legacy-export-1.8.2-local-static-check",
-            "last_verified_at": "2026-07-10",
-            "used_by_flows": ["reusable_data_flow"],
-        }
-    if component_id in ENTERPRISE_DOCUMENT_RAG_IDS:
+    """Return an explicit release policy; unknown IDs are never inferred."""
+    if component_id not in COMPONENT_IDS:
+        raise ValueError(
+            f"{component_id}: 등록되지 않은 Component ID입니다. "
+            "새 Component는 기능 단위 자격 검토와 명시적 정책 등록이 먼저 필요합니다."
+        )
+    if component_id in ENTERPRISE_DOCUMENT_RAG_COMPONENT_IDS:
         return {
             "source_family": "enterprise_document_rag_flow",
             "version": "0.1.0",
@@ -196,11 +222,9 @@ def component_release(component_id: str) -> dict[str, Any]:
             "last_verified_at": "2026-07-11",
             "used_by_flows": ["enterprise_document_rag_flow"],
         }
-    if component_id in SKILL_BASED_AGENT_IDS:
+    if component_id in SKILL_COMPONENT_IDS:
         used_by = ["skill_based_agent_flow"]
-        if component_id == "demo_skill_catalog_builder":
-            used_by = ["skill_based_agent_flow", "meeting_action_skill_flow"]
-        elif component_id == "meeting_action_skill_tool":
+        if component_id == "meeting_action_skill_tool":
             used_by = ["meeting_action_skill_flow"]
         return {
             "source_family": "skill_based_agent_flow",
@@ -208,6 +232,22 @@ def component_release(component_id: str) -> dict[str, Any]:
             "verified_environment": "langflow-1.8.2-template-and-isolated-contract-validation",
             "last_verified_at": "2026-07-12",
             "used_by_flows": used_by,
+        }
+    if component_id in HTML_REPORT_COMPONENT_IDS:
+        return {
+            "source_family": "html_report_flow",
+            "version": "0.9.0",
+            "verified_environment": "legacy-export-1.8.2-local-static-check",
+            "last_verified_at": "2026-07-10",
+            "used_by_flows": ["html_report_flow"],
+        }
+    if component_id in PRESENTATION_COMPONENT_IDS:
+        return {
+            "source_family": "ppt_reference_html_flow",
+            "version": "0.1.0",
+            "verified_environment": "langflow-1.8.2-template-and-isolated-contract-validation",
+            "last_verified_at": "2026-07-13",
+            "used_by_flows": ["ppt_reference_html_flow"],
         }
     if component_id in ENTERPRISE_UTILITY_IDS:
         used_by = ["skill_based_agent_flow"] if component_id == "cached_named_run_flow_tool" else []
@@ -226,12 +266,55 @@ def component_release(component_id: str) -> dict[str, Any]:
             "last_verified_at": "2026-07-12",
             "used_by_flows": [],
         }
+    raise AssertionError(f"{component_id}: 명시적 release 분기가 누락되었습니다.")
+
+
+def component_scope(component_id: str) -> str:
+    if component_id in GENERAL_COMPONENT_IDS:
+        return "general"
+    if component_id in DOMAIN_COMPONENT_IDS:
+        return "domain"
+    raise ValueError(f"{component_id}: component_scope 정책이 없습니다.")
+
+
+def qualification(component_id: str) -> dict[str, Any]:
+    """Record why this asset qualifies as a Component rather than a Flow node."""
+    scope = component_scope(component_id)
     return {
-        "source_family": "html_report_flow",
-        "version": "0.9.0",
-        "verified_environment": "legacy-export-1.8.2-local-static-check",
-        "last_verified_at": "2026-07-10",
-        "used_by_flows": ["html_report_flow"],
+        "decision": "qualified_component",
+        "criteria": {
+            "independent_input_output": True,
+            "functional_completeness": True,
+            "reusable_unit": True,
+            "payload_coupling": "low" if scope == "general" else "domain_contract",
+            "validation_or_error_handling": True,
+        },
+        "review_rule": "Flow에서 사용된다는 사실만으로 Component 자격을 부여하지 않습니다.",
+    }
+
+
+def owner_usage(component_id: str, release: dict[str, Any]) -> dict[str, Any]:
+    if component_id in GENERAL_COMPONENT_IDS:
+        owner = "component_library"
+        usage = "여러 Flow에서 직접 조합하는 공용 최소 기능"
+    elif component_id in ENTERPRISE_DOCUMENT_RAG_COMPONENT_IDS:
+        owner = "enterprise_document_rag_flow"
+        usage = "문서 RAG 도메인에서 독립적으로 재사용하는 기능"
+    elif component_id in SKILL_COMPONENT_IDS:
+        owner = "skill_based_agent_flow"
+        usage = "Skill 기반 Agent에서 Tool로 사용하는 완결 기능"
+    elif component_id in HTML_REPORT_COMPONENT_IDS:
+        owner = "html_report_flow"
+        usage = "HTML 리포트 도메인에서 독립적으로 재사용하는 기능"
+    elif component_id in PRESENTATION_COMPONENT_IDS:
+        owner = "ppt_reference_html_flow"
+        usage = "검증된 발표 계획을 자체 포함 HTML 슬라이드로 만드는 독립 렌더링 기능"
+    else:
+        raise ValueError(f"{component_id}: owner_usage 정책이 없습니다.")
+    return {
+        "owner": owner,
+        "usage": usage,
+        "used_by_flows": list(release["used_by_flows"]),
     }
 
 
@@ -287,6 +370,36 @@ def literal(node: ast.AST | None, constants: dict[str, Any] | None = None) -> An
         return ast.literal_eval(node)
     except (ValueError, TypeError):
         return None
+
+
+def annotation_type_name(node: ast.AST | None) -> str | None:
+    """Output에 types가 없을 때 실행 method의 반환 annotation을 읽습니다."""
+    if isinstance(node, ast.Name):
+        return node.id
+    if isinstance(node, ast.Attribute):
+        return node.attr
+    if isinstance(node, ast.Subscript):
+        return annotation_type_name(node.value)
+    if isinstance(node, ast.Constant) and isinstance(node.value, str):
+        return node.value.rsplit(".", 1)[-1]
+    return None
+
+
+def infer_output_types(class_node: ast.ClassDef, outputs: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    method_returns = {
+        node.name: annotation_type_name(node.returns)
+        for node in class_node.body
+        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
+    }
+    enriched: list[dict[str, Any]] = []
+    for output in outputs:
+        item = dict(output)
+        if not item.get("types"):
+            return_type = method_returns.get(str(item.get("method") or ""))
+            if return_type:
+                item["types"] = [return_type]
+        enriched.append(item)
+    return enriched
 
 
 def module_constants(tree: ast.Module) -> dict[str, Any]:
@@ -430,9 +543,31 @@ def markdown_table(fields: list[dict[str, Any]], output: bool = False) -> str:
 
 
 def main() -> None:
+    component_dirs = {
+        path.name: path for path in COMPONENTS_DIR.iterdir() if path.is_dir()
+    }
+    actual_ids = set(component_dirs)
+    missing_ids = COMPONENT_IDS - actual_ids
+    unexpected_ids = actual_ids - COMPONENT_IDS
+    if missing_ids or unexpected_ids:
+        messages = []
+        if missing_ids:
+            messages.append(f"누락된 Component: {sorted(missing_ids)}")
+        if unexpected_ids:
+            internal = sorted(unexpected_ids & INTERNAL_NODE_IDS)
+            unknown = sorted(unexpected_ids - INTERNAL_NODE_IDS)
+            if internal:
+                messages.append(
+                    "components/에 남아 있는 Flow 내부 node: "
+                    f"{internal} (flows/<owner>/nodes/로 이동해야 합니다)"
+                )
+            if unknown:
+                messages.append(f"정책에 등록되지 않은 디렉터리: {unknown}")
+        raise ValueError("Component 디렉터리 구성이 20개 자격 목록과 다릅니다. " + "; ".join(messages))
+
     manifests = []
-    for component_dir in sorted(path for path in COMPONENTS_DIR.iterdir() if path.is_dir()):
-        component_id = component_dir.name
+    for component_id in sorted(COMPONENT_IDS):
+        component_dir = component_dirs[component_id]
         source_files = list(component_dir.glob("*.py"))
         if len(source_files) != 1:
             raise ValueError(f"{component_id}: expected one Python file, found {len(source_files)}")
@@ -440,6 +575,7 @@ def main() -> None:
         source_text = source_file.read_text(encoding="utf-8-sig")
         tree = ast.parse(source_text, filename=str(source_file))
         class_node, attributes = get_runtime_class(tree)
+        parsed_outputs = infer_output_types(class_node, attributes.get("outputs", []))
         release = component_release(component_id)
         source_family = release["source_family"]
         manifest = {
@@ -449,13 +585,17 @@ def main() -> None:
             "asset_type": "component",
             "status": "user_testing",
             "version": release["version"],
+            "packaging": "standalone",
             "standalone": True,
             "reusability": "shared",
+            "component_scope": component_scope(component_id),
+            "qualification": qualification(component_id),
+            "owner_usage": owner_usage(component_id, release),
             "source_family": source_family,
             "summary_ko": attributes.get("description", ""),
             "source_file": source_file.name,
             "inputs": attributes.get("inputs", []),
-            "outputs": attributes.get("outputs", []),
+            "outputs": parsed_outputs,
             "dependencies": sorted(
                 (set(dependencies(tree)) | set(DEPENDENCY_OVERRIDES.get(component_id, [])))
                 - set(DEPENDENCY_EXCLUDES.get(component_id, set()))
@@ -503,7 +643,9 @@ def main() -> None:
 - ID: `{component_id}`
 - 버전: `{manifest['version']}`
 - 상태: `user_testing`
-- Standalone: `true`
+- 패키징: `standalone`
+- Component 범위: `{manifest['component_scope']}`
+- 자격 판정: `{manifest['qualification']['decision']}`
 - 사용 범위: `{usage_label}`
 
 ## 입력

@@ -4,7 +4,7 @@
 > 작성일: 2026-07-10  
 > 적용 대상: `C:\Users\<사용자명>\Desktop\Agent_ground`  
 > 기존 참고 자료: `C:\Users\<사용자명>\Desktop\langflow교육자료`, `C:\Users\<사용자명>\Desktop\기능flow`  
-> 필수 실행 조건: 모든 Langflow 커스텀 컴포넌트는 **Standalone 방식**으로 구현한다.
+> 필수 실행 조건: 모든 Langflow 커스텀 Python 자산은 **Standalone 방식**으로 구현한다. 단, Standalone 파일이라고 모두 Component로 분류하지는 않는다.
 
 ---
 
@@ -45,9 +45,11 @@
 ### 2.3 Flow와 Component를 구분해 축적해야 한다
 
 - `flows/`에는 완성된 연결 구조, Flow JSON, 연결 가이드, 샘플과 검증 자료를 둔다.
-- `components/`에는 독립적으로 등록 가능한 Standalone 커스텀 컴포넌트를 둔다.
-- Flow 안에 Python 컴포넌트 원본을 중복 보관하지 않는다. Flow manifest가 필요한 Component ID와 버전을 참조하도록 한다.
-- 배포용 묶음이 필요하면 승인된 Component 사본을 `release` 패키지에 포함할 수 있지만, 원본의 기준 위치는 `components/` 하나로 유지한다.
+- `components/`에는 Flow 밖에서도 직접 재사용할 수 있는 독립 기능 단위만 둔다.
+- Flow 전용 adapter, prompt 조립, demo seed, 결과 포장과 내부 envelope 변환은 `flows/<flow_id>/nodes/`에 둔다.
+- Standalone은 파일 배포 제약이고 Component는 기능 분류다. 파일 하나로 등록된다는 사실만으로 Component가 되지는 않는다.
+- Flow의 `component_refs.json`에는 실제 재사용 Component만 기록하고, 내부 노드는 `internal_nodes.json`에 별도로 기록한다.
+- Python 원본은 Component면 `components/`, 내부 노드면 소유 Flow의 `nodes/` 한곳에만 둔다. Flow JSON에는 import를 위한 내장 code가 포함될 수 있다.
 
 ### 2.4 사용자가 완료라고 판단한 뒤에 공개 문서에 반영해야 한다
 
@@ -80,14 +82,15 @@
 
 1. **Beginner first**: 초보자가 실제로 실행할 수 있는지를 우선한다.
 2. **Actual environment first**: 기억이나 일반론보다 현재 환경에서 확인한 사실을 우선한다.
-3. **Standalone only**: 각 커스텀 컴포넌트는 파일 하나만 등록해 실행할 수 있어야 한다.
-4. **Contract first**: 구현 전에 입력, 출력, 타입, 오류 형태, 다음 연결 지점을 먼저 정한다.
-5. **Evidence before completion**: 컴파일 성공만으로 완료라고 하지 않고 대표 입력의 실제 결과를 확인한다.
-6. **User approval gate**: 사용자의 완료 승인 전에는 공식 포털과 추천 카탈로그에 공개하지 않는다.
-7. **One source of truth**: 승인 상태와 추천 정보는 registry를 기준으로 관리한다.
-8. **Failure becomes knowledge**: 실패 원인과 해결 과정을 재사용 가능한 문서로 남긴다.
-9. **Safe by default**: 비밀값을 코드에 넣지 않고, 외부 발송·시스템 쓰기·승인 업무에는 사람 확인 지점을 둔다.
-10. **Preserve proven assets**: 기존 자료를 무조건 다시 만들지 않고, 실제로 검증된 코드·샘플·설명은 선별해 이관한다.
+3. **Functional boundary first**: 독립 기능 단위만 Component로 승격하고 Flow 내부 단계를 공용 자산처럼 노출하지 않는다.
+4. **Standalone packaging**: 모든 커스텀 Python 자산은 파일 하나만 등록해 실행할 수 있어야 한다.
+5. **Contract first**: 구현 전에 입력, 출력, 타입, 오류 형태, 다음 연결 지점을 먼저 정한다.
+6. **Evidence before completion**: 컴파일 성공만으로 완료라고 하지 않고 대표 입력의 실제 결과를 확인한다.
+7. **User approval gate**: 사용자의 완료 승인 전에는 공식 포털과 추천 카탈로그에 공개하지 않는다.
+8. **One source of truth**: 승인 상태와 추천 정보는 registry를 기준으로 관리한다.
+9. **Failure becomes knowledge**: 실패 원인과 해결 과정을 재사용 가능한 문서로 남긴다.
+10. **Safe by default**: 비밀값을 코드에 넣지 않고, 외부 발송·시스템 쓰기·승인 업무에는 사람 확인 지점을 둔다.
+11. **Preserve proven assets**: 기존 자료를 무조건 다시 만들지 않고, 실제로 검증된 코드·샘플·설명은 선별해 이관한다.
 
 ---
 
@@ -125,6 +128,9 @@ Agent_ground/
 │     ├─ README.md
 │     ├─ CONNECTION_GUIDE.md
 │     ├─ component_refs.json
+│     ├─ internal_nodes.json
+│     ├─ nodes/
+│     │  └─ <node_id>.py
 │     ├─ samples/
 │     ├─ tests/
 │     └─ release/
@@ -173,6 +179,13 @@ Agent_ground/
 │  ├─ package_flow.*
 │  └─ sync_business_catalog.*
 │
+├─ skills/
+│  ├─ maintain-agent-ground/
+│  ├─ build-langflow-standalone-component/
+│  ├─ build-langflow-flow-package/
+│  ├─ maintain-agent-ground-portal/
+│  └─ install.ps1
+│
 ├─ tests/
 │  ├─ component_contracts/
 │  ├─ flow_contracts/
@@ -186,12 +199,13 @@ Agent_ground/
 ### 4.1 구조 해석
 
 - `training/`은 교육 내용의 원본, 예제 코드, 샘플 파일을 보관한다.
-- `components/`는 재사용 가능한 Standalone Python 컴포넌트의 기준 원본이다.
-- `flows/`는 Flow JSON, 연결 정보, 샘플, 검증 자료를 보관한다.
+- `components/`는 독립 사용 사례와 안정된 계약을 가진 기능 단위 Component의 기준 원본이다.
+- `flows/`는 Flow JSON, 연결 정보, 샘플, 검증 자료와 Flow 내부 Python 노드 원본을 보관한다.
 - `business_agent_design/`은 일반 Flow 라이브러리와 분리된 별도 상위 서비스다.
 - `registry/`는 어떤 자산이 승인되었고 포털과 업무 Agent 설계에 노출될 수 있는지 결정하는 기준 데이터다.
 - `html/`은 사용자가 브라우저로 보는 모든 HTML 결과물을 모으는 곳이다. HTML 파일은 다른 폴더에 흩어 두지 않는다.
 - `scripts/`는 registry를 읽어 HTML 목록, 배포 묶음, 업무 Agent 카탈로그를 만드는 자동화 도구를 보관한다.
+- `skills/`는 이 프로젝트의 구현·검증·병합 규칙을 다른 개발 환경에서도 그대로 적용할 수 있는 이동식 Agent Skill 묶음이다.
 - `archive/`는 이관 전 스냅샷이나 폐기된 버전을 보관하되 포털에는 노출하지 않는다.
 
 ---
@@ -230,11 +244,23 @@ flowchart LR
 
 ---
 
-## 6. Standalone Component 구현 표준
+## 6. Component와 Standalone Python 자산 구현 표준
 
-이 프로젝트의 모든 커스텀 컴포넌트는 실제 Agent Builder 환경의 제약 때문에 Standalone 방식으로 작성한다.
+이 프로젝트의 모든 커스텀 Python 자산은 실제 Agent Builder 환경의 제약 때문에 Standalone 방식으로 작성한다. 그러나 Standalone은 포장 방식일 뿐 Component 자격을 의미하지 않는다.
 
-### 6.1 필수 조건
+### 6.1 Component 승격 기준
+
+다음 조건을 모두 만족할 때만 `components/`와 registry에 Component로 등록한다.
+
+- 특정 Flow를 몰라도 독립 사용 사례를 한 문장으로 설명할 수 있다.
+- 다른 Flow나 Agent가 직접 연결할 수 있는 안정된 입력·출력 계약이 있다.
+- 단순 필드 변환, prompt 조립, demo 값 생성이나 최종 포장을 넘어 의미 있는 업무 기능을 수행한다.
+- 오류·보안·크기 제한을 독립적으로 정의하고 검증할 수 있다.
+- 별도 버전, manifest, 단위 테스트와 사용자 설명서를 유지할 가치가 있다.
+
+기준을 통과하지 못한 Python 단계는 `flows/<flow_id>/nodes/`에 두고 `internal_nodes.json`으로 관리한다. 내부 노드는 Component Library, registry와 업무 Agent 추천 대상에서 제외하며 소유 Flow 설명서 안에서만 보여준다.
+
+### 6.2 Standalone 필수 조건
 
 - 한 개의 `.py` 파일만 Langflow 커스텀 컴포넌트 위치 또는 코드 편집기에 등록해 동작해야 한다.
 - 형제 파일, 저장소 내부 공통 모듈, 상대 경로 모듈을 import하지 않는다.
@@ -246,7 +272,7 @@ flowchart LR
 - 각 Output은 어떤 Langflow 타입인지 명확해야 한다.
 - 실패 시 빈 성공값을 조용히 반환하지 말고 사용자가 이해할 수 있는 상태 또는 오류 정보를 제공한다.
 
-### 6.2 Component manifest 필수 필드
+### 6.3 Component manifest 필수 필드
 
 ```json
 {
@@ -256,6 +282,8 @@ flowchart LR
   "status": "building",
   "version": "0.1.0",
   "standalone": true,
+  "packaging": "standalone",
+  "component_scope": "general",
   "reusability": "shared",
   "summary_ko": "이 컴포넌트가 해결하는 문제",
   "inputs": [],
@@ -269,7 +297,7 @@ flowchart LR
 }
 ```
 
-### 6.3 Component 설명서 필수 항목
+### 6.4 Component 설명서 필수 항목
 
 1. 이 컴포넌트가 필요한 이유
 2. 기본 Langflow 노드만으로 해결하기 어려운 점
@@ -283,7 +311,7 @@ flowchart LR
 10. 흔한 실패와 관련 문제 해결 링크
 11. 검증한 환경과 날짜
 
-### 6.4 Component 완료 기준
+### 6.5 Component 완료 기준
 
 - [ ] 파일 하나만 복사 또는 등록해 로드된다.
 - [ ] 형제/로컬 모듈 import가 없다.
@@ -304,7 +332,9 @@ flowchart LR
 
 - 가져오기 가능한 Flow JSON
 - Flow manifest
-- 필요한 Component ID와 정확한 버전을 담은 `component_refs.json`
+- 필요한 실제 Component ID와 정확한 버전을 담은 `component_refs.json`
+- Flow 전용 Python 노드와 원본 경로를 담은 `internal_nodes.json`
+- 내부 노드 원본을 담는 `nodes/`
 - 초보자용 README
 - 포트 단위 연결표가 있는 `CONNECTION_GUIDE.md`
 - 복사 가능한 최소 입력과 실제 업무형 입력
@@ -345,6 +375,7 @@ flowchart LR
 
 - [ ] Flow JSON이 파싱되고 실제 환경에서 가져와진다.
 - [ ] `component_refs.json`의 모든 Component가 존재하고 버전이 맞는다.
+- [ ] `internal_nodes.json`의 모든 source가 소유 Flow의 `nodes/`에 존재하고 Flow JSON의 내장 code와 일치한다.
 - [ ] 연결표와 실제 Flow 연결이 일치한다.
 - [ ] 대표 질문 또는 입력으로 끝까지 실행된다.
 - [ ] 최종 결과뿐 아니라 주요 중간 결과도 확인했다.
@@ -504,7 +535,7 @@ flowchart LR
 
 `business_agent_design/`은 유용한 Flow와 Component를 저장하는 일반 라이브러리가 아니다. 사용자의 업무 설명을 읽고 **어떤 Agent를 어떤 구조로 만들지 제안하는 별도 상위 서비스**다.
 
-> 2026-07-10 구현 상태: Langflow 1.8.2용 24-node / 34-edge 실행 Flow, 메인 10개와 운영자용 5개 Standalone Component, graph Normalizer, 분기형 HTML Renderer와 Import Bundle까지 구현했으며 현재 `user_testing`이다. 추천 정책은 계속 `status=approved` 자산만 허용한다.
+> 2026-07-10 구현 상태: Langflow 1.8.2용 24-node / 34-edge 실행 Flow, 공용 Component Library와 분리된 메인 10개·운영자용 5개 Standalone 실행 Node, graph Normalizer, 분기형 HTML Renderer와 Import Bundle까지 구현했으며 현재 `user_testing`이다. 추천 정책은 계속 `status=approved` 자산만 허용한다.
 
 ### 11.1 목표 사용자 경험
 
@@ -635,11 +666,11 @@ registry, MongoDB, 코드 내부 seed를 각각 손으로 관리하지 않는다
 | --- | --- | --- |
 | `langflow교육자료/LANGFLOW_INTERNAL_TRAINING_PORTAL.html` | `html/training/index.html` | 기존 내용을 보존한 채 통합 탐색 구조와 상태·문제 해결 링크 추가 |
 | `langflow교육자료/LANGFLOW_CUSTOM_NODE_CODE_GUIDE.md` | `training/references/` | 교육 원본 참고자료로 이관하고 HTML 교육 페이지에서 연결 |
-| `langflow교육자료/examples/*.py` | `components/<id>/` 후보 | Standalone 여부와 실제 환경 동작을 하나씩 확인한 뒤 승인 자산으로 승격 |
+| `langflow교육자료/examples/*.py` | `components/<id>/` 또는 `flows/<id>/nodes/` 후보 | 독립 기능 기준과 실제 환경 동작을 확인한 뒤 Component 또는 내부 노드로 분류 |
 | `langflow교육자료/sample_files/` | `training/samples/` | 질문, 기대 결과, 관련 실습 정보를 함께 유지 |
-| `기능flow/html_report_flow` | `flows/html_report_flow` + `components/` | Flow JSON·가이드는 Flow로, Python 컴포넌트 원본은 Component로 분리 |
-| `기능flow/reusable_data_flow` | `flows/reusable_data_flow` + `components/` | 데이터 계약을 유지하면서 재사용 컴포넌트 분리 |
-| `기능flow/card_news_flow` | `flows/card_news_flow` + `components/` | 이미지 자산과 샘플을 함께 이관하고 경로 재검증 |
+| `기능flow/html_report_flow` | `flows/html_report_flow` + `components/` | 독립 기능만 Component로 승격하고 전용 단계는 Flow `nodes/`로 분리 |
+| `기능flow/reusable_data_flow` | `flows/reusable_data_flow` + `components/` | 데이터 계약을 유지하면서 독립 기능과 Flow 내부 단계를 구분 |
+| `기능flow/card_news_flow` | `flows/card_news_flow` + `components/` | 이미지 자산과 샘플을 함께 이관하고 기능 경계와 경로 재검증 |
 | `기능flow/langflow_api_examples` | `training/examples/api/` 또는 `integrations/` | Flow 라이브러리가 아니라 API 사용 예제로 분류 |
 | `기능flow/business_agent_design_flow` | `business_agent_design/` | 별도 상위 서비스로 재설계하고 승인 registry 연동 |
 | `기능flow/llm_wiki_easy_intro_strategy.html` | `html/training/references/` 후보 | 교육 목적과 범위를 확인한 뒤 포털 참고자료로 분류 |
@@ -649,7 +680,7 @@ registry, MongoDB, 코드 내부 seed를 각각 손으로 관리하지 않는다
 - 기존 저장소의 사용자 수정사항을 덮어쓰지 않는다.
 - 원본 폴더는 새 구조의 검증이 끝날 때까지 읽기 기준으로 보존한다.
 - 파일을 옮긴 뒤 상대 링크, 이미지, Flow JSON 내부 참조, 샘플 경로를 다시 검사한다.
-- 기존 컴포넌트가 Standalone처럼 보여도 형제 import와 숨은 파일 의존성을 다시 검사한다.
+- 기존 Python 파일이 Standalone처럼 보여도 Component 승격 기준, 형제 import와 숨은 파일 의존성을 다시 검사한다.
 - 기존 자산을 이관했다는 이유만으로 `approved` 상태를 부여하지 않는다.
 
 ---
@@ -681,8 +712,8 @@ registry, MongoDB, 코드 내부 seed를 각각 손으로 관리하지 않는다
 ### Phase 4. Flow와 Component 재분류
 
 - 한 번에 한 자산군씩 이관
-- Standalone Component 원본 분리
-- Flow manifest와 `component_refs.json` 생성
+- 기능 단위 Standalone Component와 Flow 내부 노드 원본 분리
+- Flow manifest, `component_refs.json`, `internal_nodes.json` 생성
 - 대표 입력 검증 후 `user_testing`으로 전환
 - 사용자의 완료 승인 후 포털과 registry에 공개
 
@@ -717,7 +748,7 @@ registry, MongoDB, 코드 내부 seed를 각각 손으로 관리하지 않는다
 ### 16.2 구현 중
 
 1. 입력·출력 계약과 초보자 사용 흐름을 먼저 정한다.
-2. 커스텀 컴포넌트는 반드시 Standalone으로 작성한다.
+2. 커스텀 Python 자산은 반드시 Standalone으로 작성하되 독립 기능 기준을 통과한 것만 Component로 등록한다.
 3. 사용자가 만지는 설정은 이해하기 쉬운 UI 필드로 제공하고 운영자용 설정은 고급 항목으로 분리한다.
 4. 정상 경로뿐 아니라 빈 입력, 잘못된 입력, 외부 시스템 미연결 상황을 처리한다.
 5. 비밀값, 개인정보, 실제 사내 URI가 코드·샘플·HTML에 들어가지 않게 한다.
@@ -785,12 +816,15 @@ Git commit, push, 배포는 사용자가 명시적으로 요청했을 때만 수
 
 - `Agent_ground` 통합 폴더, 공통 manifest/registry, 반응형 HTML 포털과 자동 검증 도구를 구현했다.
 - 기존 전체 교육 포털의 본문·제목·링크·예제·샘플을 새 디자인에 이관했고, 별도 학습 안내와 문제 해결 동선을 연결했다.
-- `reusable_data_flow`, `html_report_flow`, `enterprise_document_rag_flow`, `skill_based_agent_flow`와 그 회의 전용 하위 Flow인 `meeting_action_skill_flow`를 `flows/`에서 관리하며 관련 Python 원본은 `components/` 아래 Standalone 파일로 분리했다.
+- `html_report_flow`, `enterprise_document_rag_flow`, `skill_based_agent_flow`, `ppt_reference_html_flow`와 회의 전용 하위 Flow인 `meeting_action_skill_flow`를 실행 자산으로 관리한다. 독립 기능 원본은 `components/`, Flow 종속 원본은 각 Flow의 `nodes/`로 분리했다.
+- `reusable_data_flow`는 12개 Flow 내부 Python 원본과 연결 설계를 보존하지만 실제 JSON이 과거 `업무분석flow`로 확인되어 `building`으로 격리했다. 올바른 export 제공 또는 신규 재구축 전까지 import와 전체 Bundle에서 제외한다.
 - `business_agent_design_complete`는 별도 상위 서비스로 구현했고, BEFORE/AFTER 분기형 Flow Chart와 개선 설명 HTML을 생성한다.
 - 신규 `enterprise_document_rag_flow`는 Langflow `1.8.2` / LFX `0.3.4`에서 13 nodes / 10 edges를 실제 Upload하고, 실행 node 11/11 valid 및 인용 포함 Chat Output까지 확인했다.
 - 문서 RAG의 첫 검증 backend는 외부 key가 필요 없는 `payload_lexical_v1`이며, 운영 persistent vector store·SSO·DLP는 별도 adapter와 통합 테스트가 필요한 명시적 확장 경계다.
 - 신규 `skill_based_agent_flow`는 공식 Simple Agent의 Tool 연결 계약을 사용한 하이브리드 예시다. LLM은 경비·휴가·회의 Skill Tool 중 하나를 선택하며, 경비·휴가는 개별 계산 Component를 직접 실행하고 회의는 개선형 이름 기반 Run Flow Tool이 `meeting_action_skill_flow`를 호출한다.
-- Skill 예시는 `SKILL.md` 자동 탐색 구현이 아니다. 상위 Agent와 회의 하위 Flow는 2개 Flow Bundle로 함께 제공되고, 전체 프로젝트 Bundle에는 총 6개 Flow가 들어간다. 특정 모델·API Key를 JSON에 저장하지 않았으므로 실제 Agent Tool 선택과 같은 프로젝트 하위 Flow 호출 E2E는 사용자 환경의 승인 모델을 연결한 뒤 확인해야 한다.
+- Skill Agent 예시는 `SKILL.md` 자동 탐색 구현이 아니다. 상위 Agent와 회의 하위 Flow는 2개 Flow Bundle로 함께 제공되고, 현재 전체 프로젝트 Bundle에는 격리된 재사용 데이터 Flow를 제외한 실행 가능 6개 Flow가 들어간다. 특정 모델·API Key를 JSON에 저장하지 않았으므로 실제 Agent Tool 선택과 같은 프로젝트 하위 Flow 호출 E2E는 사용자 환경의 승인 모델을 연결한 뒤 확인해야 한다.
+- `ppt_reference_html_flow`는 표지·본문 이미지의 문구나 수치를 사실로 사용하지 않고 색상·여백·타이포 위계·그리드만 디자인 근거로 관찰한다. 발표 내용과 모든 표·차트 값은 사용자 brief와 dataset만 근거로 하며, LLM은 HTML/CSS/JavaScript가 아닌 디자인 분석 JSON과 슬라이드 계획 JSON만 제안한다.
+- 프레젠테이션 계획은 Flow 내부 Normalizer가 실제 dataset·column에 다시 연결하고 미지원 시각화는 명시적으로 안전한 표현으로 낮춘다. 독립 `html_presentation_renderer`는 허용된 계획만 16:9 자체 포함 HTML로 렌더링하며 외부 URL·CDN과 사용자 제공 실행 코드를 허용하지 않는다.
 - 2026-07-12에는 사내에서 반복 활용할 공용 Standalone Component 추천 후보 30종을 P0/P1/P2로 조사했고, 사용자가 선택한 `multi_image_base64_encoder`와 외부 참조 기반 `cached_named_run_flow_tool` 두 종을 실제 구현했다.
 - `cached_named_run_flow_tool`은 외부 Agent Tool schema의 `flow_tweak_data` 안에 필수 `question` 하나만 노출하고, 실행 시점의 현재 하위 Flow 그래프에서 유일한 Chat Input ID를 찾아 내부 입력으로 변환한다. provider의 특수문자 정규화와 Flow 재import로 node ID가 바뀌어도 외부 계약은 유지한다.
 - 추천 근거, 선택 구현 상태와 공통 계약은 [`components/ENTERPRISE_UTILITY_COMPONENT_ITEM_LIST.md`](components/ENTERPRISE_UTILITY_COMPONENT_ITEM_LIST.md)를 기준으로 하며, 각 Component 폴더의 `USAGE_GUIDE.md`에 연결·운영 조건을 상세히 기록한다.
@@ -798,9 +832,10 @@ Git commit, push, 배포는 사용자가 명시적으로 요청했을 때만 수
 - 같은 날 기존 `reusable_data_flow`의 유연 조회 구조와 별개로 Oracle, H-API, Datalake, GooDocs, 일반 JSON API를 각각 한 번 호출하는 최소 단위 Standalone Component 5종을 새 ID로 구현했다.
 - 직접 조회 5종은 입력을 화면에 명시적으로 노출하고 출력 포트를 모두 `data_table: DataFrame` 하나로 통일한다. Source Catalog, 소스 라우팅, 다중 요청 병합, 결과 envelope와 dummy row는 포함하지 않는다.
 - 인증정보를 보내는 HTTP는 기본 차단한다. Datalake는 API가 반환한 DB host의 허용목록과 CA 기반 인증서·hostname 검증을 통과한 뒤에만 JWT를 DB 연결에 사용한다.
-- 기존 Flow JSON과 `0.9.0` Component 참조는 호환성을 위해 수정하지 않았다. 새 Component의 공통 계약과 실제 환경 확인 순서는 [`components/DIRECT_DATA_ACCESS_COMPONENTS_GUIDE.md`](components/DIRECT_DATA_ACCESS_COMPONENTS_GUIDE.md)를 기준으로 한다.
+- 기존 `0.9.0` 내부 노드 원본과 연결 설계는 재구축 근거로 보존했다. 현재 Flow JSON은 이 계약과 일치하지 않으므로 실행 호환성을 주장하지 않는다. 새 Component의 공통 계약과 실제 환경 확인 순서는 [`components/DIRECT_DATA_ACCESS_COMPONENTS_GUIDE.md`](components/DIRECT_DATA_ACCESS_COMPONENTS_GUIDE.md)를 기준으로 한다.
 - 실제 Langflow `1.8.2` / LFX `0.3.4` template과 격리 계약 테스트는 통과했지만, 사내 endpoint·계정 호출과 GooDocs 실제 모듈 교체, Datalake MySQL driver 설치는 사용자 환경에서 확인해야 한다.
-- 모든 공개 자산은 여전히 `user_testing`이다. 사용자의 완료 승인과 최종 재검증 전에는 `approved` 또는 Business Agent 추천 자산으로 전환하지 않는다.
+- 실행 가능한 공개 자산은 여전히 `user_testing`이고 재사용 데이터 Flow는 `building`이다. 사용자의 완료 승인과 최종 재검증 전에는 `approved` 또는 Business Agent 추천 자산으로 전환하지 않는다.
+- 프로젝트 운영, Standalone Component, Flow 패키지, 포털 유지보수 규칙을 `skills/` 아래 4개 이동식 Skill로 분리했다. 각 폴더는 `SKILL.md`, UI metadata와 필요한 reference만 포함하며 `skills/install.ps1`로 다른 환경의 Skill 경로에 복사할 수 있다.
 
 ---
 
@@ -809,7 +844,7 @@ Git commit, push, 배포는 사용자가 명시적으로 요청했을 때만 수
 이 프로젝트가 성공적으로 운영되고 있는지는 다음 질문으로 판단한다.
 
 1. 코딩을 어려워하는 사용자가 설명만 보고 Component 또는 Flow를 실제로 실행할 수 있는가?
-2. 모든 커스텀 컴포넌트가 Standalone으로 등록되는가?
+2. 모든 커스텀 Python 자산이 Standalone으로 등록되고, 독립 기능만 Component로 분류되는가?
 3. 문서와 실제 Agent Builder 화면이 일치하는가?
 4. 실패했을 때 원인과 해결 방법을 쉽게 찾을 수 있는가?
 5. 사용자가 완료 승인한 자산만 정식 포털에 공개되는가?

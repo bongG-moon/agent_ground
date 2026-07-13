@@ -1,4 +1,4 @@
-# Grounded Answer Builder
+# 07 근거 기반 답변 생성
 
 LLM의 근거 ID를 서버 allowlist와 교차 검증하고, 부적합 응답은 허용 근거의 deterministic 답변으로 대체합니다.
 
@@ -7,21 +7,23 @@ LLM의 근거 ID를 서버 allowlist와 교차 검증하고, 부적합 응답은
 - ID: `grounded_answer_builder`
 - 버전: `0.1.0`
 - 상태: `user_testing`
-- Standalone: `true`
+- 패키징: `standalone`
+- Component 범위: `domain`
+- 자격 판정: `qualified_component`
 - 사용 범위: `enterprise_document_rag_flow`
 
 ## 입력
 
 | 화면 이름 | 코드 이름 | 타입 | 목록 | 필수 | 고급 |
 | --- | --- | --- | --- | --- | --- |
-| Gate | `gate` | `Data, JSON` | False | True | False |
-| LLM Response | `llm_response` | `MessageTextInput` | False | False | False |
+| 품질 판정 결과 | `gate` | `Data, JSON` | False | True | False |
+| LLM 응답 | `llm_response` | `MessageTextInput` | False | False | False |
 
 ## 출력
 
 | 화면 이름 | 코드 이름 | 타입 | 실행 method |
 | --- | --- | --- | --- |
-| Answer | `answer` | `Data` | `build_answer` |
+| 검증된 답변 | `answer` | `Data` | `build_answer` |
 
 
 

@@ -32,11 +32,11 @@
 접속정보·URL·SQL·파라미터 직접 입력 → 외부 소스 한 번 호출 → DataFrame
 ```
 
-## 2. 기존 Component를 덮어쓰지 않은 이유
+## 2. 기존 Flow 내부 Node를 덮어쓰지 않은 이유
 
-기존 네 Component는 `reusable_data_flow`의 Flow JSON과 `component_refs.json`이 버전 `0.9.0`으로 참조합니다. 입력과 출력을 제자리에서 바꾸면 기존 Flow를 다시 가져왔을 때 연결 계약이 달라집니다.
+기존 네 Source Python 파일은 `reusable_data_flow`의 라우팅·병합 계약에 종속된 내부 Node이며 `internal_nodes.json`이 버전 `0.9.0`으로 관리합니다. 현재 Flow JSON은 다른 과거 Flow라서 이 Node를 포함하지 않지만, 입력과 출력을 제자리에서 바꾸면 재구축 기준 계약을 잃게 됩니다.
 
-따라서 기존 파일은 그대로 보존하고 다음 새 ID로 추가했습니다.
+따라서 기존 내부 Node는 `flows/reusable_data_flow/nodes/`에 그대로 보존하고, 독립 조회 기능은 다음 새 Component ID로 추가했습니다.
 
 | Component ID | 역할 |
 | --- | --- |

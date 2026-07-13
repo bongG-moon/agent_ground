@@ -364,24 +364,24 @@ def build_document_chunk_index(
 
 
 class DocumentChunkIndexBuilder(Component):
-    display_name = "02 Document Chunk Index Builder"
-    description = "Build stable, deduplicated chunks and version/tombstone operations for a model-free payload index."
+    display_name = "02 문서 청크·색인 생성"
+    description = "문서를 안정적인 ID의 중복 제거 청크로 나누고 버전·삭제 계획이 포함된 검색용 payload 색인을 만듭니다."
     icon = "DatabaseZap"
     name = "DocumentChunkIndexBuilder"
 
     inputs = [
         DataInput(
             name="documents",
-            display_name="Safe Documents",
+            display_name="보호 처리된 문서",
             input_types=["Data", "JSON"],
             required=True,
         ),
-        IntInput(name="chunk_chars", display_name="Chunk Characters", value=900, advanced=True),
-        IntInput(name="overlap_chars", display_name="Overlap Characters", value=120, advanced=True),
-        IntInput(name="max_chunks", display_name="Maximum Chunks", value=5000, advanced=True),
+        IntInput(name="chunk_chars", display_name="청크 글자 수", value=900, advanced=True),
+        IntInput(name="overlap_chars", display_name="청크 중복 글자 수", value=120, advanced=True),
+        IntInput(name="max_chunks", display_name="최대 청크 수", value=5000, advanced=True),
         BoolInput(
             name="latest_version_only",
-            display_name="Keep Latest Version Only",
+            display_name="최신 버전만 유지",
             value=True,
             advanced=True,
         ),
@@ -390,7 +390,7 @@ class DocumentChunkIndexBuilder(Component):
     outputs = [
         Output(
             name="document_index",
-            display_name="Document Index",
+            display_name="문서 색인",
             method="build_document_index",
             types=["Data"],
         )

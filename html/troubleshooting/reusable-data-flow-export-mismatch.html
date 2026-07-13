@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <base href="../" />
+  <title>재사용 데이터 Flow JSON 불일치 · Agent Ground</title>
+  <meta name="description" content="재사용 데이터 Flow export와 component_refs 불일치 감사 기록" />
+  <link rel="stylesheet" href="assets/css/site.css" />
+  
+</head>
+<body>
+  <a class="skip-link" href="#main">본문으로 바로가기</a>
+  <header class="site-header">
+    <div class="header-inner">
+      <a class="brand" href="index.html" aria-label="Agent Ground 홈">
+        <span class="brand-mark" aria-hidden="true">AG</span>
+        <span class="brand-copy"><strong>Agent Ground</strong><small>Learn · Build · Validate</small></span>
+      </a>
+      <button class="menu-button" type="button" data-menu-button aria-expanded="false" aria-controls="site-nav" aria-label="메뉴 열기"><span class="menu-lines"></span></button>
+      <nav class="site-nav" id="site-nav" data-site-nav data-open="false" aria-label="주요 메뉴"><a href="index.html">홈</a><a href="training/index.html">처음 배우기</a><a href="flows/index.html">Flows</a><a href="components/index.html">Components</a><a href="troubleshooting/index.html" aria-current="page">실패와 해결</a><a href="business-agent-design/index.html">업무 Agent 설계</a></nav>
+    </div>
+  </header>
+  <main class="page-wrap" id="main">
+    <nav class="breadcrumbs" aria-label="현재 위치"><a href="index.html">홈</a><span aria-hidden="true">/</span><a href="troubleshooting/index.html">실패와 해결</a><span aria-hidden="true">/</span><span>재사용 데이터 Flow JSON 불일치</span></nav>
+    
+<section class="hero"><div class="meta-row"><span class="badge badge-testing">복구 대기</span><span class="tag">TRB-20260713-001</span><span class="tag">Langflow 1.8.2</span></div><div class="hero-kicker">Flow export integrity</div><h1>재사용 데이터 Flow를 열었는데<br />전혀 다른 업무 Flow가 보입니다</h1><p>문서와 <code>internal_nodes.json</code>은 12개 데이터 내부 Node를 설명하지만 실제 JSON은 과거 <code>업무분석flow</code>입니다. 잘못된 import를 막기 위해 원인과 임시 조치를 기록합니다.</p></section>
+<section class="section"><div class="grid grid-2"><div class="card"><h3>기대 결과</h3><p>질문 정규화, Oracle/H-API/Datalake/GooDocs 실행, 결과 병합과 HTML Report Adapter가 연결된 Canvas</p></div><div class="card"><h3>실제 결과</h3><p><code>BusinessWorkInputLoader</code>, <code>WorkProcessStructurer</code>, <code>AgentCapabilityCatalog</code> 등이 있는 16 node 업무 설계 Canvas</p></div></div></section>
+<section class="section"><div class="section-heading"><p class="eyebrow">Confirmed evidence</p><h2>어디까지 확인했나</h2></div><div class="card"><ul class="check-list"><li>현재 JSON의 Flow 이름이 <code>업무분석flow</code>임을 확인했습니다.</li><li>12개 내부 Node class가 JSON에 0개 포함된 것을 확인했습니다.</li><li>사용자가 지정한 원본 폴더의 유일한 JSON과 현재 파일의 SHA-256이 동일했습니다.</li><li>12개 Python 원본은 원본 폴더 파일과 각각 SHA-256이 동일했습니다.</li><li>Desktop, Downloads, Documents의 JSON과 로컬 Langflow Desktop DB 92개 Flow를 읽기 전용 검색했지만 올바른 export 후보를 찾지 못했습니다.</li></ul></div></section>
+<section class="section"><div class="section-heading"><p class="eyebrow">Cause</p><h2>확정 원인과 남은 원인</h2></div><div class="grid grid-2"><div class="notice notice-testing"><strong>확정</strong><code>reusable_data_flow.json</code>에 데이터 Flow가 아닌 legacy donor가 저장돼 있습니다. 따라서 문서·manifest·refs와 실행 JSON이 일치하지 않습니다.</div><div class="notice notice-info"><strong>확인 불가</strong>올바른 Builder export가 언제 사라졌거나 다른 파일로 교체됐는지는 현재 자산만으로 확정할 수 없습니다.</div></div></section>
+<section class="section"><div class="section-heading"><p class="eyebrow">Safety action</p><h2>이번에 적용한 임시 조치</h2></div><div class="card"><ul class="check-list"><li>Flow 상태를 <code>building</code>으로 낮추고 <code>runtime_ready=false</code>를 기록했습니다.</li><li>포털에서 잘못된 JSON의 Import 버튼을 제거했습니다.</li><li>Agent Ground 전체 Bundle에서 <code>업무분석flow</code>를 제외했습니다.</li><li>12개 Python 원본과 연결 가이드는 재구축 근거로 보존했습니다.</li><li>검증기가 runtime-ready Flow의 Component refs와 내부 Node class를 JSON node class와 자동 대조하게 했습니다.</li></ul></div></section>
+<section class="section"><div class="section-heading"><p class="eyebrow">Recovery</p><h2>해결하려면 무엇이 필요한가</h2></div><div class="grid grid-2"><div class="card"><span class="card-number">A</span><h3>기존 export 제공</h3><p>실제 Builder에서 내보낸 재사용 데이터 Flow JSON을 제공하고 12개 class·port·대표 질문을 대조합니다.</p></div><div class="card"><span class="card-number">B</span><h3>신규 재구축 승인</h3><p>현재 연결 가이드와 12개 Python을 기준으로 Langflow 1.8.2 Flow를 새로 만들고 import·branch·실데이터 전환을 검증합니다.</p></div></div></section>
+<div class="page-actions"><button class="back-button" type="button" data-back data-fallback="troubleshooting/index.html">← 이전 화면</button><a class="button button-soft" href="troubleshooting/index.html">실패와 해결 목록</a><a class="button button-soft" href="flows/reusable_data_flow/index.html">관련 Flow 설계</a><a class="button button-soft" href="index.html">홈</a></div>
+
+  </main>
+  <footer class="site-footer">
+    <div class="footer-inner">
+      <div><strong>Agent Ground</strong><p>실제 Agent Builder 환경에서 검증된 교육자료, Standalone Component와 Flow를 함께 쌓아갑니다.</p></div>
+      <div class="footer-links"><a href="training/index.html">처음 배우기</a><a href="troubleshooting/index.html">실패와 해결</a><a href="../AGENT_GROUND_PROJECT_MASTER_GUIDE.md">프로젝트 기준</a></div>
+    </div>
+  </footer>
+  <script src="assets/js/site.js"></script>
+  
+</body>
+</html>

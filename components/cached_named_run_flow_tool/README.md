@@ -7,7 +7,9 @@
 - ID: `cached_named_run_flow_tool`
 - 버전: `0.2.0`
 - 상태: `user_testing`
-- Standalone: `true`
+- 패키징: `standalone`
+- Component 범위: `general`
+- 자격 판정: `qualified_component`
 - 사용 범위: `enterprise_utility_components`
 
 ## 입력

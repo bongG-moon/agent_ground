@@ -1,21 +1,41 @@
 {
   "id": "document_input_normalizer",
-  "name_ko": "00 Document Input Normalizer",
+  "name_ko": "00 문서 입력 정규화",
   "class_name": "DocumentInputNormalizer",
   "asset_type": "component",
   "status": "user_testing",
   "version": "0.1.0",
+  "packaging": "standalone",
   "standalone": true,
   "reusability": "shared",
+  "component_scope": "domain",
+  "qualification": {
+    "decision": "qualified_component",
+    "criteria": {
+      "independent_input_output": true,
+      "functional_completeness": true,
+      "reusable_unit": true,
+      "payload_coupling": "domain_contract",
+      "validation_or_error_handling": true
+    },
+    "review_rule": "Flow에서 사용된다는 사실만으로 Component 자격을 부여하지 않습니다."
+  },
+  "owner_usage": {
+    "owner": "enterprise_document_rag_flow",
+    "usage": "문서 RAG 도메인에서 독립적으로 재사용하는 기능",
+    "used_by_flows": [
+      "enterprise_document_rag_flow"
+    ]
+  },
   "source_family": "enterprise_document_rag_flow",
-  "summary_ko": "Normalize Data, Message, text, or JSON into documents with citation and ACL metadata.",
+  "summary_ko": "Data, Message, 텍스트 또는 JSON을 인용·접근권한 메타데이터가 포함된 문서 목록으로 정규화합니다.",
   "source_file": "document_input_normalizer.py",
   "inputs": [
     {
       "type": "DataInput",
       "name": "document_input",
-      "display_name": "Document Input",
-      "info": "Optional Data, Message, JSON, or text. Empty input uses the embedded demo corpus when enabled.",
+      "display_name": "문서 입력",
+      "info": "Data, Message, JSON 또는 텍스트를 연결합니다. 비워 두면 설정에 따라 내장 데모 문서를 사용합니다.",
       "input_types": [
         "Data",
         "Message",
@@ -27,27 +47,27 @@
     {
       "type": "BoolInput",
       "name": "use_demo_corpus",
-      "display_name": "Use Demo Corpus When Empty",
+      "display_name": "빈 입력 시 데모 문서 사용",
       "value": true
     },
     {
       "type": "MessageTextInput",
       "name": "default_source_name",
-      "display_name": "Default Source Name",
+      "display_name": "기본 소스 이름",
       "value": "enterprise_demo_corpus",
       "advanced": true
     },
     {
       "type": "MessageTextInput",
       "name": "default_tenant_id",
-      "display_name": "Default Tenant ID",
+      "display_name": "기본 테넌트 ID",
       "value": "agent-ground",
       "advanced": true
     },
     {
       "type": "DropdownInput",
       "name": "default_classification",
-      "display_name": "Default Classification",
+      "display_name": "기본 보안 등급",
       "options": [
         "public",
         "internal",
@@ -60,36 +80,36 @@
     {
       "type": "MessageTextInput",
       "name": "default_allowed_roles",
-      "display_name": "Default Allowed Roles",
-      "info": "Comma-separated trusted role names. This is document metadata, not end-user identity.",
+      "display_name": "기본 허용 역할",
+      "info": "쉼표로 구분한 신뢰 역할 이름입니다. 사용자 신원이 아니라 문서 접근 메타데이터로 저장됩니다.",
       "value": "employee",
       "advanced": true
     },
     {
       "type": "MessageTextInput",
       "name": "default_allowed_groups",
-      "display_name": "Default Allowed Groups",
+      "display_name": "기본 허용 그룹",
       "value": "all-employees",
       "advanced": true
     },
     {
       "type": "MessageTextInput",
       "name": "page_break_marker",
-      "display_name": "Page Break Marker",
+      "display_name": "페이지 구분 표식",
       "value": "[[PAGE_BREAK]]",
       "advanced": true
     },
     {
       "type": "IntInput",
       "name": "max_documents",
-      "display_name": "Max Documents or Pages",
+      "display_name": "최대 문서·페이지 수",
       "value": 100,
       "advanced": true
     },
     {
       "type": "IntInput",
       "name": "max_chars_per_document",
-      "display_name": "Max Characters per Document",
+      "display_name": "문서당 최대 글자 수",
       "value": 200000,
       "advanced": true
     }
@@ -98,7 +118,7 @@
     {
       "type": "Output",
       "name": "documents",
-      "display_name": "Documents",
+      "display_name": "정규화 문서",
       "method": "build_documents",
       "types": [
         "Data"

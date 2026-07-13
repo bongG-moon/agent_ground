@@ -1,0 +1,180 @@
+{
+  "sample_version": "ppt-reference-sample-v1",
+  "flow_id": "ppt_reference_html_flow",
+  "brief": {
+    "title": "2026년 상반기 운영 품질 보고",
+    "subtitle": "처리량 증가와 오류 감소 과제",
+    "purpose": "경영진이 하반기 품질 개선 우선순위와 담당 조직을 결정하도록 돕는다.",
+    "audience": "경영진 및 운영 책임자",
+    "language": "ko",
+    "slide_count": 7,
+    "tone": "간결하고 근거 중심",
+    "call_to_action": "오류 비중이 높은 2개 부서의 개선 과제를 우선 승인한다.",
+    "content_outline": [
+      "표지",
+      "상반기 핵심 요약",
+      "월별 처리량 추세",
+      "월별 오류율 추세",
+      "부서별 오류 건수 비교",
+      "부서별 상세 현황",
+      "우선 실행 과제"
+    ]
+  },
+  "template_mode": "analyze_and_rebuild",
+  "reference_image_input_note": {
+    "cover": "표지 이미지는 별도 Multi Image Base64 Encoder에 넣습니다.",
+    "body": "본문 이미지는 다른 Multi Image Base64 Encoder에 레이아웃 우선순서대로 넣습니다.",
+    "encoder_output_format": "data_url"
+  },
+  "datasets": [
+    {
+      "dataset_id": "monthly_operations",
+      "title": "월별 처리량과 오류율",
+      "description": "확정 처리일 기준 월별 운영 실적",
+      "source": "사내 운영 DW OPERATIONS_MONTHLY",
+      "period": "2026-01~2026-06",
+      "preferred_visual": "auto",
+      "columns": [
+        {
+          "name": "month",
+          "label": "월",
+          "semantic_type": "temporal",
+          "unit": "",
+          "format": "YYYY-MM"
+        },
+        {
+          "name": "processed_count",
+          "label": "처리량",
+          "semantic_type": "quantitative",
+          "unit": "건",
+          "format": ",.0f"
+        },
+        {
+          "name": "error_count",
+          "label": "오류 건수",
+          "semantic_type": "quantitative",
+          "unit": "건",
+          "format": ",.0f"
+        },
+        {
+          "name": "error_rate",
+          "label": "오류율",
+          "semantic_type": "quantitative",
+          "unit": "%",
+          "format": ".1f"
+        }
+      ],
+      "rows": [
+        {"month": "2026-01", "processed_count": 1250, "error_count": 40, "error_rate": 3.2},
+        {"month": "2026-02", "processed_count": 1390, "error_count": 39, "error_rate": 2.8},
+        {"month": "2026-03", "processed_count": 1480, "error_count": 38, "error_rate": 2.6},
+        {"month": "2026-04", "processed_count": 1540, "error_count": 40, "error_rate": 2.6},
+        {"month": "2026-05", "processed_count": 1660, "error_count": 43, "error_rate": 2.6},
+        {"month": "2026-06", "processed_count": 1780, "error_count": 44, "error_rate": 2.5}
+      ]
+    },
+    {
+      "dataset_id": "department_quality",
+      "title": "부서별 오류 현황",
+      "description": "2026년 상반기 부서별 처리량과 확정 오류 건수",
+      "source": "사내 운영 DW DEPARTMENT_QUALITY",
+      "period": "2026-H1",
+      "preferred_visual": "auto",
+      "columns": [
+        {
+          "name": "department",
+          "label": "부서",
+          "semantic_type": "nominal",
+          "unit": "",
+          "format": ""
+        },
+        {
+          "name": "processed_count",
+          "label": "처리량",
+          "semantic_type": "quantitative",
+          "unit": "건",
+          "format": ",.0f"
+        },
+        {
+          "name": "error_count",
+          "label": "오류 건수",
+          "semantic_type": "quantitative",
+          "unit": "건",
+          "format": ",.0f"
+        },
+        {
+          "name": "error_rate",
+          "label": "오류율",
+          "semantic_type": "quantitative",
+          "unit": "%",
+          "format": ".1f"
+        },
+        {
+          "name": "main_issue",
+          "label": "주요 원인",
+          "semantic_type": "text",
+          "unit": "",
+          "format": ""
+        }
+      ],
+      "rows": [
+        {"department": "고객지원", "processed_count": 2360, "error_count": 83, "error_rate": 3.5, "main_issue": "수기 분류 누락"},
+        {"department": "정산", "processed_count": 1840, "error_count": 55, "error_rate": 3.0, "main_issue": "마감일 집중 처리"},
+        {"department": "물류", "processed_count": 2780, "error_count": 61, "error_rate": 2.2, "main_issue": "외부 코드 불일치"},
+        {"department": "영업운영", "processed_count": 2240, "error_count": 38, "error_rate": 1.7, "main_issue": "승인 단계 지연"},
+        {"department": "상품관리", "processed_count": 1880, "error_count": 27, "error_rate": 1.4, "main_issue": "기준정보 갱신 지연"}
+      ]
+    },
+    {
+      "dataset_id": "improvement_actions",
+      "title": "하반기 개선 과제",
+      "description": "운영 책임자 합의 전 초안",
+      "source": "운영 품질 협의체 초안",
+      "period": "2026-H2",
+      "preferred_visual": "table",
+      "columns": [
+        {
+          "name": "priority",
+          "label": "우선순위",
+          "semantic_type": "ordinal",
+          "unit": "",
+          "format": ""
+        },
+        {
+          "name": "action",
+          "label": "개선 과제",
+          "semantic_type": "text",
+          "unit": "",
+          "format": ""
+        },
+        {
+          "name": "owner",
+          "label": "담당",
+          "semantic_type": "nominal",
+          "unit": "",
+          "format": ""
+        },
+        {
+          "name": "target_month",
+          "label": "목표 월",
+          "semantic_type": "temporal",
+          "unit": "",
+          "format": "YYYY-MM"
+        },
+        {
+          "name": "success_metric",
+          "label": "완료 기준",
+          "semantic_type": "text",
+          "unit": "",
+          "format": ""
+        }
+      ],
+      "rows": [
+        {"priority": "1", "action": "고객지원 수기 분류 검증 자동화", "owner": "고객지원·IT", "target_month": "2026-09", "success_metric": "분류 누락 오류 40% 감소"},
+        {"priority": "2", "action": "정산 마감일 작업 분산", "owner": "정산", "target_month": "2026-08", "success_metric": "마감일 오류율 2.0% 이하"},
+        {"priority": "3", "action": "외부 물류 코드 매핑 사전 검증", "owner": "물류·IT", "target_month": "2026-10", "success_metric": "코드 불일치 오류 30% 감소"}
+      ]
+    }
+  ]
+}
+

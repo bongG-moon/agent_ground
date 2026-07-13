@@ -45,7 +45,7 @@ Bundle에는 다음 두 Flow가 함께 들어 있습니다.
                         -> Chat Output
 ```
 
-카탈로그 빌더는 세 Skill의 사용 조건, 허용 행동과 금지 행동을 Agent 지시사항으로 만듭니다. Agent는 어떤 Tool을 사용할지만 선택하고, 금액 계산·날짜 계산·회의 항목 파싱은 Component 또는 하위 Workflow가 결정론적으로 수행합니다.
+Flow 내부 카탈로그 빌더는 세 Skill의 사용 조건, 허용 행동과 금지 행동을 Agent 지시사항으로 만듭니다. 이 단계는 예시 Flow에 종속된 demo seed이므로 Component Library에는 포함하지 않습니다. Agent는 어떤 Tool을 사용할지만 선택하고, 금액 계산·날짜 계산·회의 항목 파싱은 Component 또는 하위 Workflow가 결정론적으로 수행합니다.
 
 ## 왜 직접 Tool과 Run Flow Tool을 섞었는가
 
@@ -193,6 +193,7 @@ skills = 정확히 3개
 - `skill_based_agent_flow.json`: 상위 하이브리드 Agent Flow 단독 JSON
 - `meeting_action_skill_flow.json`: 회의 후속 조치 하위 Skill Flow 단독 JSON
 - `component_refs.json`: 필요한 Standalone Component와 버전
+- `internal_nodes.json`, `nodes/`: 상위·하위 Flow가 함께 쓰는 데모 Skill 카탈로그 내부 노드
 - `CONNECTION_GUIDE.md`: 실제 edge, Run Flow 설정, 오류 해결
 - `MCP_EXTENSION_GUIDE.md`: Langflow 기본 MCP Tools 연결·교체와 인증·세션 주의사항
 - `samples/sample_skill_catalog.json`: 카탈로그 입력 예시

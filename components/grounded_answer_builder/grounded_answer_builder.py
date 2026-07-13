@@ -196,16 +196,16 @@ def build_grounded_answer(gate_value: Any, llm_value: Any = "") -> dict[str, Any
 
 
 class GroundedAnswerBuilder(Component):
-    display_name = "Grounded Answer Builder"
+    display_name = "07 근거 기반 답변 생성"
     description = "LLM의 근거 ID를 서버 allowlist와 교차 검증하고, 부적합 응답은 허용 근거의 deterministic 답변으로 대체합니다."
     icon = "BadgeCheck"
     name = "GroundedAnswerBuilder"
 
     inputs = [
-        DataInput(name="gate", display_name="Gate", input_types=["Data", "JSON"], required=True),
-        MessageTextInput(name="llm_response", display_name="LLM Response", required=False),
+        DataInput(name="gate", display_name="품질 판정 결과", input_types=["Data", "JSON"], required=True),
+        MessageTextInput(name="llm_response", display_name="LLM 응답", required=False),
     ]
-    outputs = [Output(name="answer", display_name="Answer", method="build_answer", types=["Data"])]
+    outputs = [Output(name="answer", display_name="검증된 답변", method="build_answer", types=["Data"])]
 
     def build_answer(self) -> Data:
         result = build_grounded_answer(getattr(self, "gate", None), getattr(self, "llm_response", ""))

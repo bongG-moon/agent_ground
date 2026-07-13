@@ -1,12 +1,32 @@
 {
   "id": "grounded_answer_builder",
-  "name_ko": "Grounded Answer Builder",
+  "name_ko": "07 근거 기반 답변 생성",
   "class_name": "GroundedAnswerBuilder",
   "asset_type": "component",
   "status": "user_testing",
   "version": "0.1.0",
+  "packaging": "standalone",
   "standalone": true,
   "reusability": "shared",
+  "component_scope": "domain",
+  "qualification": {
+    "decision": "qualified_component",
+    "criteria": {
+      "independent_input_output": true,
+      "functional_completeness": true,
+      "reusable_unit": true,
+      "payload_coupling": "domain_contract",
+      "validation_or_error_handling": true
+    },
+    "review_rule": "Flow에서 사용된다는 사실만으로 Component 자격을 부여하지 않습니다."
+  },
+  "owner_usage": {
+    "owner": "enterprise_document_rag_flow",
+    "usage": "문서 RAG 도메인에서 독립적으로 재사용하는 기능",
+    "used_by_flows": [
+      "enterprise_document_rag_flow"
+    ]
+  },
   "source_family": "enterprise_document_rag_flow",
   "summary_ko": "LLM의 근거 ID를 서버 allowlist와 교차 검증하고, 부적합 응답은 허용 근거의 deterministic 답변으로 대체합니다.",
   "source_file": "grounded_answer_builder.py",
@@ -14,7 +34,7 @@
     {
       "type": "DataInput",
       "name": "gate",
-      "display_name": "Gate",
+      "display_name": "품질 판정 결과",
       "input_types": [
         "Data",
         "JSON"
@@ -24,7 +44,7 @@
     {
       "type": "MessageTextInput",
       "name": "llm_response",
-      "display_name": "LLM Response",
+      "display_name": "LLM 응답",
       "required": false
     }
   ],
@@ -32,7 +52,7 @@
     {
       "type": "Output",
       "name": "answer",
-      "display_name": "Answer",
+      "display_name": "검증된 답변",
       "method": "build_answer",
       "types": [
         "Data"

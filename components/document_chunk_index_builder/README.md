@@ -1,30 +1,32 @@
-# 02 Document Chunk Index Builder
+# 02 문서 청크·색인 생성
 
-Build stable, deduplicated chunks and version/tombstone operations for a model-free payload index.
+문서를 안정적인 ID의 중복 제거 청크로 나누고 버전·삭제 계획이 포함된 검색용 payload 색인을 만듭니다.
 
 ## 상태
 
 - ID: `document_chunk_index_builder`
 - 버전: `0.1.0`
 - 상태: `user_testing`
-- Standalone: `true`
+- 패키징: `standalone`
+- Component 범위: `domain`
+- 자격 판정: `qualified_component`
 - 사용 범위: `enterprise_document_rag_flow`
 
 ## 입력
 
 | 화면 이름 | 코드 이름 | 타입 | 목록 | 필수 | 고급 |
 | --- | --- | --- | --- | --- | --- |
-| Safe Documents | `documents` | `Data, JSON` | False | True | False |
-| Chunk Characters | `chunk_chars` | `IntInput` | False | False | True |
-| Overlap Characters | `overlap_chars` | `IntInput` | False | False | True |
-| Maximum Chunks | `max_chunks` | `IntInput` | False | False | True |
-| Keep Latest Version Only | `latest_version_only` | `BoolInput` | False | False | True |
+| 보호 처리된 문서 | `documents` | `Data, JSON` | False | True | False |
+| 청크 글자 수 | `chunk_chars` | `IntInput` | False | False | True |
+| 청크 중복 글자 수 | `overlap_chars` | `IntInput` | False | False | True |
+| 최대 청크 수 | `max_chunks` | `IntInput` | False | False | True |
+| 최신 버전만 유지 | `latest_version_only` | `BoolInput` | False | False | True |
 
 ## 출력
 
 | 화면 이름 | 코드 이름 | 타입 | 실행 method |
 | --- | --- | --- | --- |
-| Document Index | `document_index` | `Data` | `build_document_index` |
+| 문서 색인 | `document_index` | `Data` | `build_document_index` |
 
 
 

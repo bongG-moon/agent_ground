@@ -1,0 +1,74 @@
+{
+  "schema_version": "1.0",
+  "asset_type": "flow_node",
+  "owner_flow": "ppt_reference_html_flow",
+  "flow_id": "ppt_reference_html_flow",
+  "nodes": [
+    {
+      "id": "presentation_request_builder",
+      "asset_type": "flow_node",
+      "owner_flow": "ppt_reference_html_flow",
+      "class_name": "PresentationRequestBuilder",
+      "name_ko": "02 발표 요청·데이터 정규화",
+      "version": "0.1.0",
+      "source_path": "nodes/presentation_request_builder.py",
+      "summary_ko": "사용자 요청, 발표 brief, 본문, dataset과 표지·본문 Base64 결과를 하나의 검증된 발표 요청 계약으로 정리합니다.",
+      "embedded_in": ["ppt_reference_html_flow.json"]
+    },
+    {
+      "id": "presentation_reference_analyzer",
+      "asset_type": "flow_node",
+      "owner_flow": "ppt_reference_html_flow",
+      "class_name": "PresentationReferenceAnalyzer",
+      "name_ko": "03 참조 이미지 디자인 분석",
+      "version": "0.1.0",
+      "source_path": "nodes/presentation_reference_analyzer.py",
+      "summary_ko": "승인된 Vision 가능 LanguageModel에 표지·본문 Data URL과 안전한 분석 지침을 전달하고 디자인 관찰 JSON을 정규화합니다.",
+      "embedded_in": ["ppt_reference_html_flow.json"]
+    },
+    {
+      "id": "presentation_plan_generator",
+      "asset_type": "flow_node",
+      "owner_flow": "ppt_reference_html_flow",
+      "class_name": "PresentationPlanGenerator",
+      "name_ko": "04 스토리·슬라이드 계획 생성",
+      "version": "0.1.0",
+      "source_path": "nodes/presentation_plan_generator.py",
+      "summary_ko": "발표 목적, 실제 데이터와 디자인 관찰을 바탕으로 LLM이 HTML이 아닌 구조화된 슬라이드 계획만 제안하게 합니다.",
+      "embedded_in": ["ppt_reference_html_flow.json"]
+    },
+    {
+      "id": "presentation_plan_normalizer",
+      "asset_type": "flow_node",
+      "owner_flow": "ppt_reference_html_flow",
+      "class_name": "PresentationPlanNormalizer",
+      "name_ko": "05 발표 계획 계약 검증",
+      "version": "0.1.0",
+      "source_path": "nodes/presentation_plan_normalizer.py",
+      "summary_ko": "허용된 슬라이드·시각화 유형과 실제 dataset·column 참조만 남기고 raw HTML·CSS·JavaScript를 차단합니다.",
+      "embedded_in": ["ppt_reference_html_flow.json"]
+    },
+    {
+      "id": "presentation_quality_gate",
+      "asset_type": "flow_node",
+      "owner_flow": "ppt_reference_html_flow",
+      "class_name": "PresentationQualityGate",
+      "name_ko": "07 HTML 프레젠테이션 품질 Gate",
+      "version": "0.1.0",
+      "source_path": "nodes/presentation_quality_gate.py",
+      "summary_ko": "슬라이드 수, 외부 의존성, 접근성 표식, 표·차트 계약과 정적 overflow 위험을 검사합니다.",
+      "embedded_in": ["ppt_reference_html_flow.json"]
+    },
+    {
+      "id": "presentation_html_source_output",
+      "asset_type": "flow_node",
+      "owner_flow": "ppt_reference_html_flow",
+      "class_name": "PresentationHtmlSourceOutput",
+      "name_ko": "08 HTML 원문·검증 결과 출력",
+      "version": "0.1.0",
+      "source_path": "nodes/presentation_html_source_output.py",
+      "summary_ko": "생성된 HTML 원문과 품질 결과를 Playground에서 확인할 수 있는 Message로 출력합니다.",
+      "embedded_in": ["ppt_reference_html_flow.json"]
+    }
+  ]
+}

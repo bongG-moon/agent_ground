@@ -7,7 +7,9 @@
 - ID: `expense_precheck_skill_tool`
 - 버전: `0.1.0`
 - 상태: `user_testing`
-- Standalone: `true`
+- 패키징: `standalone`
+- Component 범위: `domain`
+- 자격 판정: `qualified_component`
 - 사용 범위: `skill_based_agent_flow`
 
 ## 입력

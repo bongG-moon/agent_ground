@@ -414,77 +414,77 @@ def normalize_document_input(
 
 
 class DocumentInputNormalizer(Component):
-    display_name = "00 Document Input Normalizer"
-    description = "Normalize Data, Message, text, or JSON into documents with citation and ACL metadata."
+    display_name = "00 문서 입력 정규화"
+    description = "Data, Message, 텍스트 또는 JSON을 인용·접근권한 메타데이터가 포함된 문서 목록으로 정규화합니다."
     icon = "Files"
     name = "DocumentInputNormalizer"
 
     inputs = [
         DataInput(
             name="document_input",
-            display_name="Document Input",
-            info="Optional Data, Message, JSON, or text. Empty input uses the embedded demo corpus when enabled.",
+            display_name="문서 입력",
+            info="Data, Message, JSON 또는 텍스트를 연결합니다. 비워 두면 설정에 따라 내장 데모 문서를 사용합니다.",
             input_types=["Data", "Message", "Text", "JSON"],
             required=False,
         ),
         BoolInput(
             name="use_demo_corpus",
-            display_name="Use Demo Corpus When Empty",
+            display_name="빈 입력 시 데모 문서 사용",
             value=True,
         ),
         MessageTextInput(
             name="default_source_name",
-            display_name="Default Source Name",
+            display_name="기본 소스 이름",
             value="enterprise_demo_corpus",
             advanced=True,
         ),
         MessageTextInput(
             name="default_tenant_id",
-            display_name="Default Tenant ID",
+            display_name="기본 테넌트 ID",
             value="agent-ground",
             advanced=True,
         ),
         DropdownInput(
             name="default_classification",
-            display_name="Default Classification",
+            display_name="기본 보안 등급",
             options=["public", "internal", "confidential", "restricted"],
             value="internal",
             advanced=True,
         ),
         MessageTextInput(
             name="default_allowed_roles",
-            display_name="Default Allowed Roles",
-            info="Comma-separated trusted role names. This is document metadata, not end-user identity.",
+            display_name="기본 허용 역할",
+            info="쉼표로 구분한 신뢰 역할 이름입니다. 사용자 신원이 아니라 문서 접근 메타데이터로 저장됩니다.",
             value="employee",
             advanced=True,
         ),
         MessageTextInput(
             name="default_allowed_groups",
-            display_name="Default Allowed Groups",
+            display_name="기본 허용 그룹",
             value="all-employees",
             advanced=True,
         ),
         MessageTextInput(
             name="page_break_marker",
-            display_name="Page Break Marker",
+            display_name="페이지 구분 표식",
             value=DEFAULT_PAGE_BREAK_MARKER,
             advanced=True,
         ),
         IntInput(
             name="max_documents",
-            display_name="Max Documents or Pages",
+            display_name="최대 문서·페이지 수",
             value=100,
             advanced=True,
         ),
         IntInput(
             name="max_chars_per_document",
-            display_name="Max Characters per Document",
+            display_name="문서당 최대 글자 수",
             value=200000,
             advanced=True,
         ),
     ]
 
-    outputs = [Output(name="documents", display_name="Documents", method="build_documents", types=["Data"])]
+    outputs = [Output(name="documents", display_name="정규화 문서", method="build_documents", types=["Data"])]
 
     def build_documents(self) -> Data:
         result = normalize_document_input(

@@ -5,8 +5,28 @@
   "asset_type": "component",
   "status": "user_testing",
   "version": "0.9.0",
+  "packaging": "standalone",
   "standalone": true,
   "reusability": "shared",
+  "component_scope": "domain",
+  "qualification": {
+    "decision": "qualified_component",
+    "criteria": {
+      "independent_input_output": true,
+      "functional_completeness": true,
+      "reusable_unit": true,
+      "payload_coupling": "domain_contract",
+      "validation_or_error_handling": true
+    },
+    "review_rule": "Flow에서 사용된다는 사실만으로 Component 자격을 부여하지 않습니다."
+  },
+  "owner_usage": {
+    "owner": "html_report_flow",
+    "usage": "HTML 리포트 도메인에서 독립적으로 재사용하는 기능",
+    "used_by_flows": [
+      "html_report_flow"
+    ]
+  },
   "source_family": "html_report_flow",
   "summary_ko": "리포트에 쓸 컬럼 유형, 숫자/범주/날짜 후보, 데이터 품질 신호를 요약합니다.",
   "source_file": "html_report_data_profile_builder.py",
@@ -23,7 +43,10 @@
       "type": "Output",
       "name": "data_profile",
       "display_name": "데이터 분석 결과",
-      "method": "build_profile"
+      "method": "build_profile",
+      "types": [
+        "Data"
+      ]
     }
   ],
   "dependencies": [

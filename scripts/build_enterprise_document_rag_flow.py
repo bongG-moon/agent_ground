@@ -28,11 +28,12 @@ FLOW_TARGET = FLOW_ROOT / "enterprise_document_rag_flow.json"
 BUNDLE_TARGET = ROOT / "flows" / "00_AGENT_GROUND_ALL_FLOWS.json"
 
 FLOW_SOURCES = (
-    ROOT / "flows" / "reusable_data_flow" / "reusable_data_flow.json",
+    # reusable_data_flow export는 12개 데이터 내부 Node가 아닌 과거 업무분석flow로 확인되어 격리합니다.
     ROOT / "flows" / "html_report_flow" / "html_report_flow.json",
     FLOW_TARGET,
     ROOT / "flows" / "skill_based_agent_flow" / "meeting_action_skill_flow.json",
     ROOT / "flows" / "skill_based_agent_flow" / "skill_based_agent_flow.json",
+    ROOT / "flows" / "ppt_reference_html_flow" / "ppt_reference_html_flow.json",
     ROOT / "business_agent_design" / "flow" / "business_agent_design_complete.json",
 )
 
@@ -66,7 +67,7 @@ COMPONENT_SPECS = (
     ),
     ComponentSpec(
         "request",
-        "components/rag_request_context_normalizer/rag_request_context_normalizer.py",
+        "flows/enterprise_document_rag_flow/nodes/rag_request_context_normalizer.py",
         "RAGRequestContextNormalizer-enterpriseRag",
         (360.0, 430.0),
     ),
@@ -84,7 +85,7 @@ COMPONENT_SPECS = (
     ),
     ComponentSpec(
         "prompt",
-        "components/rag_prompt_builder/rag_prompt_builder.py",
+        "flows/enterprise_document_rag_flow/nodes/rag_prompt_builder.py",
         "RAGPromptBuilder-enterpriseRag",
         (1800.0, 0.0),
     ),
@@ -96,7 +97,7 @@ COMPONENT_SPECS = (
     ),
     ComponentSpec(
         "citation",
-        "components/citation_response_builder/citation_response_builder.py",
+        "flows/enterprise_document_rag_flow/nodes/citation_response_builder.py",
         "CitationResponseBuilder-enterpriseRag",
         (2160.0, 440.0),
     ),
@@ -451,11 +452,11 @@ def _validate_written_files() -> None:
         raise ValueError('Bundle must begin exactly with {"flows":[')
     bundle = json.loads(bundle_bytes.decode("utf-8"))
     expected_names = [
-        "업무분석flow",
         "html_flow_0624",
         "enterprise_document_rag_flow",
         "meeting_action_skill_flow",
         "skill_based_agent_flow",
+        "ppt_reference_html_flow",
         "business_agent_design_complete",
     ]
     actual_names = [flow.get("name") for flow in bundle.get("flows", [])]

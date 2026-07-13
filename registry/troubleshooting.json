@@ -1,4 +1,14 @@
 {
   "schema_version": "1.0",
-  "issues": []
+  "issues": [
+    {
+      "id": "TRB-20260713-001",
+      "status": "recovery_required",
+      "asset_id": "reusable_data_flow",
+      "title_ko": "재사용 데이터 Flow JSON 불일치",
+      "summary_ko": "12개 데이터 Flow 내부 Node를 설명하는 문서와 달리 실제 JSON이 과거 업무분석flow로 확인되어 전체 Bundle에서 격리했습니다.",
+      "documentation_path": "html/troubleshooting/reusable-data-flow-export-mismatch.html",
+      "last_verified_at": "2026-07-13"
+    }
+  ]
 }
