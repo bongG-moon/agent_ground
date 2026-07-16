@@ -17,6 +17,14 @@ _EXTERNAL_URL_RE = re.compile(r"(?:https?:)?//|\b(?:javascript|vbscript|file):",
 _CSS_EXTERNAL_RE = re.compile(r"(?:@import|url\s*\(\s*['\"]?(?:https?:)?//)", re.I)
 _DYNAMIC_NETWORK_RE = re.compile(r"\b(?:fetch|XMLHttpRequest|WebSocket|EventSource)\s*\(", re.I)
 _PROHIBITED_TAGS = {"iframe", "object", "embed", "form", "base"}
+_TRANSITION_ALL_RE = re.compile(r"transition\s*:\s*all\b", re.I)
+_SCALE_ZERO_RE = re.compile(r"scale(?:3d|x|y)?\s*\(\s*0(?:[\s,)]|\.0+)", re.I)
+_EASE_IN_RE = re.compile(r"(?:transition|animation)[^;{}]*\bease-in(?!-)", re.I)
+_LAYOUT_MOTION_RE = re.compile(
+    r"(?:transition|animation)[^;{}]*\b(?:width|height|top|right|bottom|left|margin|padding)\b",
+    re.I,
+)
+_MOTION_DECLARATION_RE = re.compile(r"(?:transition|animation)(?:-[a-z-]+)?\s*:\s*([^;{}]+)", re.I)
 
 
 def _make_data(payload: dict[str, Any]) -> Data:
@@ -91,7 +99,7 @@ class _PresentationHTMLInspector(HTMLParser):
             self.has_title = True
         if tag == "main":
             self.has_main = True
-        if tag == "section":
+        if tag in {"section", "article"}:
             classes = set(attributes.get("class", "").split())
             if "slide" in classes or "presentation-slide" in classes or "data-slide" in attributes:
                 self.slide_sections += 1
@@ -131,11 +139,28 @@ def _content_length(value: Any) -> int:
     return len(str(value or ""))
 
 
+def _design_policy(plan: dict[str, Any]) -> tuple[dict[str, Any], dict[str, Any]]:
+    policy = plan.get("design_policy") if isinstance(plan.get("design_policy"), dict) else {}
+    composition = policy.get("composition") if isinstance(policy.get("composition"), dict) else {}
+    motion = policy.get("motion") if isinstance(policy.get("motion"), dict) else {}
+    return {"policy_id": str(policy.get("policy_id") or ""), **composition}, motion
+
+
+def _motion_duration_ms(source: str) -> list[float]:
+    values: list[float] = []
+    for declaration in _MOTION_DECLARATION_RE.findall(source):
+        for number, unit in re.findall(r"(\d+(?:\.\d+)?)\s*(ms|s)\b", declaration, re.I):
+            value = float(number) * (1000 if unit.lower() == "s" else 1)
+            values.append(value)
+    return values
+
+
 def evaluate_presentation_quality(
     presentation_plan_value: Any,
     presentation_artifact_value: Any = None,
     *,
     require_html: Any = False,
+    require_design_policy: Any = False,
     max_html_size_kb: Any = 8_000,
 ) -> dict[str, Any]:
     """계획과 선택적 HTML을 검사하고 HTML 원문을 포함하지 않는 보고서를 반환한다."""
@@ -146,6 +171,21 @@ def evaluate_presentation_quality(
     blocking: list[str] = []
     warnings: list[str] = []
     slides = plan.get("slides") if isinstance(plan.get("slides"), list) else []
+    composition, motion = _design_policy(plan)
+    strict_policy = bool(require_design_policy)
+    policy_id = composition.get("policy_id") or ""
+    if policy_id:
+        _check(checks, "policy-present", "pass", f"디자인 정책 {policy_id}가 계획에 포함되어 있습니다.")
+    else:
+        message = "발표 계획에 구조화된 design_policy가 없습니다."
+        if strict_policy:
+            _check(checks, "policy-present", "fail", message)
+            blocking.append(message)
+        else:
+            _check(checks, "policy-present", "pass", "디자인 정책 필수 검사가 비활성화되어 있습니다.")
+    max_elements = int(composition.get("max_content_elements") or 8)
+    max_bullets = int(composition.get("max_bullets") or 8)
+    max_repeated_layout = int(composition.get("max_consecutive_same_layout") or 2)
     target = plan.get("target_slide_count")
     try:
         target_count = int(target)
@@ -163,6 +203,8 @@ def evaluate_presentation_quality(
         _check(checks, "plan-slide-count", "pass", f"계획 슬라이드 수가 목표 {target_count}장과 일치합니다.")
 
     overflow_count = 0
+    prior_layout = ""
+    repeated_layout = 0
     for index, slide in enumerate(slides, 1):
         if not isinstance(slide, dict):
             continue
@@ -172,8 +214,21 @@ def evaluate_presentation_quality(
         if len(str(slide.get("subtitle") or "")) > 180:
             risks.append("부제 180자 초과")
         elements = slide.get("elements") if isinstance(slide.get("elements"), list) else []
-        if len(elements) > 8:
-            risks.append("요소 8개 초과")
+        if len(elements) > max_elements:
+            risks.append(f"요소 {max_elements}개 초과")
+        layout = str(slide.get("layout") or "")
+        repeated_layout = repeated_layout + 1 if layout and layout == prior_layout else 1
+        prior_layout = layout
+        if repeated_layout > max_repeated_layout:
+            risks.append(f"동일 레이아웃 {max_repeated_layout + 1}회 연속")
+        if composition.get("require_design_role", bool(policy_id)) and not str(slide.get("design_role") or "").strip():
+            message = f"슬라이드 {index}에 design_role이 없습니다."
+            _check(checks, "slide-role-present", "fail" if strict_policy else "warning", message, index)
+            (blocking if strict_policy else warnings).append(message)
+        if composition.get("one_message_per_slide", bool(policy_id)) and not str(slide.get("key_message") or "").strip():
+            message = f"슬라이드 {index}에 하나의 핵심 메시지(key_message)가 없습니다."
+            _check(checks, "one-message-per-slide", "fail" if strict_policy else "warning", message, index)
+            (blocking if strict_policy else warnings).append(message)
         for element in elements:
             if not isinstance(element, dict):
                 continue
@@ -181,8 +236,8 @@ def evaluate_presentation_quality(
             content = element.get("content")
             if element_type in {"text", "speaker_note"} and _content_length(content) > 500:
                 risks.append("본문 500자 초과")
-            if element_type == "bullet_list" and isinstance(content, list) and len(content) > 8:
-                risks.append("글머리 8개 초과")
+            if element_type == "bullet_list" and isinstance(content, list) and len(content) > max_bullets:
+                risks.append(f"글머리 {max_bullets}개 초과")
             rows = element.get("rows")
             if element_type == "table" and isinstance(rows, list) and len(rows) > 12:
                 risks.append("표 12행 초과")
@@ -273,6 +328,54 @@ def evaluate_presentation_quality(
             message = "슬라이드 CSS에 auto/scroll overflow가 있어 내용 잘림 또는 내부 스크롤을 확인해야 합니다."
             _check(checks, "css-overflow", "warning", message)
             warnings.append(message)
+        if policy_id and f'data-design-policy="{policy_id}"' not in html_source:
+            message = "HTML에 계획과 동일한 design policy 식별자가 없습니다."
+            _check(checks, "rendered-policy", "fail" if strict_policy else "warning", message)
+            (blocking if strict_policy else warnings).append(message)
+        elif policy_id:
+            _check(checks, "rendered-policy", "pass", "계획의 design policy가 HTML에 기록되어 있습니다.")
+        if not composition.get("allow_decorative_gradient", True):
+            if re.search(r"(?:linear|radial|conic)-gradient\s*\(", html_source, re.I):
+                message = "정책에서 금지한 장식용 gradient가 HTML에 포함되어 있습니다."
+                _check(checks, "decorative-gradient", "fail", message)
+                blocking.append(message)
+            else:
+                _check(checks, "decorative-gradient", "pass", "장식용 gradient를 사용하지 않습니다.")
+
+        motion_violations: list[str] = []
+        if _TRANSITION_ALL_RE.search(html_source):
+            motion_violations.append("transition: all")
+        if _SCALE_ZERO_RE.search(html_source):
+            motion_violations.append("scale(0)")
+        if _EASE_IN_RE.search(html_source):
+            motion_violations.append("ease-in")
+        if _LAYOUT_MOTION_RE.search(html_source):
+            motion_violations.append("layout property animation")
+        max_duration = int(motion.get("max_ui_duration_ms") or 300)
+        if any(value > max_duration for value in _motion_duration_ms(html_source)):
+            motion_violations.append(f"duration over {max_duration}ms")
+        if motion_violations:
+            message = f"모션 정책 위반: {', '.join(dict.fromkeys(motion_violations))}"
+            _check(checks, "motion-static-analysis", "fail", message)
+            blocking.append(message)
+        else:
+            _check(checks, "motion-static-analysis", "pass", "금지된 모션 패턴과 과도한 UI duration이 없습니다.")
+
+        if motion.get("reduced_motion_required", bool(policy_id)):
+            if "prefers-reduced-motion: reduce" not in html_source:
+                message = "prefers-reduced-motion 대응이 없습니다."
+                _check(checks, "reduced-motion", "fail", message)
+                blocking.append(message)
+            else:
+                _check(checks, "reduced-motion", "pass", "reduced-motion 대체 경로가 있습니다.")
+        if motion.get("hover_pointer_gate_required", bool(policy_id)):
+            pointer_gate = re.search(r"@media\s*\([^{}]*hover\s*:\s*hover[^{}]*pointer\s*:\s*fine", html_source, re.I)
+            if not pointer_gate:
+                message = "hover 효과가 fine pointer media query로 제한되지 않았습니다."
+                _check(checks, "pointer-hover-gate", "fail", message)
+                blocking.append(message)
+            else:
+                _check(checks, "pointer-hover-gate", "pass", "hover 효과가 pointer-capable 환경으로 제한됩니다.")
 
     status = "fail" if blocking else ("warning" if warnings else "pass")
     report = {
@@ -286,6 +389,7 @@ def evaluate_presentation_quality(
             "rendered_slide_count": inspector.slide_sections if html_source else 0,
             "html_bytes": len(html_source.encode("utf-8")) if html_source else 0,
             "overflow_risk_slide_count": overflow_count,
+            "design_policy_id": policy_id,
         },
     }
     result = {
@@ -309,7 +413,7 @@ def evaluate_presentation_quality(
 class PresentationQualityGate(Component):
     """발표 계획과 선택적 HTML 산출물을 검사하는 Flow 전용 Node."""
 
-    display_name = "07 프레젠테이션 품질 검사"
+    display_name = "08 프레젠테이션 품질 검사"
     description = "슬라이드 수, 과밀 위험, 접근성, 외부 URL과 위험한 HTML 구조를 검사해 품질 보고서를 반환합니다."
     icon = "ShieldCheck"
     name = "PresentationQualityGate"
@@ -318,6 +422,7 @@ class PresentationQualityGate(Component):
         DataInput(name="presentation_plan", display_name="검증된 발표 계획", required=True),
         DataInput(name="presentation_artifact", display_name="HTML 프레젠테이션", required=False),
         BoolInput(name="require_html", display_name="HTML 필수 검사", value=False, advanced=True),
+        BoolInput(name="require_design_policy", display_name="디자인 정책 필수", value=False, advanced=True),
         IntInput(name="max_html_size_kb", display_name="최대 HTML 크기(KB)", value=8000, advanced=True),
     ]
     outputs = [Output(name="quality_report", display_name="프레젠테이션 품질 보고서", method="build_quality_report", types=["Data"])]
@@ -327,6 +432,7 @@ class PresentationQualityGate(Component):
             getattr(self, "presentation_plan", None),
             getattr(self, "presentation_artifact", None),
             require_html=getattr(self, "require_html", False),
+            require_design_policy=getattr(self, "require_design_policy", False),
             max_html_size_kb=getattr(self, "max_html_size_kb", 8000),
         )
         self.status = result["meta"]

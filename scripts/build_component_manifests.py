@@ -80,6 +80,7 @@ INTERNAL_NODE_IDS = {
     "demo_skill_catalog_builder",
     "presentation_request_builder",
     "presentation_reference_analyzer",
+    "presentation_design_policy_builder",
     "presentation_plan_generator",
     "presentation_plan_normalizer",
     "presentation_quality_gate",
@@ -136,7 +137,7 @@ BEGINNER_GUIDES = {
 
 RISK_TAGS = {
     "html_template_renderer": ["html_output"],
-    "html_presentation_renderer": ["html_output", "inline_svg", "self_contained_artifact"],
+    "html_presentation_renderer": ["html_output", "inline_svg", "self_contained_artifact", "motion_policy"],
     "report_api_publisher": ["external_publish", "html_output"],
     "document_input_normalizer": ["document_content", "demo_corpus"],
     "pii_confidential_data_guard": ["pii_baseline", "confidential_content"],
@@ -244,9 +245,9 @@ def component_release(component_id: str) -> dict[str, Any]:
     if component_id in PRESENTATION_COMPONENT_IDS:
         return {
             "source_family": "ppt_reference_html_flow",
-            "version": "0.1.0",
+            "version": "0.2.0",
             "verified_environment": "langflow-1.8.2-template-and-isolated-contract-validation",
-            "last_verified_at": "2026-07-13",
+            "last_verified_at": "2026-07-15",
             "used_by_flows": ["ppt_reference_html_flow"],
         }
     if component_id in ENTERPRISE_UTILITY_IDS:

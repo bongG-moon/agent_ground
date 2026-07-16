@@ -66,6 +66,26 @@ def _analysis_root(value: Any) -> dict[str, Any]:
     return payload
 
 
+def _policy_root(value: Any) -> dict[str, Any]:
+    payload = _payload(value)
+    policy = payload.get("design_policy")
+    return deepcopy(policy) if isinstance(policy, dict) else payload
+
+
+def _design_role(layout: str, slide_no: int, slide_count: int) -> str:
+    if slide_no == 1 or layout == "cover":
+        return "cover"
+    if slide_no == slide_count or layout == "conclusion":
+        return "action"
+    if layout == "section":
+        return "transition"
+    if layout == "comparison":
+        return "comparison"
+    if layout in {"kpi-grid", "chart-focus", "table-focus"}:
+        return "evidence"
+    return "framing"
+
+
 def _extract_text(response: Any) -> str:
     content = getattr(response, "content", response)
     if isinstance(content, str):
@@ -187,11 +207,16 @@ def _content_points(content: str) -> list[str]:
     return points[:40]
 
 
-def build_deterministic_plan(request_value: Any, analysis_value: Any) -> dict[str, Any]:
+def build_deterministic_plan(
+    request_value: Any,
+    analysis_value: Any,
+    policy_value: Any = None,
+) -> dict[str, Any]:
     """모델 없이도 데이터 계약을 지키는 보수적인 발표 계획을 만든다."""
 
     request = _request_root(request_value)
     analysis = _analysis_root(analysis_value)
+    policy = _policy_root(policy_value)
     brief = _brief(request)
     datasets = _datasets(request)
     try:
@@ -300,6 +325,8 @@ def build_deterministic_plan(request_value: Any, analysis_value: Any) -> dict[st
     slides = [slide_candidates[0], *body, conclusion]
     for slide_no, slide in enumerate(slides, 1):
         slide["slide_no"] = slide_no
+        slide["design_role"] = _design_role(str(slide.get("layout") or ""), slide_no, len(slides))
+        slide["visual_weight"] = "strong" if slide["design_role"] in {"cover", "transition", "action"} else "balanced"
         for element_index, element in enumerate(slide.get("elements", []), 1):
             element["element_id"] = f"s{slide_no:02d}-e{element_index:02d}"
     return {
@@ -310,6 +337,7 @@ def build_deterministic_plan(request_value: Any, analysis_value: Any) -> dict[st
         "purpose": purpose,
         "target_slide_count": target,
         "design_system": deepcopy(design),
+        "design_policy": deepcopy(policy),
         "storyline": [slide.get("key_message", "") for slide in slides],
         "data_views": data_views,
         "slides": slides,
@@ -341,7 +369,7 @@ def _compact_request(request_value: Any) -> dict[str, Any]:
     return {"brief": brief, "template_mode": request.get("template_mode"), "datasets": compact_datasets}
 
 
-def build_plan_message(request_value: Any, analysis_value: Any) -> HumanMessage:
+def build_plan_message(request_value: Any, analysis_value: Any, policy_value: Any = None) -> HumanMessage:
     compact_request = _compact_request(request_value)
     analysis = _analysis_root(analysis_value)
     compact_analysis = {
@@ -349,6 +377,13 @@ def build_plan_message(request_value: Any, analysis_value: Any) -> HumanMessage:
         "observations": analysis.get("observations", []),
         "confidence": analysis.get("confidence", 0),
         "warnings": analysis.get("warnings", []),
+    }
+    policy = _policy_root(policy_value)
+    motion = policy.get("motion") if isinstance(policy.get("motion"), dict) else {}
+    compact_policy = {
+        "policy_id": policy.get("policy_id"),
+        "composition": policy.get("composition", {}),
+        "motion": {"profile": motion.get("profile"), "renderer_owned": True},
     }
     instruction = (
         "당신은 기업용 프레젠테이션 정보 설계자입니다. 아래 요청의 brief와 실제 datasets만 사실 근거로 사용하십시오. "
@@ -362,15 +397,24 @@ def build_plan_message(request_value: Any, analysis_value: Any) -> HumanMessage:
         "현재 실제 차트 Renderer는 kpi, table, bar_chart, line_chart, scatter_plot을 지원합니다. stacked_bar와 histogram은 "
         "임의 계산이 필요하므로 사용자가 확정 집계값과 계산 근거를 제공하지 않았다면 table을 선택하십시오. "
         "차트와 표는 dataset_id와 실제 column 이름으로 data_view를 만들고 임의의 값 배열을 쓰지 마십시오. "
-        "슬라이드마다 title, key_message, elements, speaker_notes를 포함하고 목표 슬라이드 수를 지키십시오.\n\n"
+        "슬라이드마다 title, key_message, design_role, visual_weight, elements, speaker_notes를 포함하고 목표 슬라이드 수를 지키십시오. "
+        "design_role은 cover, framing, evidence, comparison, transition, action 중 하나이고 visual_weight는 quiet, balanced, strong 중 하나입니다. "
+        "한 슬라이드에는 하나의 핵심 메시지만 두고 동일 layout을 세 번 연속 반복하지 마십시오. 모든 내용을 같은 카드 격자로 만들지 말고, "
+        "장식용 gradient와 emoji icon을 사용하지 마십시오. CSS, duration, easing 같은 모션 값은 만들지 마십시오. 모션은 Renderer가 정책대로 결정합니다.\n\n"
         f"REQUEST_JSON:\n{json.dumps(compact_request, ensure_ascii=False, default=str)}\n\n"
-        f"DESIGN_ANALYSIS_JSON:\n{json.dumps(compact_analysis, ensure_ascii=False, default=str)}"
+        f"DESIGN_ANALYSIS_JSON:\n{json.dumps(compact_analysis, ensure_ascii=False, default=str)}\n\n"
+        f"DESIGN_POLICY_JSON:\n{json.dumps(compact_policy, ensure_ascii=False, default=str)}"
     )
     return HumanMessage(content=instruction)
 
 
-async def generate_presentation_plan(request_value: Any, analysis_value: Any, model: Any) -> dict[str, Any]:
-    fallback = build_deterministic_plan(request_value, analysis_value)
+async def generate_presentation_plan(
+    request_value: Any,
+    analysis_value: Any,
+    model: Any,
+    policy_value: Any = None,
+) -> dict[str, Any]:
+    fallback = build_deterministic_plan(request_value, analysis_value, policy_value)
     warnings: list[str] = []
     errors: list[dict[str, str]] = []
     source = "deterministic_fallback"
@@ -379,7 +423,7 @@ async def generate_presentation_plan(request_value: Any, analysis_value: Any, mo
         warnings.append("Language Model이 연결되지 않아 결정론적 기본 계획을 사용했습니다.")
     else:
         try:
-            message = build_plan_message(request_value, analysis_value)
+            message = build_plan_message(request_value, analysis_value, policy_value)
             if callable(getattr(model, "ainvoke", None)):
                 response = await model.ainvoke([message])
             elif callable(getattr(model, "invoke", None)):
@@ -401,14 +445,19 @@ async def generate_presentation_plan(request_value: Any, analysis_value: Any, mo
         "presentation_plan": draft,
         "warnings": warnings,
         "errors": errors,
-        "meta": {"status": "ready" if source == "language_model" else "fallback", "source": source, "slide_count": len(draft.get("slides", []))},
+        "meta": {
+            "status": "ready" if source == "language_model" else "fallback",
+            "source": source,
+            "slide_count": len(draft.get("slides", [])),
+            "policy_id": _policy_root(policy_value).get("policy_id"),
+        },
     }
 
 
 class PresentationPlanGenerator(Component):
     """디자인 분석과 실제 데이터를 슬라이드 계획 JSON으로 바꾸는 Flow 전용 Node."""
 
-    display_name = "04 발표 계획 생성"
+    display_name = "05 발표 계획 생성"
     description = "참고 디자인과 실제 데이터에 근거한 슬라이드 계획 JSON을 생성하고 실패 시 안전한 기본 계획으로 대체합니다."
     icon = "PanelsTopLeft"
     name = "PresentationPlanGenerator"
@@ -416,6 +465,7 @@ class PresentationPlanGenerator(Component):
     inputs = [
         DataInput(name="request", display_name="정규화 발표 요청", required=True),
         DataInput(name="analysis", display_name="참고 디자인 분석", required=True),
+        DataInput(name="design_policy", display_name="디자인·모션 정책", required=False),
         HandleInput(
             name="model",
             display_name="계획 Language Model",
@@ -431,6 +481,7 @@ class PresentationPlanGenerator(Component):
             getattr(self, "request", None),
             getattr(self, "analysis", None),
             getattr(self, "model", None),
+            getattr(self, "design_policy", None),
         )
         self.status = result["meta"]
         return _make_data(result)

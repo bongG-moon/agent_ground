@@ -4,7 +4,7 @@
   "class_name": "HtmlPresentationRenderer",
   "asset_type": "component",
   "status": "user_testing",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "packaging": "standalone",
   "standalone": true,
   "reusability": "shared",
@@ -28,7 +28,7 @@
     ]
   },
   "source_family": "ppt_reference_html_flow",
-  "summary_ko": "검증된 슬라이드 계획을 탐색·인쇄 가능한 독립 16:9 HTML 프레젠테이션으로 변환합니다.",
+  "summary_ko": "검증된 슬라이드 계획과 디자인·모션 정책을 독립 16:9 HTML 프레젠테이션으로 결정론적으로 변환합니다.",
   "source_file": "html_presentation_renderer.py",
   "inputs": [
     {
@@ -59,10 +59,11 @@
   "risk_tags": [
     "html_output",
     "inline_svg",
-    "self_contained_artifact"
+    "self_contained_artifact",
+    "motion_policy"
   ],
   "verified_environment": "langflow-1.8.2-template-and-isolated-contract-validation",
-  "last_verified_at": "2026-07-13",
+  "last_verified_at": "2026-07-15",
   "documentation_path": "html/components/html_presentation_renderer/index.html",
   "approved_by_user_at": null
 }

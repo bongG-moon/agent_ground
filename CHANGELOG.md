@@ -1,5 +1,25 @@
 # Changelog
 
+## 2026-07-15 — 실제 입력 양식·샘플 이미지 v0.3.0
+
+- `02 발표 요청 정리` Node에 발표 제목, 발표 부제, 발표 목적, 대상 청중, 발표 언어, 발표 톤, 슬라이드 목차, 마지막 요청·의사결정, 발표 본문, 목표 슬라이드 수를 각각 입력하는 실제 Builder 양식을 추가
+- 구조화 요청의 `brief`를 최우선으로 유지하고, 구조화 brief가 없을 때만 새 개별 필드와 기존 호환용 brief를 병합하도록 입력 우선순위를 명시
+- 기존 표지·본문 `Multi Image Base64 Encoder`를 실제 이미지 업로드 양식으로 사용하고, Flow JSON에는 다른 PC에서 깨지는 로컬 절대경로를 넣지 않도록 유지
+- 첫 실행용 16:9 샘플 이미지 `reference_cover_navy_teal.png`, `reference_body_trend.png`, `reference_body_comparison_table.png`와 권장 업로드 순서를 추가
+- Builder 필드, 데이터 입력 방식, Vision 모델 설정과 이미지 업로드 절차를 `samples/INPUT_FORM.md`에 정리
+- 양식 우선순위·3~30장 clamp, Encoder preset, 16:9 PNG 계약을 회귀 테스트로 고정하고 전용 24개·전체 79개 테스트 통과
+- 실제 Vision 모델·Langflow Builder 실행 검증 전이므로 자산 상태는 `user_testing`으로 유지
+
+## 2026-07-15 — 프레젠테이션 디자인·모션 정책 v0.2.0
+
+- `presentation_design_policy_builder`를 추가해 Hallmark식 구성 원칙과 Emil식 모션 검사 기준을 Prompt 바깥의 버전 있는 `design_policy` JSON으로 분리
+- Plan Generator는 `design_role`, `visual_weight`, 한 슬라이드 한 메시지를 제안하고 CSS·duration·easing·animation 생성은 금지
+- Plan Normalizer가 최대 요소 6개, 최대 bullet 6개, 허용 role·weight와 실제 데이터 참조를 결정론적으로 보정
+- `html_presentation_renderer` 0.2.0에서 장식용 gradient와 균일한 카드 그림자를 제거하고, 포인터 전용 180ms transform·opacity 모션, fine-pointer hover와 reduced-motion 대체 경로 구현
+- Quality Gate에 정책 ID, 슬라이드 역할, layout 반복, gradient, `transition: all`, `scale(0)`, `ease-in`, 300ms 초과 duration, reduced-motion과 pointer gate 검사를 추가
+- Flow를 17 nodes / 22 edges / 내부 Node 7개로 재생성하고 문서·포털·정적 계약 테스트 동기화
+- 실제 Vision 모델·Langflow Builder·브라우저 시각 회귀는 사용자 환경 검증 전이므로 상태를 `user_testing`으로 유지
+
 ## 2026-07-13 — PPT 참조 이미지 기반 HTML 프레젠테이션 Flow
 
 - 표지 1개와 본문 대표 이미지 여러 개를 `multi_image_base64_encoder`로 Data URL 변환해 입력하는 `ppt_reference_html_flow` 추가

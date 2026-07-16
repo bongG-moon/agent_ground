@@ -38,10 +38,23 @@ def sample_plan() -> dict:
                 "accent_color": "#0F766E",
                 "font_family": "sans",
             },
+            "design_policy": {
+                "policy_id": "hallmark-emil-balanced-v1",
+                "composition": {"allow_decorative_gradient": False},
+                "motion": {
+                    "profile": "purposeful-subtle",
+                    "max_ui_duration_ms": 300,
+                    "button_press_duration_ms": 120,
+                    "slide_enter_duration_ms": 180,
+                    "easing": "cubic-bezier(0.23, 1, 0.32, 1)",
+                },
+            },
             "slides": [
                 {
                     "slide_id": "cover",
                     "layout": "title",
+                    "design_role": "cover",
+                    "visual_weight": "strong",
                     "eyebrow": "Executive briefing",
                     "title": "2026년 상반기 실적",
                     "subtitle": "핵심 성과와 다음 행동",
@@ -58,6 +71,8 @@ def sample_plan() -> dict:
                 },
                 {
                     "layout": "two_column",
+                    "design_role": "comparison",
+                    "visual_weight": "balanced",
                     "title": "성과와 추이",
                     "elements": [
                         {
@@ -98,6 +113,8 @@ def test_renderer_builds_self_contained_16_9_navigation_and_report_alias() -> No
     assert artifact["self_contained"] is True
     assert artifact["slide_count"] == 2
     assert artifact["filename_hint"] == "2026_상반기_실적"
+    assert artifact["design_policy_id"] == "hallmark-emil-balanced-v1"
+    assert artifact["motion_profile"] == "purposeful-subtle"
     assert artifact["byte_size"] == len(document.encode("utf-8"))
     assert artifact["sha256"] == hashlib.sha256(document.encode("utf-8")).hexdigest()
     assert result["html_report"] == artifact
@@ -116,6 +133,14 @@ def test_renderer_builds_self_contained_16_9_navigation_and_report_alias() -> No
     assert "fullscreenchange" in document
     assert "@media print" in document
     assert "@page" in document
+    assert 'data-design-policy="hallmark-emil-balanced-v1"' in document
+    assert 'data-design-role="cover"' in document
+    assert "linear-gradient" not in document and "radial-gradient" not in document
+    assert "transition: all" not in document
+    assert "scale(0)" not in document
+    assert "@media (hover: hover) and (pointer: fine)" in document
+    assert "prefers-reduced-motion: reduce" in document
+    assert 'interaction === "pointer"' in document
     assert "https://" not in document and "http://" not in document
 
 

@@ -1,11 +1,11 @@
 # HTML 프레젠테이션 렌더러
 
-검증된 슬라이드 계획을 탐색·인쇄 가능한 독립 16:9 HTML 프레젠테이션으로 변환합니다.
+검증된 슬라이드 계획과 디자인·모션 정책을 독립 16:9 HTML 프레젠테이션으로 결정론적으로 변환합니다.
 
 ## 상태
 
 - ID: `html_presentation_renderer`
-- 버전: `0.1.0`
+- 버전: `0.2.0`
 - 상태: `user_testing`
 - 패키징: `standalone`
 - Component 범위: `domain`

@@ -1,0 +1,203 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <base href="../../../../" />
+  <title>04 디자인·모션 정책 Python 코드 · Agent Ground</title>
+  <meta name="description" content="PPT 참조 이미지 HTML 프레젠테이션 Flow 내부 Node 04 디자인·모션 정책 Python 코드 뷰어" />
+  <link rel="stylesheet" href="assets/css/site.css" />
+  
+</head>
+<body>
+  <a class="skip-link" href="#main">본문으로 바로가기</a>
+  <header class="site-header">
+    <div class="header-inner">
+      <a class="brand" href="index.html" aria-label="Agent Ground 홈">
+        <span class="brand-mark" aria-hidden="true">AG</span>
+        <span class="brand-copy"><strong>Agent Ground</strong><small>Learn · Build · Validate</small></span>
+      </a>
+      <button class="menu-button" type="button" data-menu-button aria-expanded="false" aria-controls="site-nav" aria-label="메뉴 열기"><span class="menu-lines"></span></button>
+      <nav class="site-nav" id="site-nav" data-site-nav data-open="false" aria-label="주요 메뉴"><a href="index.html">홈</a><a href="training/index.html">처음 배우기</a><a href="flows/index.html" aria-current="page">Flows</a><a href="components/index.html">Components</a><a href="troubleshooting/index.html">실패와 해결</a><a href="business-agent-design/index.html">업무 Agent 설계</a></nav>
+    </div>
+  </header>
+  <main class="page-wrap" id="main">
+    <nav class="breadcrumbs" aria-label="현재 위치"><a href="index.html">홈</a><span aria-hidden="true">/</span><a href="flows/index.html">Flows</a><span aria-hidden="true">/</span><a href="flows/ppt_reference_html_flow/index.html">PPT 참조 이미지 HTML 프레젠테이션 Flow</a><span aria-hidden="true">/</span><a href="flows/ppt_reference_html_flow/nodes/presentation_design_policy_builder/index.html">04 디자인·모션 정책</a><span aria-hidden="true">/</span><span>Python 코드</span></nav>
+    
+<section class="code-page-intro"><div><p class="eyebrow">Flow internal Python source</p><h1>04 디자인·모션 정책</h1><p><code>presentation_design_policy_builder.py</code> 원문을 포털 안에서 확인합니다. 이 코드는 Component Library가 아니라 <strong>PPT 참조 이미지 HTML 프레젠테이션 Flow</strong>의 내부 구현입니다.</p></div><div class="code-page-actions"><a class="button button-soft" href="flows/ppt_reference_html_flow/nodes/presentation_design_policy_builder/index.html">내부 Node 설명으로 돌아가기</a></div></section>
+<section class="code-workspace" aria-label="Python 코드 뷰어">
+  <header class="code-toolbar"><div class="code-window-dots" aria-hidden="true"><span></span><span></span><span></span></div><div class="code-file-meta"><strong>presentation_design_policy_builder.py</strong><span>159줄 · 5.8KB · UTF-8</span></div><button class="code-copy-button" type="button" data-copy-code>코드 복사</button></header>
+  <div class="code-editor-scroll" tabindex="0" aria-label="가로와 세로로 스크롤할 수 있는 Python 코드"><div class="code-lines" data-code-source><div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">1</span><code data-code-text>from __future__ import annotations</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">2</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">3</span><code data-code-text>&quot;&quot;&quot;Build the deterministic design and motion policy used by this flow.</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">4</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">5</span><code data-code-text>Hallmark-inspired composition rules and Emil-inspired motion review rules are</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">6</span><code data-code-text>expressed as project-owned structured data.  The policy is intentionally kept</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">7</span><code data-code-text>outside the LLM prompt so the normalizer, renderer, and quality gate can all</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">8</span><code data-code-text>enforce the same contract.</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">9</span><code data-code-text>&quot;&quot;&quot;</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">10</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">11</span><code data-code-text>import json</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">12</span><code data-code-text>from copy import deepcopy</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">13</span><code data-code-text>from typing import Any</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">14</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">15</span><code data-code-text>from lfx.custom.custom_component.component import Component</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">16</span><code data-code-text>from lfx.io import DataInput, Output</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">17</span><code data-code-text>from lfx.schema.data import Data</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">18</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">19</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">20</span><code data-code-text>POLICY_ID = &quot;hallmark-emil-balanced-v1&quot;</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">21</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">22</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">23</span><code data-code-text>def _make_data(payload: dict[str, Any]) -&gt; Data:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">24</span><code data-code-text>    try:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">25</span><code data-code-text>        return Data(data=payload)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">26</span><code data-code-text>    except TypeError:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">27</span><code data-code-text>        return Data(payload)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">28</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">29</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">30</span><code data-code-text>def _payload(value: Any) -&gt; dict[str, Any]:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">31</span><code data-code-text>    if isinstance(value, dict):</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">32</span><code data-code-text>        return deepcopy(value)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">33</span><code data-code-text>    data = getattr(value, &quot;data&quot;, None)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">34</span><code data-code-text>    if isinstance(data, dict):</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">35</span><code data-code-text>        return deepcopy(data)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">36</span><code data-code-text>    text = getattr(value, &quot;text&quot;, None) or getattr(value, &quot;content&quot;, None)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">37</span><code data-code-text>    if isinstance(text, str) and text.strip():</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">38</span><code data-code-text>        try:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">39</span><code data-code-text>            parsed = json.loads(text)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">40</span><code data-code-text>            return deepcopy(parsed) if isinstance(parsed, dict) else {}</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">41</span><code data-code-text>        except Exception:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">42</span><code data-code-text>            return {}</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">43</span><code data-code-text>    return {}</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">44</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">45</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">46</span><code data-code-text>def build_presentation_design_policy(request_value: Any = None, analysis_value: Any = None) -&gt; dict[str, Any]:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">47</span><code data-code-text>    &quot;&quot;&quot;Return a compact, deterministic policy contract for downstream nodes.&quot;&quot;&quot;</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">48</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">49</span><code data-code-text>    request_payload = _payload(request_value)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">50</span><code data-code-text>    request = request_payload.get(&quot;request&quot;) if isinstance(request_payload.get(&quot;request&quot;), dict) else request_payload</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">51</span><code data-code-text>    analysis_payload = _payload(analysis_value)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">52</span><code data-code-text>    analysis = analysis_payload.get(&quot;analysis&quot;) if isinstance(analysis_payload.get(&quot;analysis&quot;), dict) else analysis_payload</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">53</span><code data-code-text>    datasets = request.get(&quot;datasets&quot;) if isinstance(request.get(&quot;datasets&quot;), list) else []</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">54</span><code data-code-text>    storyline_pattern = &quot;claim-evidence-decision&quot; if datasets else &quot;context-message-action&quot;</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">55</span><code data-code-text>    reference_confidence = analysis.get(&quot;confidence&quot;) if isinstance(analysis, dict) else None</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">56</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">57</span><code data-code-text>    policy = {</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">58</span><code data-code-text>        &quot;contract_version&quot;: &quot;presentation-design-policy-v1&quot;,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">59</span><code data-code-text>        &quot;policy_id&quot;: POLICY_ID,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">60</span><code data-code-text>        &quot;sources&quot;: [</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">61</span><code data-code-text>            {</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">62</span><code data-code-text>                &quot;name&quot;: &quot;Hallmark&quot;,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">63</span><code data-code-text>                &quot;role&quot;: &quot;composition and design-review principles&quot;,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">64</span><code data-code-text>                &quot;license&quot;: &quot;MIT&quot;,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">65</span><code data-code-text>            },</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">66</span><code data-code-text>            {</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">67</span><code data-code-text>                &quot;name&quot;: &quot;Emil Kowalski Skills&quot;,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">68</span><code data-code-text>                &quot;role&quot;: &quot;motion and interaction review principles&quot;,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">69</span><code data-code-text>                &quot;license&quot;: &quot;MIT&quot;,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">70</span><code data-code-text>            },</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">71</span><code data-code-text>        ],</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">72</span><code data-code-text>        &quot;precedence&quot;: [</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">73</span><code data-code-text>            &quot;company_and_user_brief&quot;,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">74</span><code data-code-text>            &quot;explicit_visual_direction&quot;,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">75</span><code data-code-text>            &quot;reference_image_dna&quot;,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">76</span><code data-code-text>            &quot;policy_defaults&quot;,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">77</span><code data-code-text>        ],</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">78</span><code data-code-text>        &quot;composition&quot;: {</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">79</span><code data-code-text>            &quot;storyline_pattern&quot;: storyline_pattern,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">80</span><code data-code-text>            &quot;one_message_per_slide&quot;: True,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">81</span><code data-code-text>            &quot;max_consecutive_same_layout&quot;: 2,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">82</span><code data-code-text>            &quot;max_content_elements&quot;: 6,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">83</span><code data-code-text>            &quot;max_bullets&quot;: 6,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">84</span><code data-code-text>            &quot;require_design_role&quot;: True,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">85</span><code data-code-text>            &quot;allowed_design_roles&quot;: [</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">86</span><code data-code-text>                &quot;cover&quot;,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">87</span><code data-code-text>                &quot;framing&quot;,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">88</span><code data-code-text>                &quot;evidence&quot;,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">89</span><code data-code-text>                &quot;comparison&quot;,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">90</span><code data-code-text>                &quot;transition&quot;,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">91</span><code data-code-text>                &quot;action&quot;,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">92</span><code data-code-text>            ],</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">93</span><code data-code-text>            &quot;allowed_visual_weights&quot;: [&quot;quiet&quot;, &quot;balanced&quot;, &quot;strong&quot;],</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">94</span><code data-code-text>            &quot;avoid_uniform_card_grid&quot;: True,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">95</span><code data-code-text>            &quot;allow_decorative_gradient&quot;: False,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">96</span><code data-code-text>            &quot;preserve_reference_dna&quot;: True,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">97</span><code data-code-text>            &quot;hierarchy&quot;: [&quot;dominant_message&quot;, &quot;supporting_evidence&quot;, &quot;quiet_metadata&quot;],</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">98</span><code data-code-text>        },</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">99</span><code data-code-text>        &quot;motion&quot;: {</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">100</span><code data-code-text>            &quot;profile&quot;: &quot;purposeful-subtle&quot;,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">101</span><code data-code-text>            &quot;pointer_only_slide_motion&quot;: True,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">102</span><code data-code-text>            &quot;keyboard_navigation_motion&quot;: False,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">103</span><code data-code-text>            &quot;max_ui_duration_ms&quot;: 300,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">104</span><code data-code-text>            &quot;button_press_duration_ms&quot;: 120,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">105</span><code data-code-text>            &quot;slide_enter_duration_ms&quot;: 180,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">106</span><code data-code-text>            &quot;slide_exit_duration_ms&quot;: 120,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">107</span><code data-code-text>            &quot;easing&quot;: &quot;cubic-bezier(0.23, 1, 0.32, 1)&quot;,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">108</span><code data-code-text>            &quot;allowed_properties&quot;: [&quot;transform&quot;, &quot;opacity&quot;, &quot;color&quot;, &quot;background-color&quot;, &quot;box-shadow&quot;],</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">109</span><code data-code-text>            &quot;forbidden_patterns&quot;: [&quot;transition: all&quot;, &quot;scale(0)&quot;, &quot;ease-in&quot;, &quot;layout-property-animation&quot;],</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">110</span><code data-code-text>            &quot;reduced_motion_required&quot;: True,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">111</span><code data-code-text>            &quot;hover_pointer_gate_required&quot;: True,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">112</span><code data-code-text>        },</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">113</span><code data-code-text>        &quot;quality_gates&quot;: [</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">114</span><code data-code-text>            &quot;policy-present&quot;,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">115</span><code data-code-text>            &quot;slide-role-present&quot;,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">116</span><code data-code-text>            &quot;one-message-per-slide&quot;,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">117</span><code data-code-text>            &quot;layout-repetition&quot;,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">118</span><code data-code-text>            &quot;content-density&quot;,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">119</span><code data-code-text>            &quot;decorative-gradient&quot;,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">120</span><code data-code-text>            &quot;motion-static-analysis&quot;,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">121</span><code data-code-text>            &quot;reduced-motion&quot;,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">122</span><code data-code-text>            &quot;pointer-hover-gate&quot;,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">123</span><code data-code-text>        ],</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">124</span><code data-code-text>    }</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">125</span><code data-code-text>    return {</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">126</span><code data-code-text>        &quot;payload_version&quot;: &quot;ppt-reference-html-v1&quot;,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">127</span><code data-code-text>        &quot;design_policy&quot;: policy,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">128</span><code data-code-text>        &quot;warnings&quot;: [],</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">129</span><code data-code-text>        &quot;errors&quot;: [],</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">130</span><code data-code-text>        &quot;meta&quot;: {</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">131</span><code data-code-text>            &quot;status&quot;: &quot;ready&quot;,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">132</span><code data-code-text>            &quot;policy_id&quot;: POLICY_ID,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">133</span><code data-code-text>            &quot;storyline_pattern&quot;: storyline_pattern,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">134</span><code data-code-text>            &quot;reference_confidence&quot;: reference_confidence,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">135</span><code data-code-text>        },</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">136</span><code data-code-text>    }</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">137</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">138</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">139</span><code data-code-text>class PresentationDesignPolicyBuilder(Component):</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">140</span><code data-code-text>    &quot;&quot;&quot;Flow-internal policy node shared by planning, rendering, and review.&quot;&quot;&quot;</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">141</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">142</span><code data-code-text>    display_name = &quot;04 디자인·모션 정책&quot;</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">143</span><code data-code-text>    description = &quot;Hallmark식 구성 원칙과 Emil식 모션 검사 기준을 구조화된 결정론적 계약으로 만듭니다.&quot;</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">144</span><code data-code-text>    icon = &quot;Palette&quot;</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">145</span><code data-code-text>    name = &quot;PresentationDesignPolicyBuilder&quot;</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">146</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">147</span><code data-code-text>    inputs = [</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">148</span><code data-code-text>        DataInput(name=&quot;request&quot;, display_name=&quot;정규화된 발표 요청&quot;, required=True),</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">149</span><code data-code-text>        DataInput(name=&quot;analysis&quot;, display_name=&quot;참고 디자인 분석&quot;, required=True),</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">150</span><code data-code-text>    ]</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">151</span><code data-code-text>    outputs = [Output(name=&quot;design_policy&quot;, display_name=&quot;디자인·모션 정책&quot;, method=&quot;build_policy&quot;, types=[&quot;Data&quot;])]</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">152</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">153</span><code data-code-text>    def build_policy(self) -&gt; Data:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">154</span><code data-code-text>        result = build_presentation_design_policy(</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">155</span><code data-code-text>            getattr(self, &quot;request&quot;, None),</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">156</span><code data-code-text>            getattr(self, &quot;analysis&quot;, None),</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">157</span><code data-code-text>        )</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">158</span><code data-code-text>        self.status = result[&quot;meta&quot;]</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">159</span><code data-code-text>        return _make_data(result)</code></div></div></div>
+  <footer class="code-status"><span>Python</span><span>Flow internal</span><span data-copy-status aria-live="polite">복사할 때 외부 서버를 호출하지 않습니다.</span></footer>
+</section>
+<div class="page-actions"><button class="back-button" type="button" data-back data-fallback="flows/ppt_reference_html_flow/nodes/presentation_design_policy_builder/index.html">← 이전 화면</button><a class="button button-soft" href="flows/ppt_reference_html_flow/nodes/presentation_design_policy_builder/index.html#contract">입출력 계약</a><a class="button button-soft" href="flows/ppt_reference_html_flow/index.html">PPT 참조 이미지 HTML 프레젠테이션 Flow</a></div>
+
+  </main>
+  <footer class="site-footer">
+    <div class="footer-inner">
+      <div><strong>Agent Ground</strong><p>실제 Agent Builder 환경에서 검증된 교육자료, Standalone Component와 Flow를 함께 쌓아갑니다.</p></div>
+      <div class="footer-links"><a href="training/index.html">처음 배우기</a><a href="troubleshooting/index.html">실패와 해결</a><a href="../AGENT_GROUND_PROJECT_MASTER_GUIDE.md">프로젝트 기준</a></div>
+    </div>
+  </footer>
+  <script src="assets/js/site.js"></script>
+  
+</body>
+</html>

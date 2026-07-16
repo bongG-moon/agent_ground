@@ -102,6 +102,87 @@ _DEFAULT_DESIGN = {
     "safe_margin_percent": {"top": 5, "right": 5, "bottom": 5, "left": 5},
     "motifs": ["좌측 정렬 제목", "간결한 정보 카드"],
 }
+_DEFAULT_POLICY = {
+    "contract_version": "presentation-design-policy-v1",
+    "policy_id": "hallmark-emil-balanced-v1",
+    "composition": {
+        "one_message_per_slide": True,
+        "max_consecutive_same_layout": 2,
+        "max_content_elements": 6,
+        "max_bullets": 6,
+        "require_design_role": True,
+        "allowed_design_roles": ["cover", "framing", "evidence", "comparison", "transition", "action"],
+        "allowed_visual_weights": ["quiet", "balanced", "strong"],
+        "avoid_uniform_card_grid": True,
+        "allow_decorative_gradient": False,
+    },
+    "motion": {
+        "profile": "purposeful-subtle",
+        "pointer_only_slide_motion": True,
+        "keyboard_navigation_motion": False,
+        "max_ui_duration_ms": 300,
+        "button_press_duration_ms": 120,
+        "slide_enter_duration_ms": 180,
+        "slide_exit_duration_ms": 120,
+        "easing": "cubic-bezier(0.23, 1, 0.32, 1)",
+        "reduced_motion_required": True,
+        "hover_pointer_gate_required": True,
+    },
+}
+
+
+def _policy_root(value: Any) -> dict[str, Any]:
+    payload = _payload(value)
+    policy = payload.get("design_policy")
+    return deepcopy(policy) if isinstance(policy, dict) else payload
+
+
+def _normalize_policy(value: Any) -> dict[str, Any]:
+    raw = _policy_root(value)
+    policy = deepcopy(_DEFAULT_POLICY)
+    if isinstance(raw.get("policy_id"), str) and raw["policy_id"].strip():
+        policy["policy_id"] = _safe_text(raw["policy_id"], 120)
+    composition = raw.get("composition") if isinstance(raw.get("composition"), dict) else {}
+    motion = raw.get("motion") if isinstance(raw.get("motion"), dict) else {}
+    for key, default, lower, upper in (
+        ("max_consecutive_same_layout", 2, 1, 5),
+        ("max_content_elements", 6, 1, 12),
+        ("max_bullets", 6, 1, 12),
+    ):
+        policy["composition"][key] = _clamp_int(composition.get(key), default, lower, upper)
+    for key in ("one_message_per_slide", "require_design_role", "avoid_uniform_card_grid", "allow_decorative_gradient"):
+        if isinstance(composition.get(key), bool):
+            policy["composition"][key] = composition[key]
+    for key, default, lower, upper in (
+        ("max_ui_duration_ms", 300, 100, 1000),
+        ("button_press_duration_ms", 120, 0, 300),
+        ("slide_enter_duration_ms", 180, 0, 300),
+        ("slide_exit_duration_ms", 120, 0, 300),
+    ):
+        policy["motion"][key] = _clamp_int(motion.get(key), default, lower, upper)
+    for key in ("pointer_only_slide_motion", "keyboard_navigation_motion", "reduced_motion_required", "hover_pointer_gate_required"):
+        if isinstance(motion.get(key), bool):
+            policy["motion"][key] = motion[key]
+    if isinstance(motion.get("profile"), str):
+        policy["motion"]["profile"] = _safe_text(motion["profile"], 80)
+    easing = str(motion.get("easing") or "")
+    if re.fullmatch(r"cubic-bezier\([0-9.,\s-]+\)|ease|ease-out|linear", easing):
+        policy["motion"]["easing"] = easing
+    return policy
+
+
+def _design_role(layout: str) -> str:
+    if layout == "cover":
+        return "cover"
+    if layout == "conclusion":
+        return "action"
+    if layout == "section":
+        return "transition"
+    if layout == "comparison":
+        return "comparison"
+    if layout in {"kpi-grid", "chart-focus", "table-focus"}:
+        return "evidence"
+    return "framing"
 
 
 def _make_data(payload: dict[str, Any]) -> Data:
@@ -440,11 +521,15 @@ def _normalize_elements(
     references_by_id: dict[str, dict[str, Any]],
     used_ids: set[str],
     warnings: list[str],
+    max_elements: int = 6,
+    max_bullets: int = 6,
 ) -> list[dict[str, Any]]:
     elements: list[dict[str, Any]] = []
     if not isinstance(raw_elements, list):
         return elements
-    for index, raw in enumerate(raw_elements[:20], 1):
+    if len(raw_elements) > max_elements:
+        warnings.append(f"슬라이드 {slide_no}: 디자인 정책에 따라 요소를 {max_elements}개로 제한했습니다.")
+    for index, raw in enumerate(raw_elements[:max_elements], 1):
         if not isinstance(raw, dict):
             continue
         if any(str(key).lower() in _RAW_KEYS for key in raw):
@@ -479,6 +564,9 @@ def _normalize_elements(
             selected_type = "text"
             element["element_type"] = "text"
         if selected_type == "bullet_list":
+            if isinstance(element["content"], list) and len(element["content"]) > max_bullets:
+                warnings.append(f"슬라이드 {slide_no} 요소 {index}: 글머리표를 {max_bullets}개로 제한했습니다.")
+                element["content"] = element["content"][:max_bullets]
             element["items"] = deepcopy(element["content"])
         grid = _normalize_grid(raw.get("grid") or raw.get("position"))
         if grid:
@@ -585,6 +673,7 @@ def normalize_presentation_plan(
     plan_value: Any,
     *,
     max_slides: Any = 30,
+    policy_value: Any = None,
 ) -> dict[str, Any]:
     """발표 계획과 데이터 연결을 검증해 Renderer 입력 Data를 만든다."""
 
@@ -594,6 +683,8 @@ def normalize_presentation_plan(
     analysis = _root(analysis_payload, "analysis", "reference_analysis")
     plan_payload = _payload(plan_value)
     plan = _root(plan_payload, "plan_draft", "presentation_plan", "plan")
+    policy = _normalize_policy(policy_value or plan.get("design_policy"))
+    composition = policy["composition"]
     warnings: list[str] = []
     errors: list[dict[str, str]] = []
     datasets, dataset_columns = _dataset_catalog(request)
@@ -637,6 +728,8 @@ def normalize_presentation_plan(
             references_by_id,
             used_ids,
             warnings,
+            max_elements=composition["max_content_elements"],
+            max_bullets=composition["max_bullets"],
         )
         title = _safe_text(raw.get("title"), 300)
         if not elements and title:
@@ -653,10 +746,21 @@ def normalize_presentation_plan(
         if not elements:
             warnings.append(f"슬라이드 {index}: 표시할 요소가 없어 제외했습니다.")
             continue
+        layout = _layout(raw.get("layout"), "cover" if not slides else "title-content")
+        allowed_roles = set(composition["allowed_design_roles"])
+        allowed_weights = set(composition["allowed_visual_weights"])
+        requested_role = str(raw.get("design_role") or "")
+        requested_weight = str(raw.get("visual_weight") or "")
+        design_role = requested_role if requested_role in allowed_roles else _design_role(layout)
+        visual_weight = requested_weight if requested_weight in allowed_weights else (
+            "strong" if design_role in {"cover", "transition", "action"} else "balanced"
+        )
         slides.append(
             {
                 "slide_no": len(slides) + 1,
-                "layout": _layout(raw.get("layout"), "cover" if not slides else "title-content"),
+                "layout": layout,
+                "design_role": design_role,
+                "visual_weight": visual_weight,
                 "key_message": _safe_text(raw.get("key_message"), 800),
                 "title": title or f"슬라이드 {len(slides) + 1}",
                 "subtitle": _safe_text(raw.get("subtitle"), 500),
@@ -667,9 +771,13 @@ def normalize_presentation_plan(
     if slides and slides[0]["layout"] != "cover":
         warnings.append("첫 슬라이드 레이아웃을 cover로 보정했습니다.")
         slides[0]["layout"] = "cover"
+        slides[0]["design_role"] = "cover"
+        slides[0]["visual_weight"] = "strong"
     if slides and slides[-1]["layout"] != "conclusion":
         warnings.append("마지막 슬라이드 레이아웃을 conclusion으로 보정했습니다.")
         slides[-1]["layout"] = "conclusion"
+        slides[-1]["design_role"] = "action"
+        slides[-1]["visual_weight"] = "strong"
     if not slides:
         errors.append({"code": "empty_plan", "message": "정규화 후 표시할 슬라이드가 없습니다."})
 
@@ -683,6 +791,7 @@ def normalize_presentation_plan(
         "purpose": _safe_text(plan.get("purpose") or brief.get("purpose"), 1_000),
         "target_slide_count": _clamp_int(plan.get("target_slide_count") or brief.get("slide_count"), len(slides) or 3, 3, maximum),
         "design_system": _normalize_design(design_input),
+        "design_policy": policy,
         "storyline": [_safe_text(item, 800) for item in plan.get("storyline", [])[:maximum] if _safe_text(item, 800)]
         if isinstance(plan.get("storyline"), list)
         else [slide["key_message"] for slide in slides],
@@ -706,6 +815,7 @@ def normalize_presentation_plan(
             "slide_count": len(slides),
             "data_view_count": len(views),
             "dataset_count": len(clean_datasets),
+            "policy_id": policy["policy_id"],
         },
     }
 
@@ -713,7 +823,7 @@ def normalize_presentation_plan(
 class PresentationPlanNormalizer(Component):
     """모델 계획을 허용 목록과 실제 데이터 계약에 맞추는 Flow 전용 Node."""
 
-    display_name = "05 발표 계획 검증"
+    display_name = "06 발표 계획 검증"
     description = "계획의 레이아웃·요소를 허용 목록으로 제한하고 실제 데이터셋과 컬럼 참조만 Renderer에 전달합니다."
     icon = "ListChecks"
     name = "PresentationPlanNormalizer"
@@ -722,6 +832,7 @@ class PresentationPlanNormalizer(Component):
         DataInput(name="request", display_name="정규화 발표 요청", required=True),
         DataInput(name="analysis", display_name="참고 디자인 분석", required=True),
         DataInput(name="plan_draft", display_name="발표 계획 초안", required=True),
+        DataInput(name="design_policy", display_name="디자인·모션 정책", required=False),
         IntInput(name="max_slides", display_name="최대 슬라이드 수", value=30, advanced=True),
     ]
     outputs = [Output(name="normalized_plan", display_name="검증된 발표 계획", method="build_normalized_plan", types=["Data"])]
@@ -732,6 +843,7 @@ class PresentationPlanNormalizer(Component):
             getattr(self, "analysis", None),
             getattr(self, "plan_draft", None),
             max_slides=getattr(self, "max_slides", 30),
+            policy_value=getattr(self, "design_policy", None),
         )
         self.status = result["meta"]
         return _make_data(result)

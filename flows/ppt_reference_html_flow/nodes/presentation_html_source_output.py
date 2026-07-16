@@ -86,7 +86,7 @@ def build_html_message(payload_value: Any, quality_value: Any = None, fail_close
 class PresentationHtmlSourceOutput(Component):
     """Renderer 결과를 Chat Output에서 확인할 수 있는 Message로 바꾼다."""
 
-    display_name = "08 HTML 프레젠테이션 원문 출력"
+    display_name = "09 HTML 프레젠테이션 원문 출력"
     description = "품질 검사를 통과한 HTML 원문을 Message로 출력하고 실패 시 Base64나 내부 경로가 없는 오류 요약을 반환합니다."
     icon = "Code2"
     name = "PresentationHtmlSourceOutput"

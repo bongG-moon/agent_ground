@@ -172,6 +172,51 @@ def _normalize_brief(
     }, warnings
 
 
+def _merge_form_brief(
+    value: Any,
+    *,
+    presentation_title: str = "",
+    presentation_subtitle: str = "",
+    presentation_purpose: str = "",
+    target_audience: str = "",
+    presentation_language: str = "",
+    presentation_tone: str = "",
+    content_outline: str = "",
+    call_to_action: str = "",
+) -> Any:
+    """Builder의 개별 입력 필드를 기존 brief 계약과 합친다."""
+
+    raw = _payload(value)
+    if isinstance(raw, dict) and isinstance(raw.get("brief"), dict):
+        raw = raw["brief"]
+    if isinstance(raw, str):
+        raw = {"title": raw.strip()}
+    if not isinstance(raw, dict):
+        raw = {}
+    merged = deepcopy(raw)
+    form_values = {
+        "title": presentation_title,
+        "subtitle": presentation_subtitle,
+        "purpose": presentation_purpose,
+        "audience": target_audience,
+        "language": presentation_language,
+        "tone": presentation_tone,
+        "call_to_action": call_to_action,
+    }
+    for key, value_item in form_values.items():
+        text = str(value_item or "").strip()
+        if text:
+            merged[key] = text
+    outline_items: list[str] = []
+    for line in str(content_outline or "").splitlines():
+        item = re.sub(r"^\s*(?:[-*•]|\d+[.)])\s*", "", line).strip()
+        if item and item not in outline_items:
+            outline_items.append(item[:300])
+    if outline_items:
+        merged["content_outline"] = outline_items[:30]
+    return merged
+
+
 def _decode_image_value(value: str, mime_hint: str) -> tuple[str, str, int]:
     """Base64 또는 Data URL을 검증하고 Data URL로 통일한다."""
 
@@ -495,12 +540,31 @@ def build_presentation_request(
     dataset_files: Any = None,
     target_slide_count: Any = 10,
     user_request: str = "",
+    presentation_title: str = "",
+    presentation_subtitle: str = "",
+    presentation_purpose: str = "",
+    target_audience: str = "",
+    presentation_language: str = "",
+    presentation_tone: str = "",
+    content_outline: str = "",
+    call_to_action: str = "",
 ) -> dict[str, Any]:
     """모든 입력을 후속 Node가 공유하는 `presentation_request`로 합친다."""
 
     source = _payload(presentation_request)
     source_dict = source if isinstance(source, dict) else {}
-    brief_source: Any = source_dict.get("brief") if isinstance(source_dict.get("brief"), dict) else brief or source
+    structured_brief = source_dict.get("brief") if isinstance(source_dict.get("brief"), dict) else None
+    brief_source: Any = structured_brief or _merge_form_brief(
+        brief or source,
+        presentation_title=presentation_title,
+        presentation_subtitle=presentation_subtitle,
+        presentation_purpose=presentation_purpose,
+        target_audience=target_audience,
+        presentation_language=presentation_language,
+        presentation_tone=presentation_tone,
+        content_outline=content_outline,
+        call_to_action=call_to_action,
+    )
     count = _safe_int(target_slide_count, 10, 3, 30)
     normalized_brief, brief_warnings = _normalize_brief(
         brief_source,
@@ -551,7 +615,7 @@ class PresentationRequestBuilder(Component):
     """발표 입력을 이미지·데이터·brief가 분리된 단일 Data 계약으로 만든다."""
 
     display_name = "02 발표 요청 정리"
-    description = "발표 설명, JSON/CSV 데이터와 표지·본문 이미지 Encoder 결과를 검증해 하나의 요청 Data로 정리합니다."
+    description = "제목·목적·대상·목차·본문 양식, JSON/CSV 데이터와 표지·본문 이미지 결과를 하나의 요청 Data로 정리합니다."
     icon = "ClipboardList"
     name = "PresentationRequestBuilder"
 
@@ -560,6 +624,7 @@ class PresentationRequestBuilder(Component):
             name="presentation_request",
             display_name="구조화 발표 요청",
             required=False,
+            advanced=True,
             info="brief와 datasets가 들어 있는 Data입니다. 비워 두고 아래 입력만 사용해도 됩니다.",
         ),
         MessageTextInput(
@@ -569,8 +634,36 @@ class PresentationRequestBuilder(Component):
             value="",
             info="Chat Input 메시지를 연결합니다. 구조화 brief가 있으면 누락된 목적과 본문을 보완하는 용도로만 사용합니다.",
         ),
-        MultilineInput(name="brief", display_name="발표 제목 또는 설명", required=False, value=""),
+        MessageTextInput(name="presentation_title", display_name="발표 제목", required=False, value=""),
+        MessageTextInput(name="presentation_subtitle", display_name="발표 부제", required=False, value=""),
+        MultilineInput(name="presentation_purpose", display_name="발표 목적", required=False, value=""),
+        MessageTextInput(name="target_audience", display_name="대상 청중", required=False, value=""),
+        MessageTextInput(
+            name="presentation_language",
+            display_name="발표 언어",
+            required=False,
+            value="ko",
+            advanced=True,
+            info="언어 코드 또는 언어 이름을 입력합니다. 기본값은 ko입니다.",
+        ),
+        MessageTextInput(name="presentation_tone", display_name="발표 톤", required=False, value=""),
+        MultilineInput(
+            name="content_outline",
+            display_name="슬라이드 목차",
+            required=False,
+            value="",
+            info="한 줄에 한 항목씩 입력합니다. 번호나 글머리표는 자동으로 제거합니다.",
+        ),
+        MultilineInput(name="call_to_action", display_name="마지막 요청·의사결정", required=False, value=""),
         MultilineInput(name="content", display_name="발표 본문", required=False, value=""),
+        MultilineInput(
+            name="brief",
+            display_name="기존 Brief 문자열·JSON",
+            required=False,
+            value="",
+            advanced=True,
+            info="기존 Flow 호환 입력입니다. 위 개별 양식을 사용하면 비워 둘 수 있습니다.",
+        ),
         MultilineInput(
             name="datasets_json",
             display_name="데이터셋 JSON",
@@ -589,7 +682,7 @@ class PresentationRequestBuilder(Component):
         ),
         DataInput(name="cover_images", display_name="표지 이미지 Encoder 결과", required=False),
         DataInput(name="body_images", display_name="본문 이미지 Encoder 결과", required=False),
-        IntInput(name="target_slide_count", display_name="목표 슬라이드 수", value=10, advanced=True),
+        IntInput(name="target_slide_count", display_name="목표 슬라이드 수", value=10),
     ]
     outputs = [Output(name="request", display_name="정규화 발표 요청", method="build_request", types=["Data"])]
 
@@ -604,6 +697,14 @@ class PresentationRequestBuilder(Component):
             dataset_files=getattr(self, "dataset_files", None),
             target_slide_count=getattr(self, "target_slide_count", 10),
             user_request=getattr(self, "user_request", ""),
+            presentation_title=getattr(self, "presentation_title", ""),
+            presentation_subtitle=getattr(self, "presentation_subtitle", ""),
+            presentation_purpose=getattr(self, "presentation_purpose", ""),
+            target_audience=getattr(self, "target_audience", ""),
+            presentation_language=getattr(self, "presentation_language", "ko"),
+            presentation_tone=getattr(self, "presentation_tone", ""),
+            content_outline=getattr(self, "content_outline", ""),
+            call_to_action=getattr(self, "call_to_action", ""),
         )
         self.status = result["meta"]
         return _make_data(result)

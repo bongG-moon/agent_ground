@@ -105,6 +105,28 @@
 - 모델이 만든 HTML/JavaScript가 실행되지 않음
 - 정규화 경고 기록
 
+### TC-A08 디자인 정책 계약
+
+기대 결과:
+
+- `policy_id=hallmark-emil-balanced-v1`
+- 모든 슬라이드에 `design_role`, `visual_weight`, `key_message` 존재
+- 한 슬라이드의 요소와 bullet이 각각 최대 6개로 정규화
+- 같은 layout이 3회 연속이면 Quality Gate 경고
+
+### TC-A09 Emil 모션 위반 차단
+
+입력 HTML 변형:
+
+- `transition: all 450ms ease-in`
+- `transform: scale(0)`
+- reduced-motion 또는 fine-pointer media query 제거
+
+기대 결과:
+
+- `motion-static-analysis`, `reduced-motion` 또는 `pointer-hover-gate` 실패
+- Gate가 `presentation_artifact`와 `html_report` alias를 출력하지 않음
+
 ## B. 데이터 시각화 테스트
 
 ### TC-B01 시간 추세
@@ -239,6 +261,15 @@
 - 이전·다음 슬라이드를 키보드로 이동
 - 포커스가 보임
 - 프레젠테이션에 키보드 트랩이 없음
+- 키보드로 이동할 때 슬라이드 진입 animation이 실행되지 않음
+
+### TC-D02-1 포인터·reduced-motion
+
+기대 결과:
+
+- 마우스로 이전·다음을 누르면 180ms 이하 transform·opacity 진입 모션
+- hover 효과는 hover-capable fine pointer에서만 적용
+- OS reduced-motion 설정에서는 transition과 진입 모션이 비활성화
 
 ### TC-D03 긴 제목과 긴 본문
 

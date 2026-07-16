@@ -1,8 +1,34 @@
 # 웹 조사 근거와 Flow 반영 내용
 
-조사 기준일: 2026-07-13
+조사 기준일: 2026-07-15
 
 기술 구현과 프롬프트 원칙은 공식 문서와 원 제공자의 공개 자료만 참고했습니다. 외부 자료의 문장을 프로젝트 프롬프트에 그대로 복사하지 않고 핵심 원칙을 한국어 실행 계약으로 재해석했습니다.
+
+## 0. 디자인 정책과 모션 검사
+
+### Hallmark
+
+- [Nutlope Hallmark 공식 저장소](https://github.com/Nutlope/hallmark)
+
+Flow 반영:
+
+- 디자인 지침을 Prompt 한 곳에 넣지 않고 `design_policy` 계약으로 분리
+- 슬라이드 역할, 시각 무게, 한 슬라이드 한 메시지, layout 반복과 콘텐츠 밀도 검사
+- 모든 내용을 균일한 카드로 만드는 패턴과 장식용 gradient를 프로젝트 정책으로 제한
+- 원문 Skill을 복제하지 않고 이 Flow의 프레젠테이션 계약에 맞는 규칙만 새로 작성
+
+### Emil Kowalski Skills
+
+- [emilkowalski/skills 공식 저장소](https://github.com/emilkowalski/skills)
+
+Flow 반영:
+
+- `transition: all`, `scale(0)`, UI의 `ease-in`, layout 속성 animation 금지
+- UI 모션 300ms 이하, transform·opacity 중심, reduced-motion 대응
+- hover를 fine pointer 환경으로 제한하고 키보드 탐색에는 슬라이드 모션을 적용하지 않음
+- Renderer가 허용된 모션만 결정론적으로 생성하고 Quality Gate가 정적으로 다시 검사
+
+두 저장소는 MIT License로 공개되어 있습니다. 이 프로젝트는 문구나 전체 Skill을 복제하지 않고 프로젝트 소유의 구조화 정책과 테스트로 재작성했습니다.
 
 ## 1. Agent Skill과 프레젠테이션 작성
 
@@ -128,4 +154,3 @@ Renderer가 Reveal.js를 직접 포함할지, 동일 계약을 자체 JavaScript
 - Report API 게시와 사내 네트워크 공유
 
 따라서 Flow 상태는 `user_testing`으로 유지합니다.
-

@@ -1,6 +1,6 @@
 # HTML 프레젠테이션 계획 생성 프롬프트
 
-이 프롬프트는 `presentation_plan_generator`가 디자인 분석, 사용자 brief와 datasets를 받아 Renderer용 계획 JSON을 생성할 때 사용하는 기준안입니다.
+이 프롬프트는 `presentation_plan_generator`가 디자인 분석, 사용자 brief·datasets와 구조화된 `design_policy`를 받아 Renderer용 계획 JSON을 생성할 때 사용하는 기준안입니다. Prompt는 정책을 설명하는 계층이며, 정책의 강제는 Normalizer·Renderer·Quality Gate가 담당합니다.
 
 ## System Prompt
 
@@ -20,6 +20,9 @@
 7. 표지와 본문은 analysis의 각 역할별 디자인 규칙을 적용한다.
 8. Renderer 허용 목록에 없는 layout이나 element_type을 만들지 않는다.
 9. 출력은 지정한 JSON object 하나이며 Markdown이나 HTML을 덧붙이지 않는다.
+10. 슬라이드마다 design_role과 visual_weight를 지정하고 같은 layout을 세 번 연속 반복하지 않는다.
+11. 장식용 gradient, emoji icon, 균일한 카드 격자를 기본 표현으로 사용하지 않는다.
+12. CSS, duration, easing, animation 코드를 만들지 않는다. 모션은 Renderer가 design_policy로 결정한다.
 ```
 
 ## User Prompt Template
@@ -36,6 +39,10 @@
 <datasets>
 {{datasets_json}}
 </datasets>
+
+<design_policy>
+{{design_policy_json}}
+</design_policy>
 
 <allowed_layouts>
 cover, section, title-content, two-column, kpi-grid, chart-focus,
@@ -120,6 +127,8 @@ process, timeline, source_note, speaker_note
     {
       "slide_no": 1,
       "layout": "cover",
+      "design_role": "cover|framing|evidence|comparison|transition|action",
+      "visual_weight": "quiet|balanced|strong",
       "key_message": "string",
       "title": "string",
       "subtitle": "string",
@@ -175,6 +184,8 @@ process, timeline, source_note, speaker_note
 - 모든 `data_view_id`, `dataset_id`, field 참조의 존재 여부
 - 색상, 여백, 최대 요소 수와 최대 표 행 수
 - 표지·본문 역할과 디자인 토큰
+- `design_role`, `visual_weight`, 한 슬라이드 한 메시지와 layout 반복 제한
+- 최대 요소 6개와 최대 bullet 6개
 - 출처, 단위, 대체 텍스트와 경고
 
 모델 출력이 규칙을 위반하면 조용히 삭제하기보다 보정 내역을 `normalization_warnings`에 기록합니다.

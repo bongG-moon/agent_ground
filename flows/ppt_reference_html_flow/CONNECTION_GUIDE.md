@@ -4,6 +4,8 @@
 
 ## 1. 준비할 입력
 
+첫 실행용 파일은 `samples/reference_images/`에 있습니다. 표지에는 `reference_cover_navy_teal.png`, 본문에는 `reference_body_trend.png`와 `reference_body_comparison_table.png`를 순서대로 사용합니다.
+
 ### 표지 이미지 Encoder
 
 `Multi Image Base64 Encoder`를 하나 배치하고 표지 참고 이미지만 넣습니다.
@@ -34,19 +36,23 @@
 | 3 | Chat Input | `message` | `presentation_request_builder` | `user_request` | Message |
 | 4 | `presentation_request_builder` | `request` | `presentation_reference_analyzer` | `request` | Data |
 | 5 | Language Model | `model_output` | `presentation_reference_analyzer` | `model` | LanguageModel |
-| 6 | `presentation_request_builder` | `request` | `presentation_plan_generator` | `request` | Data |
-| 7 | `presentation_reference_analyzer` | `analysis` | `presentation_plan_generator` | `analysis` | Data |
-| 8 | Language Model | `model_output` | `presentation_plan_generator` | `model` | LanguageModel |
-| 9 | `presentation_request_builder` | `request` | `presentation_plan_normalizer` | `request` | Data |
-| 10 | `presentation_reference_analyzer` | `analysis` | `presentation_plan_normalizer` | `analysis` | Data |
-| 11 | `presentation_plan_generator` | `plan_draft` | `presentation_plan_normalizer` | `plan_draft` | Data |
-| 12 | `presentation_plan_normalizer` | `normalized_plan` | HTML Presentation Renderer | `presentation_plan` | Data |
-| 13 | HTML Presentation Renderer | `presentation_artifact` | `presentation_quality_gate` | `presentation_artifact` | Data |
-| 14 | `presentation_plan_normalizer` | `normalized_plan` | `presentation_quality_gate` | `presentation_plan` | Data |
-| 15 | HTML Presentation Renderer | `presentation_artifact` | `presentation_html_source_output` | `payload` | Data |
-| 16 | `presentation_quality_gate` | `quality_report` | `presentation_html_source_output` | `quality_report` | Data |
-| 17 | `presentation_html_source_output` | `message` | Chat Output | `input_value` | Message |
-| 18 | `presentation_quality_gate` | `quality_report` | Report API Publisher | `payload` | Data · 선택 |
+| 6 | `presentation_request_builder` | `request` | `presentation_design_policy_builder` | `request` | Data |
+| 7 | `presentation_reference_analyzer` | `analysis` | `presentation_design_policy_builder` | `analysis` | Data |
+| 8 | `presentation_request_builder` | `request` | `presentation_plan_generator` | `request` | Data |
+| 9 | `presentation_reference_analyzer` | `analysis` | `presentation_plan_generator` | `analysis` | Data |
+| 10 | `presentation_design_policy_builder` | `design_policy` | `presentation_plan_generator` | `design_policy` | Data |
+| 11 | Language Model | `model_output` | `presentation_plan_generator` | `model` | LanguageModel |
+| 12 | `presentation_request_builder` | `request` | `presentation_plan_normalizer` | `request` | Data |
+| 13 | `presentation_reference_analyzer` | `analysis` | `presentation_plan_normalizer` | `analysis` | Data |
+| 14 | `presentation_plan_generator` | `plan_draft` | `presentation_plan_normalizer` | `plan_draft` | Data |
+| 15 | `presentation_design_policy_builder` | `design_policy` | `presentation_plan_normalizer` | `design_policy` | Data |
+| 16 | `presentation_plan_normalizer` | `normalized_plan` | HTML Presentation Renderer | `presentation_plan` | Data |
+| 17 | HTML Presentation Renderer | `presentation_artifact` | `presentation_quality_gate` | `presentation_artifact` | Data |
+| 18 | `presentation_plan_normalizer` | `normalized_plan` | `presentation_quality_gate` | `presentation_plan` | Data |
+| 19 | HTML Presentation Renderer | `presentation_artifact` | `presentation_html_source_output` | `payload` | Data |
+| 20 | `presentation_quality_gate` | `quality_report` | `presentation_html_source_output` | `quality_report` | Data |
+| 21 | `presentation_html_source_output` | `message` | Chat Output | `input_value` | Message |
+| 22 | `presentation_quality_gate` | `quality_report` | Report API Publisher | `payload` | Data · 선택 |
 
 실제 JSON의 포트명이 위 표와 다르면 JSON에 내장된 Python 클래스의 `inputs`와 `outputs`를 우선합니다. 이 문서는 의미 계약과 연결 방향을 설명합니다.
 
@@ -68,9 +74,25 @@
 
 ### 계획 모델
 
-`presentation_plan_generator`는 Vision 분석 결과와 실제 `brief`, `datasets`를 받아 `presentation_plan`을 만듭니다. Vision 모델과 같은 모델을 사용할 수도 있지만, 이미지 Base64를 다시 넣지 않고 정규화된 분석 결과만 전달합니다.
+`presentation_plan_generator`는 Vision 분석 결과, 실제 `brief`·`datasets`, `design_policy`를 받아 `presentation_plan`을 만듭니다. Vision 모델과 같은 모델을 사용할 수도 있지만, 이미지 Base64를 다시 넣지 않고 정규화된 분석 결과만 전달합니다. 정책은 Prompt에 요약되지만 모션 CSS/JS는 모델이 만들지 않습니다.
+
+### 디자인·모션 정책 Node
+
+`presentation_design_policy_builder`는 모델을 호출하지 않습니다. Hallmark식 구성 원칙과 Emil식 모션 검사 기준을 `design_policy` JSON으로 만들고 Generator와 Normalizer에 동시에 전달합니다. 따라서 Prompt가 규칙을 누락해도 Normalizer, Renderer와 Quality Gate가 동일 계약으로 보정·차단할 수 있습니다.
 
 ## 4. 요청 Data 예시
+
+`02 발표 요청 정리` Node에는 다음 개별 양식이 기본 표시됩니다.
+
+- `presentation_title`, `presentation_subtitle`
+- `presentation_purpose`, `target_audience`, `presentation_tone`
+- `presentation_language`: 기본 `ko`, 고급 입력
+- `content_outline`: 한 줄에 한 목차 항목
+- `call_to_action`, `content`
+- `datasets_json` 또는 `dataset_files`
+- `target_slide_count`
+
+기존 `brief` 입력은 고급 호환 필드로 유지합니다. 구조화된 `presentation_request.brief`가 연결되면 이를 우선하고, 그렇지 않으면 개별 양식 값을 기존 brief 계약으로 합칩니다.
 
 ```json
 {
@@ -113,6 +135,7 @@ HTML Presentation Renderer에는 `presentation_plan_normalizer`가 계약 검증
 Renderer가 받아야 하는 최소 항목:
 
 - `presentation_plan.design_system`
+- `presentation_plan.design_policy`
 - `presentation_plan.slides`
 - `presentation_plan.data_views`
 
@@ -122,6 +145,8 @@ Renderer 출력에는 최소 다음 항목이 있어야 하며, 이 Data를 Qual
 - `presentation_artifact.title`
 - `presentation_artifact.filename_hint`
 - `presentation_artifact.slide_count`
+- `presentation_artifact.design_policy_id`
+- `presentation_artifact.motion_profile`
 - `html_report.html` — 기존 Report API Publisher 호환 alias
 - `warnings`
 - `errors`
@@ -148,6 +173,8 @@ Report API Publisher.link_message
 - 데이터 컬럼의 의미 타입과 단위가 명시되어 있는가
 - 실제 모델이 이미지 입력과 구조화 JSON 출력을 지원하는가
 - Plan Normalizer 실패 결과가 Renderer로 무조건 통과하지 않는가
+- Policy Node가 Generator와 Normalizer 양쪽에 연결되어 있는가
+- Quality Gate의 `require_design_policy`가 `true`인가
 - Renderer 결과가 HTML Quality Gate를 거치지 않고 사용자에게 전달되지 않는가
 - 공유 링크가 필요하지 않으면 Report API 경로를 제외했는가
 

@@ -3,6 +3,8 @@ from __future__ import annotations
 import asyncio
 import base64
 import importlib.util
+import json
+import struct
 from pathlib import Path
 
 from lfx.custom.eval import eval_custom_component_code
@@ -11,6 +13,8 @@ from lfx.custom.utils import create_component_template
 
 NODE_DIR = Path(__file__).resolve().parents[1] / "nodes"
 ROOT = Path(__file__).resolve().parents[3]
+REFERENCE_IMAGE_DIR = Path(__file__).resolve().parents[1] / "samples" / "reference_images"
+FLOW_PATH = Path(__file__).resolve().parents[1] / "ppt_reference_html_flow.json"
 
 
 def _load(name: str):
@@ -23,6 +27,7 @@ def _load(name: str):
 
 request_builder = _load("presentation_request_builder")
 reference_analyzer = _load("presentation_reference_analyzer")
+design_policy_builder = _load("presentation_design_policy_builder")
 plan_generator = _load("presentation_plan_generator")
 plan_normalizer = _load("presentation_plan_normalizer")
 quality_gate = _load("presentation_quality_gate")
@@ -98,6 +103,108 @@ def test_request_builder_preserves_contract_and_roles() -> None:
     assert payload["reference_images"]["body"][0]["role"] == "body"
 
 
+def test_request_builder_accepts_explicit_builder_form_fields() -> None:
+    result = request_builder.build_presentation_request(
+        None,
+        _image_encoder_payload(),
+        _image_encoder_payload(),
+        presentation_title="신규 서비스 도입 검토",
+        presentation_subtitle="의사결정용 요약",
+        presentation_purpose="도입 우선순위를 결정한다.",
+        target_audience="경영진",
+        presentation_language="ko",
+        presentation_tone="간결하고 근거 중심",
+        content_outline="1. 배경\n- 핵심 근거\n• 다음 행동",
+        call_to_action="1단계 적용 범위를 승인한다.",
+        content="확정된 입력 데이터만 사용한다.",
+        target_slide_count=5,
+    )
+    brief = result["brief"]
+
+    assert brief["title"] == "신규 서비스 도입 검토"
+    assert brief["subtitle"] == "의사결정용 요약"
+    assert brief["purpose"] == "도입 우선순위를 결정한다."
+    assert brief["audience"] == "경영진"
+    assert brief["language"] == "ko"
+    assert brief["content_outline"] == ["배경", "핵심 근거", "다음 행동"]
+    assert brief["call_to_action"] == "1단계 적용 범위를 승인한다."
+    assert brief["slide_count"] == 5
+
+
+def test_request_builder_preserves_structured_brief_precedence_and_clamps_slide_count() -> None:
+    result = request_builder.build_presentation_request(
+        {"brief": {"title": "구조화 제목", "language": "en", "slide_count": 99}},
+        _image_encoder_payload(),
+        _image_encoder_payload(),
+        presentation_title="양식 제목",
+        presentation_language="ko",
+        target_slide_count=2,
+    )
+
+    assert result["brief"]["title"] == "구조화 제목"
+    assert result["brief"]["language"] == "en"
+    assert result["brief"]["slide_count"] == 30
+
+
+def test_request_builder_keeps_legacy_brief_and_allows_nonempty_form_override() -> None:
+    legacy = request_builder.build_presentation_request(
+        None,
+        _image_encoder_payload(),
+        _image_encoder_payload(),
+        brief="기존 제목",
+        target_slide_count=2,
+    )
+    overridden = request_builder.build_presentation_request(
+        None,
+        _image_encoder_payload(),
+        _image_encoder_payload(),
+        brief='{"title": "기존 제목", "audience": "기존 청중"}',
+        presentation_title="새 제목",
+        target_audience="새 청중",
+        target_slide_count=31,
+    )
+
+    assert legacy["brief"]["title"] == "기존 제목"
+    assert legacy["brief"]["slide_count"] == 3
+    assert overridden["brief"]["title"] == "새 제목"
+    assert overridden["brief"]["audience"] == "새 청중"
+    assert overridden["brief"]["slide_count"] == 30
+
+
+def test_sample_reference_images_are_valid_16_9_png_files() -> None:
+    expected = {
+        "reference_cover_navy_teal.png",
+        "reference_body_trend.png",
+        "reference_body_comparison_table.png",
+    }
+    actual = {path.name for path in REFERENCE_IMAGE_DIR.glob("*.png")}
+    assert actual == expected
+    for name in sorted(expected):
+        data = (REFERENCE_IMAGE_DIR / name).read_bytes()
+        assert data.startswith(b"\x89PNG\r\n\x1a\n")
+        width, height = struct.unpack(">II", data[16:24])
+        assert width >= 1600 and height >= 900
+        assert abs((width / height) - (16 / 9)) < 0.01
+
+
+def test_generated_flow_contains_upload_policy_and_builder_form_presets() -> None:
+    flow = json.loads(FLOW_PATH.read_text(encoding="utf-8"))
+    nodes = {node["id"]: node["data"]["node"]["template"] for node in flow["data"]["nodes"]}
+    cover = nodes["MultiImageBase64Encoder-pptCover"]
+    body = nodes["MultiImageBase64Encoder-pptBody"]
+    request = nodes["PresentationRequestBuilder-pptReference"]
+
+    assert cover["max_files"]["value"] == 1
+    assert cover["error_policy"]["value"] == "reject_batch"
+    assert body["max_files"]["value"] == 5
+    assert body["error_policy"]["value"] == "skip_invalid"
+    assert request["presentation_title"]["value"] == "2026년 상반기 운영 품질 보고"
+    assert request["presentation_language"]["value"] == "ko"
+    assert request["target_slide_count"]["value"] == 8
+    assert request["target_slide_count"]["advanced"] is False
+    assert request["presentation_request"]["advanced"] is True
+
+
 def test_request_builder_preserves_ordinal_identifier_and_rejects_donut_policy() -> None:
     datasets, errors, warnings = request_builder.normalize_datasets(
         {
@@ -140,10 +247,24 @@ def test_reference_prompt_marks_images_untrusted_and_does_not_echo_base64() -> N
 
 
 def test_plan_generator_uses_deterministic_fallback_without_model() -> None:
-    result = asyncio.run(plan_generator.generate_presentation_plan(_request_payload(), {}, None))
+    policy = design_policy_builder.build_presentation_design_policy(_request_payload(), {})
+    result = asyncio.run(plan_generator.generate_presentation_plan(_request_payload(), {}, None, policy))
     assert result["meta"]["source"] == "deterministic_fallback"
     assert len(result["presentation_plan"]["slides"]) == 4
     assert result["presentation_plan"]["slides"][0]["layout"] == "cover"
+    assert result["presentation_plan"]["slides"][0]["design_role"] == "cover"
+    assert result["meta"]["policy_id"] == "hallmark-emil-balanced-v1"
+
+
+def test_design_policy_is_structured_and_renderer_owned() -> None:
+    result = design_policy_builder.build_presentation_design_policy(_request_payload(), {})
+    policy = result["design_policy"]
+
+    assert policy["policy_id"] == "hallmark-emil-balanced-v1"
+    assert policy["composition"]["max_content_elements"] == 6
+    assert policy["composition"]["allow_decorative_gradient"] is False
+    assert policy["motion"]["keyboard_navigation_motion"] is False
+    assert policy["motion"]["slide_enter_duration_ms"] <= policy["motion"]["max_ui_duration_ms"]
 
 
 def test_normalizer_materializes_real_rows_and_removes_raw_code() -> None:
@@ -235,6 +356,38 @@ def test_quality_gate_passes_local_html_and_blocks_external_url() -> None:
     assert "presentation_artifact" not in unsafe and "html_report" not in unsafe
 
 
+def test_quality_gate_blocks_emil_motion_policy_violations() -> None:
+    policy = design_policy_builder.build_presentation_design_policy({}, {})["design_policy"]
+    plan = {
+        "presentation_plan": {
+            "target_slide_count": 1,
+            "design_policy": policy,
+            "slides": [
+                {
+                    "title": "정책 검사",
+                    "key_message": "위반 모션을 차단한다.",
+                    "design_role": "cover",
+                    "elements": [{"element_type": "text", "content": "본문"}],
+                }
+            ],
+        }
+    }
+    source = """<!doctype html><html lang='ko'><head><title>정책 검사</title><style>
+    .bad { transition: all 450ms ease-in; transform: scale(0); }
+    @media (hover: hover) and (pointer: fine) { .bad:hover { color: red; } }
+    @media (prefers-reduced-motion: reduce) { .bad { transition-duration: 0ms; } }
+    </style></head><body><main data-design-policy='hallmark-emil-balanced-v1'><section class='slide'>본문</section></main></body></html>"""
+    result = quality_gate.evaluate_presentation_quality(
+        plan,
+        {"presentation_artifact": {"html": source}},
+        require_html=True,
+        require_design_policy=True,
+    )
+
+    assert result["quality_report"]["status"] == "fail"
+    assert any("transition: all" in item for item in result["quality_report"]["blocking_errors"])
+
+
 def test_source_output_fails_closed_without_leaking_image_data() -> None:
     message = source_output.build_html_message(
         {"html_presentation": {"html": "<html>secret</html>"}},
@@ -253,13 +406,15 @@ def test_source_output_fails_closed_without_leaking_image_data() -> None:
 def test_deterministic_end_to_end_binds_data_renders_html_and_passes_gate() -> None:
     request = _request_payload()
     analysis = asyncio.run(reference_analyzer.analyze_reference_images(request, None))
-    draft = asyncio.run(plan_generator.generate_presentation_plan(request, analysis, None))
-    normalized = plan_normalizer.normalize_presentation_plan(request, analysis, draft)
+    policy = design_policy_builder.build_presentation_design_policy(request, analysis)
+    draft = asyncio.run(plan_generator.generate_presentation_plan(request, analysis, None, policy))
+    normalized = plan_normalizer.normalize_presentation_plan(request, analysis, draft, policy_value=policy)
     artifact = renderer.render_html_presentation(normalized)
     quality = quality_gate.evaluate_presentation_quality(
         normalized,
         artifact,
         require_html=True,
+        require_design_policy=True,
         max_html_size_kb=20_480,
     )
     message = source_output.build_html_message(artifact, quality, True)
@@ -278,6 +433,7 @@ def test_all_nodes_compile_to_langflow_182_templates() -> None:
     expected_outputs = {
         "presentation_request_builder": "request",
         "presentation_reference_analyzer": "analysis",
+        "presentation_design_policy_builder": "design_policy",
         "presentation_plan_generator": "plan_draft",
         "presentation_plan_normalizer": "normalized_plan",
         "presentation_quality_gate": "quality_report",

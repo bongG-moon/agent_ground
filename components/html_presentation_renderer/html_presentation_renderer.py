@@ -102,6 +102,7 @@ def render_html_presentation(presentation_plan_value: Any) -> dict[str, Any]:
         plan.get("theme") or plan.get("visual_style") or plan.get("design_system"),
         warnings,
     )
+    design_policy = _normalize_design_policy(plan.get("design_policy"), warnings)
     normalized_slides: list[dict[str, Any]] = []
     used_slide_ids: set[str] = set()
     for index, raw_slide in enumerate(raw_slides):
@@ -127,7 +128,7 @@ def render_html_presentation(presentation_plan_value: Any) -> dict[str, Any]:
         )
         return _error_result(title, plan, payload, errors, warnings)
 
-    document = _build_document(title, plan, normalized_slides, theme, warnings)
+    document = _build_document(title, plan, normalized_slides, theme, design_policy, warnings)
     html_bytes = document.encode("utf-8")
     if len(html_bytes) > MAX_HTML_BYTES:
         errors.append(
@@ -153,6 +154,8 @@ def render_html_presentation(presentation_plan_value: Any) -> dict[str, Any]:
         "byte_size": len(html_bytes),
         "sha256": digest,
         "rendered_at": datetime.now().astimezone().isoformat(timespec="seconds"),
+        "design_policy_id": design_policy["policy_id"],
+        "motion_profile": design_policy["motion_profile"],
     }
     report_plan = {
         "title": title,
@@ -180,6 +183,7 @@ def render_html_presentation(presentation_plan_value: Any) -> dict[str, Any]:
                 "slide_count": len(normalized_slides),
                 "byte_size": len(html_bytes),
                 "sha256": digest,
+                "design_policy_id": design_policy["policy_id"],
             }
         ],
     }
@@ -273,6 +277,29 @@ def _normalize_theme(value: Any, warnings: list[dict[str, Any]]) -> dict[str, st
     return result
 
 
+def _normalize_design_policy(value: Any, warnings: list[dict[str, Any]]) -> dict[str, Any]:
+    raw = _dict(value)
+    motion = _dict(raw.get("motion"))
+    policy_id = _safe_id(raw.get("policy_id")) or "hallmark-emil-balanced-v1"
+    easing = str(motion.get("easing") or "cubic-bezier(0.23, 1, 0.32, 1)").strip()
+    if not re.fullmatch(r"cubic-bezier\([0-9.,\s-]+\)|ease|ease-out|linear", easing):
+        easing = "cubic-bezier(0.23, 1, 0.32, 1)"
+        warnings.append(
+            {
+                "code": "invalid_motion_easing_replaced",
+                "message": "지원하지 않는 모션 easing을 정책 기본값으로 교체했습니다.",
+            }
+        )
+    maximum = _positive_int(motion.get("max_ui_duration_ms"), 300, 100, 300)
+    return {
+        "policy_id": policy_id,
+        "motion_profile": _safe_id(motion.get("profile")) or "purposeful-subtle",
+        "button_press_duration_ms": min(maximum, _positive_int(motion.get("button_press_duration_ms"), 120, 0, 300)),
+        "slide_enter_duration_ms": min(maximum, _positive_int(motion.get("slide_enter_duration_ms"), 180, 0, 300)),
+        "easing": easing,
+    }
+
+
 def _normalize_slide(
     slide: dict[str, Any],
     index: int,
@@ -312,6 +339,9 @@ def _normalize_slide(
     return {
         "slide_id": slide_id,
         "layout": layout,
+        "design_role": _safe_id(slide.get("design_role")) or "framing",
+        "visual_weight": _safe_id(slide.get("visual_weight")) or "balanced",
+        "key_message": _text(slide.get("key_message"), "", 800),
         "eyebrow": _text(slide.get("eyebrow") or slide.get("section"), "", 120),
         "title": _text(slide.get("title"), f"슬라이드 {index + 1}", 240),
         "subtitle": _text(slide.get("subtitle"), "", 480),
@@ -347,6 +377,7 @@ def _build_document(
     plan: dict[str, Any],
     slides: list[dict[str, Any]],
     theme: dict[str, str],
+    design_policy: dict[str, Any],
     warnings: list[dict[str, Any]],
 ) -> str:
     total = len(slides)
@@ -357,6 +388,11 @@ def _build_document(
     safe_title = html.escape(title)
     safe_subtitle = html.escape(_text(plan.get("subtitle"), "", 360))
     font_stack = theme["font_stack"]
+    policy_id = html.escape(str(design_policy["policy_id"]), quote=True)
+    motion_profile = html.escape(str(design_policy["motion_profile"]), quote=True)
+    button_duration = int(design_policy["button_press_duration_ms"])
+    slide_duration = int(design_policy["slide_enter_duration_ms"])
+    motion_easing = str(design_policy["easing"])
 
     return f"""<!doctype html>
 <html lang="ko">
@@ -379,6 +415,9 @@ def _build_document(
       --chart-3: {theme['chart_3']};
       --chart-4: {theme['chart_4']};
       --font-stack: {font_stack};
+      --motion-button: {button_duration}ms;
+      --motion-slide: {slide_duration}ms;
+      --motion-easing: {motion_easing};
     }}
     * {{ box-sizing: border-box; }}
     html, body {{ min-height: 100%; margin: 0; }}
@@ -416,7 +455,7 @@ def _build_document(
       position: absolute;
       inset: 0 auto 0 0;
       width: 10px;
-      background: linear-gradient(180deg, var(--primary), var(--accent));
+      background: var(--primary);
     }}
     .slide-header {{ position: relative; z-index: 1; }}
     .slide-eyebrow {{ margin: 0 0 8px; color: var(--primary); font-size: clamp(12px, 1.05vw, 18px); font-weight: 800; letter-spacing: .12em; text-transform: uppercase; }}
@@ -432,7 +471,7 @@ def _build_document(
     }}
     .slide-layout-title .slide-header, .slide-layout-closing .slide-header {{ align-self: end; }}
     .slide-layout-title .slide-body, .slide-layout-closing .slide-body {{ align-content: start; }}
-    .slide-layout-section {{ background: linear-gradient(135deg, var(--primary), var(--accent)); color: #fff; }}
+    .slide-layout-section {{ background: var(--primary); color: #fff; }}
     .slide-layout-section::before {{ display: none; }}
     .slide-layout-section .slide-eyebrow, .slide-layout-section .slide-subtitle {{ color: rgb(255 255 255 / 82%); }}
     .slide-layout-two_column .slide-element {{ grid-column: span 6; }}
@@ -442,7 +481,7 @@ def _build_document(
     .element-width-half {{ grid-column: span 6 !important; }}
     .element-width-third {{ grid-column: span 4 !important; }}
     .element-width-two-thirds {{ grid-column: span 8 !important; }}
-    .element-card {{ background: #fff; border: 1px solid #dbe4f0; border-radius: 16px; padding: clamp(14px, 1.8vw, 26px); box-shadow: 0 10px 30px rgb(15 23 42 / 8%); }}
+    .element-card {{ background: #fff; border: 1px solid #dbe4f0; border-radius: 12px; padding: clamp(14px, 1.8vw, 26px); }}
     .element-title {{ margin: 0 0 12px; font-size: clamp(16px, 1.45vw, 23px); line-height: 1.25; }}
     .body-text {{ margin: 0; font-size: clamp(16px, 1.65vw, 28px); line-height: 1.6; white-space: pre-line; }}
     .bullet-list {{ margin: 0; padding-left: 1.25em; display: grid; gap: clamp(8px, 1vw, 16px); font-size: clamp(16px, 1.55vw, 25px); line-height: 1.45; }}
@@ -485,8 +524,9 @@ def _build_document(
       gap: 10px;
       color: #fff;
     }}
-    .deck-button {{ border: 1px solid rgb(255 255 255 / 30%); border-radius: 10px; background: rgb(255 255 255 / 12%); color: #fff; padding: 10px 14px; cursor: pointer; }}
-    .deck-button:hover, .deck-button:focus-visible {{ background: rgb(255 255 255 / 22%); outline: 3px solid rgb(255 255 255 / 35%); outline-offset: 2px; }}
+    .deck-button {{ border: 1px solid rgb(255 255 255 / 30%); border-radius: 10px; background: rgb(255 255 255 / 12%); color: #fff; padding: 10px 14px; cursor: pointer; transition: transform var(--motion-button) var(--motion-easing), background-color var(--motion-button) var(--motion-easing); }}
+    .deck-button:active {{ transform: scale(.97); }}
+    .deck-button:focus-visible {{ background: rgb(255 255 255 / 22%); outline: 3px solid rgb(255 255 255 / 35%); outline-offset: 2px; }}
     .deck-button:disabled {{ cursor: not-allowed; opacity: .4; }}
     .progress-wrap {{ display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 10px; }}
     progress {{ width: 100%; height: 10px; accent-color: var(--primary); }}
@@ -505,7 +545,13 @@ def _build_document(
       .element-width-third,
       .element-width-two-thirds {{ grid-column: 1 / -1 !important; }}
     }}
-    @media (prefers-reduced-motion: reduce) {{ * {{ scroll-behavior: auto !important; }} }}
+    @media (hover: hover) and (pointer: fine) {{
+      .deck-button:hover {{ background: rgb(255 255 255 / 22%); }}
+    }}
+    @media (prefers-reduced-motion: reduce) {{
+      *, *::before, *::after {{ animation-duration: .01ms !important; animation-iteration-count: 1 !important; scroll-behavior: auto !important; transition-duration: 0ms !important; }}
+      .deck-button:active {{ transform: none; }}
+    }}
     @page {{ size: 13.333in 7.5in; margin: 0; }}
     @media print {{
       html, body {{ width: 13.333in; height: auto; background: #fff; overflow: visible; }}
@@ -518,7 +564,7 @@ def _build_document(
   </style>
 </head>
 <body>
-  <main class="deck-shell" aria-label="{safe_title}">
+  <main class="deck-shell" aria-label="{safe_title}" data-design-policy="{policy_id}" data-motion-profile="{motion_profile}">
     <section class="deck-stage" id="deck-stage" aria-label="프레젠테이션 슬라이드">
       {rendered_slides}
     </section>
@@ -544,6 +590,8 @@ def _build_document(
       const fullscreenButton = document.getElementById("deck-fullscreen");
       const progress = document.getElementById("deck-progress");
       const status = document.getElementById("deck-status");
+      const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
+      const slideMotion = {{ duration: {slide_duration}, easing: "{motion_easing}" }};
       let currentIndex = 0;
 
       const indexFromHash = () => {{
@@ -552,7 +600,7 @@ def _build_document(
         return Math.min(slides.length - 1, Math.max(0, Number(match[1]) - 1));
       }};
 
-      const showSlide = (nextIndex, updateHash = true) => {{
+      const showSlide = (nextIndex, updateHash = true, interaction = "programmatic") => {{
         currentIndex = Math.min(slides.length - 1, Math.max(0, nextIndex));
         slides.forEach((slide, index) => {{ slide.hidden = index !== currentIndex; }});
         previousButton.disabled = currentIndex === 0;
@@ -564,12 +612,18 @@ def _build_document(
           const nextHash = `#slide-${{currentIndex + 1}}`;
           if (window.location.hash !== nextHash) history.replaceState(null, "", nextHash);
         }}
+        if (interaction === "pointer" && !reducedMotion.matches && slides[currentIndex].animate) {{
+          slides[currentIndex].animate(
+            [{{ opacity: 0, transform: "translateY(10px)" }}, {{ opacity: 1, transform: "translateY(0)" }}],
+            slideMotion
+          );
+        }}
         slides[currentIndex].focus({{ preventScroll: true }});
       }};
 
-      previousButton.addEventListener("click", () => showSlide(currentIndex - 1));
-      nextButton.addEventListener("click", () => showSlide(currentIndex + 1));
-      firstButton.addEventListener("click", () => showSlide(0));
+      previousButton.addEventListener("click", () => showSlide(currentIndex - 1, true, "pointer"));
+      nextButton.addEventListener("click", () => showSlide(currentIndex + 1, true, "pointer"));
+      firstButton.addEventListener("click", () => showSlide(0, true, "pointer"));
       window.addEventListener("hashchange", () => showSlide(indexFromHash(), false));
       document.addEventListener("keydown", (event) => {{
         const tagName = String(event.target && event.target.tagName || "").toLowerCase();
@@ -639,7 +693,7 @@ def _render_slide(
             rendered_elements.append(rendered)
     footer_text = html.escape(slide["footer"])
     return f"""
-      <article class="slide slide-layout-{slide['layout']}" id="slide-{index + 1}" data-deck-slide tabindex="-1" role="group" aria-roledescription="슬라이드" aria-label="{index + 1} / {total}: {html.escape(slide['title'])}"{hidden}>
+      <article class="slide slide-layout-{slide['layout']} slide-role-{slide['design_role']} slide-weight-{slide['visual_weight']}" id="slide-{index + 1}" data-deck-slide data-design-role="{slide['design_role']}" data-visual-weight="{slide['visual_weight']}" tabindex="-1" role="group" aria-roledescription="슬라이드" aria-label="{index + 1} / {total}: {html.escape(slide['title'])}"{hidden}>
         <header class="slide-header">
           {eyebrow}
           <h1>{html.escape(slide['title'])}</h1>
@@ -662,7 +716,7 @@ def _render_element(
     width = _WIDTHS.get(str(element.get("width") or "full").strip().lower(), _WIDTHS["full"])
     title = _text(element.get("title"), "", 180)
     title_markup = f'<h2 class="element-title">{html.escape(title)}</h2>' if title else ""
-    card = bool(element.get("card", element_type not in {"text", "bullets", "quote"}))
+    card = bool(element.get("card", element_type not in {"text", "bullets", "bullet_list", "quote", "kpi", "kpis", "kpi_grid", "metrics"}))
     classes = f"slide-element {width}" + (" element-card" if card else "")
     body = ""
 
@@ -1139,7 +1193,7 @@ class HtmlPresentationRenderer(Component):
     """Langflow Builder에 표시되는 Standalone Component입니다."""
 
     display_name = "HTML 프레젠테이션 렌더러"
-    description = "검증된 슬라이드 계획을 탐색·인쇄 가능한 독립 16:9 HTML 프레젠테이션으로 변환합니다."
+    description = "검증된 슬라이드 계획과 디자인·모션 정책을 독립 16:9 HTML 프레젠테이션으로 결정론적으로 변환합니다."
     icon = "Presentation"
     name = "HtmlPresentationRenderer"
 

@@ -22,8 +22,8 @@
   },
   "template_mode": "analyze_and_rebuild",
   "reference_image_input_note": {
-    "cover": "표지 이미지는 별도 Multi Image Base64 Encoder에 넣습니다.",
-    "body": "본문 이미지는 다른 Multi Image Base64 Encoder에 레이아웃 우선순서대로 넣습니다.",
+    "cover": "reference_images/reference_cover_navy_teal.png를 표지 Multi Image Base64 Encoder에 넣습니다.",
+    "body": "reference_images/reference_body_trend.png, reference_body_comparison_table.png 순서로 본문 Encoder에 넣습니다.",
     "encoder_output_format": "data_url"
   },
   "datasets": [
@@ -177,4 +177,3 @@
     }
   ]
 }
-

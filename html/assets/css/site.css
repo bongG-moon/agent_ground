@@ -294,6 +294,25 @@ img { max-width: 100%; }
 .card-link { transition: transform 0.2s ease, box-shadow 0.2s ease; }
 .card-link:hover { box-shadow: var(--shadow); }
 
+.reference-card { padding: 14px 14px 22px; }
+.reference-card h3 { margin: 18px 12px 0; }
+.reference-card p { margin: 8px 12px 0; }
+.reference-preview-link {
+  display: block;
+  overflow: hidden;
+  background: #edf2f7;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+}
+.reference-preview {
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  display: block;
+  object-fit: cover;
+  transition: transform 0.2s ease;
+}
+.reference-preview-link:hover .reference-preview { transform: scale(1.015); }
+
 .asset-contract-summary {
   display: grid;
   gap: 8px;

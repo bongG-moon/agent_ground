@@ -66,9 +66,14 @@ INTERNAL_NODE_IDS_BY_FLOW = {
         "citation_response_builder",
     },
     "skill_based_agent_flow": {"demo_skill_catalog_builder"},
+    "mail_attachment_summary_flow": {
+        "msg_attachment_extractor",
+        "drm_unlock_adapter",
+    },
     "ppt_reference_html_flow": {
         "presentation_request_builder",
         "presentation_reference_analyzer",
+        "presentation_design_policy_builder",
         "presentation_plan_generator",
         "presentation_plan_normalizer",
         "presentation_quality_gate",
@@ -306,7 +311,7 @@ def validate_flows() -> int:
         if not (ROOT / manifest["documentation_path"]).is_file():
             raise AssertionError(f"{flow_dir.name}: documentation page missing")
     if all_internal_ids != INTERNAL_NODE_IDS:
-        raise AssertionError("Internal node ownership does not cover the exact 28-node set")
+        raise AssertionError("Internal node ownership does not cover the exact 30-node set")
     project_bundle = json.loads((ROOT / "flows" / "00_AGENT_GROUND_ALL_FLOWS.json").read_text(encoding="utf-8"))
     project_names = [item.get("name") for item in project_bundle.get("flows", [])]
     if "업무분석flow" in project_names:
@@ -363,9 +368,9 @@ def validate_registry() -> int:
         raise AssertionError("Registry Component set must match the exact 20 qualified Components")
     expected_flow_ids = set(INTERNAL_NODE_IDS_BY_FLOW)
     if {item.get("id") for item in flow_assets} != expected_flow_ids:
-        raise AssertionError("Registry Flow set must match the exact 5 Flow manifests")
-    if len(assets) != 25:
-        raise AssertionError(f"Registry count {len(assets)} != 25")
+        raise AssertionError("Registry Flow set must match the exact 6 Flow manifests")
+    if len(assets) != 26:
+        raise AssertionError(f"Registry count {len(assets)} != 26")
     if any(item.get("id") in INTERNAL_NODE_IDS for item in assets):
         raise AssertionError("Registry must exclude all 28 Flow internal nodes")
     if any(item["status"] == "approved" for item in assets):

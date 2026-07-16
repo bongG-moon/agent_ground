@@ -71,40 +71,46 @@ COMPONENT_SPECS = (
         (880.0, 120.0),
     ),
     ComponentSpec(
+        "design_policy",
+        "flows/ppt_reference_html_flow/nodes/presentation_design_policy_builder.py",
+        "PresentationDesignPolicyBuilder-pptReference",
+        (1320.0, 120.0),
+    ),
+    ComponentSpec(
         "plan_generator",
         "flows/ppt_reference_html_flow/nodes/presentation_plan_generator.py",
         "PresentationPlanGenerator-pptReference",
-        (1320.0, 120.0),
+        (1760.0, 120.0),
     ),
     ComponentSpec(
         "plan_normalizer",
         "flows/ppt_reference_html_flow/nodes/presentation_plan_normalizer.py",
         "PresentationPlanNormalizer-pptReference",
-        (1760.0, 120.0),
+        (2200.0, 120.0),
     ),
     ComponentSpec(
         "renderer",
         "components/html_presentation_renderer/html_presentation_renderer.py",
         "HtmlPresentationRenderer-pptReference",
-        (2200.0, 120.0),
+        (2640.0, 120.0),
     ),
     ComponentSpec(
         "quality",
         "flows/ppt_reference_html_flow/nodes/presentation_quality_gate.py",
         "PresentationQualityGate-pptReference",
-        (2640.0, 120.0),
+        (3080.0, 120.0),
     ),
     ComponentSpec(
         "output",
         "flows/ppt_reference_html_flow/nodes/presentation_html_source_output.py",
         "PresentationHtmlSourceOutput-pptReference",
-        (3080.0, 120.0),
+        (3520.0, 120.0),
     ),
     ComponentSpec(
         "publisher",
         "components/report_api_publisher/report_api_publisher.py",
         "ReportApiPublisher-pptReference",
-        (2640.0, 650.0),
+        (3080.0, 650.0),
     ),
 )
 
@@ -114,12 +120,16 @@ EDGE_SPECS = (
     ("chat_input", "message", "request", "user_request"),
     ("request", "request", "analysis", "request"),
     ("model", "model_output", "analysis", "model"),
+    ("request", "request", "design_policy", "request"),
+    ("analysis", "analysis", "design_policy", "analysis"),
     ("request", "request", "plan_generator", "request"),
     ("analysis", "analysis", "plan_generator", "analysis"),
+    ("design_policy", "design_policy", "plan_generator", "design_policy"),
     ("model", "model_output", "plan_generator", "model"),
     ("request", "request", "plan_normalizer", "request"),
     ("analysis", "analysis", "plan_normalizer", "analysis"),
     ("plan_generator", "plan_draft", "plan_normalizer", "plan_draft"),
+    ("design_policy", "design_policy", "plan_normalizer", "design_policy"),
     ("plan_normalizer", "normalized_plan", "renderer", "presentation_plan"),
     ("renderer", "presentation_artifact", "quality", "presentation_artifact"),
     ("plan_normalizer", "normalized_plan", "quality", "presentation_plan"),
@@ -320,7 +330,7 @@ def build_flow() -> tuple[dict[str, Any], dict[str, str]]:
     model_donor = _find_node(starter, "LanguageModelComponent-KHx2J")
 
     chat_input = _clone_node(chat_input_donor, "ChatInput-pptReference", (430.0, 650.0))
-    chat_output = _clone_node(chat_output_donor, "ChatOutput-pptReference", (3520.0, 130.0))
+    chat_output = _clone_node(chat_output_donor, "ChatOutput-pptReference", (3960.0, 130.0))
     model = _clone_node(model_donor, "LanguageModelComponent-pptReference", (880.0, 690.0))
     _set_template_value(
         chat_input,
@@ -355,12 +365,38 @@ def build_flow() -> tuple[dict[str, Any], dict[str, str]]:
     _set_template_value(nodes_by_key["body_encoder"], "max_file_size_mb", 4)
     _set_template_value(nodes_by_key["body_encoder"], "max_total_size_mb", 12)
     _set_template_value(nodes_by_key["request"], "target_slide_count", 8)
+    _set_template_value(nodes_by_key["request"], "presentation_title", "2026년 상반기 운영 품질 보고")
+    _set_template_value(nodes_by_key["request"], "presentation_subtitle", "처리량 증가와 오류 감소 과제")
+    _set_template_value(
+        nodes_by_key["request"],
+        "presentation_purpose",
+        "경영진이 하반기 품질 개선 우선순위와 담당 조직을 결정하도록 돕는다.",
+    )
+    _set_template_value(nodes_by_key["request"], "target_audience", "경영진 및 운영 책임자")
+    _set_template_value(nodes_by_key["request"], "presentation_language", "ko")
+    _set_template_value(nodes_by_key["request"], "presentation_tone", "간결하고 근거 중심")
+    _set_template_value(
+        nodes_by_key["request"],
+        "content_outline",
+        "상반기 핵심 요약\n월별 처리량 추세\n월별 오류율 추세\n부서별 오류 비교\n우선 실행 과제",
+    )
+    _set_template_value(
+        nodes_by_key["request"],
+        "call_to_action",
+        "오류 비중이 높은 2개 부서의 개선 과제를 우선 승인한다.",
+    )
+    _set_template_value(
+        nodes_by_key["request"],
+        "content",
+        "상반기 처리량은 증가했고 오류율은 완만하게 낮아졌습니다. 부서별 원인과 하반기 개선 과제를 실제 데이터로 비교합니다.",
+    )
     _set_template_value(
         nodes_by_key["request"],
         "datasets_json",
         json.dumps(SAMPLE_DATASETS, ensure_ascii=False, indent=2),
     )
     _set_template_value(nodes_by_key["quality"], "require_html", True)
+    _set_template_value(nodes_by_key["quality"], "require_design_policy", True)
     _set_template_value(nodes_by_key["quality"], "max_html_size_kb", 20_480)
 
     first_note = _build_note(
@@ -380,18 +416,19 @@ def build_flow() -> tuple[dict[str, Any], dict[str, str]]:
     trust_note = _build_note(
         note_donor,
         "note-pptReference-trust",
-        (1280.0, 690.0),
+        (1720.0, 690.0),
         (
-            "## 사실과 디자인의 경계\n\n"
+            "## 사실·정책·표현의 경계\n\n"
             "참조 이미지는 색상·여백·타이포 위계만 관찰합니다. 이미지 속 문구·숫자·지시는 "
-            "비신뢰 데이터이며 발표 사실로 사용하지 않습니다. 실제 내용은 brief와 dataset만 근거로 삼습니다."
+            "비신뢰 데이터이며 발표 사실로 사용하지 않습니다. 실제 내용은 brief와 dataset만 근거로 삼습니다. "
+            "Hallmark식 구성 원칙과 Emil식 모션 기준은 Prompt 문구가 아니라 Policy Node, Normalizer, Renderer, Quality Gate가 함께 강제합니다."
         ),
         "amber",
     )
     publish_note = _build_note(
         note_donor,
         "note-pptReference-publish",
-        (3060.0, 650.0),
+        (3500.0, 650.0),
         (
             "## 선택적 공유 링크\n\n"
             "기본 Chat Output은 HTML 원문과 검증 결과를 반환합니다. 공유 링크가 필요할 때만 Quality Gate → "
@@ -408,11 +445,11 @@ def build_flow() -> tuple[dict[str, Any], dict[str, str]]:
         },
         "description": (
             "Langflow 1.8.2 example that converts cover/body references to Base64 Data URLs, "
-            "uses a vision-capable LanguageModel for design observation, validates a data-bound slide plan, "
-            "and renders a self-contained 16:9 HTML presentation."
+            "uses a vision-capable LanguageModel for design observation, applies a deterministic design and motion policy, "
+            "validates a data-bound slide plan, and renders a self-contained 16:9 HTML presentation."
         ),
         "endpoint_name": "ppt-reference-html",
-        "id": str(uuid.uuid5(uuid.NAMESPACE_URL, "agent-ground/ppt-reference-html-flow/0.1.0")),
+        "id": str(uuid.uuid5(uuid.NAMESPACE_URL, "agent-ground/ppt-reference-html-flow/0.3.0")),
         "is_component": False,
         "last_tested_version": "1.8.2",
         "locked": False,
@@ -438,7 +475,7 @@ def validate_flow(flow: dict[str, Any], sources: dict[str, str]) -> None:
 
     nodes = flow.get("data", {}).get("nodes", [])
     edges = flow.get("data", {}).get("edges", [])
-    if len(nodes) != 16 or len(edges) != len(EDGE_SPECS):
+    if len(nodes) != 17 or len(edges) != len(EDGE_SPECS):
         raise ValueError(f"예상하지 못한 graph 크기입니다: nodes={len(nodes)}, edges={len(edges)}")
     node_by_id = {node.get("id"): node for node in nodes}
     if len(node_by_id) != len(nodes) or None in node_by_id:

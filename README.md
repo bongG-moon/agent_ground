@@ -16,8 +16,14 @@
   - 회의 액션아이템은 개선형 이름 기반 Run Flow Tool로 `meeting_action_skill_flow` 호출
 - 신규 `ppt_reference_html_flow`
   - 표지·본문 이미지는 Base64 Data URL로 변환한 뒤 Vision 모델이 디자인 규칙만 관찰
+  - `02 발표 요청 정리`에서 제목·부제·목적·청중·톤·목차·마지막 요청·본문을 실제 Builder 필드로 직접 입력
+  - 기존 표지·본문 `Multi Image Base64 Encoder`를 업로드 양식으로 사용하고 16:9 표지 1장·본문 2장 샘플 제공
   - 발표 brief와 실제 dataset을 사실 근거로 사용하고 표·KPI·막대·선·산점도를 계약에 따라 선택
   - 검증된 계획을 외부 CDN 없는 16:9 HTML 슬라이드로 렌더링하고 품질 Gate를 통과한 결과만 출력
+- 신규 `mail_attachment_summary_flow`
+  - 사용자가 여러 Outlook MSG를 직접 올리면 본문과 첨부파일을 분해하고, 첨부를 사내 DRM 어댑터로 처리
+  - Outlook·Microsoft Graph 같은 외부 Tool은 사용하지 않고 MSG 분해와 DRM 경계만 Flow 전용 내부 노드로 구성
+  - 이후 `Read File → Loop → Parser → Language Model` 경로로 메일별 분석과 전체 업무 요약 생성
 - 독립 사용 사례와 입출력 계약을 갖춘 공용·업무·RAG·HTML·프레젠테이션 Component 20개
 - 사내 공용 Standalone Component 추천 후보 30종과 선택 구현 2종
   - `multi_image_base64_encoder`
@@ -39,7 +45,7 @@
 
 `skill_based_agent_flow`는 Langflow가 `SKILL.md`를 자동 탐색한다고 가정하지 않습니다. LLM에는 `expense_precheck_skill`, `leave_policy_skill`, `meeting_action_skill` 세 Tool 이름이 보이지만 실행 방식은 다릅니다. 경비·휴가는 개별 계산 Component를 직접 호출하고, 회의는 `cached_named_run_flow_tool`이 같은 프로젝트의 `meeting_action_skill_flow`를 이름으로 찾아 실행합니다. 하위 Flow 입력은 내부 node ID가 아니라 provider-safe `question` 계약으로 전달됩니다. 승인, 저장, 메일 발송과 같은 외부 변경 Tool은 예제에 포함하지 않았습니다.
 
-`ppt_reference_html_flow`에서는 참고 이미지를 내용 근거가 아닌 디자인 근거로만 사용합니다. 이미지 속 문구·숫자·지시사항은 신뢰하지 않고, 발표 내용과 차트 값은 사용자가 입력한 brief·dataset에서만 가져옵니다. LLM은 HTML을 직접 작성하지 않고 디자인 관찰 JSON과 슬라이드 계획 JSON만 제안하며, Python Normalizer와 `html_presentation_renderer`가 실제 데이터 바인딩·허용 목록·escaping을 적용해 자체 포함 HTML을 만듭니다.
+`ppt_reference_html_flow`에서는 참고 이미지를 내용 근거가 아닌 디자인 근거로만 사용합니다. 이미지 속 문구·숫자·지시사항은 신뢰하지 않고, 발표 내용과 차트 값은 사용자가 입력한 brief·dataset에서만 가져옵니다. `02 발표 요청 정리` Node에는 발표 제목, 발표 부제, 발표 목적, 대상 청중, 발표 언어, 발표 톤, 슬라이드 목차, 마지막 요청·의사결정, 발표 본문, 목표 슬라이드 수를 나눠 입력하는 실제 Builder 양식이 있습니다. 이미지는 기존 표지·본문 `Multi Image Base64 Encoder`에서 업로드하며, 샘플은 `reference_cover_navy_teal.png` 한 장과 `reference_body_trend.png`, `reference_body_comparison_table.png` 두 장입니다. LLM은 HTML을 직접 작성하지 않고 디자인 관찰 JSON과 슬라이드 계획 JSON만 제안합니다. Hallmark식 구성 원칙과 Emil식 모션 기준은 별도 `design_policy` Node, Python Normalizer, 결정론적 `html_presentation_renderer`, Quality Gate가 함께 강제합니다.
 
 ## 바로 열기
 
@@ -66,7 +72,14 @@
 - 회의 후속 조치 하위 Flow: [`flows/skill_based_agent_flow/meeting_action_skill_flow.json`](flows/skill_based_agent_flow/meeting_action_skill_flow.json)
 - PPT 참조 이미지 HTML 프레젠테이션 가이드: [`flows/ppt_reference_html_flow/README.md`](flows/ppt_reference_html_flow/README.md)
 - PPT 참조 이미지 HTML 프레젠테이션 개별 Import: [`flows/ppt_reference_html_flow/ppt_reference_html_flow.json`](flows/ppt_reference_html_flow/ppt_reference_html_flow.json)
+- 다중 MSG·DRM 첨부파일 요약 가이드: [`flows/mail_attachment_summary_flow/README.md`](flows/mail_attachment_summary_flow/README.md)
+- 다중 MSG·DRM 첨부파일 요약 개별 Import: [`flows/mail_attachment_summary_flow/mail_attachment_summary_flow.json`](flows/mail_attachment_summary_flow/mail_attachment_summary_flow.json)
+- Langflow 실제 Builder 입력 양식·업로드 순서: [`flows/ppt_reference_html_flow/samples/INPUT_FORM.md`](flows/ppt_reference_html_flow/samples/INPUT_FORM.md)
+- 16:9 샘플 표지 이미지: [`flows/ppt_reference_html_flow/samples/reference_images/reference_cover_navy_teal.png`](flows/ppt_reference_html_flow/samples/reference_images/reference_cover_navy_teal.png)
+- 16:9 샘플 추세 본문 이미지: [`flows/ppt_reference_html_flow/samples/reference_images/reference_body_trend.png`](flows/ppt_reference_html_flow/samples/reference_images/reference_body_trend.png)
+- 16:9 샘플 비교·표 본문 이미지: [`flows/ppt_reference_html_flow/samples/reference_images/reference_body_comparison_table.png`](flows/ppt_reference_html_flow/samples/reference_images/reference_body_comparison_table.png)
 - 발표 데이터 입력 예시: [`flows/ppt_reference_html_flow/samples/sample_presentation_data.json`](flows/ppt_reference_html_flow/samples/sample_presentation_data.json)
+- 발표 디자인·모션 정책: [`flows/ppt_reference_html_flow/references/DESIGN_MOTION_POLICY.md`](flows/ppt_reference_html_flow/references/DESIGN_MOTION_POLICY.md)
 - Agent Ground 실행 가능 6개 Flow 일괄 Import: [`flows/00_AGENT_GROUND_ALL_FLOWS.json`](flows/00_AGENT_GROUND_ALL_FLOWS.json)
 - 재사용 데이터 Flow export 불일치 기록: [`html/troubleshooting/reusable-data-flow-export-mismatch.html`](html/troubleshooting/reusable-data-flow-export-mismatch.html)
 - 이동식 개발 Skill 묶음: [`skills/skill-pack.json`](skills/skill-pack.json)

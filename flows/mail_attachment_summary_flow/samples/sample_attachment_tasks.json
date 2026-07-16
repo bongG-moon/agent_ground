@@ -1,0 +1,18 @@
+{
+  "document": "운영 개선 실행 항목",
+  "version": "sample-1",
+  "items": [
+    {
+      "task": "장애 알림 기준 초안 작성",
+      "owner": "운영팀",
+      "due_date": "2026-07-18",
+      "status": "planned"
+    },
+    {
+      "task": "보안 검토 일정 확정",
+      "owner": "확인되지 않음",
+      "due_date": null,
+      "status": "needs_confirmation"
+    }
+  ]
+}

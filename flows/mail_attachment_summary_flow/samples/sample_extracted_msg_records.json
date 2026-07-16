@@ -1,0 +1,24 @@
+[
+  {
+    "file_path": "<temporary>/msg_01/01_mail_body.txt",
+    "file_name": "01_mail_body.txt",
+    "source_kind": "mail_body",
+    "parent_msg": "review_request.msg",
+    "mail_subject": "7월 운영 개선안 검토 요청",
+    "attachment_index": 0,
+    "is_inline": false,
+    "drm_status": "not_applicable",
+    "extraction_error": ""
+  },
+  {
+    "file_path": "<temporary>/msg_01/001_review.pdf",
+    "file_name": "review.pdf",
+    "source_kind": "msg_attachment",
+    "parent_msg": "review_request.msg",
+    "mail_subject": "7월 운영 개선안 검토 요청",
+    "attachment_index": 1,
+    "is_inline": false,
+    "drm_status": "pending",
+    "extraction_error": ""
+  }
+]

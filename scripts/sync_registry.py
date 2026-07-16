@@ -57,8 +57,8 @@ def main() -> None:
         assets.append(asset)
 
     flow_paths = sorted((ROOT / "flows").glob("*/manifest.json"))
-    if len(flow_paths) != 5:
-        raise ValueError(f"Registry에는 Flow manifest 5개가 필요합니다: {flow_paths}")
+    if len(flow_paths) != 6:
+        raise ValueError(f"Registry에는 Flow manifest 6개가 필요합니다: {flow_paths}")
     for manifest_path in flow_paths:
         asset = read_json(manifest_path)
         if asset.get("asset_type") != "flow":
@@ -71,7 +71,7 @@ def main() -> None:
     payload = {
         "schema_version": "1.0",
         "generated_at": datetime.now().astimezone().date().isoformat(),
-        "source_of_truth": "20 qualified Component manifests and 5 Flow manifests; internal nodes are excluded",
+        "source_of_truth": "20 qualified Component manifests and 6 Flow manifests; internal nodes are excluded",
         "publication_rule": "Only approved assets may be used by Business Agent Design recommendations.",
         "assets": assets,
     }

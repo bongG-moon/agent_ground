@@ -2,7 +2,7 @@
   "flow_id": "ppt_reference_html_flow",
   "components": [
     {"id": "multi_image_base64_encoder", "version": "0.1.0"},
-    {"id": "html_presentation_renderer", "version": "0.1.0"},
+    {"id": "html_presentation_renderer", "version": "0.2.0"},
     {"id": "report_api_publisher", "version": "0.9.0"}
   ]
 }
