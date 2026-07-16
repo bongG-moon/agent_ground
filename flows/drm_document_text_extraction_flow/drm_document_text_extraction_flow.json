@@ -1,0 +1,749 @@
+{
+  "data": {
+    "edges": [
+      {
+        "animated": false,
+        "className": "",
+        "data": {
+          "sourceHandle": {
+            "dataType": "DrmDocumentTextExtractor",
+            "id": "DrmDocumentTextExtractor-drmDocument",
+            "name": "extracted_text",
+            "output_types": [
+              "Message"
+            ]
+          },
+          "targetHandle": {
+            "fieldName": "input_value",
+            "id": "ChatOutput-drmDocumentText",
+            "inputTypes": [
+              "Data",
+              "DataFrame",
+              "Message"
+            ],
+            "type": "str"
+          }
+        },
+        "id": "xy-edge__DrmDocumentTextExtractor-drmDocument{œdataTypeœ:œDrmDocumentTextExtractorœ,œidœ:œDrmDocumentTextExtractor-drmDocumentœ,œnameœ:œextracted_textœ,œoutput_typesœ:[œMessageœ]}-ChatOutput-drmDocumentText{œfieldNameœ:œinput_valueœ,œidœ:œChatOutput-drmDocumentTextœ,œinputTypesœ:[œDataœ,œDataFrameœ,œMessageœ],œtypeœ:œstrœ}",
+        "selected": false,
+        "source": "DrmDocumentTextExtractor-drmDocument",
+        "sourceHandle": "{œdataTypeœ:œDrmDocumentTextExtractorœ,œidœ:œDrmDocumentTextExtractor-drmDocumentœ,œnameœ:œextracted_textœ,œoutput_typesœ:[œMessageœ]}",
+        "target": "ChatOutput-drmDocumentText",
+        "targetHandle": "{œfieldNameœ:œinput_valueœ,œidœ:œChatOutput-drmDocumentTextœ,œinputTypesœ:[œDataœ,œDataFrameœ,œMessageœ],œtypeœ:œstrœ}"
+      }
+    ],
+    "nodes": [
+      {
+        "data": {
+          "description": "문서·이미지를 DRM text API에 전송해 평문 Message 또는 EWS용 TXT 작업 파일로 반환합니다.",
+          "display_name": "DRM 문서 텍스트 추출",
+          "id": "DrmDocumentTextExtractor-drmDocument",
+          "node": {
+            "template": {
+              "_type": "Component",
+              "document_files": {
+                "tool_mode": false,
+                "trace_as_metadata": true,
+                "file_path": "",
+                "fileTypes": [
+                  "bmp",
+                  "csv",
+                  "doc",
+                  "docx",
+                  "hwp",
+                  "hwpx",
+                  "jpeg",
+                  "jpg",
+                  "pdf",
+                  "png",
+                  "ppt",
+                  "pptx",
+                  "rtf",
+                  "tif",
+                  "tiff",
+                  "txt",
+                  "xls",
+                  "xlsx"
+                ],
+                "temp_file": true,
+                "list": true,
+                "list_add_label": "Add More",
+                "override_skip": false,
+                "required": true,
+                "placeholder": "",
+                "show": true,
+                "name": "document_files",
+                "value": [],
+                "display_name": "문서 파일",
+                "advanced": false,
+                "dynamic": false,
+                "info": "PDF·Office·HWP·텍스트·CSV·일반 이미지를 입력 순서대로 DRM API에 전송합니다.",
+                "title_case": false,
+                "track_in_telemetry": false,
+                "type": "file",
+                "_input_type": "FileInput"
+              },
+              "file_record": {
+                "tool_mode": false,
+                "trace_as_metadata": true,
+                "list": false,
+                "list_add_label": "Add More",
+                "trace_as_input": true,
+                "override_skip": false,
+                "required": false,
+                "placeholder": "",
+                "show": false,
+                "name": "file_record",
+                "value": "",
+                "display_name": "EWS 파일 항목",
+                "advanced": true,
+                "input_types": [
+                  "Data"
+                ],
+                "dynamic": false,
+                "info": "EWS Flow에서 file_path·file_name·source_kind가 포함된 Data 한 건을 연결합니다.",
+                "title_case": false,
+                "track_in_telemetry": false,
+                "type": "other",
+                "_input_type": "DataInput"
+              },
+              "allow_insecure_http": {
+                "tool_mode": false,
+                "trace_as_metadata": true,
+                "list": false,
+                "list_add_label": "Add More",
+                "override_skip": false,
+                "required": false,
+                "placeholder": "",
+                "show": true,
+                "name": "allow_insecure_http",
+                "value": false,
+                "display_name": "HTTP DRM API 사용 허용",
+                "advanced": true,
+                "dynamic": false,
+                "info": "기본값은 꺼짐입니다. HTTPS를 지원하지 않는 폐쇄된 사내 테스트망에서만 켜세요.",
+                "title_case": false,
+                "track_in_telemetry": true,
+                "type": "bool",
+                "_input_type": "BoolInput"
+              },
+              "allowed_drm_hosts": {
+                "tool_mode": false,
+                "trace_as_input": true,
+                "trace_as_metadata": true,
+                "load_from_db": false,
+                "list": false,
+                "list_add_label": "Add More",
+                "override_skip": false,
+                "required": true,
+                "placeholder": "",
+                "show": true,
+                "name": "allowed_drm_hosts",
+                "value": "",
+                "display_name": "허용 DRM 서버",
+                "advanced": false,
+                "input_types": [
+                  "Message"
+                ],
+                "dynamic": false,
+                "info": "업로드를 허용할 host만 쉼표로 입력합니다. 예: drm.example.internal 또는 .example.internal",
+                "title_case": false,
+                "track_in_telemetry": false,
+                "type": "str",
+                "_input_type": "MessageTextInput"
+              },
+              "code": {
+                "type": "code",
+                "required": true,
+                "placeholder": "",
+                "list": false,
+                "show": true,
+                "multiline": true,
+                "value": "from __future__ import annotations\n\nimport io\nimport re\nimport tempfile\nimport warnings\nfrom importlib import import_module\nfrom pathlib import Path\nfrom typing import Any\nfrom urllib.parse import urlsplit\n\nfrom lfx.custom import Component\nfrom lfx.io import BoolInput, DataInput, FileInput, IntInput, MessageTextInput, Output, SecretStrInput\nfrom lfx.schema import Data, Message\n\n\nSUPPORTED_EXTENSIONS = {\n    \".pdf\",\n    \".ppt\",\n    \".pptx\",\n    \".xls\",\n    \".xlsx\",\n    \".doc\",\n    \".docx\",\n    \".hwp\",\n    \".hwpx\",\n    \".txt\",\n    \".csv\",\n    \".rtf\",\n    \".png\",\n    \".jpg\",\n    \".jpeg\",\n    \".bmp\",\n    \".tif\",\n    \".tiff\",\n}\nSUPPORTED_FILE_TYPES = [\n    \"bmp\",\n    \"csv\",\n    \"doc\",\n    \"docx\",\n    \"hwp\",\n    \"hwpx\",\n    \"jpeg\",\n    \"jpg\",\n    \"pdf\",\n    \"png\",\n    \"ppt\",\n    \"pptx\",\n    \"rtf\",\n    \"tif\",\n    \"tiff\",\n    \"txt\",\n    \"xls\",\n    \"xlsx\",\n]\nDEFAULT_TIMEOUT_SECONDS = 180\nDEFAULT_MAX_FILES = 10\nDEFAULT_MAX_FILE_SIZE_MB = 50\nDEFAULT_MAX_TOTAL_SIZE_MB = 200\nDEFAULT_MAX_RESPONSE_MB = 20\nMAX_TIMEOUT_SECONDS = 600\nMAX_FILES = 50\nMAX_FILE_SIZE_MB = 500\nMAX_TOTAL_SIZE_MB = 1000\nMAX_RESPONSE_MB = 100\nCHUNK_SIZE = 64 * 1024\n\n\nclass DrmTextExtractionError(RuntimeError):\n    \"\"\"토큰, endpoint 전체 주소와 문서 본문을 노출하지 않는 실행 오류입니다.\"\"\"\n\n\ndef _text_value(value: Any) -> str:\n    if value is None:\n        return \"\"\n    getter = getattr(value, \"get_secret_value\", None)\n    if callable(getter):\n        return str(getter() or \"\")\n    text = getattr(value, \"text\", None)\n    if isinstance(text, str):\n        return text\n    return str(value)\n\n\ndef _bool_value(value: Any, field_name: str) -> bool:\n    if isinstance(value, bool):\n        return value\n    text = _text_value(value).strip().lower()\n    if text in {\"true\", \"1\", \"yes\", \"y\", \"on\"}:\n        return True\n    if text in {\"false\", \"0\", \"no\", \"n\", \"off\", \"\"}:\n        return False\n    raise ValueError(f\"{field_name} 값은 true 또는 false여야 합니다.\")\n\n\ndef _bounded_int(value: Any, field_name: str, minimum: int, maximum: int) -> int:\n    try:\n        number = int(value)\n    except (TypeError, ValueError) as exc:\n        raise ValueError(f\"{field_name}은(는) 정수여야 합니다.\") from exc\n    if number < minimum or number > maximum:\n        raise ValueError(f\"{field_name}은(는) {minimum:,} 이상 {maximum:,} 이하여야 합니다.\")\n    return number\n\n\ndef _normalize_files(value: Any) -> list[Any]:\n    if value is None or value == \"\":\n        return []\n    if isinstance(value, (list, tuple)):\n        return [item for item in value if item is not None and item != \"\"]\n    return [value]\n\n\ndef _path_from_item(item: Any) -> Path | None:\n    if isinstance(item, (str, Path)):\n        return Path(item)\n    if isinstance(item, dict):\n        for key in (\"path\", \"file_path\"):\n            value = item.get(key)\n            if isinstance(value, (str, Path)) and str(value).strip():\n                return Path(value)\n        return None\n    for attribute in (\"path\", \"file_path\"):\n        value = getattr(item, attribute, None)\n        if isinstance(value, (str, Path)) and str(value).strip():\n            return Path(value)\n    return None\n\n\ndef _safe_filename(value: Any, position: int) -> str:\n    name = Path(str(value or \"\")).name\n    name = re.sub(r\"[\\x00-\\x1f\\x7f<>:\\\"/\\\\|?*]\", \"_\", name).strip(\" .\")\n    return name[:180] or f\"document_{position}.bin\"\n\n\ndef _filename_from_item(item: Any, position: int) -> str:\n    if isinstance(item, dict):\n        for key in (\"filename\", \"name\"):\n            if item.get(key):\n                return _safe_filename(item[key], position)\n    for attribute in (\"filename\", \"name\"):\n        value = getattr(item, attribute, None)\n        if value:\n            return _safe_filename(value, position)\n    path = _path_from_item(item)\n    if path is not None:\n        return _safe_filename(path.name, position)\n    return _safe_filename(\"\", position)\n\n\ndef _read_file_bytes(item: Any, position: int, maximum_bytes: int) -> tuple[bytes, str]:\n    filename = _filename_from_item(item, position)\n    extension = Path(filename).suffix.lower()\n    if extension not in SUPPORTED_EXTENSIONS:\n        supported = \", \".join(sorted(SUPPORTED_EXTENSIONS))\n        raise ValueError(f\"지원하지 않는 파일 형식입니다: {filename}. 지원 형식: {supported}\")\n\n    path = _path_from_item(item)\n    if path is not None:\n        try:\n            if not path.is_file():\n                raise FileNotFoundError\n            declared_size = int(path.stat().st_size)\n            if declared_size > maximum_bytes:\n                raise ValueError(f\"파일이 개별 크기 제한을 초과했습니다: {filename}\")\n            with path.open(\"rb\") as handle:\n                content = handle.read(maximum_bytes + 1)\n        except ValueError:\n            raise\n        except (OSError, PermissionError, FileNotFoundError):\n            raise ValueError(f\"업로드 파일을 읽을 수 없습니다: {filename}\") from None\n    else:\n        stream = item.get(\"file\") if isinstance(item, dict) else getattr(item, \"file\", item)\n        if isinstance(stream, (bytes, bytearray, memoryview)):\n            content = bytes(stream[: maximum_bytes + 1])\n        elif hasattr(stream, \"read\"):\n            original_position: int | None = None\n            try:\n                if hasattr(stream, \"tell\"):\n                    original_position = int(stream.tell())\n                if hasattr(stream, \"seek\"):\n                    stream.seek(0)\n                content = stream.read(maximum_bytes + 1)\n            except Exception:\n                raise ValueError(f\"업로드 파일을 읽을 수 없습니다: {filename}\") from None\n            finally:\n                if original_position is not None and hasattr(stream, \"seek\"):\n                    try:\n                        stream.seek(original_position)\n                    except Exception:\n                        pass\n            if not isinstance(content, (bytes, bytearray, memoryview)):\n                raise ValueError(f\"업로드 파일이 바이너리 형식이 아닙니다: {filename}\")\n            content = bytes(content)\n        else:\n            raise ValueError(f\"지원하지 않는 파일 입력 형식입니다: {filename}\")\n\n    if len(content) > maximum_bytes:\n        raise ValueError(f\"파일이 개별 크기 제한을 초과했습니다: {filename}\")\n    if not content:\n        raise ValueError(f\"빈 파일은 처리할 수 없습니다: {filename}\")\n    return content, filename\n\n\ndef _parse_api_url(value: Any, allow_insecure_http: Any) -> tuple[str, str, bool]:\n    url = _text_value(value).strip()\n    if not url:\n        raise ValueError(\"DRM API 주소를 입력해 주세요.\")\n    try:\n        parsed = urlsplit(url)\n        _ = parsed.port\n    except ValueError as exc:\n        raise ValueError(\"DRM API 주소의 포트 형식이 올바르지 않습니다.\") from exc\n    scheme = parsed.scheme.lower()\n    if scheme not in {\"http\", \"https\"} or not parsed.hostname:\n        raise ValueError(\"DRM API 주소는 서버가 포함된 http 또는 https URL이어야 합니다.\")\n    if parsed.username is not None or parsed.password is not None:\n        raise ValueError(\"DRM API URL 안에 사용자 이름이나 비밀번호를 넣을 수 없습니다.\")\n    if parsed.fragment:\n        raise ValueError(\"DRM API URL에는 #fragment를 넣을 수 없습니다.\")\n    allow_http = _bool_value(allow_insecure_http, \"HTTP DRM API 사용 허용\")\n    if scheme == \"http\" and not allow_http:\n        raise ValueError(\n            \"문서와 인증값을 HTTP로 보낼 수 없습니다. HTTPS URL을 사용하거나, \"\n            \"폐쇄된 사내 테스트망에서만 'HTTP DRM API 사용 허용'을 켜 주세요.\"\n        )\n    return url, str(parsed.hostname).lower().rstrip(\".\"), scheme == \"https\"\n\n\ndef _parse_allowed_hosts(value: Any) -> list[str]:\n    text = _text_value(value).strip().lower()\n    rules = [item.strip().rstrip(\".\") for item in re.split(r\"[,\\s]+\", text) if item.strip()]\n    if not rules:\n        raise ValueError(\"허용 DRM 서버를 한 개 이상 입력해 주세요.\")\n    for rule in rules:\n        host = rule[1:] if rule.startswith(\".\") else rule\n        if not host or \"://\" in host or \"/\" in host or \":\" in host:\n            raise ValueError(\"허용 DRM 서버에는 scheme, path, port를 넣을 수 없습니다.\")\n    return rules\n\n\ndef _host_is_allowed(host: str, rules: list[str]) -> bool:\n    for rule in rules:\n        if rule.startswith(\".\") and (host == rule[1:] or host.endswith(rule)):\n            return True\n        if host == rule:\n            return True\n    return False\n\n\ndef _header_value(response: Any, name: str) -> str:\n    headers = getattr(response, \"headers\", None)\n    if not hasattr(headers, \"get\"):\n        return \"\"\n    direct = headers.get(name)\n    if direct is not None:\n        return str(direct)\n    lowered = name.lower()\n    for key, value in getattr(headers, \"items\", lambda: [])():\n        if str(key).lower() == lowered:\n            return str(value)\n    return \"\"\n\n\ndef _read_response_bytes(response: Any, maximum_bytes: int) -> bytes:\n    content_length = _header_value(response, \"Content-Length\").strip()\n    if content_length:\n        try:\n            declared = int(content_length)\n        except ValueError:\n            declared = 0\n        if declared > maximum_bytes:\n            raise DrmTextExtractionError(\"DRM API 응답이 설정한 최대 크기를 초과했습니다.\")\n\n    iterator = getattr(response, \"iter_content\", None)\n    if callable(iterator):\n        chunks: list[bytes] = []\n        total = 0\n        for chunk in iterator(chunk_size=CHUNK_SIZE):\n            if not chunk:\n                continue\n            raw_chunk = bytes(chunk)\n            total += len(raw_chunk)\n            if total > maximum_bytes:\n                raise DrmTextExtractionError(\"DRM API 응답이 설정한 최대 크기를 초과했습니다.\")\n            chunks.append(raw_chunk)\n        return b\"\".join(chunks)\n\n    raw = getattr(response, \"content\", b\"\") or b\"\"\n    content = raw.encode(\"utf-8\") if isinstance(raw, str) else bytes(raw)\n    if len(content) > maximum_bytes:\n        raise DrmTextExtractionError(\"DRM API 응답이 설정한 최대 크기를 초과했습니다.\")\n    return content\n\n\ndef _decode_text_response(response: Any, raw: bytes) -> tuple[str, str]:\n    content_type = _header_value(response, \"Content-Type\")\n    match = re.search(r\"charset\\s*=\\s*[\\\"']?([^;\\s\\\"']+)\", content_type, flags=re.I)\n    candidates: list[str] = []\n    if match:\n        candidates.append(match.group(1))\n    try:\n        apparent = str(getattr(response, \"apparent_encoding\", \"\") or \"\").strip()\n    except Exception:\n        # requests의 stream 응답은 iter_content 이후 apparent_encoding 접근이 실패할 수 있다.\n        apparent = \"\"\n    if apparent:\n        candidates.append(apparent)\n    candidates.extend([\"utf-8-sig\", \"cp949\", \"euc-kr\"])\n\n    checked: set[str] = set()\n    for encoding in candidates:\n        key = encoding.lower()\n        if key in checked:\n            continue\n        checked.add(key)\n        try:\n            return raw.decode(encoding), encoding\n        except (LookupError, UnicodeDecodeError):\n            continue\n    return raw.decode(\"utf-8\", errors=\"replace\"), \"utf-8-replace\"\n\n\ndef _close_response(response: Any) -> None:\n    closer = getattr(response, \"close\", None)\n    if callable(closer):\n        closer()\n\n\ndef _post_file(\n    *,\n    client: Any,\n    url: str,\n    token: str,\n    employee_no: str,\n    filename: str,\n    content: bytes,\n    timeout_seconds: int,\n    verify_tls: bool,\n    max_response_bytes: int,\n) -> dict[str, Any]:\n    sender = getattr(client, \"post\", None)\n    if not callable(sender):\n        raise ValueError(\"HTTP 전송 객체에 post 함수가 없습니다.\")\n\n    with io.BytesIO(content) as stream:\n        options = {\n            \"files\": {\"file\": (filename, stream, \"application/octet-stream\")},\n            \"headers\": {\"Authorization\": f\"Bearer {token}\"},\n            \"params\": {\"empNo\": employee_no},\n            \"timeout\": timeout_seconds,\n            \"verify\": verify_tls,\n            \"allow_redirects\": False,\n            \"stream\": True,\n        }\n        try:\n            if verify_tls:\n                response = sender(url, **options)\n            else:\n                with warnings.catch_warnings():\n                    warnings.simplefilter(\"ignore\")\n                    response = sender(url, **options)\n        except Exception:\n            raise DrmTextExtractionError(f\"DRM API에 연결하지 못했습니다: {filename}\") from None\n\n    try:\n        status_code = int(getattr(response, \"status_code\", 0) or 0)\n        if status_code < 200 or status_code >= 300:\n            raise DrmTextExtractionError(\n                f\"DRM API가 성공 상태를 반환하지 않았습니다: {filename} · HTTP {status_code}\"\n            )\n        raw = _read_response_bytes(response, max_response_bytes)\n        if not raw:\n            raise DrmTextExtractionError(f\"DRM API가 빈 텍스트를 반환했습니다: {filename}\")\n        text, encoding = _decode_text_response(response, raw)\n        if not text.strip():\n            raise DrmTextExtractionError(f\"DRM API가 빈 텍스트를 반환했습니다: {filename}\")\n        return {\n            \"file_name\": filename,\n            \"extension\": Path(filename).suffix.lower(),\n            \"source_bytes\": len(content),\n            \"response_bytes\": len(raw),\n            \"char_count\": len(text),\n            \"encoding\": encoding,\n            \"http_status\": status_code,\n            \"text\": text,\n        }\n    finally:\n        _close_response(response)\n\n\ndef extract_document_texts(\n    document_files: Any,\n    drm_api_url: Any,\n    drm_token: Any,\n    employee_no: Any,\n    allowed_drm_hosts: Any,\n    *,\n    allow_insecure_http: Any = False,\n    verify_tls: Any = True,\n    timeout_seconds: Any = DEFAULT_TIMEOUT_SECONDS,\n    max_files: Any = DEFAULT_MAX_FILES,\n    max_file_size_mb: Any = DEFAULT_MAX_FILE_SIZE_MB,\n    max_total_size_mb: Any = DEFAULT_MAX_TOTAL_SIZE_MB,\n    max_response_mb: Any = DEFAULT_MAX_RESPONSE_MB,\n    transport: Any | None = None,\n) -> dict[str, Any]:\n    \"\"\"업로드 문서를 DRM text API에 하나씩 보내고 평문 텍스트 결과를 반환합니다.\"\"\"\n\n    files = _normalize_files(document_files)\n    file_limit = _bounded_int(max_files, \"최대 파일 수\", 1, MAX_FILES)\n    if not files:\n        raise ValueError(\"DRM API로 처리할 문서 또는 이미지 파일을 한 개 이상 입력해 주세요.\")\n    if len(files) > file_limit:\n        raise ValueError(f\"업로드 파일 수가 최대 {file_limit}개를 초과했습니다.\")\n\n    token = _text_value(drm_token).strip()\n    emp_no = _text_value(employee_no).strip()\n    if not token:\n        raise ValueError(\"DRM 토큰을 입력해 주세요.\")\n    if not emp_no:\n        raise ValueError(\"사번을 입력해 주세요.\")\n    if len(token) > 8192 or \"\\r\" in token or \"\\n\" in token:\n        raise ValueError(\"DRM 토큰 형식이 올바르지 않습니다.\")\n    if len(emp_no) > 128 or \"\\r\" in emp_no or \"\\n\" in emp_no:\n        raise ValueError(\"사번 형식이 올바르지 않습니다.\")\n\n    url, host, is_https = _parse_api_url(drm_api_url, allow_insecure_http)\n    allowed_hosts = _parse_allowed_hosts(allowed_drm_hosts)\n    if not _host_is_allowed(host, allowed_hosts):\n        raise ValueError(\"DRM API 서버가 허용 서버 목록에 없습니다.\")\n\n    tls_verification = _bool_value(verify_tls, \"TLS 인증서 검증\")\n    if not is_https:\n        tls_verification = False\n    timeout = _bounded_int(timeout_seconds, \"제한 시간\", 1, MAX_TIMEOUT_SECONDS)\n    per_file_bytes = _bounded_int(\n        max_file_size_mb, \"파일당 최대 크기\", 1, MAX_FILE_SIZE_MB\n    ) * 1024 * 1024\n    total_limit_bytes = _bounded_int(\n        max_total_size_mb, \"전체 최대 크기\", 1, MAX_TOTAL_SIZE_MB\n    ) * 1024 * 1024\n    response_limit_bytes = _bounded_int(\n        max_response_mb, \"파일당 최대 응답 크기\", 1, MAX_RESPONSE_MB\n    ) * 1024 * 1024\n\n    prepared: list[tuple[bytes, str]] = []\n    total_bytes = 0\n    for position, item in enumerate(files, start=1):\n        content, filename = _read_file_bytes(item, position, per_file_bytes)\n        total_bytes += len(content)\n        if total_bytes > total_limit_bytes:\n            raise ValueError(\"업로드 파일의 전체 크기가 설정한 제한을 초과했습니다.\")\n        prepared.append((content, filename))\n\n    try:\n        client = transport or import_module(\"requests\")\n    except ModuleNotFoundError as exc:\n        raise ValueError(\"DRM API 호출에 필요한 requests 패키지가 설치되어 있지 않습니다.\") from exc\n\n    results = [\n        _post_file(\n            client=client,\n            url=url,\n            token=token,\n            employee_no=emp_no,\n            filename=filename,\n            content=content,\n            timeout_seconds=timeout,\n            verify_tls=tls_verification,\n            max_response_bytes=response_limit_bytes,\n        )\n        for content, filename in prepared\n    ]\n    return {\n        \"success\": True,\n        \"data\": results,\n        \"errors\": [],\n        \"meta\": {\n            \"file_count\": len(results),\n            \"total_source_bytes\": total_bytes,\n            \"total_response_bytes\": sum(item[\"response_bytes\"] for item in results),\n            \"total_char_count\": sum(item[\"char_count\"] for item in results),\n            \"order_preserved\": True,\n            \"redirects_allowed\": False,\n            \"response_type\": \"plain_text\",\n        },\n    }\n\n\ndef _data_payload(value: Any) -> dict[str, Any]:\n    if isinstance(value, Data):\n        return dict(value.data)\n    if isinstance(value, dict):\n        nested = value.get(\"data\")\n        return dict(nested) if isinstance(nested, dict) else dict(value)\n    data = getattr(value, \"data\", None)\n    if isinstance(data, dict):\n        return dict(data)\n    raise TypeError(\"EWS 파일 입력은 file_path를 포함한 Data여야 합니다.\")\n\n\ndef process_file_record(\n    file_record: Any,\n    drm_api_url: Any,\n    drm_token: Any,\n    employee_no: Any,\n    allowed_drm_hosts: Any,\n    *,\n    allow_insecure_http: Any = False,\n    verify_tls: Any = True,\n    timeout_seconds: Any = DEFAULT_TIMEOUT_SECONDS,\n    max_file_size_mb: Any = DEFAULT_MAX_FILE_SIZE_MB,\n    max_response_mb: Any = DEFAULT_MAX_RESPONSE_MB,\n    output_root: str | Path | None = None,\n    transport: Any | None = None,\n) -> dict[str, Any]:\n    \"\"\"EWS 항목 한 개를 처리하고 Read File이 읽을 평문 TXT 경로를 반환합니다.\"\"\"\n\n    record = _data_payload(file_record)\n    source_kind = str(record.get(\"source_kind\") or \"ews_attachment\")\n    source_path = Path(str(record.get(\"file_path\") or \"\"))\n    original_name = _safe_filename(record.get(\"file_name\") or source_path.name, 1)\n    if not source_path.is_file():\n        raise FileNotFoundError(f\"DRM 처리 입력 파일을 찾을 수 없습니다: {original_name}\")\n\n    if source_kind in {\"mail_body\", \"extraction_error\"}:\n        record[\"drm_status\"] = \"not_applicable\"\n        record[\"drm_error\"] = \"\"\n        return record\n\n    result = extract_document_texts(\n        [{\"file_path\": str(source_path), \"filename\": original_name}],\n        drm_api_url,\n        drm_token,\n        employee_no,\n        allowed_drm_hosts,\n        allow_insecure_http=allow_insecure_http,\n        verify_tls=verify_tls,\n        timeout_seconds=timeout_seconds,\n        max_files=1,\n        max_file_size_mb=max_file_size_mb,\n        max_total_size_mb=max_file_size_mb,\n        max_response_mb=max_response_mb,\n        transport=transport,\n    )\n    item = result[\"data\"][0]\n    destination_dir = Path(output_root) if output_root else Path(\n        tempfile.mkdtemp(prefix=\"langflow-drm-text-\")\n    )\n    destination_dir.mkdir(parents=True, exist_ok=True)\n    text_name = f\"{Path(original_name).stem}_drm_text.txt\"\n    destination_path = destination_dir / _safe_filename(text_name, 1)\n    try:\n        destination_path.write_text(str(item[\"text\"]), encoding=\"utf-8\")\n    except OSError as exc:\n        raise DrmTextExtractionError(f\"DRM 평문 작업 파일을 저장하지 못했습니다: {original_name}\") from exc\n\n    record.update(\n        {\n            \"original_file_path\": str(source_path),\n            \"original_file_name\": original_name,\n            \"file_path\": str(destination_path),\n            \"file_name\": destination_path.name,\n            \"content_type\": \"text/plain\",\n            \"drm_status\": \"text_extracted\",\n            \"drm_error\": \"\",\n            \"drm_response_encoding\": item[\"encoding\"],\n            \"drm_response_bytes\": item[\"response_bytes\"],\n            \"drm_text_char_count\": item[\"char_count\"],\n        }\n    )\n    return record\n\n\ndef format_extraction_message(result: dict[str, Any]) -> str:\n    items = result.get(\"data\") if isinstance(result, dict) else None\n    if not isinstance(items, list) or not items:\n        raise ValueError(\"추출된 문서 텍스트가 없습니다.\")\n    blocks = [\"# DRM 문서 텍스트 추출 결과\"]\n    total = len(items)\n    for index, item in enumerate(items, start=1):\n        blocks.append(\n            \"\\n\".join(\n                [\n                    f\"[FILE {index}/{total}] {item['file_name']}\",\n                    f\"문자 수: {item['char_count']:,}\",\n                    \"\",\n                    str(item[\"text\"]),\n                    f\"[END FILE {index}/{total}]\",\n                ]\n            )\n        )\n    return \"\\n\\n\".join(blocks)\n\n\nclass DrmDocumentTextExtractor(Component):\n    display_name = \"DRM 문서 텍스트 추출\"\n    description = \"문서·이미지를 DRM text API에 전송해 평문 Message 또는 EWS용 TXT 작업 파일로 반환합니다.\"\n    icon = \"FileLock2\"\n    name = \"DrmDocumentTextExtractor\"\n\n    inputs = [\n        FileInput(\n            name=\"document_files\",\n            display_name=\"문서 파일\",\n            file_types=SUPPORTED_FILE_TYPES,\n            info=\"PDF·Office·HWP·텍스트·CSV·일반 이미지를 입력 순서대로 DRM API에 전송합니다.\",\n            required=False,\n            is_list=True,\n            value=[],\n            temp_file=True,\n        ),\n        DataInput(\n            name=\"file_record\",\n            display_name=\"EWS 파일 항목\",\n            info=\"EWS Flow에서 file_path·file_name·source_kind가 포함된 Data 한 건을 연결합니다.\",\n            required=False,\n            advanced=True,\n        ),\n        MessageTextInput(\n            name=\"drm_api_url\",\n            display_name=\"DRM API 주소\",\n            info=\"파일을 multipart/form-data의 file 필드로 받을 DRM text API 전체 주소입니다.\",\n            required=True,\n            value=\"\",\n        ),\n        SecretStrInput(\n            name=\"drm_token\",\n            display_name=\"DRM 토큰\",\n            info=\"Authorization: Bearer 헤더에 넣을 토큰입니다. Flow JSON 기본값에는 저장하지 않습니다.\",\n            required=True,\n            value=\"\",\n        ),\n        SecretStrInput(\n            name=\"employee_no\",\n            display_name=\"사번\",\n            info=\"DRM API의 empNo 쿼리 파라미터로 전달합니다. 개인 식별값이므로 비밀 입력으로 처리합니다.\",\n            required=True,\n            value=\"\",\n        ),\n        MessageTextInput(\n            name=\"allowed_drm_hosts\",\n            display_name=\"허용 DRM 서버\",\n            info=\"업로드를 허용할 host만 쉼표로 입력합니다. 예: drm.example.internal 또는 .example.internal\",\n            required=True,\n            value=\"\",\n        ),\n        BoolInput(\n            name=\"allow_insecure_http\",\n            display_name=\"HTTP DRM API 사용 허용\",\n            info=\"기본값은 꺼짐입니다. HTTPS를 지원하지 않는 폐쇄된 사내 테스트망에서만 켜세요.\",\n            value=False,\n            advanced=True,\n        ),\n        BoolInput(\n            name=\"verify_tls\",\n            display_name=\"TLS 인증서 검증\",\n            info=\"HTTPS 인증서를 검증합니다. 사내 CA를 설치한 운영 환경에서는 켠 상태를 유지하세요.\",\n            value=True,\n            advanced=True,\n        ),\n        IntInput(\n            name=\"timeout_seconds\",\n            display_name=\"제한 시간(초)\",\n            info=\"파일 하나의 연결·응답 읽기 timeout입니다. 1~600초 범위입니다.\",\n            value=DEFAULT_TIMEOUT_SECONDS,\n            advanced=True,\n        ),\n        IntInput(\n            name=\"max_files\",\n            display_name=\"최대 파일 수\",\n            info=\"한 번 실행에서 처리할 파일 수를 1~50개로 제한합니다.\",\n            value=DEFAULT_MAX_FILES,\n            advanced=True,\n        ),\n        IntInput(\n            name=\"max_file_size_mb\",\n            display_name=\"파일당 최대 크기(MB)\",\n            info=\"DRM API에 업로드할 파일 하나의 최대 크기입니다.\",\n            value=DEFAULT_MAX_FILE_SIZE_MB,\n            advanced=True,\n        ),\n        IntInput(\n            name=\"max_total_size_mb\",\n            display_name=\"전체 최대 크기(MB)\",\n            info=\"한 번 실행에서 메모리에 읽을 전체 파일의 최대 크기입니다.\",\n            value=DEFAULT_MAX_TOTAL_SIZE_MB,\n            advanced=True,\n        ),\n        IntInput(\n            name=\"max_response_mb\",\n            display_name=\"파일당 최대 응답 크기(MB)\",\n            info=\"DRM API의 평문 응답을 이 크기까지만 읽습니다.\",\n            value=DEFAULT_MAX_RESPONSE_MB,\n            advanced=True,\n        ),\n    ]\n\n    outputs = [\n        Output(\n            name=\"extracted_text\",\n            display_name=\"추출된 문서 텍스트\",\n            method=\"build_extracted_text\",\n            types=[\"Message\"],\n            cache=False,\n            tool_mode=False,\n        ),\n        Output(\n            name=\"processed_file\",\n            display_name=\"DRM 평문 작업 파일\",\n            method=\"build_processed_file\",\n            types=[\"Data\"],\n            cache=False,\n            tool_mode=False,\n        ),\n    ]\n\n    def build_extracted_text(self) -> Message:\n        result = extract_document_texts(\n            document_files=getattr(self, \"document_files\", None),\n            drm_api_url=getattr(self, \"drm_api_url\", \"\"),\n            drm_token=getattr(self, \"drm_token\", \"\"),\n            employee_no=getattr(self, \"employee_no\", \"\"),\n            allowed_drm_hosts=getattr(self, \"allowed_drm_hosts\", \"\"),\n            allow_insecure_http=getattr(self, \"allow_insecure_http\", False),\n            verify_tls=getattr(self, \"verify_tls\", True),\n            timeout_seconds=getattr(self, \"timeout_seconds\", DEFAULT_TIMEOUT_SECONDS),\n            max_files=getattr(self, \"max_files\", DEFAULT_MAX_FILES),\n            max_file_size_mb=getattr(self, \"max_file_size_mb\", DEFAULT_MAX_FILE_SIZE_MB),\n            max_total_size_mb=getattr(self, \"max_total_size_mb\", DEFAULT_MAX_TOTAL_SIZE_MB),\n            max_response_mb=getattr(self, \"max_response_mb\", DEFAULT_MAX_RESPONSE_MB),\n        )\n        meta = result[\"meta\"]\n        self.status = (\n            f\"추출 완료 · 파일 {meta['file_count']}개 · \"\n            f\"응답 {meta['total_response_bytes']:,}바이트 · 텍스트 {meta['total_char_count']:,}자\"\n        )\n        return Message(text=format_extraction_message(result))\n\n    def build_processed_file(self) -> Data:\n        record = process_file_record(\n            file_record=getattr(self, \"file_record\", None),\n            drm_api_url=getattr(self, \"drm_api_url\", \"\"),\n            drm_token=getattr(self, \"drm_token\", \"\"),\n            employee_no=getattr(self, \"employee_no\", \"\"),\n            allowed_drm_hosts=getattr(self, \"allowed_drm_hosts\", \"\"),\n            allow_insecure_http=getattr(self, \"allow_insecure_http\", False),\n            verify_tls=getattr(self, \"verify_tls\", True),\n            timeout_seconds=getattr(self, \"timeout_seconds\", DEFAULT_TIMEOUT_SECONDS),\n            max_file_size_mb=getattr(self, \"max_file_size_mb\", DEFAULT_MAX_FILE_SIZE_MB),\n            max_response_mb=getattr(self, \"max_response_mb\", DEFAULT_MAX_RESPONSE_MB),\n        )\n        self.status = (\n            f\"DRM 상태: {record.get('drm_status')} · \"\n            f\"{record.get('original_file_name') or record.get('file_name')}\"\n        )\n        return Data(data=record)\n",
+                "fileTypes": [],
+                "file_path": "",
+                "password": false,
+                "name": "code",
+                "advanced": true,
+                "dynamic": true,
+                "info": "",
+                "load_from_db": false,
+                "title_case": false
+              },
+              "drm_api_url": {
+                "tool_mode": false,
+                "trace_as_input": true,
+                "trace_as_metadata": true,
+                "load_from_db": false,
+                "list": false,
+                "list_add_label": "Add More",
+                "override_skip": false,
+                "required": true,
+                "placeholder": "",
+                "show": true,
+                "name": "drm_api_url",
+                "value": "",
+                "display_name": "DRM API 주소",
+                "advanced": false,
+                "input_types": [
+                  "Message"
+                ],
+                "dynamic": false,
+                "info": "파일을 multipart/form-data의 file 필드로 받을 DRM text API 전체 주소입니다.",
+                "title_case": false,
+                "track_in_telemetry": false,
+                "type": "str",
+                "_input_type": "MessageTextInput"
+              },
+              "drm_token": {
+                "load_from_db": true,
+                "override_skip": false,
+                "required": true,
+                "placeholder": "",
+                "show": true,
+                "name": "drm_token",
+                "value": "",
+                "display_name": "DRM 토큰",
+                "advanced": false,
+                "input_types": [],
+                "dynamic": false,
+                "info": "Authorization: Bearer 헤더에 넣을 토큰입니다. Flow JSON 기본값에는 저장하지 않습니다.",
+                "title_case": false,
+                "track_in_telemetry": false,
+                "password": true,
+                "type": "str",
+                "_input_type": "SecretStrInput"
+              },
+              "employee_no": {
+                "load_from_db": true,
+                "override_skip": false,
+                "required": true,
+                "placeholder": "",
+                "show": true,
+                "name": "employee_no",
+                "value": "",
+                "display_name": "사번",
+                "advanced": false,
+                "input_types": [],
+                "dynamic": false,
+                "info": "DRM API의 empNo 쿼리 파라미터로 전달합니다. 개인 식별값이므로 비밀 입력으로 처리합니다.",
+                "title_case": false,
+                "track_in_telemetry": false,
+                "password": true,
+                "type": "str",
+                "_input_type": "SecretStrInput"
+              },
+              "max_file_size_mb": {
+                "tool_mode": false,
+                "trace_as_metadata": true,
+                "list": false,
+                "list_add_label": "Add More",
+                "override_skip": false,
+                "required": false,
+                "placeholder": "",
+                "show": true,
+                "name": "max_file_size_mb",
+                "value": 50,
+                "display_name": "파일당 최대 크기(MB)",
+                "advanced": true,
+                "dynamic": false,
+                "info": "DRM API에 업로드할 파일 하나의 최대 크기입니다.",
+                "title_case": false,
+                "track_in_telemetry": true,
+                "type": "int",
+                "_input_type": "IntInput"
+              },
+              "max_files": {
+                "tool_mode": false,
+                "trace_as_metadata": true,
+                "list": false,
+                "list_add_label": "Add More",
+                "override_skip": false,
+                "required": false,
+                "placeholder": "",
+                "show": true,
+                "name": "max_files",
+                "value": 10,
+                "display_name": "최대 파일 수",
+                "advanced": true,
+                "dynamic": false,
+                "info": "한 번 실행에서 처리할 파일 수를 1~50개로 제한합니다.",
+                "title_case": false,
+                "track_in_telemetry": true,
+                "type": "int",
+                "_input_type": "IntInput"
+              },
+              "max_response_mb": {
+                "tool_mode": false,
+                "trace_as_metadata": true,
+                "list": false,
+                "list_add_label": "Add More",
+                "override_skip": false,
+                "required": false,
+                "placeholder": "",
+                "show": true,
+                "name": "max_response_mb",
+                "value": 20,
+                "display_name": "파일당 최대 응답 크기(MB)",
+                "advanced": true,
+                "dynamic": false,
+                "info": "DRM API의 평문 응답을 이 크기까지만 읽습니다.",
+                "title_case": false,
+                "track_in_telemetry": true,
+                "type": "int",
+                "_input_type": "IntInput"
+              },
+              "max_total_size_mb": {
+                "tool_mode": false,
+                "trace_as_metadata": true,
+                "list": false,
+                "list_add_label": "Add More",
+                "override_skip": false,
+                "required": false,
+                "placeholder": "",
+                "show": true,
+                "name": "max_total_size_mb",
+                "value": 200,
+                "display_name": "전체 최대 크기(MB)",
+                "advanced": true,
+                "dynamic": false,
+                "info": "한 번 실행에서 메모리에 읽을 전체 파일의 최대 크기입니다.",
+                "title_case": false,
+                "track_in_telemetry": true,
+                "type": "int",
+                "_input_type": "IntInput"
+              },
+              "timeout_seconds": {
+                "tool_mode": false,
+                "trace_as_metadata": true,
+                "list": false,
+                "list_add_label": "Add More",
+                "override_skip": false,
+                "required": false,
+                "placeholder": "",
+                "show": true,
+                "name": "timeout_seconds",
+                "value": 180,
+                "display_name": "제한 시간(초)",
+                "advanced": true,
+                "dynamic": false,
+                "info": "파일 하나의 연결·응답 읽기 timeout입니다. 1~600초 범위입니다.",
+                "title_case": false,
+                "track_in_telemetry": true,
+                "type": "int",
+                "_input_type": "IntInput"
+              },
+              "verify_tls": {
+                "tool_mode": false,
+                "trace_as_metadata": true,
+                "list": false,
+                "list_add_label": "Add More",
+                "override_skip": false,
+                "required": false,
+                "placeholder": "",
+                "show": true,
+                "name": "verify_tls",
+                "value": true,
+                "display_name": "TLS 인증서 검증",
+                "advanced": true,
+                "dynamic": false,
+                "info": "HTTPS 인증서를 검증합니다. 사내 CA를 설치한 운영 환경에서는 켠 상태를 유지하세요.",
+                "title_case": false,
+                "track_in_telemetry": true,
+                "type": "bool",
+                "_input_type": "BoolInput"
+              }
+            },
+            "description": "문서·이미지를 DRM text API에 전송해 평문 Message 또는 EWS용 TXT 작업 파일로 반환합니다.",
+            "icon": "FileLock2",
+            "base_classes": [
+              "Data",
+              "Message"
+            ],
+            "display_name": "DRM 문서 텍스트 추출",
+            "documentation": "",
+            "minimized": false,
+            "custom_fields": {},
+            "output_types": [],
+            "pinned": false,
+            "conditional_paths": [],
+            "frozen": false,
+            "outputs": [
+              {
+                "types": [
+                  "Message"
+                ],
+                "selected": "Message",
+                "name": "extracted_text",
+                "display_name": "추출된 문서 텍스트",
+                "method": "build_extracted_text",
+                "value": "__UNDEFINED__",
+                "cache": false,
+                "allows_loop": false,
+                "group_outputs": false,
+                "tool_mode": false
+              },
+              {
+                "types": [
+                  "Data"
+                ],
+                "selected": "Data",
+                "name": "processed_file",
+                "display_name": "DRM 평문 작업 파일",
+                "method": "build_processed_file",
+                "value": "__UNDEFINED__",
+                "cache": false,
+                "allows_loop": false,
+                "group_outputs": false,
+                "tool_mode": false
+              }
+            ],
+            "field_order": [
+              "document_files",
+              "file_record",
+              "drm_api_url",
+              "drm_token",
+              "employee_no",
+              "allowed_drm_hosts",
+              "allow_insecure_http",
+              "verify_tls",
+              "timeout_seconds",
+              "max_files",
+              "max_file_size_mb",
+              "max_total_size_mb",
+              "max_response_mb"
+            ],
+            "beta": false,
+            "legacy": false,
+            "edited": false,
+            "metadata": {
+              "module": "agent_ground.drm_document_text_extraction.component",
+              "code_hash": "a7d940c6a8f4",
+              "dependencies": {
+                "total_dependencies": 1,
+                "dependencies": [
+                  {
+                    "name": "lfx",
+                    "version": "0.3.4"
+                  }
+                ]
+              }
+            },
+            "tool_mode": false,
+            "lf_version": "1.8.2"
+          },
+          "selected_output": "extracted_text",
+          "type": "DrmDocumentTextExtractor",
+          "showNode": true
+        },
+        "dragging": false,
+        "height": 234,
+        "id": "DrmDocumentTextExtractor-drmDocument",
+        "position": {
+          "x": 0.0,
+          "y": 80.0
+        },
+        "positionAbsolute": {
+          "x": 0.0,
+          "y": 80.0
+        },
+        "selected": false,
+        "type": "genericNode"
+      },
+      {
+        "data": {
+          "id": "ChatOutput-drmDocumentText",
+          "node": {
+            "base_classes": [
+              "Message"
+            ],
+            "beta": false,
+            "conditional_paths": [],
+            "custom_fields": {},
+            "description": "Display a chat message in the Playground.",
+            "display_name": "02 추출 텍스트 출력",
+            "documentation": "",
+            "edited": false,
+            "field_order": [
+              "input_value",
+              "should_store_message",
+              "sender",
+              "sender_name",
+              "session_id",
+              "context_id",
+              "data_template",
+              "clean_data"
+            ],
+            "frozen": false,
+            "icon": "MessagesSquare",
+            "legacy": false,
+            "lf_version": "1.7.0",
+            "metadata": {
+              "code_hash": "8c87e536cca4",
+              "dependencies": {
+                "dependencies": [
+                  {
+                    "name": "orjson",
+                    "version": "3.10.15"
+                  },
+                  {
+                    "name": "fastapi",
+                    "version": "0.135.1"
+                  },
+                  {
+                    "name": "lfx",
+                    "version": null
+                  }
+                ],
+                "total_dependencies": 3
+              },
+              "module": "lfx.components.input_output.chat_output.ChatOutput"
+            },
+            "output_types": [],
+            "outputs": [
+              {
+                "allows_loop": false,
+                "cache": true,
+                "display_name": "Output Message",
+                "group_outputs": false,
+                "method": "message_response",
+                "name": "message",
+                "selected": "Message",
+                "tool_mode": true,
+                "types": [
+                  "Message"
+                ],
+                "value": "__UNDEFINED__"
+              }
+            ],
+            "pinned": false,
+            "template": {
+              "_type": "Component",
+              "clean_data": {
+                "_input_type": "BoolInput",
+                "advanced": true,
+                "display_name": "Basic Clean Data",
+                "dynamic": false,
+                "info": "Whether to clean data before converting to string.",
+                "list": false,
+                "list_add_label": "Add More",
+                "name": "clean_data",
+                "placeholder": "",
+                "required": false,
+                "show": true,
+                "title_case": false,
+                "tool_mode": false,
+                "trace_as_metadata": true,
+                "type": "bool",
+                "value": true
+              },
+              "code": {
+                "advanced": true,
+                "dynamic": true,
+                "fileTypes": [],
+                "file_path": "",
+                "info": "",
+                "list": false,
+                "load_from_db": false,
+                "multiline": true,
+                "name": "code",
+                "password": false,
+                "placeholder": "",
+                "required": true,
+                "show": true,
+                "title_case": false,
+                "type": "code",
+                "value": "from collections.abc import Generator\nfrom typing import Any\n\nimport orjson\nfrom fastapi.encoders import jsonable_encoder\n\nfrom lfx.base.io.chat import ChatComponent\nfrom lfx.helpers.data import safe_convert\nfrom lfx.inputs.inputs import BoolInput, DropdownInput, HandleInput, MessageTextInput\nfrom lfx.schema.data import Data\nfrom lfx.schema.dataframe import DataFrame\nfrom lfx.schema.message import Message\nfrom lfx.schema.properties import Source\nfrom lfx.template.field.base import Output\nfrom lfx.utils.constants import (\n    MESSAGE_SENDER_AI,\n    MESSAGE_SENDER_NAME_AI,\n    MESSAGE_SENDER_USER,\n)\n\n\nclass ChatOutput(ChatComponent):\n    display_name = \"Chat Output\"\n    description = \"Display a chat message in the Playground.\"\n    documentation: str = \"https://docs.langflow.org/chat-input-and-output\"\n    icon = \"MessagesSquare\"\n    name = \"ChatOutput\"\n    minimized = True\n\n    inputs = [\n        HandleInput(\n            name=\"input_value\",\n            display_name=\"Inputs\",\n            info=\"Message to be passed as output.\",\n            input_types=[\"Data\", \"DataFrame\", \"Message\"],\n            required=True,\n        ),\n        BoolInput(\n            name=\"should_store_message\",\n            display_name=\"Store Messages\",\n            info=\"Store the message in the history.\",\n            value=True,\n            advanced=True,\n        ),\n        DropdownInput(\n            name=\"sender\",\n            display_name=\"Sender Type\",\n            options=[MESSAGE_SENDER_AI, MESSAGE_SENDER_USER],\n            value=MESSAGE_SENDER_AI,\n            advanced=True,\n            info=\"Type of sender.\",\n        ),\n        MessageTextInput(\n            name=\"sender_name\",\n            display_name=\"Sender Name\",\n            info=\"Name of the sender.\",\n            value=MESSAGE_SENDER_NAME_AI,\n            advanced=True,\n        ),\n        MessageTextInput(\n            name=\"session_id\",\n            display_name=\"Session ID\",\n            info=\"The session ID of the chat. If empty, the current session ID parameter will be used.\",\n            advanced=True,\n        ),\n        MessageTextInput(\n            name=\"context_id\",\n            display_name=\"Context ID\",\n            info=\"The context ID of the chat. Adds an extra layer to the local memory.\",\n            value=\"\",\n            advanced=True,\n        ),\n        MessageTextInput(\n            name=\"data_template\",\n            display_name=\"Data Template\",\n            value=\"{text}\",\n            advanced=True,\n            info=\"Template to convert Data to Text. If left empty, it will be dynamically set to the Data's text key.\",\n        ),\n        BoolInput(\n            name=\"clean_data\",\n            display_name=\"Basic Clean Data\",\n            value=True,\n            advanced=True,\n            info=\"Whether to clean data before converting to string.\",\n        ),\n    ]\n    outputs = [\n        Output(\n            display_name=\"Output Message\",\n            name=\"message\",\n            method=\"message_response\",\n        ),\n    ]\n\n    def _build_source(self, id_: str | None, display_name: str | None, source: str | None) -> Source:\n        source_dict = {}\n        if id_:\n            source_dict[\"id\"] = id_\n        if display_name:\n            source_dict[\"display_name\"] = display_name\n        if source:\n            # Handle case where source is a ChatOpenAI object\n            if hasattr(source, \"model_name\"):\n                source_dict[\"source\"] = source.model_name\n            elif hasattr(source, \"model\"):\n                source_dict[\"source\"] = str(source.model)\n            else:\n                source_dict[\"source\"] = str(source)\n        return Source(**source_dict)\n\n    async def message_response(self) -> Message:\n        # First convert the input to string if needed\n        text = self.convert_to_string()\n\n        # Get source properties\n        source, _, display_name, source_id = self.get_properties_from_source_component()\n\n        # Create or use existing Message object\n        if isinstance(self.input_value, Message) and not self.is_connected_to_chat_input():\n            message = self.input_value\n            # Update message properties\n            message.text = text\n            # Preserve existing session_id from the incoming message if it exists\n            existing_session_id = message.session_id\n        else:\n            message = Message(text=text)\n            existing_session_id = None\n\n        # Set message properties\n        message.sender = self.sender\n        message.sender_name = self.sender_name\n        # Preserve session_id from incoming message, or use component/graph session_id\n        message.session_id = (\n            self.session_id or existing_session_id or (self.graph.session_id if hasattr(self, \"graph\") else None) or \"\"\n        )\n        message.context_id = self.context_id\n        message.flow_id = self.graph.flow_id if hasattr(self, \"graph\") else None\n        message.properties.source = self._build_source(source_id, display_name, source)\n\n        # Store message if needed\n        if message.session_id and self.should_store_message:\n            stored_message = await self.send_message(message)\n            self.message.value = stored_message\n            message = stored_message\n\n        self.status = message\n        return message\n\n    def _serialize_data(self, data: Data) -> str:\n        \"\"\"Serialize Data object to JSON string.\"\"\"\n        # Convert data.data to JSON-serializable format\n        serializable_data = jsonable_encoder(data.data)\n        # Serialize with orjson, enabling pretty printing with indentation\n        json_bytes = orjson.dumps(serializable_data, option=orjson.OPT_INDENT_2)\n        # Convert bytes to string and wrap in Markdown code blocks\n        return \"```json\\n\" + json_bytes.decode(\"utf-8\") + \"\\n```\"\n\n    def _validate_input(self) -> None:\n        \"\"\"Validate the input data and raise ValueError if invalid.\"\"\"\n        if self.input_value is None:\n            msg = \"Input data cannot be None\"\n            raise ValueError(msg)\n        if isinstance(self.input_value, list) and not all(\n            isinstance(item, Message | Data | DataFrame | str) for item in self.input_value\n        ):\n            invalid_types = [\n                type(item).__name__\n                for item in self.input_value\n                if not isinstance(item, Message | Data | DataFrame | str)\n            ]\n            msg = f\"Expected Data or DataFrame or Message or str, got {invalid_types}\"\n            raise TypeError(msg)\n        if not isinstance(\n            self.input_value,\n            Message | Data | DataFrame | str | list | Generator | type(None),\n        ):\n            type_name = type(self.input_value).__name__\n            msg = f\"Expected Data or DataFrame or Message or str, Generator or None, got {type_name}\"\n            raise TypeError(msg)\n\n    def convert_to_string(self) -> str | Generator[Any, None, None]:\n        \"\"\"Convert input data to string with proper error handling.\"\"\"\n        self._validate_input()\n        if isinstance(self.input_value, list):\n            clean_data: bool = getattr(self, \"clean_data\", False)\n            return \"\\n\".join([safe_convert(item, clean_data=clean_data) for item in self.input_value])\n        if isinstance(self.input_value, Generator):\n            return self.input_value\n        return safe_convert(self.input_value)\n"
+              },
+              "context_id": {
+                "_input_type": "MessageTextInput",
+                "advanced": true,
+                "display_name": "Context ID",
+                "dynamic": false,
+                "info": "The context ID of the chat. Adds an extra layer to the local memory.",
+                "input_types": [
+                  "Message"
+                ],
+                "list": false,
+                "list_add_label": "Add More",
+                "load_from_db": false,
+                "name": "context_id",
+                "placeholder": "",
+                "required": false,
+                "show": true,
+                "title_case": false,
+                "tool_mode": false,
+                "trace_as_input": true,
+                "trace_as_metadata": true,
+                "type": "str",
+                "value": ""
+              },
+              "data_template": {
+                "_input_type": "MessageTextInput",
+                "advanced": true,
+                "display_name": "Data Template",
+                "dynamic": false,
+                "info": "Template to convert Data to Text. If left empty, it will be dynamically set to the Data's text key.",
+                "input_types": [
+                  "Message"
+                ],
+                "list": false,
+                "load_from_db": false,
+                "name": "data_template",
+                "placeholder": "",
+                "required": false,
+                "show": true,
+                "title_case": false,
+                "tool_mode": false,
+                "trace_as_input": true,
+                "trace_as_metadata": true,
+                "type": "str",
+                "value": "{text}"
+              },
+              "input_value": {
+                "_input_type": "MessageInput",
+                "advanced": false,
+                "display_name": "Inputs",
+                "dynamic": false,
+                "info": "Message to be passed as output.",
+                "input_types": [
+                  "Data",
+                  "DataFrame",
+                  "Message"
+                ],
+                "list": false,
+                "load_from_db": false,
+                "name": "input_value",
+                "placeholder": "",
+                "required": true,
+                "show": true,
+                "title_case": false,
+                "trace_as_input": true,
+                "trace_as_metadata": true,
+                "type": "str",
+                "value": ""
+              },
+              "sender": {
+                "_input_type": "DropdownInput",
+                "advanced": true,
+                "combobox": false,
+                "display_name": "Sender Type",
+                "dynamic": false,
+                "info": "Type of sender.",
+                "name": "sender",
+                "options": [
+                  "Machine",
+                  "User"
+                ],
+                "placeholder": "",
+                "required": false,
+                "show": true,
+                "title_case": false,
+                "tool_mode": false,
+                "trace_as_metadata": true,
+                "type": "str",
+                "value": "Machine"
+              },
+              "sender_name": {
+                "_input_type": "MessageTextInput",
+                "advanced": true,
+                "display_name": "Sender Name",
+                "dynamic": false,
+                "info": "Name of the sender.",
+                "input_types": [
+                  "Message"
+                ],
+                "list": false,
+                "load_from_db": false,
+                "name": "sender_name",
+                "placeholder": "",
+                "required": false,
+                "show": true,
+                "title_case": false,
+                "tool_mode": false,
+                "trace_as_input": true,
+                "trace_as_metadata": true,
+                "type": "str",
+                "value": "DRM Document Text"
+              },
+              "session_id": {
+                "_input_type": "MessageTextInput",
+                "advanced": true,
+                "display_name": "Session ID",
+                "dynamic": false,
+                "info": "The session ID of the chat. If empty, the current session ID parameter will be used.",
+                "input_types": [
+                  "Message"
+                ],
+                "list": false,
+                "load_from_db": false,
+                "name": "session_id",
+                "placeholder": "",
+                "required": false,
+                "show": true,
+                "title_case": false,
+                "tool_mode": false,
+                "trace_as_input": true,
+                "trace_as_metadata": true,
+                "type": "str",
+                "value": ""
+              },
+              "should_store_message": {
+                "_input_type": "BoolInput",
+                "advanced": true,
+                "display_name": "Store Messages",
+                "dynamic": false,
+                "info": "Store the message in the history.",
+                "list": false,
+                "name": "should_store_message",
+                "placeholder": "",
+                "required": false,
+                "show": true,
+                "title_case": false,
+                "trace_as_metadata": true,
+                "type": "bool",
+                "value": false
+              }
+            },
+            "tool_mode": false
+          },
+          "type": "ChatOutput",
+          "display_name": "02 추출 텍스트 출력"
+        },
+        "dragging": false,
+        "height": 234,
+        "id": "ChatOutput-drmDocumentText",
+        "position": {
+          "x": 520.0,
+          "y": 80.0
+        },
+        "positionAbsolute": {
+          "x": 520.0,
+          "y": 80.0
+        },
+        "selected": false,
+        "type": "genericNode",
+        "width": 320
+      }
+    ],
+    "viewport": {
+      "x": 110.0,
+      "y": 170.0,
+      "zoom": 0.72
+    }
+  },
+  "description": "Langflow 1.8.2 flow that uploads documents, text files, or common images to an allowlisted DRM text API and returns the extracted plain text without an LLM.",
+  "endpoint_name": "drm-document-text-extraction",
+  "id": "79df290c-0a56-5428-a493-5b70da8c8a61",
+  "is_component": false,
+  "last_tested_version": "1.8.2",
+  "locked": false,
+  "name": "drm_document_text_extraction_flow",
+  "tags": [
+    "document",
+    "drm",
+    "text-extraction",
+    "file-upload",
+    "on-prem"
+  ]
+}

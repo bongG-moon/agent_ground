@@ -13,6 +13,7 @@ ROOT = Path(__file__).resolve().parents[1]
 HTML_ROOT = ROOT / "html"
 
 GENERAL_COMPONENT_IDS = {
+    "drm_document_text_extractor",
     "multi_image_base64_encoder",
     "cached_named_run_flow_tool",
     "oracle_table_query",
@@ -38,6 +39,7 @@ DOMAIN_COMPONENT_IDS = {
 }
 COMPONENT_IDS = GENERAL_COMPONENT_IDS | DOMAIN_COMPONENT_IDS
 INTERNAL_NODE_IDS_BY_FLOW = {
+    "drm_document_text_extraction_flow": set(),
     "reusable_data_flow": {
         "data_request_normalizer",
         "oracle_data",
@@ -67,8 +69,7 @@ INTERNAL_NODE_IDS_BY_FLOW = {
     },
     "skill_based_agent_flow": {"demo_skill_catalog_builder"},
     "mail_attachment_summary_flow": {
-        "msg_attachment_extractor",
-        "drm_unlock_adapter",
+        "ews_mail_attachment_reader",
     },
     "ppt_reference_html_flow": {
         "presentation_request_builder",
@@ -131,7 +132,7 @@ def validate_components() -> int:
     actual_ids = {path.name for path in component_dirs}
     if actual_ids != COMPONENT_IDS:
         raise AssertionError(
-            "components/ must contain exactly 20 qualified Components: "
+            f"components/ must contain exactly {len(COMPONENT_IDS)} qualified Components: "
             f"missing={sorted(COMPONENT_IDS - actual_ids)}, "
             f"unexpected={sorted(actual_ids - COMPONENT_IDS)}"
         )
@@ -195,7 +196,9 @@ def validate_flows() -> int:
         for path in (ROOT / "components").glob("*/manifest.json")
     }
     if set(component_manifests) != COMPONENT_IDS:
-        raise AssertionError("Flow validation requires the exact 20-Component manifest set")
+        raise AssertionError(
+            f"Flow validation requires the exact {len(COMPONENT_IDS)}-Component manifest set"
+        )
     flow_dirs = sorted(path for path in (ROOT / "flows").iterdir() if path.is_dir())
     if {path.name for path in flow_dirs} != set(INTERNAL_NODE_IDS_BY_FLOW):
         raise AssertionError(
@@ -311,13 +314,15 @@ def validate_flows() -> int:
         if not (ROOT / manifest["documentation_path"]).is_file():
             raise AssertionError(f"{flow_dir.name}: documentation page missing")
     if all_internal_ids != INTERNAL_NODE_IDS:
-        raise AssertionError("Internal node ownership does not cover the exact 30-node set")
+        raise AssertionError(
+            f"Internal node ownership does not cover the exact {len(INTERNAL_NODE_IDS)}-node set"
+        )
     project_bundle = json.loads((ROOT / "flows" / "00_AGENT_GROUND_ALL_FLOWS.json").read_text(encoding="utf-8"))
     project_names = [item.get("name") for item in project_bundle.get("flows", [])]
     if "업무분석flow" in project_names:
         raise AssertionError("quarantined reusable_data_flow donor must not be included in the project bundle")
-    if len(project_names) != 6:
-        raise AssertionError(f"project bundle must contain 6 runnable flows, got {project_names}")
+    if len(project_names) != 7:
+        raise AssertionError(f"project bundle must contain 7 runnable flows, got {project_names}")
     return len(flow_dirs)
 
 
@@ -365,14 +370,18 @@ def validate_registry() -> int:
     if unexpected_types:
         raise AssertionError(f"Registry contains non-publishable asset types: {unexpected_types}")
     if {item.get("id") for item in component_assets} != COMPONENT_IDS:
-        raise AssertionError("Registry Component set must match the exact 20 qualified Components")
+        raise AssertionError(
+            f"Registry Component set must match the exact {len(COMPONENT_IDS)} qualified Components"
+        )
     expected_flow_ids = set(INTERNAL_NODE_IDS_BY_FLOW)
     if {item.get("id") for item in flow_assets} != expected_flow_ids:
-        raise AssertionError("Registry Flow set must match the exact 6 Flow manifests")
-    if len(assets) != 26:
-        raise AssertionError(f"Registry count {len(assets)} != 26")
+        raise AssertionError("Registry Flow set must match the exact 7 Flow manifests")
+    if len(assets) != 28:
+        raise AssertionError(f"Registry count {len(assets)} != 28")
     if any(item.get("id") in INTERNAL_NODE_IDS for item in assets):
-        raise AssertionError("Registry must exclude all 28 Flow internal nodes")
+        raise AssertionError(
+            f"Registry must exclude all {len(INTERNAL_NODE_IDS)} Flow internal nodes"
+        )
     if any(item["status"] == "approved" for item in assets):
         raise AssertionError("No asset should be approved before user validation")
     return len(assets)

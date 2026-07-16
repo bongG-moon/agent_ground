@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import importlib.util
 import json
-import shutil
 from pathlib import Path
 from types import ModuleType
 
@@ -12,13 +11,13 @@ import pytest
 ROOT = Path(__file__).resolve().parents[3]
 FLOW_ROOT = ROOT / "flows" / "mail_attachment_summary_flow"
 FLOW_PATH = FLOW_ROOT / "mail_attachment_summary_flow.json"
-MSG_SOURCE = FLOW_ROOT / "nodes" / "msg_attachment_extractor.py"
-DRM_SOURCE = FLOW_ROOT / "nodes" / "drm_unlock_adapter.py"
+EWS_SOURCE = FLOW_ROOT / "nodes" / "ews_mail_attachment_reader.py"
+DRM_SOURCE = ROOT / "components" / "drm_document_text_extractor" / "drm_document_text_extractor.py"
 
 ALLOWED_NODE_TYPES = {
     "File",
-    "MsgAttachmentExtractor",
-    "DrmUnlockAdapter",
+    "OutlookEwsMailAttachmentReader",
+    "DrmDocumentTextExtractor",
     "LoopComponent",
     "ParserComponent",
     "LanguageModelComponent",
@@ -27,6 +26,51 @@ ALLOWED_NODE_TYPES = {
     "ChatOutput",
     "note",
 }
+
+FIND_ITEM_XML = """<?xml version="1.0" encoding="utf-8"?>
+<s:Envelope xmlns:s="http://schemas.xmlsoap.org/soap/envelope/"
+ xmlns:m="http://schemas.microsoft.com/exchange/services/2006/messages"
+ xmlns:t="http://schemas.microsoft.com/exchange/services/2006/types">
+ <s:Body><m:FindItemResponse><m:ResponseMessages>
+  <m:FindItemResponseMessage ResponseClass="Success"><m:ResponseCode>NoError</m:ResponseCode>
+   <m:RootFolder><t:Items><t:Message>
+    <t:ItemId Id="item-1" ChangeKey="change-1"/><t:Subject>검토 요청</t:Subject>
+    <t:Sender><t:Mailbox><t:Name>보낸 사람</t:Name><t:EmailAddress>sender@example.invalid</t:EmailAddress></t:Mailbox></t:Sender>
+    <t:DateTimeReceived>2026-07-16T01:00:00Z</t:DateTimeReceived><t:IsRead>false</t:IsRead><t:HasAttachments>true</t:HasAttachments>
+   </t:Message></t:Items></m:RootFolder>
+  </m:FindItemResponseMessage>
+ </m:ResponseMessages></m:FindItemResponse></s:Body>
+</s:Envelope>"""
+
+GET_ITEM_XML = """<?xml version="1.0" encoding="utf-8"?>
+<s:Envelope xmlns:s="http://schemas.xmlsoap.org/soap/envelope/"
+ xmlns:m="http://schemas.microsoft.com/exchange/services/2006/messages"
+ xmlns:t="http://schemas.microsoft.com/exchange/services/2006/types">
+ <s:Body><m:GetItemResponse><m:ResponseMessages>
+  <m:GetItemResponseMessage ResponseClass="Success"><m:ResponseCode>NoError</m:ResponseCode><m:Items><t:Message>
+   <t:ItemId Id="item-1"/><t:Subject>검토 요청</t:Subject>
+   <t:From><t:Mailbox><t:Name>보낸 사람</t:Name><t:EmailAddress>sender@example.invalid</t:EmailAddress></t:Mailbox></t:From>
+   <t:DateTimeReceived>2026-07-16T01:00:00Z</t:DateTimeReceived><t:IsRead>false</t:IsRead>
+   <t:Body BodyType="Text">첨부 문서를 검토해 주세요.</t:Body>
+   <t:Attachments><t:FileAttachment><t:AttachmentId Id="attachment-1"/><t:Name>review.pdf</t:Name>
+    <t:ContentType>application/pdf</t:ContentType><t:Size>8</t:Size><t:IsInline>false</t:IsInline>
+   </t:FileAttachment></t:Attachments>
+  </t:Message></m:Items></m:GetItemResponseMessage>
+ </m:ResponseMessages></m:GetItemResponse></s:Body>
+</s:Envelope>"""
+
+GET_ATTACHMENT_XML = """<?xml version="1.0" encoding="utf-8"?>
+<s:Envelope xmlns:s="http://schemas.xmlsoap.org/soap/envelope/"
+ xmlns:m="http://schemas.microsoft.com/exchange/services/2006/messages"
+ xmlns:t="http://schemas.microsoft.com/exchange/services/2006/types">
+ <s:Body><m:GetAttachmentResponse><m:ResponseMessages>
+  <m:GetAttachmentResponseMessage ResponseClass="Success"><m:ResponseCode>NoError</m:ResponseCode><m:Attachments>
+   <t:FileAttachment><t:AttachmentId Id="attachment-1"/><t:Name>review.pdf</t:Name>
+    <t:ContentType>application/pdf</t:ContentType><t:IsInline>false</t:IsInline><t:Content>JVBERi0xLjQ=</t:Content>
+   </t:FileAttachment>
+  </m:Attachments></m:GetAttachmentResponseMessage>
+ </m:ResponseMessages></m:GetAttachmentResponse></s:Body>
+</s:Envelope>"""
 
 
 def load_flow() -> dict:
@@ -49,23 +93,23 @@ def load_module(path: Path, name: str) -> ModuleType:
     return module
 
 
-def test_package_contract_registers_only_two_flow_internal_nodes() -> None:
+def test_package_contract_reuses_drm_component_and_has_one_internal_node() -> None:
     manifest = json.loads((FLOW_ROOT / "manifest.json").read_text(encoding="utf-8"))
     refs = json.loads((FLOW_ROOT / "component_refs.json").read_text(encoding="utf-8"))
     internal = json.loads((FLOW_ROOT / "internal_nodes.json").read_text(encoding="utf-8"))
 
     assert manifest["status"] == "user_testing"
-    assert manifest["version"] == "0.2.0"
+    assert manifest["version"] == "0.4.0"
     assert manifest["source_export_version"] == "1.8.2"
-    assert refs == {"flow_id": "mail_attachment_summary_flow", "components": []}
-    assert internal["flow_id"] == "mail_attachment_summary_flow"
-    assert {item["id"] for item in internal["nodes"]} == {
-        "msg_attachment_extractor",
-        "drm_unlock_adapter",
+    assert refs == {
+        "flow_id": "mail_attachment_summary_flow",
+        "components": [{"id": "drm_document_text_extractor", "version": "0.2.0"}],
     }
+    assert internal["flow_id"] == "mail_attachment_summary_flow"
+    assert {item["id"] for item in internal["nodes"]} == {"ews_mail_attachment_reader"}
 
 
-def test_flow_contains_expected_msg_drm_graph() -> None:
+def test_flow_contains_expected_ews_drm_graph() -> None:
     flow = load_flow()
     nodes = flow["data"]["nodes"]
     edges = flow["data"]["edges"]
@@ -87,35 +131,49 @@ def test_flow_contains_expected_msg_drm_graph() -> None:
 
     edge_pairs = {(edge["source"], edge["target"]) for edge in edges}
     assert (
-        "MsgAttachmentExtractor-mailAttachments",
+        "OutlookEwsMailAttachmentReader-mailAttachments",
         "LoopComponent-mailAttachments",
     ) in edge_pairs
-    assert ("LoopComponent-mailAttachments", "DrmUnlockAdapter-mailAttachments") in edge_pairs
-    assert ("DrmUnlockAdapter-mailAttachments", "File-mailAttachments") in edge_pairs
+    assert ("LoopComponent-mailAttachments", "DrmDocumentTextExtractor-mailAttachments") in edge_pairs
+    assert ("DrmDocumentTextExtractor-mailAttachments", "File-mailAttachments") in edge_pairs
 
 
-def test_internal_source_is_embedded_exactly_and_drm_is_fail_closed() -> None:
+def test_internal_and_shared_component_sources_are_embedded_exactly() -> None:
     flow = load_flow()
     source_by_node = {
-        "MsgAttachmentExtractor-mailAttachments": MSG_SOURCE.read_text(encoding="utf-8"),
-        "DrmUnlockAdapter-mailAttachments": DRM_SOURCE.read_text(encoding="utf-8"),
+        "OutlookEwsMailAttachmentReader-mailAttachments": EWS_SOURCE.read_text(encoding="utf-8"),
+        "DrmDocumentTextExtractor-mailAttachments": DRM_SOURCE.read_text(encoding="utf-8"),
     }
     for node_id, source in source_by_node.items():
         embedded = node_by_id(flow, node_id)["data"]["node"]["template"]["code"]["value"]
         assert embedded == source
-    assert "raise DrmAdapterNotConfigured" in source_by_node["DrmUnlockAdapter-mailAttachments"]
-    assert "company_drm_unlock" in source_by_node["DrmUnlockAdapter-mailAttachments"]
+    drm_source = source_by_node["DrmDocumentTextExtractor-mailAttachments"]
+    assert "process_file_record" in drm_source
+    assert '"Authorization": f"Bearer {token}"' in drm_source
+    assert '"params": {"empNo": employee_no}' in drm_source
 
 
-def test_msg_input_and_read_file_use_local_dynamic_path_contract() -> None:
+def test_ews_secrets_are_blank_and_read_file_uses_dynamic_local_path() -> None:
     flow = load_flow()
-    msg_template = node_by_id(flow, "MsgAttachmentExtractor-mailAttachments")["data"]["node"]["template"]
+    ews_template = node_by_id(flow, "OutlookEwsMailAttachmentReader-mailAttachments")["data"]["node"]["template"]
+    for field in ("email_addr", "username", "password", "ews_url", "nexus_url", "trusted_host"):
+        assert ews_template[field]["value"] == ""
+    assert ews_template["password"]["password"] is True
+    assert ews_template["verify_tls"]["value"] is False
+    assert ews_template["auto_install_dependencies"]["value"] is True
+
+    drm_node = node_by_id(flow, "DrmDocumentTextExtractor-mailAttachments")
+    drm_template = drm_node["data"]["node"]["template"]
+    for field in ("drm_api_url", "drm_token", "employee_no", "allowed_drm_hosts"):
+        assert drm_template[field]["value"] == ""
+    assert drm_template["drm_token"]["password"] is True
+    assert drm_template["employee_no"]["password"] is True
+    assert drm_template["allow_insecure_http"]["value"] is False
+    assert drm_template["verify_tls"]["value"] is True
+    assert drm_node["data"]["selected_output"] == "processed_file"
+
     file_node = node_by_id(flow, "File-mailAttachments")
     file_template = file_node["data"]["node"]["template"]
-
-    assert msg_template["msg_files"]["fileTypes"] == ["msg"]
-    assert msg_template["msg_files"]["list"] is True
-    assert msg_template["msg_files"]["file_path"] in ("", [])
     assert file_template["storage_location"]["value"] == [{"name": "Local", "icon": "hard-drive"}]
     assert file_template["path"]["file_path"] == []
     assert file_template["advanced_mode"]["value"] is True
@@ -137,108 +195,163 @@ def test_models_have_no_default_provider_or_secret() -> None:
         assert template["stream"]["value"] is False
 
 
-def test_msg_extractor_flattens_body_and_regular_attachments(tmp_path: Path) -> None:
-    module = load_module(MSG_SOURCE, "mail_flow_msg_extractor_test")
-    msg_path = tmp_path / "review.msg"
-    msg_path.write_bytes(module._OLE_COMPOUND_MAGIC + b"fake-msg")
+def test_ews_soap_builders_and_parsers() -> None:
+    module = load_module(EWS_SOURCE, "mail_flow_ews_parser_test")
+    find_soap = module.build_find_item_soap(5, "mailbox&test@example.invalid")
+    assert 'MaxEntriesReturned="5"' in find_soap
+    assert "mailbox&amp;test@example.invalid" in find_soap
+    assert 'Order="Descending"' in find_soap
 
-    class Attachment:
-        longFilename = "review.pdf"
-        shortFilename = None
-        name = None
-        hidden = False
-        cid = None
-        data = b"%PDF-1.4 fake"
+    mails = module.parse_find_item_response(FIND_ITEM_XML, keyword="검토", max_count=10)
+    assert len(mails) == 1
+    assert mails[0]["item_id"] == "item-1"
+    assert module.parse_find_item_response(FIND_ITEM_XML, keyword="없는 제목", max_count=10) == []
 
-    class HiddenAttachment:
-        longFilename = "logo.png"
-        shortFilename = None
-        name = None
-        hidden = True
-        cid = "logo"
-        data = b"PNG"
+    details = module.parse_get_item_response(GET_ITEM_XML)
+    assert details["item-1"]["body"] == "첨부 문서를 검토해 주세요."
+    assert details["item-1"]["attachments"][0]["attachment_id"] == "attachment-1"
 
-    class Message:
-        subject = "검토 요청"
-        sender = "sender@example.invalid"
-        to = "reviewer@example.invalid"
-        cc = ""
-        date = "2026-07-16"
-        body = "첨부 문서를 검토해 주세요."
-        htmlBody = None
-        attachments = [Attachment(), HiddenAttachment()]
+    attachments = module.parse_get_attachment_response(GET_ATTACHMENT_XML)
+    assert attachments["attachment-1"]["content"] == "JVBERi0xLjQ="
 
-        def close(self) -> None:
-            self.closed = True
 
-    rows = module.extract_msg_records(
-        [str(msg_path)],
-        opener=lambda _path: Message(),
-        output_root=tmp_path / "output",
+def test_ews_pipeline_downloads_body_and_file_without_exposing_ids(tmp_path: Path) -> None:
+    module = load_module(EWS_SOURCE, "mail_flow_ews_pipeline_test")
+
+    class Response:
+        status_code = 200
+
+        def __init__(self, text: str) -> None:
+            self.text = text
+
+    class Session:
+        def __init__(self) -> None:
+            self.responses = iter((FIND_ITEM_XML, GET_ITEM_XML, GET_ATTACHMENT_XML))
+            self.calls: list[dict] = []
+
+        def post(self, url: str, **kwargs):
+            self.calls.append({"url": url, **kwargs})
+            return Response(next(self.responses))
+
+    session = Session()
+    rows = module.fetch_ews_mail_records(
+        session,
+        ews_url="https://mail.example.invalid/EWS/Exchange.asmx",
+        email_addr="mailbox@example.invalid",
+        output_root=tmp_path / "ews-output",
     )
-    assert [row["source_kind"] for row in rows] == ["mail_body", "msg_attachment"]
-    assert rows[0]["parent_msg"] == "review.msg"
-    assert rows[1]["file_name"] == "review.pdf"
+    assert [row["source_kind"] for row in rows] == ["mail_body", "ews_attachment"]
+    assert len(session.calls) == 3
+    assert Path(rows[0]["file_path"]).read_text(encoding="utf-8").endswith("첨부 문서를 검토해 주세요.\n")
+    assert Path(rows[1]["file_path"]).read_bytes() == b"%PDF-1.4"
+    assert rows[1]["mail_subject"] == "검토 요청"
     assert rows[1]["drm_status"] == "pending"
-    assert Path(rows[0]["file_path"]).read_text(encoding="utf-8").endswith(
-        "첨부 문서를 검토해 주세요.\n"
-    )
-    assert Path(rows[1]["file_path"]).read_bytes() == b"%PDF-1.4 fake"
+    assert all("item_id" not in row and "attachment_id" not in row for row in rows)
 
 
-def test_msg_extractor_rejects_non_ole_or_whole_msg_drm(tmp_path: Path) -> None:
-    module = load_module(MSG_SOURCE, "mail_flow_msg_extractor_invalid_test")
-    msg_path = tmp_path / "protected.msg"
-    msg_path.write_bytes(b"not-an-ole-msg")
-    with pytest.raises(module.MsgExtractionError, match="MSG 자체가 DRM"):
-        module.extract_msg_records(
-            [str(msg_path)],
-            opener=lambda _path: None,
-            output_root=tmp_path / "output",
+def test_ews_pipeline_rejects_http_and_non_https_endpoint(tmp_path: Path) -> None:
+    module = load_module(EWS_SOURCE, "mail_flow_ews_endpoint_test")
+    with pytest.raises(module.EwsReaderError, match="https://"):
+        module.fetch_ews_mail_records(
+            object(),
+            ews_url="http://mail.example.invalid/EWS/Exchange.asmx",
+            output_root=tmp_path,
         )
 
 
-def test_drm_adapter_passes_body_but_fails_closed_for_attachment(tmp_path: Path) -> None:
-    module = load_module(DRM_SOURCE, "mail_flow_drm_adapter_fail_closed_test")
+def test_drm_component_passes_mail_body_without_api_credentials(tmp_path: Path) -> None:
+    module = load_module(DRM_SOURCE, "mail_flow_drm_body_bypass_test")
     source = tmp_path / "body.txt"
     source.write_text("mail body", encoding="utf-8")
-    body = module.unlock_record(
-        {"file_path": str(source), "file_name": "body.txt", "source_kind": "mail_body"}
+    body = module.process_file_record(
+        {"file_path": str(source), "file_name": "body.txt", "source_kind": "mail_body"},
+        "",
+        "",
+        "",
+        "",
     )
     assert body["file_path"] == str(source)
     assert body["drm_status"] == "not_applicable"
 
-    with pytest.raises(module.DrmAdapterNotConfigured):
-        module.unlock_record(
-            {"file_path": str(source), "file_name": "attachment.txt", "source_kind": "msg_attachment"},
-            output_root=tmp_path / "drm-output",
-        )
 
+def test_drm_component_posts_ews_attachment_and_writes_plain_text(tmp_path: Path) -> None:
+    module = load_module(DRM_SOURCE, "mail_flow_drm_text_api_test")
+    source = tmp_path / "001_protected.xlsx"
+    source.write_bytes(b"PK protected workbook")
 
-def test_drm_adapter_requires_new_output_file_and_preserves_metadata(tmp_path: Path) -> None:
-    module = load_module(DRM_SOURCE, "mail_flow_drm_adapter_success_test")
-    source = tmp_path / "protected.pdf"
-    source.write_bytes(b"protected")
+    class Response:
+        status_code = 200
+        content = "엑셀이 아닌 첨부도 같은 API 응답을 읽습니다.".encode("utf-8")
+        apparent_encoding = "utf-8"
+        headers = {
+            "Content-Type": "text/plain; charset=utf-8",
+            "Content-Length": str(len(content)),
+        }
 
-    def fake_unlocker(source_path: Path, destination_path: Path) -> str:
-        shutil.copy2(source_path, destination_path)
-        return "unlocked"
+        def iter_content(self, chunk_size: int):
+            yield self.content
 
-    result = module.unlock_record(
+        def close(self) -> None:
+            self.closed = True
+
+    class Client:
+        def __init__(self) -> None:
+            self.calls: list[dict] = []
+
+        def post(self, url: str, **kwargs):
+            uploaded = kwargs["files"]["file"]
+            self.calls.append(
+                {
+                    "url": url,
+                    "filename": uploaded[0],
+                    "content": uploaded[1].read(),
+                    "mime": uploaded[2],
+                    "headers": kwargs["headers"],
+                    "params": kwargs["params"],
+                    "timeout": kwargs["timeout"],
+                    "verify": kwargs["verify"],
+                    "allow_redirects": kwargs["allow_redirects"],
+                }
+            )
+            return Response()
+
+    client = Client()
+    result = module.process_file_record(
         {
             "file_path": str(source),
-            "file_name": "protected.pdf",
-            "source_kind": "msg_attachment",
-            "parent_msg": "review.msg",
+            "file_name": "protected.xlsx",
+            "source_kind": "ews_attachment",
+            "mail_subject": "검토 요청",
         },
-        unlocker=fake_unlocker,
-        output_root=tmp_path / "drm-output",
+        "http://drm.example.internal/DRM/decrypt/text",
+        "TOKEN_VALUE",
+        "X000000",
+        "drm.example.internal",
+        allow_insecure_http=True,
+        output_root=tmp_path / "drm-text-output",
+        transport=client,
     )
-    assert result["parent_msg"] == "review.msg"
+    assert result["mail_subject"] == "검토 요청"
     assert result["original_file_path"] == str(source)
-    assert result["drm_status"] == "unlocked"
-    assert Path(result["file_path"]).read_bytes() == b"protected"
+    assert result["original_file_name"] == "protected.xlsx"
+    assert result["drm_status"] == "text_extracted"
+    assert result["file_name"] == "protected_drm_text.txt"
+    assert Path(result["file_path"]).read_text(encoding="utf-8") == "엑셀이 아닌 첨부도 같은 API 응답을 읽습니다."
     assert Path(result["file_path"]).resolve() != source.resolve()
+    assert source.read_bytes() == b"PK protected workbook"
+    assert client.calls == [
+        {
+            "url": "http://drm.example.internal/DRM/decrypt/text",
+            "filename": "protected.xlsx",
+            "content": b"PK protected workbook",
+            "mime": "application/octet-stream",
+            "headers": {"Authorization": "Bearer TOKEN_VALUE"},
+            "params": {"empNo": "X000000"},
+            "timeout": 180,
+            "verify": False,
+            "allow_redirects": False,
+        }
+    ]
 
 
 def test_prompts_are_grounded_and_samples_are_safe() -> None:
@@ -260,12 +373,14 @@ def test_prompts_are_grounded_and_samples_are_safe() -> None:
 
     samples = FLOW_ROOT / "samples"
     required = {
+        "EWS_COMPONENT_CONFIG.md",
         "UPLOAD_GUIDE.md",
         "DRM_COMPONENT_CONTRACT.md",
-        "sample_extracted_msg_records.json",
+        "sample_ews_mail_records.json",
         "TEST_CASES.md",
     }
     assert all((samples / name).is_file() for name in required)
     combined = "\n".join((samples / name).read_text(encoding="utf-8") for name in required)
-    assert "Bearer " not in combined
-    assert "api_key" not in combined.lower()
+    assert "Authorization: Bearer TOKEN_INFO" not in combined
+    assert "1234567" not in combined
+    assert "email.aaa.com" not in combined

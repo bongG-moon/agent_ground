@@ -1,37 +1,38 @@
-# 사내 DRM 컴포넌트 구현 계약
+# DRM text API Component 계약
 
-구현 파일: `flows/mail_attachment_summary_flow/nodes/drm_unlock_adapter.py`
+공용 구현: `components/drm_document_text_extractor/drm_document_text_extractor.py`
 
-수정 대상은 `company_drm_unlock` 함수입니다.
+## 요청
 
-```python
-def company_drm_unlock(source_path: Path, destination_path: Path) -> str:
-    ...
+```text
+POST <DRM API URL>?empNo=<employee number>
+Authorization: Bearer <token>
+Content-Type: multipart/form-data
+file: (<original filename>, <binary>, application/octet-stream)
+timeout: 180초
 ```
 
-## 입력
+## EWS 입력과 출력
 
-- `source_path`: MSG에서 분리된 원본 작업 파일
-- `destination_path`: DRM 처리 결과를 생성해야 하는 새 작업 파일 경로
+- 입력: `file_path`, `file_name`, `source_kind`와 메일 메타데이터가 있는 `Data`
+- `mail_body`, `extraction_error`: API 호출 없이 원본 경로 통과
+- `ews_attachment`: API가 반환한 평문을 별도 UTF-8 TXT 작업 파일로 저장
+- 출력 상태: `text_extracted`
+- API 실패: 보호 원본으로 fallback하지 않고 예외
 
-## 반환
+## 지원 확장자
 
-- `unlocked`: DRM 보호를 해제해 결과 파일 생성
-- `not_protected`: 비보호 파일의 작업용 복사본 생성
+- 문서: PDF, PPT/PPTX, XLS/XLSX, DOC/DOCX, HWP/HWPX, RTF
+- 텍스트: TXT, CSV
+- 이미지: PNG, JPG/JPEG, BMP, TIF/TIFF
 
-## 필수 조건
+지원 목록은 클라이언트가 전송을 허용하는 범위입니다. 실제 평문 반환과 이미지 OCR 가능 여부는 DRM API 서버 구현에 따릅니다.
 
-- `source_path`를 수정하거나 덮어쓰지 않습니다.
-- 성공 반환 전에 `destination_path`가 실제 파일로 존재해야 합니다.
-- 확장자와 파일 내용 형식을 가능한 한 유지합니다.
-- Langflow 실행 계정에 필요한 DRM Agent·SDK 권한을 부여합니다.
-- 파일명 외의 전체 경로, 파일 본문, 키, 토큰을 로그에 남기지 않습니다.
-- 오류 시 부분 결과를 성공으로 반환하지 않고 예외를 발생시킵니다.
-- 사내 SDK가 UI 세션이나 Windows 사용자 로그인을 요구하는지 배포 전에 확인합니다.
+## 보안 조건
 
-## 금지
+- API URL host는 `허용 DRM 서버` 목록과 일치해야 합니다.
+- redirect는 따라가지 않습니다.
+- HTTP endpoint는 기본 차단하며 승인된 폐쇄망에서만 명시적으로 허용합니다.
+- 토큰·사번·API 응답 본문·문서 본문을 오류나 상태에 남기지 않습니다.
+- 파일당 업로드 크기와 응답 크기를 제한합니다.
 
-- DRM 우회 또는 승인되지 않은 복호화 방식
-- 외부 SaaS나 인터넷 endpoint로 파일 전송
-- 코드 안에 계정·키·사내 endpoint 하드코딩
-- 실패 시 원본 보호 파일을 그대로 반환하는 fallback

@@ -1,0 +1,803 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <base href="../../" />
+  <title>DRM 문서 텍스트 추출 Python 코드 · Agent Ground</title>
+  <meta name="description" content="DRM 문서 텍스트 추출 Standalone Python 코드 뷰어" />
+  <link rel="stylesheet" href="assets/css/site.css" />
+  
+</head>
+<body>
+  <a class="skip-link" href="#main">본문으로 바로가기</a>
+  <header class="site-header">
+    <div class="header-inner">
+      <a class="brand" href="index.html" aria-label="Agent Ground 홈">
+        <span class="brand-mark" aria-hidden="true">AG</span>
+        <span class="brand-copy"><strong>Agent Ground</strong><small>Learn · Build · Validate</small></span>
+      </a>
+      <button class="menu-button" type="button" data-menu-button aria-expanded="false" aria-controls="site-nav" aria-label="메뉴 열기"><span class="menu-lines"></span></button>
+      <nav class="site-nav" id="site-nav" data-site-nav data-open="false" aria-label="주요 메뉴"><a href="index.html">홈</a><a href="training/index.html">처음 배우기</a><a href="flows/index.html">Flows</a><a href="components/index.html" aria-current="page">Components</a><a href="troubleshooting/index.html">실패와 해결</a><a href="business-agent-design/index.html">업무 Agent 설계</a></nav>
+    </div>
+  </header>
+  <main class="page-wrap" id="main">
+    <nav class="breadcrumbs" aria-label="현재 위치"><a href="index.html">홈</a><span aria-hidden="true">/</span><a href="components/index.html">Components</a><span aria-hidden="true">/</span><a href="components/drm_document_text_extractor/index.html">DRM 문서 텍스트 추출</a><span aria-hidden="true">/</span><span>Python 코드</span></nav>
+    
+<section class="code-page-intro"><div><p class="eyebrow">Standalone Python source</p><h1>DRM 문서 텍스트 추출</h1><p><code>drm_document_text_extractor.py</code> 원문을 포털 안에서 확인합니다. 코드는 이 HTML에 함께 저장되어 <code>file://</code>로 열어도 표시됩니다.</p></div><div class="code-page-actions"><a class="button button-soft" href="components/drm_document_text_extractor/index.html">Component 설명으로 돌아가기</a></div></section>
+<section class="code-workspace" aria-label="Python 코드 뷰어">
+  <header class="code-toolbar"><div class="code-window-dots" aria-hidden="true"><span></span><span></span><span></span></div><div class="code-file-meta"><strong>drm_document_text_extractor.py</strong><span>759줄 · 27.8KB · UTF-8</span></div><button class="code-copy-button" type="button" data-copy-code>코드 복사</button></header>
+  <div class="code-editor-scroll" tabindex="0" aria-label="가로와 세로로 스크롤할 수 있는 Python 코드"><div class="code-lines" data-code-source><div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">1</span><code data-code-text>from __future__ import annotations</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">2</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">3</span><code data-code-text>import io</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">4</span><code data-code-text>import re</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">5</span><code data-code-text>import tempfile</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">6</span><code data-code-text>import warnings</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">7</span><code data-code-text>from importlib import import_module</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">8</span><code data-code-text>from pathlib import Path</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">9</span><code data-code-text>from typing import Any</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">10</span><code data-code-text>from urllib.parse import urlsplit</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">11</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">12</span><code data-code-text>from lfx.custom import Component</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">13</span><code data-code-text>from lfx.io import BoolInput, DataInput, FileInput, IntInput, MessageTextInput, Output, SecretStrInput</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">14</span><code data-code-text>from lfx.schema import Data, Message</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">15</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">16</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">17</span><code data-code-text>SUPPORTED_EXTENSIONS = {</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">18</span><code data-code-text>    &quot;.pdf&quot;,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">19</span><code data-code-text>    &quot;.ppt&quot;,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">20</span><code data-code-text>    &quot;.pptx&quot;,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">21</span><code data-code-text>    &quot;.xls&quot;,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">22</span><code data-code-text>    &quot;.xlsx&quot;,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">23</span><code data-code-text>    &quot;.doc&quot;,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">24</span><code data-code-text>    &quot;.docx&quot;,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">25</span><code data-code-text>    &quot;.hwp&quot;,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">26</span><code data-code-text>    &quot;.hwpx&quot;,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">27</span><code data-code-text>    &quot;.txt&quot;,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">28</span><code data-code-text>    &quot;.csv&quot;,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">29</span><code data-code-text>    &quot;.rtf&quot;,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">30</span><code data-code-text>    &quot;.png&quot;,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">31</span><code data-code-text>    &quot;.jpg&quot;,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">32</span><code data-code-text>    &quot;.jpeg&quot;,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">33</span><code data-code-text>    &quot;.bmp&quot;,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">34</span><code data-code-text>    &quot;.tif&quot;,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">35</span><code data-code-text>    &quot;.tiff&quot;,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">36</span><code data-code-text>}</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">37</span><code data-code-text>SUPPORTED_FILE_TYPES = [</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">38</span><code data-code-text>    &quot;bmp&quot;,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">39</span><code data-code-text>    &quot;csv&quot;,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">40</span><code data-code-text>    &quot;doc&quot;,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">41</span><code data-code-text>    &quot;docx&quot;,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">42</span><code data-code-text>    &quot;hwp&quot;,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">43</span><code data-code-text>    &quot;hwpx&quot;,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">44</span><code data-code-text>    &quot;jpeg&quot;,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">45</span><code data-code-text>    &quot;jpg&quot;,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">46</span><code data-code-text>    &quot;pdf&quot;,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">47</span><code data-code-text>    &quot;png&quot;,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">48</span><code data-code-text>    &quot;ppt&quot;,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">49</span><code data-code-text>    &quot;pptx&quot;,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">50</span><code data-code-text>    &quot;rtf&quot;,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">51</span><code data-code-text>    &quot;tif&quot;,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">52</span><code data-code-text>    &quot;tiff&quot;,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">53</span><code data-code-text>    &quot;txt&quot;,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">54</span><code data-code-text>    &quot;xls&quot;,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">55</span><code data-code-text>    &quot;xlsx&quot;,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">56</span><code data-code-text>]</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">57</span><code data-code-text>DEFAULT_TIMEOUT_SECONDS = 180</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">58</span><code data-code-text>DEFAULT_MAX_FILES = 10</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">59</span><code data-code-text>DEFAULT_MAX_FILE_SIZE_MB = 50</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">60</span><code data-code-text>DEFAULT_MAX_TOTAL_SIZE_MB = 200</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">61</span><code data-code-text>DEFAULT_MAX_RESPONSE_MB = 20</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">62</span><code data-code-text>MAX_TIMEOUT_SECONDS = 600</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">63</span><code data-code-text>MAX_FILES = 50</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">64</span><code data-code-text>MAX_FILE_SIZE_MB = 500</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">65</span><code data-code-text>MAX_TOTAL_SIZE_MB = 1000</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">66</span><code data-code-text>MAX_RESPONSE_MB = 100</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">67</span><code data-code-text>CHUNK_SIZE = 64 * 1024</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">68</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">69</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">70</span><code data-code-text>class DrmTextExtractionError(RuntimeError):</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">71</span><code data-code-text>    &quot;&quot;&quot;토큰, endpoint 전체 주소와 문서 본문을 노출하지 않는 실행 오류입니다.&quot;&quot;&quot;</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">72</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">73</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">74</span><code data-code-text>def _text_value(value: Any) -&gt; str:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">75</span><code data-code-text>    if value is None:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">76</span><code data-code-text>        return &quot;&quot;</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">77</span><code data-code-text>    getter = getattr(value, &quot;get_secret_value&quot;, None)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">78</span><code data-code-text>    if callable(getter):</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">79</span><code data-code-text>        return str(getter() or &quot;&quot;)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">80</span><code data-code-text>    text = getattr(value, &quot;text&quot;, None)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">81</span><code data-code-text>    if isinstance(text, str):</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">82</span><code data-code-text>        return text</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">83</span><code data-code-text>    return str(value)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">84</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">85</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">86</span><code data-code-text>def _bool_value(value: Any, field_name: str) -&gt; bool:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">87</span><code data-code-text>    if isinstance(value, bool):</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">88</span><code data-code-text>        return value</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">89</span><code data-code-text>    text = _text_value(value).strip().lower()</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">90</span><code data-code-text>    if text in {&quot;true&quot;, &quot;1&quot;, &quot;yes&quot;, &quot;y&quot;, &quot;on&quot;}:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">91</span><code data-code-text>        return True</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">92</span><code data-code-text>    if text in {&quot;false&quot;, &quot;0&quot;, &quot;no&quot;, &quot;n&quot;, &quot;off&quot;, &quot;&quot;}:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">93</span><code data-code-text>        return False</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">94</span><code data-code-text>    raise ValueError(f&quot;{field_name} 값은 true 또는 false여야 합니다.&quot;)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">95</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">96</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">97</span><code data-code-text>def _bounded_int(value: Any, field_name: str, minimum: int, maximum: int) -&gt; int:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">98</span><code data-code-text>    try:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">99</span><code data-code-text>        number = int(value)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">100</span><code data-code-text>    except (TypeError, ValueError) as exc:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">101</span><code data-code-text>        raise ValueError(f&quot;{field_name}은(는) 정수여야 합니다.&quot;) from exc</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">102</span><code data-code-text>    if number &lt; minimum or number &gt; maximum:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">103</span><code data-code-text>        raise ValueError(f&quot;{field_name}은(는) {minimum:,} 이상 {maximum:,} 이하여야 합니다.&quot;)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">104</span><code data-code-text>    return number</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">105</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">106</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">107</span><code data-code-text>def _normalize_files(value: Any) -&gt; list[Any]:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">108</span><code data-code-text>    if value is None or value == &quot;&quot;:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">109</span><code data-code-text>        return []</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">110</span><code data-code-text>    if isinstance(value, (list, tuple)):</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">111</span><code data-code-text>        return [item for item in value if item is not None and item != &quot;&quot;]</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">112</span><code data-code-text>    return [value]</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">113</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">114</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">115</span><code data-code-text>def _path_from_item(item: Any) -&gt; Path | None:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">116</span><code data-code-text>    if isinstance(item, (str, Path)):</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">117</span><code data-code-text>        return Path(item)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">118</span><code data-code-text>    if isinstance(item, dict):</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">119</span><code data-code-text>        for key in (&quot;path&quot;, &quot;file_path&quot;):</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">120</span><code data-code-text>            value = item.get(key)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">121</span><code data-code-text>            if isinstance(value, (str, Path)) and str(value).strip():</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">122</span><code data-code-text>                return Path(value)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">123</span><code data-code-text>        return None</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">124</span><code data-code-text>    for attribute in (&quot;path&quot;, &quot;file_path&quot;):</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">125</span><code data-code-text>        value = getattr(item, attribute, None)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">126</span><code data-code-text>        if isinstance(value, (str, Path)) and str(value).strip():</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">127</span><code data-code-text>            return Path(value)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">128</span><code data-code-text>    return None</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">129</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">130</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">131</span><code data-code-text>def _safe_filename(value: Any, position: int) -&gt; str:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">132</span><code data-code-text>    name = Path(str(value or &quot;&quot;)).name</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">133</span><code data-code-text>    name = re.sub(r&quot;[\x00-\x1f\x7f&lt;&gt;:\&quot;/\\|?*]&quot;, &quot;_&quot;, name).strip(&quot; .&quot;)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">134</span><code data-code-text>    return name[:180] or f&quot;document_{position}.bin&quot;</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">135</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">136</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">137</span><code data-code-text>def _filename_from_item(item: Any, position: int) -&gt; str:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">138</span><code data-code-text>    if isinstance(item, dict):</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">139</span><code data-code-text>        for key in (&quot;filename&quot;, &quot;name&quot;):</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">140</span><code data-code-text>            if item.get(key):</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">141</span><code data-code-text>                return _safe_filename(item[key], position)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">142</span><code data-code-text>    for attribute in (&quot;filename&quot;, &quot;name&quot;):</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">143</span><code data-code-text>        value = getattr(item, attribute, None)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">144</span><code data-code-text>        if value:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">145</span><code data-code-text>            return _safe_filename(value, position)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">146</span><code data-code-text>    path = _path_from_item(item)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">147</span><code data-code-text>    if path is not None:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">148</span><code data-code-text>        return _safe_filename(path.name, position)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">149</span><code data-code-text>    return _safe_filename(&quot;&quot;, position)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">150</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">151</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">152</span><code data-code-text>def _read_file_bytes(item: Any, position: int, maximum_bytes: int) -&gt; tuple[bytes, str]:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">153</span><code data-code-text>    filename = _filename_from_item(item, position)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">154</span><code data-code-text>    extension = Path(filename).suffix.lower()</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">155</span><code data-code-text>    if extension not in SUPPORTED_EXTENSIONS:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">156</span><code data-code-text>        supported = &quot;, &quot;.join(sorted(SUPPORTED_EXTENSIONS))</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">157</span><code data-code-text>        raise ValueError(f&quot;지원하지 않는 파일 형식입니다: {filename}. 지원 형식: {supported}&quot;)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">158</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">159</span><code data-code-text>    path = _path_from_item(item)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">160</span><code data-code-text>    if path is not None:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">161</span><code data-code-text>        try:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">162</span><code data-code-text>            if not path.is_file():</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">163</span><code data-code-text>                raise FileNotFoundError</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">164</span><code data-code-text>            declared_size = int(path.stat().st_size)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">165</span><code data-code-text>            if declared_size &gt; maximum_bytes:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">166</span><code data-code-text>                raise ValueError(f&quot;파일이 개별 크기 제한을 초과했습니다: {filename}&quot;)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">167</span><code data-code-text>            with path.open(&quot;rb&quot;) as handle:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">168</span><code data-code-text>                content = handle.read(maximum_bytes + 1)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">169</span><code data-code-text>        except ValueError:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">170</span><code data-code-text>            raise</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">171</span><code data-code-text>        except (OSError, PermissionError, FileNotFoundError):</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">172</span><code data-code-text>            raise ValueError(f&quot;업로드 파일을 읽을 수 없습니다: {filename}&quot;) from None</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">173</span><code data-code-text>    else:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">174</span><code data-code-text>        stream = item.get(&quot;file&quot;) if isinstance(item, dict) else getattr(item, &quot;file&quot;, item)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">175</span><code data-code-text>        if isinstance(stream, (bytes, bytearray, memoryview)):</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">176</span><code data-code-text>            content = bytes(stream[: maximum_bytes + 1])</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">177</span><code data-code-text>        elif hasattr(stream, &quot;read&quot;):</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">178</span><code data-code-text>            original_position: int | None = None</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">179</span><code data-code-text>            try:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">180</span><code data-code-text>                if hasattr(stream, &quot;tell&quot;):</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">181</span><code data-code-text>                    original_position = int(stream.tell())</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">182</span><code data-code-text>                if hasattr(stream, &quot;seek&quot;):</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">183</span><code data-code-text>                    stream.seek(0)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">184</span><code data-code-text>                content = stream.read(maximum_bytes + 1)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">185</span><code data-code-text>            except Exception:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">186</span><code data-code-text>                raise ValueError(f&quot;업로드 파일을 읽을 수 없습니다: {filename}&quot;) from None</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">187</span><code data-code-text>            finally:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">188</span><code data-code-text>                if original_position is not None and hasattr(stream, &quot;seek&quot;):</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">189</span><code data-code-text>                    try:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">190</span><code data-code-text>                        stream.seek(original_position)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">191</span><code data-code-text>                    except Exception:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">192</span><code data-code-text>                        pass</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">193</span><code data-code-text>            if not isinstance(content, (bytes, bytearray, memoryview)):</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">194</span><code data-code-text>                raise ValueError(f&quot;업로드 파일이 바이너리 형식이 아닙니다: {filename}&quot;)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">195</span><code data-code-text>            content = bytes(content)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">196</span><code data-code-text>        else:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">197</span><code data-code-text>            raise ValueError(f&quot;지원하지 않는 파일 입력 형식입니다: {filename}&quot;)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">198</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">199</span><code data-code-text>    if len(content) &gt; maximum_bytes:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">200</span><code data-code-text>        raise ValueError(f&quot;파일이 개별 크기 제한을 초과했습니다: {filename}&quot;)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">201</span><code data-code-text>    if not content:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">202</span><code data-code-text>        raise ValueError(f&quot;빈 파일은 처리할 수 없습니다: {filename}&quot;)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">203</span><code data-code-text>    return content, filename</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">204</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">205</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">206</span><code data-code-text>def _parse_api_url(value: Any, allow_insecure_http: Any) -&gt; tuple[str, str, bool]:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">207</span><code data-code-text>    url = _text_value(value).strip()</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">208</span><code data-code-text>    if not url:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">209</span><code data-code-text>        raise ValueError(&quot;DRM API 주소를 입력해 주세요.&quot;)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">210</span><code data-code-text>    try:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">211</span><code data-code-text>        parsed = urlsplit(url)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">212</span><code data-code-text>        _ = parsed.port</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">213</span><code data-code-text>    except ValueError as exc:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">214</span><code data-code-text>        raise ValueError(&quot;DRM API 주소의 포트 형식이 올바르지 않습니다.&quot;) from exc</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">215</span><code data-code-text>    scheme = parsed.scheme.lower()</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">216</span><code data-code-text>    if scheme not in {&quot;http&quot;, &quot;https&quot;} or not parsed.hostname:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">217</span><code data-code-text>        raise ValueError(&quot;DRM API 주소는 서버가 포함된 http 또는 https URL이어야 합니다.&quot;)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">218</span><code data-code-text>    if parsed.username is not None or parsed.password is not None:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">219</span><code data-code-text>        raise ValueError(&quot;DRM API URL 안에 사용자 이름이나 비밀번호를 넣을 수 없습니다.&quot;)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">220</span><code data-code-text>    if parsed.fragment:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">221</span><code data-code-text>        raise ValueError(&quot;DRM API URL에는 #fragment를 넣을 수 없습니다.&quot;)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">222</span><code data-code-text>    allow_http = _bool_value(allow_insecure_http, &quot;HTTP DRM API 사용 허용&quot;)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">223</span><code data-code-text>    if scheme == &quot;http&quot; and not allow_http:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">224</span><code data-code-text>        raise ValueError(</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">225</span><code data-code-text>            &quot;문서와 인증값을 HTTP로 보낼 수 없습니다. HTTPS URL을 사용하거나, &quot;</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">226</span><code data-code-text>            &quot;폐쇄된 사내 테스트망에서만 &#x27;HTTP DRM API 사용 허용&#x27;을 켜 주세요.&quot;</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">227</span><code data-code-text>        )</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">228</span><code data-code-text>    return url, str(parsed.hostname).lower().rstrip(&quot;.&quot;), scheme == &quot;https&quot;</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">229</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">230</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">231</span><code data-code-text>def _parse_allowed_hosts(value: Any) -&gt; list[str]:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">232</span><code data-code-text>    text = _text_value(value).strip().lower()</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">233</span><code data-code-text>    rules = [item.strip().rstrip(&quot;.&quot;) for item in re.split(r&quot;[,\s]+&quot;, text) if item.strip()]</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">234</span><code data-code-text>    if not rules:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">235</span><code data-code-text>        raise ValueError(&quot;허용 DRM 서버를 한 개 이상 입력해 주세요.&quot;)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">236</span><code data-code-text>    for rule in rules:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">237</span><code data-code-text>        host = rule[1:] if rule.startswith(&quot;.&quot;) else rule</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">238</span><code data-code-text>        if not host or &quot;://&quot; in host or &quot;/&quot; in host or &quot;:&quot; in host:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">239</span><code data-code-text>            raise ValueError(&quot;허용 DRM 서버에는 scheme, path, port를 넣을 수 없습니다.&quot;)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">240</span><code data-code-text>    return rules</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">241</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">242</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">243</span><code data-code-text>def _host_is_allowed(host: str, rules: list[str]) -&gt; bool:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">244</span><code data-code-text>    for rule in rules:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">245</span><code data-code-text>        if rule.startswith(&quot;.&quot;) and (host == rule[1:] or host.endswith(rule)):</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">246</span><code data-code-text>            return True</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">247</span><code data-code-text>        if host == rule:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">248</span><code data-code-text>            return True</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">249</span><code data-code-text>    return False</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">250</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">251</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">252</span><code data-code-text>def _header_value(response: Any, name: str) -&gt; str:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">253</span><code data-code-text>    headers = getattr(response, &quot;headers&quot;, None)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">254</span><code data-code-text>    if not hasattr(headers, &quot;get&quot;):</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">255</span><code data-code-text>        return &quot;&quot;</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">256</span><code data-code-text>    direct = headers.get(name)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">257</span><code data-code-text>    if direct is not None:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">258</span><code data-code-text>        return str(direct)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">259</span><code data-code-text>    lowered = name.lower()</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">260</span><code data-code-text>    for key, value in getattr(headers, &quot;items&quot;, lambda: [])():</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">261</span><code data-code-text>        if str(key).lower() == lowered:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">262</span><code data-code-text>            return str(value)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">263</span><code data-code-text>    return &quot;&quot;</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">264</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">265</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">266</span><code data-code-text>def _read_response_bytes(response: Any, maximum_bytes: int) -&gt; bytes:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">267</span><code data-code-text>    content_length = _header_value(response, &quot;Content-Length&quot;).strip()</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">268</span><code data-code-text>    if content_length:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">269</span><code data-code-text>        try:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">270</span><code data-code-text>            declared = int(content_length)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">271</span><code data-code-text>        except ValueError:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">272</span><code data-code-text>            declared = 0</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">273</span><code data-code-text>        if declared &gt; maximum_bytes:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">274</span><code data-code-text>            raise DrmTextExtractionError(&quot;DRM API 응답이 설정한 최대 크기를 초과했습니다.&quot;)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">275</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">276</span><code data-code-text>    iterator = getattr(response, &quot;iter_content&quot;, None)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">277</span><code data-code-text>    if callable(iterator):</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">278</span><code data-code-text>        chunks: list[bytes] = []</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">279</span><code data-code-text>        total = 0</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">280</span><code data-code-text>        for chunk in iterator(chunk_size=CHUNK_SIZE):</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">281</span><code data-code-text>            if not chunk:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">282</span><code data-code-text>                continue</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">283</span><code data-code-text>            raw_chunk = bytes(chunk)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">284</span><code data-code-text>            total += len(raw_chunk)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">285</span><code data-code-text>            if total &gt; maximum_bytes:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">286</span><code data-code-text>                raise DrmTextExtractionError(&quot;DRM API 응답이 설정한 최대 크기를 초과했습니다.&quot;)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">287</span><code data-code-text>            chunks.append(raw_chunk)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">288</span><code data-code-text>        return b&quot;&quot;.join(chunks)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">289</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">290</span><code data-code-text>    raw = getattr(response, &quot;content&quot;, b&quot;&quot;) or b&quot;&quot;</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">291</span><code data-code-text>    content = raw.encode(&quot;utf-8&quot;) if isinstance(raw, str) else bytes(raw)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">292</span><code data-code-text>    if len(content) &gt; maximum_bytes:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">293</span><code data-code-text>        raise DrmTextExtractionError(&quot;DRM API 응답이 설정한 최대 크기를 초과했습니다.&quot;)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">294</span><code data-code-text>    return content</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">295</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">296</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">297</span><code data-code-text>def _decode_text_response(response: Any, raw: bytes) -&gt; tuple[str, str]:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">298</span><code data-code-text>    content_type = _header_value(response, &quot;Content-Type&quot;)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">299</span><code data-code-text>    match = re.search(r&quot;charset\s*=\s*[\&quot;&#x27;]?([^;\s\&quot;&#x27;]+)&quot;, content_type, flags=re.I)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">300</span><code data-code-text>    candidates: list[str] = []</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">301</span><code data-code-text>    if match:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">302</span><code data-code-text>        candidates.append(match.group(1))</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">303</span><code data-code-text>    try:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">304</span><code data-code-text>        apparent = str(getattr(response, &quot;apparent_encoding&quot;, &quot;&quot;) or &quot;&quot;).strip()</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">305</span><code data-code-text>    except Exception:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">306</span><code data-code-text>        # requests의 stream 응답은 iter_content 이후 apparent_encoding 접근이 실패할 수 있다.</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">307</span><code data-code-text>        apparent = &quot;&quot;</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">308</span><code data-code-text>    if apparent:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">309</span><code data-code-text>        candidates.append(apparent)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">310</span><code data-code-text>    candidates.extend([&quot;utf-8-sig&quot;, &quot;cp949&quot;, &quot;euc-kr&quot;])</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">311</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">312</span><code data-code-text>    checked: set[str] = set()</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">313</span><code data-code-text>    for encoding in candidates:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">314</span><code data-code-text>        key = encoding.lower()</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">315</span><code data-code-text>        if key in checked:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">316</span><code data-code-text>            continue</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">317</span><code data-code-text>        checked.add(key)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">318</span><code data-code-text>        try:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">319</span><code data-code-text>            return raw.decode(encoding), encoding</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">320</span><code data-code-text>        except (LookupError, UnicodeDecodeError):</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">321</span><code data-code-text>            continue</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">322</span><code data-code-text>    return raw.decode(&quot;utf-8&quot;, errors=&quot;replace&quot;), &quot;utf-8-replace&quot;</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">323</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">324</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">325</span><code data-code-text>def _close_response(response: Any) -&gt; None:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">326</span><code data-code-text>    closer = getattr(response, &quot;close&quot;, None)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">327</span><code data-code-text>    if callable(closer):</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">328</span><code data-code-text>        closer()</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">329</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">330</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">331</span><code data-code-text>def _post_file(</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">332</span><code data-code-text>    *,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">333</span><code data-code-text>    client: Any,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">334</span><code data-code-text>    url: str,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">335</span><code data-code-text>    token: str,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">336</span><code data-code-text>    employee_no: str,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">337</span><code data-code-text>    filename: str,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">338</span><code data-code-text>    content: bytes,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">339</span><code data-code-text>    timeout_seconds: int,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">340</span><code data-code-text>    verify_tls: bool,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">341</span><code data-code-text>    max_response_bytes: int,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">342</span><code data-code-text>) -&gt; dict[str, Any]:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">343</span><code data-code-text>    sender = getattr(client, &quot;post&quot;, None)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">344</span><code data-code-text>    if not callable(sender):</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">345</span><code data-code-text>        raise ValueError(&quot;HTTP 전송 객체에 post 함수가 없습니다.&quot;)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">346</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">347</span><code data-code-text>    with io.BytesIO(content) as stream:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">348</span><code data-code-text>        options = {</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">349</span><code data-code-text>            &quot;files&quot;: {&quot;file&quot;: (filename, stream, &quot;application/octet-stream&quot;)},</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">350</span><code data-code-text>            &quot;headers&quot;: {&quot;Authorization&quot;: f&quot;Bearer {token}&quot;},</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">351</span><code data-code-text>            &quot;params&quot;: {&quot;empNo&quot;: employee_no},</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">352</span><code data-code-text>            &quot;timeout&quot;: timeout_seconds,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">353</span><code data-code-text>            &quot;verify&quot;: verify_tls,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">354</span><code data-code-text>            &quot;allow_redirects&quot;: False,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">355</span><code data-code-text>            &quot;stream&quot;: True,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">356</span><code data-code-text>        }</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">357</span><code data-code-text>        try:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">358</span><code data-code-text>            if verify_tls:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">359</span><code data-code-text>                response = sender(url, **options)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">360</span><code data-code-text>            else:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">361</span><code data-code-text>                with warnings.catch_warnings():</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">362</span><code data-code-text>                    warnings.simplefilter(&quot;ignore&quot;)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">363</span><code data-code-text>                    response = sender(url, **options)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">364</span><code data-code-text>        except Exception:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">365</span><code data-code-text>            raise DrmTextExtractionError(f&quot;DRM API에 연결하지 못했습니다: {filename}&quot;) from None</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">366</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">367</span><code data-code-text>    try:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">368</span><code data-code-text>        status_code = int(getattr(response, &quot;status_code&quot;, 0) or 0)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">369</span><code data-code-text>        if status_code &lt; 200 or status_code &gt;= 300:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">370</span><code data-code-text>            raise DrmTextExtractionError(</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">371</span><code data-code-text>                f&quot;DRM API가 성공 상태를 반환하지 않았습니다: {filename} · HTTP {status_code}&quot;</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">372</span><code data-code-text>            )</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">373</span><code data-code-text>        raw = _read_response_bytes(response, max_response_bytes)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">374</span><code data-code-text>        if not raw:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">375</span><code data-code-text>            raise DrmTextExtractionError(f&quot;DRM API가 빈 텍스트를 반환했습니다: {filename}&quot;)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">376</span><code data-code-text>        text, encoding = _decode_text_response(response, raw)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">377</span><code data-code-text>        if not text.strip():</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">378</span><code data-code-text>            raise DrmTextExtractionError(f&quot;DRM API가 빈 텍스트를 반환했습니다: {filename}&quot;)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">379</span><code data-code-text>        return {</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">380</span><code data-code-text>            &quot;file_name&quot;: filename,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">381</span><code data-code-text>            &quot;extension&quot;: Path(filename).suffix.lower(),</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">382</span><code data-code-text>            &quot;source_bytes&quot;: len(content),</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">383</span><code data-code-text>            &quot;response_bytes&quot;: len(raw),</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">384</span><code data-code-text>            &quot;char_count&quot;: len(text),</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">385</span><code data-code-text>            &quot;encoding&quot;: encoding,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">386</span><code data-code-text>            &quot;http_status&quot;: status_code,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">387</span><code data-code-text>            &quot;text&quot;: text,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">388</span><code data-code-text>        }</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">389</span><code data-code-text>    finally:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">390</span><code data-code-text>        _close_response(response)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">391</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">392</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">393</span><code data-code-text>def extract_document_texts(</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">394</span><code data-code-text>    document_files: Any,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">395</span><code data-code-text>    drm_api_url: Any,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">396</span><code data-code-text>    drm_token: Any,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">397</span><code data-code-text>    employee_no: Any,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">398</span><code data-code-text>    allowed_drm_hosts: Any,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">399</span><code data-code-text>    *,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">400</span><code data-code-text>    allow_insecure_http: Any = False,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">401</span><code data-code-text>    verify_tls: Any = True,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">402</span><code data-code-text>    timeout_seconds: Any = DEFAULT_TIMEOUT_SECONDS,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">403</span><code data-code-text>    max_files: Any = DEFAULT_MAX_FILES,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">404</span><code data-code-text>    max_file_size_mb: Any = DEFAULT_MAX_FILE_SIZE_MB,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">405</span><code data-code-text>    max_total_size_mb: Any = DEFAULT_MAX_TOTAL_SIZE_MB,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">406</span><code data-code-text>    max_response_mb: Any = DEFAULT_MAX_RESPONSE_MB,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">407</span><code data-code-text>    transport: Any | None = None,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">408</span><code data-code-text>) -&gt; dict[str, Any]:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">409</span><code data-code-text>    &quot;&quot;&quot;업로드 문서를 DRM text API에 하나씩 보내고 평문 텍스트 결과를 반환합니다.&quot;&quot;&quot;</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">410</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">411</span><code data-code-text>    files = _normalize_files(document_files)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">412</span><code data-code-text>    file_limit = _bounded_int(max_files, &quot;최대 파일 수&quot;, 1, MAX_FILES)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">413</span><code data-code-text>    if not files:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">414</span><code data-code-text>        raise ValueError(&quot;DRM API로 처리할 문서 또는 이미지 파일을 한 개 이상 입력해 주세요.&quot;)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">415</span><code data-code-text>    if len(files) &gt; file_limit:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">416</span><code data-code-text>        raise ValueError(f&quot;업로드 파일 수가 최대 {file_limit}개를 초과했습니다.&quot;)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">417</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">418</span><code data-code-text>    token = _text_value(drm_token).strip()</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">419</span><code data-code-text>    emp_no = _text_value(employee_no).strip()</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">420</span><code data-code-text>    if not token:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">421</span><code data-code-text>        raise ValueError(&quot;DRM 토큰을 입력해 주세요.&quot;)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">422</span><code data-code-text>    if not emp_no:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">423</span><code data-code-text>        raise ValueError(&quot;사번을 입력해 주세요.&quot;)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">424</span><code data-code-text>    if len(token) &gt; 8192 or &quot;\r&quot; in token or &quot;\n&quot; in token:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">425</span><code data-code-text>        raise ValueError(&quot;DRM 토큰 형식이 올바르지 않습니다.&quot;)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">426</span><code data-code-text>    if len(emp_no) &gt; 128 or &quot;\r&quot; in emp_no or &quot;\n&quot; in emp_no:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">427</span><code data-code-text>        raise ValueError(&quot;사번 형식이 올바르지 않습니다.&quot;)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">428</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">429</span><code data-code-text>    url, host, is_https = _parse_api_url(drm_api_url, allow_insecure_http)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">430</span><code data-code-text>    allowed_hosts = _parse_allowed_hosts(allowed_drm_hosts)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">431</span><code data-code-text>    if not _host_is_allowed(host, allowed_hosts):</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">432</span><code data-code-text>        raise ValueError(&quot;DRM API 서버가 허용 서버 목록에 없습니다.&quot;)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">433</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">434</span><code data-code-text>    tls_verification = _bool_value(verify_tls, &quot;TLS 인증서 검증&quot;)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">435</span><code data-code-text>    if not is_https:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">436</span><code data-code-text>        tls_verification = False</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">437</span><code data-code-text>    timeout = _bounded_int(timeout_seconds, &quot;제한 시간&quot;, 1, MAX_TIMEOUT_SECONDS)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">438</span><code data-code-text>    per_file_bytes = _bounded_int(</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">439</span><code data-code-text>        max_file_size_mb, &quot;파일당 최대 크기&quot;, 1, MAX_FILE_SIZE_MB</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">440</span><code data-code-text>    ) * 1024 * 1024</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">441</span><code data-code-text>    total_limit_bytes = _bounded_int(</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">442</span><code data-code-text>        max_total_size_mb, &quot;전체 최대 크기&quot;, 1, MAX_TOTAL_SIZE_MB</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">443</span><code data-code-text>    ) * 1024 * 1024</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">444</span><code data-code-text>    response_limit_bytes = _bounded_int(</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">445</span><code data-code-text>        max_response_mb, &quot;파일당 최대 응답 크기&quot;, 1, MAX_RESPONSE_MB</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">446</span><code data-code-text>    ) * 1024 * 1024</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">447</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">448</span><code data-code-text>    prepared: list[tuple[bytes, str]] = []</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">449</span><code data-code-text>    total_bytes = 0</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">450</span><code data-code-text>    for position, item in enumerate(files, start=1):</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">451</span><code data-code-text>        content, filename = _read_file_bytes(item, position, per_file_bytes)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">452</span><code data-code-text>        total_bytes += len(content)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">453</span><code data-code-text>        if total_bytes &gt; total_limit_bytes:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">454</span><code data-code-text>            raise ValueError(&quot;업로드 파일의 전체 크기가 설정한 제한을 초과했습니다.&quot;)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">455</span><code data-code-text>        prepared.append((content, filename))</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">456</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">457</span><code data-code-text>    try:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">458</span><code data-code-text>        client = transport or import_module(&quot;requests&quot;)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">459</span><code data-code-text>    except ModuleNotFoundError as exc:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">460</span><code data-code-text>        raise ValueError(&quot;DRM API 호출에 필요한 requests 패키지가 설치되어 있지 않습니다.&quot;) from exc</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">461</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">462</span><code data-code-text>    results = [</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">463</span><code data-code-text>        _post_file(</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">464</span><code data-code-text>            client=client,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">465</span><code data-code-text>            url=url,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">466</span><code data-code-text>            token=token,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">467</span><code data-code-text>            employee_no=emp_no,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">468</span><code data-code-text>            filename=filename,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">469</span><code data-code-text>            content=content,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">470</span><code data-code-text>            timeout_seconds=timeout,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">471</span><code data-code-text>            verify_tls=tls_verification,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">472</span><code data-code-text>            max_response_bytes=response_limit_bytes,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">473</span><code data-code-text>        )</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">474</span><code data-code-text>        for content, filename in prepared</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">475</span><code data-code-text>    ]</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">476</span><code data-code-text>    return {</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">477</span><code data-code-text>        &quot;success&quot;: True,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">478</span><code data-code-text>        &quot;data&quot;: results,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">479</span><code data-code-text>        &quot;errors&quot;: [],</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">480</span><code data-code-text>        &quot;meta&quot;: {</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">481</span><code data-code-text>            &quot;file_count&quot;: len(results),</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">482</span><code data-code-text>            &quot;total_source_bytes&quot;: total_bytes,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">483</span><code data-code-text>            &quot;total_response_bytes&quot;: sum(item[&quot;response_bytes&quot;] for item in results),</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">484</span><code data-code-text>            &quot;total_char_count&quot;: sum(item[&quot;char_count&quot;] for item in results),</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">485</span><code data-code-text>            &quot;order_preserved&quot;: True,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">486</span><code data-code-text>            &quot;redirects_allowed&quot;: False,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">487</span><code data-code-text>            &quot;response_type&quot;: &quot;plain_text&quot;,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">488</span><code data-code-text>        },</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">489</span><code data-code-text>    }</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">490</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">491</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">492</span><code data-code-text>def _data_payload(value: Any) -&gt; dict[str, Any]:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">493</span><code data-code-text>    if isinstance(value, Data):</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">494</span><code data-code-text>        return dict(value.data)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">495</span><code data-code-text>    if isinstance(value, dict):</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">496</span><code data-code-text>        nested = value.get(&quot;data&quot;)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">497</span><code data-code-text>        return dict(nested) if isinstance(nested, dict) else dict(value)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">498</span><code data-code-text>    data = getattr(value, &quot;data&quot;, None)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">499</span><code data-code-text>    if isinstance(data, dict):</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">500</span><code data-code-text>        return dict(data)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">501</span><code data-code-text>    raise TypeError(&quot;EWS 파일 입력은 file_path를 포함한 Data여야 합니다.&quot;)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">502</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">503</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">504</span><code data-code-text>def process_file_record(</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">505</span><code data-code-text>    file_record: Any,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">506</span><code data-code-text>    drm_api_url: Any,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">507</span><code data-code-text>    drm_token: Any,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">508</span><code data-code-text>    employee_no: Any,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">509</span><code data-code-text>    allowed_drm_hosts: Any,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">510</span><code data-code-text>    *,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">511</span><code data-code-text>    allow_insecure_http: Any = False,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">512</span><code data-code-text>    verify_tls: Any = True,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">513</span><code data-code-text>    timeout_seconds: Any = DEFAULT_TIMEOUT_SECONDS,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">514</span><code data-code-text>    max_file_size_mb: Any = DEFAULT_MAX_FILE_SIZE_MB,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">515</span><code data-code-text>    max_response_mb: Any = DEFAULT_MAX_RESPONSE_MB,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">516</span><code data-code-text>    output_root: str | Path | None = None,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">517</span><code data-code-text>    transport: Any | None = None,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">518</span><code data-code-text>) -&gt; dict[str, Any]:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">519</span><code data-code-text>    &quot;&quot;&quot;EWS 항목 한 개를 처리하고 Read File이 읽을 평문 TXT 경로를 반환합니다.&quot;&quot;&quot;</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">520</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">521</span><code data-code-text>    record = _data_payload(file_record)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">522</span><code data-code-text>    source_kind = str(record.get(&quot;source_kind&quot;) or &quot;ews_attachment&quot;)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">523</span><code data-code-text>    source_path = Path(str(record.get(&quot;file_path&quot;) or &quot;&quot;))</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">524</span><code data-code-text>    original_name = _safe_filename(record.get(&quot;file_name&quot;) or source_path.name, 1)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">525</span><code data-code-text>    if not source_path.is_file():</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">526</span><code data-code-text>        raise FileNotFoundError(f&quot;DRM 처리 입력 파일을 찾을 수 없습니다: {original_name}&quot;)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">527</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">528</span><code data-code-text>    if source_kind in {&quot;mail_body&quot;, &quot;extraction_error&quot;}:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">529</span><code data-code-text>        record[&quot;drm_status&quot;] = &quot;not_applicable&quot;</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">530</span><code data-code-text>        record[&quot;drm_error&quot;] = &quot;&quot;</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">531</span><code data-code-text>        return record</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">532</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">533</span><code data-code-text>    result = extract_document_texts(</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">534</span><code data-code-text>        [{&quot;file_path&quot;: str(source_path), &quot;filename&quot;: original_name}],</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">535</span><code data-code-text>        drm_api_url,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">536</span><code data-code-text>        drm_token,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">537</span><code data-code-text>        employee_no,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">538</span><code data-code-text>        allowed_drm_hosts,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">539</span><code data-code-text>        allow_insecure_http=allow_insecure_http,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">540</span><code data-code-text>        verify_tls=verify_tls,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">541</span><code data-code-text>        timeout_seconds=timeout_seconds,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">542</span><code data-code-text>        max_files=1,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">543</span><code data-code-text>        max_file_size_mb=max_file_size_mb,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">544</span><code data-code-text>        max_total_size_mb=max_file_size_mb,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">545</span><code data-code-text>        max_response_mb=max_response_mb,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">546</span><code data-code-text>        transport=transport,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">547</span><code data-code-text>    )</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">548</span><code data-code-text>    item = result[&quot;data&quot;][0]</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">549</span><code data-code-text>    destination_dir = Path(output_root) if output_root else Path(</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">550</span><code data-code-text>        tempfile.mkdtemp(prefix=&quot;langflow-drm-text-&quot;)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">551</span><code data-code-text>    )</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">552</span><code data-code-text>    destination_dir.mkdir(parents=True, exist_ok=True)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">553</span><code data-code-text>    text_name = f&quot;{Path(original_name).stem}_drm_text.txt&quot;</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">554</span><code data-code-text>    destination_path = destination_dir / _safe_filename(text_name, 1)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">555</span><code data-code-text>    try:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">556</span><code data-code-text>        destination_path.write_text(str(item[&quot;text&quot;]), encoding=&quot;utf-8&quot;)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">557</span><code data-code-text>    except OSError as exc:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">558</span><code data-code-text>        raise DrmTextExtractionError(f&quot;DRM 평문 작업 파일을 저장하지 못했습니다: {original_name}&quot;) from exc</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">559</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">560</span><code data-code-text>    record.update(</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">561</span><code data-code-text>        {</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">562</span><code data-code-text>            &quot;original_file_path&quot;: str(source_path),</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">563</span><code data-code-text>            &quot;original_file_name&quot;: original_name,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">564</span><code data-code-text>            &quot;file_path&quot;: str(destination_path),</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">565</span><code data-code-text>            &quot;file_name&quot;: destination_path.name,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">566</span><code data-code-text>            &quot;content_type&quot;: &quot;text/plain&quot;,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">567</span><code data-code-text>            &quot;drm_status&quot;: &quot;text_extracted&quot;,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">568</span><code data-code-text>            &quot;drm_error&quot;: &quot;&quot;,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">569</span><code data-code-text>            &quot;drm_response_encoding&quot;: item[&quot;encoding&quot;],</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">570</span><code data-code-text>            &quot;drm_response_bytes&quot;: item[&quot;response_bytes&quot;],</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">571</span><code data-code-text>            &quot;drm_text_char_count&quot;: item[&quot;char_count&quot;],</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">572</span><code data-code-text>        }</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">573</span><code data-code-text>    )</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">574</span><code data-code-text>    return record</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">575</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">576</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">577</span><code data-code-text>def format_extraction_message(result: dict[str, Any]) -&gt; str:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">578</span><code data-code-text>    items = result.get(&quot;data&quot;) if isinstance(result, dict) else None</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">579</span><code data-code-text>    if not isinstance(items, list) or not items:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">580</span><code data-code-text>        raise ValueError(&quot;추출된 문서 텍스트가 없습니다.&quot;)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">581</span><code data-code-text>    blocks = [&quot;# DRM 문서 텍스트 추출 결과&quot;]</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">582</span><code data-code-text>    total = len(items)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">583</span><code data-code-text>    for index, item in enumerate(items, start=1):</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">584</span><code data-code-text>        blocks.append(</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">585</span><code data-code-text>            &quot;\n&quot;.join(</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">586</span><code data-code-text>                [</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">587</span><code data-code-text>                    f&quot;[FILE {index}/{total}] {item[&#x27;file_name&#x27;]}&quot;,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">588</span><code data-code-text>                    f&quot;문자 수: {item[&#x27;char_count&#x27;]:,}&quot;,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">589</span><code data-code-text>                    &quot;&quot;,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">590</span><code data-code-text>                    str(item[&quot;text&quot;]),</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">591</span><code data-code-text>                    f&quot;[END FILE {index}/{total}]&quot;,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">592</span><code data-code-text>                ]</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">593</span><code data-code-text>            )</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">594</span><code data-code-text>        )</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">595</span><code data-code-text>    return &quot;\n\n&quot;.join(blocks)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">596</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">597</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">598</span><code data-code-text>class DrmDocumentTextExtractor(Component):</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">599</span><code data-code-text>    display_name = &quot;DRM 문서 텍스트 추출&quot;</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">600</span><code data-code-text>    description = &quot;문서·이미지를 DRM text API에 전송해 평문 Message 또는 EWS용 TXT 작업 파일로 반환합니다.&quot;</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">601</span><code data-code-text>    icon = &quot;FileLock2&quot;</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">602</span><code data-code-text>    name = &quot;DrmDocumentTextExtractor&quot;</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">603</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">604</span><code data-code-text>    inputs = [</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">605</span><code data-code-text>        FileInput(</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">606</span><code data-code-text>            name=&quot;document_files&quot;,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">607</span><code data-code-text>            display_name=&quot;문서 파일&quot;,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">608</span><code data-code-text>            file_types=SUPPORTED_FILE_TYPES,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">609</span><code data-code-text>            info=&quot;PDF·Office·HWP·텍스트·CSV·일반 이미지를 입력 순서대로 DRM API에 전송합니다.&quot;,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">610</span><code data-code-text>            required=False,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">611</span><code data-code-text>            is_list=True,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">612</span><code data-code-text>            value=[],</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">613</span><code data-code-text>            temp_file=True,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">614</span><code data-code-text>        ),</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">615</span><code data-code-text>        DataInput(</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">616</span><code data-code-text>            name=&quot;file_record&quot;,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">617</span><code data-code-text>            display_name=&quot;EWS 파일 항목&quot;,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">618</span><code data-code-text>            info=&quot;EWS Flow에서 file_path·file_name·source_kind가 포함된 Data 한 건을 연결합니다.&quot;,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">619</span><code data-code-text>            required=False,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">620</span><code data-code-text>            advanced=True,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">621</span><code data-code-text>        ),</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">622</span><code data-code-text>        MessageTextInput(</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">623</span><code data-code-text>            name=&quot;drm_api_url&quot;,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">624</span><code data-code-text>            display_name=&quot;DRM API 주소&quot;,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">625</span><code data-code-text>            info=&quot;파일을 multipart/form-data의 file 필드로 받을 DRM text API 전체 주소입니다.&quot;,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">626</span><code data-code-text>            required=True,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">627</span><code data-code-text>            value=&quot;&quot;,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">628</span><code data-code-text>        ),</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">629</span><code data-code-text>        SecretStrInput(</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">630</span><code data-code-text>            name=&quot;drm_token&quot;,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">631</span><code data-code-text>            display_name=&quot;DRM 토큰&quot;,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">632</span><code data-code-text>            info=&quot;Authorization: Bearer 헤더에 넣을 토큰입니다. Flow JSON 기본값에는 저장하지 않습니다.&quot;,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">633</span><code data-code-text>            required=True,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">634</span><code data-code-text>            value=&quot;&quot;,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">635</span><code data-code-text>        ),</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">636</span><code data-code-text>        SecretStrInput(</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">637</span><code data-code-text>            name=&quot;employee_no&quot;,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">638</span><code data-code-text>            display_name=&quot;사번&quot;,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">639</span><code data-code-text>            info=&quot;DRM API의 empNo 쿼리 파라미터로 전달합니다. 개인 식별값이므로 비밀 입력으로 처리합니다.&quot;,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">640</span><code data-code-text>            required=True,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">641</span><code data-code-text>            value=&quot;&quot;,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">642</span><code data-code-text>        ),</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">643</span><code data-code-text>        MessageTextInput(</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">644</span><code data-code-text>            name=&quot;allowed_drm_hosts&quot;,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">645</span><code data-code-text>            display_name=&quot;허용 DRM 서버&quot;,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">646</span><code data-code-text>            info=&quot;업로드를 허용할 host만 쉼표로 입력합니다. 예: drm.example.internal 또는 .example.internal&quot;,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">647</span><code data-code-text>            required=True,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">648</span><code data-code-text>            value=&quot;&quot;,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">649</span><code data-code-text>        ),</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">650</span><code data-code-text>        BoolInput(</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">651</span><code data-code-text>            name=&quot;allow_insecure_http&quot;,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">652</span><code data-code-text>            display_name=&quot;HTTP DRM API 사용 허용&quot;,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">653</span><code data-code-text>            info=&quot;기본값은 꺼짐입니다. HTTPS를 지원하지 않는 폐쇄된 사내 테스트망에서만 켜세요.&quot;,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">654</span><code data-code-text>            value=False,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">655</span><code data-code-text>            advanced=True,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">656</span><code data-code-text>        ),</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">657</span><code data-code-text>        BoolInput(</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">658</span><code data-code-text>            name=&quot;verify_tls&quot;,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">659</span><code data-code-text>            display_name=&quot;TLS 인증서 검증&quot;,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">660</span><code data-code-text>            info=&quot;HTTPS 인증서를 검증합니다. 사내 CA를 설치한 운영 환경에서는 켠 상태를 유지하세요.&quot;,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">661</span><code data-code-text>            value=True,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">662</span><code data-code-text>            advanced=True,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">663</span><code data-code-text>        ),</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">664</span><code data-code-text>        IntInput(</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">665</span><code data-code-text>            name=&quot;timeout_seconds&quot;,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">666</span><code data-code-text>            display_name=&quot;제한 시간(초)&quot;,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">667</span><code data-code-text>            info=&quot;파일 하나의 연결·응답 읽기 timeout입니다. 1~600초 범위입니다.&quot;,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">668</span><code data-code-text>            value=DEFAULT_TIMEOUT_SECONDS,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">669</span><code data-code-text>            advanced=True,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">670</span><code data-code-text>        ),</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">671</span><code data-code-text>        IntInput(</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">672</span><code data-code-text>            name=&quot;max_files&quot;,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">673</span><code data-code-text>            display_name=&quot;최대 파일 수&quot;,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">674</span><code data-code-text>            info=&quot;한 번 실행에서 처리할 파일 수를 1~50개로 제한합니다.&quot;,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">675</span><code data-code-text>            value=DEFAULT_MAX_FILES,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">676</span><code data-code-text>            advanced=True,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">677</span><code data-code-text>        ),</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">678</span><code data-code-text>        IntInput(</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">679</span><code data-code-text>            name=&quot;max_file_size_mb&quot;,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">680</span><code data-code-text>            display_name=&quot;파일당 최대 크기(MB)&quot;,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">681</span><code data-code-text>            info=&quot;DRM API에 업로드할 파일 하나의 최대 크기입니다.&quot;,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">682</span><code data-code-text>            value=DEFAULT_MAX_FILE_SIZE_MB,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">683</span><code data-code-text>            advanced=True,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">684</span><code data-code-text>        ),</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">685</span><code data-code-text>        IntInput(</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">686</span><code data-code-text>            name=&quot;max_total_size_mb&quot;,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">687</span><code data-code-text>            display_name=&quot;전체 최대 크기(MB)&quot;,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">688</span><code data-code-text>            info=&quot;한 번 실행에서 메모리에 읽을 전체 파일의 최대 크기입니다.&quot;,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">689</span><code data-code-text>            value=DEFAULT_MAX_TOTAL_SIZE_MB,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">690</span><code data-code-text>            advanced=True,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">691</span><code data-code-text>        ),</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">692</span><code data-code-text>        IntInput(</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">693</span><code data-code-text>            name=&quot;max_response_mb&quot;,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">694</span><code data-code-text>            display_name=&quot;파일당 최대 응답 크기(MB)&quot;,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">695</span><code data-code-text>            info=&quot;DRM API의 평문 응답을 이 크기까지만 읽습니다.&quot;,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">696</span><code data-code-text>            value=DEFAULT_MAX_RESPONSE_MB,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">697</span><code data-code-text>            advanced=True,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">698</span><code data-code-text>        ),</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">699</span><code data-code-text>    ]</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">700</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">701</span><code data-code-text>    outputs = [</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">702</span><code data-code-text>        Output(</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">703</span><code data-code-text>            name=&quot;extracted_text&quot;,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">704</span><code data-code-text>            display_name=&quot;추출된 문서 텍스트&quot;,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">705</span><code data-code-text>            method=&quot;build_extracted_text&quot;,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">706</span><code data-code-text>            types=[&quot;Message&quot;],</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">707</span><code data-code-text>            cache=False,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">708</span><code data-code-text>            tool_mode=False,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">709</span><code data-code-text>        ),</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">710</span><code data-code-text>        Output(</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">711</span><code data-code-text>            name=&quot;processed_file&quot;,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">712</span><code data-code-text>            display_name=&quot;DRM 평문 작업 파일&quot;,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">713</span><code data-code-text>            method=&quot;build_processed_file&quot;,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">714</span><code data-code-text>            types=[&quot;Data&quot;],</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">715</span><code data-code-text>            cache=False,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">716</span><code data-code-text>            tool_mode=False,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">717</span><code data-code-text>        ),</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">718</span><code data-code-text>    ]</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">719</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">720</span><code data-code-text>    def build_extracted_text(self) -&gt; Message:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">721</span><code data-code-text>        result = extract_document_texts(</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">722</span><code data-code-text>            document_files=getattr(self, &quot;document_files&quot;, None),</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">723</span><code data-code-text>            drm_api_url=getattr(self, &quot;drm_api_url&quot;, &quot;&quot;),</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">724</span><code data-code-text>            drm_token=getattr(self, &quot;drm_token&quot;, &quot;&quot;),</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">725</span><code data-code-text>            employee_no=getattr(self, &quot;employee_no&quot;, &quot;&quot;),</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">726</span><code data-code-text>            allowed_drm_hosts=getattr(self, &quot;allowed_drm_hosts&quot;, &quot;&quot;),</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">727</span><code data-code-text>            allow_insecure_http=getattr(self, &quot;allow_insecure_http&quot;, False),</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">728</span><code data-code-text>            verify_tls=getattr(self, &quot;verify_tls&quot;, True),</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">729</span><code data-code-text>            timeout_seconds=getattr(self, &quot;timeout_seconds&quot;, DEFAULT_TIMEOUT_SECONDS),</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">730</span><code data-code-text>            max_files=getattr(self, &quot;max_files&quot;, DEFAULT_MAX_FILES),</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">731</span><code data-code-text>            max_file_size_mb=getattr(self, &quot;max_file_size_mb&quot;, DEFAULT_MAX_FILE_SIZE_MB),</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">732</span><code data-code-text>            max_total_size_mb=getattr(self, &quot;max_total_size_mb&quot;, DEFAULT_MAX_TOTAL_SIZE_MB),</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">733</span><code data-code-text>            max_response_mb=getattr(self, &quot;max_response_mb&quot;, DEFAULT_MAX_RESPONSE_MB),</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">734</span><code data-code-text>        )</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">735</span><code data-code-text>        meta = result[&quot;meta&quot;]</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">736</span><code data-code-text>        self.status = (</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">737</span><code data-code-text>            f&quot;추출 완료 · 파일 {meta[&#x27;file_count&#x27;]}개 · &quot;</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">738</span><code data-code-text>            f&quot;응답 {meta[&#x27;total_response_bytes&#x27;]:,}바이트 · 텍스트 {meta[&#x27;total_char_count&#x27;]:,}자&quot;</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">739</span><code data-code-text>        )</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">740</span><code data-code-text>        return Message(text=format_extraction_message(result))</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">741</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">742</span><code data-code-text>    def build_processed_file(self) -&gt; Data:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">743</span><code data-code-text>        record = process_file_record(</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">744</span><code data-code-text>            file_record=getattr(self, &quot;file_record&quot;, None),</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">745</span><code data-code-text>            drm_api_url=getattr(self, &quot;drm_api_url&quot;, &quot;&quot;),</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">746</span><code data-code-text>            drm_token=getattr(self, &quot;drm_token&quot;, &quot;&quot;),</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">747</span><code data-code-text>            employee_no=getattr(self, &quot;employee_no&quot;, &quot;&quot;),</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">748</span><code data-code-text>            allowed_drm_hosts=getattr(self, &quot;allowed_drm_hosts&quot;, &quot;&quot;),</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">749</span><code data-code-text>            allow_insecure_http=getattr(self, &quot;allow_insecure_http&quot;, False),</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">750</span><code data-code-text>            verify_tls=getattr(self, &quot;verify_tls&quot;, True),</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">751</span><code data-code-text>            timeout_seconds=getattr(self, &quot;timeout_seconds&quot;, DEFAULT_TIMEOUT_SECONDS),</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">752</span><code data-code-text>            max_file_size_mb=getattr(self, &quot;max_file_size_mb&quot;, DEFAULT_MAX_FILE_SIZE_MB),</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">753</span><code data-code-text>            max_response_mb=getattr(self, &quot;max_response_mb&quot;, DEFAULT_MAX_RESPONSE_MB),</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">754</span><code data-code-text>        )</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">755</span><code data-code-text>        self.status = (</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">756</span><code data-code-text>            f&quot;DRM 상태: {record.get(&#x27;drm_status&#x27;)} · &quot;</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">757</span><code data-code-text>            f&quot;{record.get(&#x27;original_file_name&#x27;) or record.get(&#x27;file_name&#x27;)}&quot;</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">758</span><code data-code-text>        )</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">759</span><code data-code-text>        return Data(data=record)</code></div></div></div>
+  <footer class="code-status"><span>Python</span><span>UTF-8</span><span data-copy-status aria-live="polite">복사할 때 외부 서버를 호출하지 않습니다.</span></footer>
+</section>
+<div class="page-actions"><button class="back-button" type="button" data-back data-fallback="components/drm_document_text_extractor/index.html">← 이전 화면</button><a class="button button-soft" href="components/drm_document_text_extractor/index.html#contract">입출력 계약</a><a class="button button-soft" href="components/index.html">Component 목록</a></div>
+
+  </main>
+  <footer class="site-footer">
+    <div class="footer-inner">
+      <div><strong>Agent Ground</strong><p>실제 Agent Builder 환경에서 검증된 교육자료, Standalone Component와 Flow를 함께 쌓아갑니다.</p></div>
+      <div class="footer-links"><a href="training/index.html">처음 배우기</a><a href="troubleshooting/index.html">실패와 해결</a><a href="../AGENT_GROUND_PROJECT_MASTER_GUIDE.md">프로젝트 기준</a></div>
+    </div>
+  </footer>
+  <script src="assets/js/site.js"></script>
+  
+</body>
+</html>

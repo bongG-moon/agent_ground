@@ -371,7 +371,7 @@ def test_skill_bundle_imports_child_before_parent() -> None:
     ]
 
 
-def test_project_bundle_contains_six_runnable_flows_in_stable_order() -> None:
+def test_project_bundle_contains_seven_runnable_flows_in_stable_order() -> None:
     path = ROOT / "flows" / "00_AGENT_GROUND_ALL_FLOWS.json"
     raw = path.read_bytes()
     assert raw.startswith(b'{"flows":[')
@@ -383,6 +383,7 @@ def test_project_bundle_contains_six_runnable_flows_in_stable_order() -> None:
         "meeting_action_skill_flow",
         "skill_based_agent_flow",
         "ppt_reference_html_flow",
+        "drm_document_text_extraction_flow",
         "business_agent_design_complete",
     ]
     assert "업무분석flow" not in {item["name"] for item in bundle["flows"]}

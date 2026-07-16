@@ -38,6 +38,7 @@ PROJECT_FLOW_SOURCES = (
     MEETING_SUBFLOW_TARGET,
     FLOW_TARGET,
     ROOT / "flows" / "ppt_reference_html_flow" / "ppt_reference_html_flow.json",
+    ROOT / "flows" / "drm_document_text_extraction_flow" / "drm_document_text_extraction_flow.json",
     ROOT / "business_agent_design" / "flow" / "business_agent_design_complete.json",
 )
 
@@ -658,6 +659,7 @@ def _validate_written_files() -> None:
         MEETING_SUBFLOW_NAME,
         "skill_based_agent_flow",
         "ppt_reference_html_flow",
+        "drm_document_text_extraction_flow",
         "business_agent_design_complete",
     ]
     actual_names = [

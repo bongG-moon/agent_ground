@@ -1,0 +1,7 @@
+{
+  "schema_version": "1.0",
+  "asset_type": "flow_node",
+  "owner_flow": "drm_document_text_extraction_flow",
+  "flow_id": "drm_document_text_extraction_flow",
+  "nodes": []
+}

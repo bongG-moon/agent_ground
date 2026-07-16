@@ -1,0 +1,34 @@
+{
+  "id": "drm_document_text_extraction_flow",
+  "name_ko": "DRM 문서 텍스트 추출 Flow",
+  "asset_type": "flow",
+  "status": "user_testing",
+  "version": "0.2.0",
+  "source_export_version": "1.8.2",
+  "summary_ko": "문서·텍스트·일반 이미지 파일을 업로드하면 허용된 사내 DRM text API에 전달하고 반환된 평문을 LLM 없이 출력합니다.",
+  "categories": ["document", "image", "drm", "text-extraction", "file-upload", "on-prem"],
+  "trigger_signals": ["DRM 문서", "PDF 텍스트 추출", "PPT 텍스트 추출", "Excel 텍스트 추출", "Word 텍스트 추출", "이미지 OCR 평문"],
+  "flow_file": "drm_document_text_extraction_flow.json",
+  "component_refs_file": "component_refs.json",
+  "internal_nodes_file": "internal_nodes.json",
+  "documentation_path": "flows/drm_document_text_extraction_flow/README.md",
+  "runtime_ready": true,
+  "verified_environment": "langflow-1.8.2-lfx-0.3.4-template-and-fake-drm-api-contract-validation",
+  "last_verified_at": "2026-07-16",
+  "approved_by_user_at": null,
+  "risk_tags": [
+    "file_upload",
+    "confidential_document_content",
+    "external_api_upload",
+    "credentials_required",
+    "endpoint_allowlist",
+    "https_default",
+    "plaintext_output",
+    "no_llm"
+  ],
+  "configuration_required": [
+    "Enter the approved DRM text API URL, Bearer token, employee number, and an exact allowed host.",
+    "Keep HTTPS and TLS verification enabled unless the approved closed test network only supports HTTP.",
+    "Confirm that the DRM API returns plain text for each enabled document or image format, including OCR text for images when required."
+  ]
+}

@@ -11,6 +11,7 @@ ROOT = Path(__file__).resolve().parents[1]
 COMPONENTS_DIR = ROOT / "components"
 
 GENERAL_COMPONENT_IDS = {
+    "drm_document_text_extractor",
     "multi_image_base64_encoder",
     "cached_named_run_flow_tool",
     "oracle_table_query",
@@ -90,6 +91,8 @@ INTERNAL_NODE_IDS = {
 COMPONENT_VERSION_OVERRIDES = {
     # 외부 Tool 입력 계약이 node-ID 기반에서 고정 question으로 변경된 호환성 수정입니다.
     "cached_named_run_flow_tool": "0.2.0",
+    # 직접 업로드 Message 출력에 EWS Data 입력과 평문 TXT Data 출력을 추가했습니다.
+    "drm_document_text_extractor": "0.2.0",
 }
 
 DIRECT_DATA_ACCESS_IDS = {
@@ -122,6 +125,7 @@ SOURCE_FAMILY_USAGE_LABELS = {
 }
 
 ADDITIONAL_GUIDES = {
+    "drm_document_text_extractor": "USAGE_GUIDE.md",
     "cached_named_run_flow_tool": "USAGE_GUIDE.md",
     "multi_image_base64_encoder": "USAGE_GUIDE.md",
     "oracle_table_query": "USAGE_GUIDE.md",
@@ -136,6 +140,15 @@ BEGINNER_GUIDES = {
 }
 
 RISK_TAGS = {
+    "drm_document_text_extractor": [
+        "file_upload",
+        "confidential_document_content",
+        "external_api_upload",
+        "credentials_required",
+        "endpoint_allowlist",
+        "https_default",
+        "plaintext_output",
+    ],
     "html_template_renderer": ["html_output"],
     "html_presentation_renderer": ["html_output", "inline_svg", "self_contained_artifact", "motion_policy"],
     "report_api_publisher": ["external_publish", "html_output"],
@@ -251,12 +264,24 @@ def component_release(component_id: str) -> dict[str, Any]:
             "used_by_flows": ["ppt_reference_html_flow"],
         }
     if component_id in ENTERPRISE_UTILITY_IDS:
-        used_by = ["skill_based_agent_flow"] if component_id == "cached_named_run_flow_tool" else []
+        if component_id == "cached_named_run_flow_tool":
+            used_by = ["skill_based_agent_flow"]
+        elif component_id == "drm_document_text_extractor":
+            used_by = ["drm_document_text_extraction_flow", "mail_attachment_summary_flow"]
+        else:
+            used_by = []
+        verified_environment = "langflow-1.8.2-local-runtime-validation"
+        last_verified_at = "2026-07-12"
+        if component_id == "drm_document_text_extractor":
+            verified_environment = (
+                "langflow-1.8.2-lfx-0.3.4-template-and-fake-drm-api-contract-validation"
+            )
+            last_verified_at = "2026-07-16"
         return {
             "source_family": "enterprise_utility_components",
             "version": COMPONENT_VERSION_OVERRIDES.get(component_id, "0.1.0"),
-            "verified_environment": "langflow-1.8.2-local-runtime-validation",
-            "last_verified_at": "2026-07-12",
+            "verified_environment": verified_environment,
+            "last_verified_at": last_verified_at,
             "used_by_flows": used_by,
         }
     if component_id in DIRECT_DATA_ACCESS_IDS:
@@ -564,7 +589,10 @@ def main() -> None:
                 )
             if unknown:
                 messages.append(f"정책에 등록되지 않은 디렉터리: {unknown}")
-        raise ValueError("Component 디렉터리 구성이 20개 자격 목록과 다릅니다. " + "; ".join(messages))
+        raise ValueError(
+            f"Component 디렉터리 구성이 {len(COMPONENT_IDS)}개 자격 목록과 다릅니다. "
+            + "; ".join(messages)
+        )
 
     manifests = []
     for component_id in sorted(COMPONENT_IDS):

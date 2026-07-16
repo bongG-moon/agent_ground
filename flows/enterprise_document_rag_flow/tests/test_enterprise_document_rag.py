@@ -375,6 +375,7 @@ def test_generated_flow_embeds_sources_and_langflow_handles() -> None:
         "meeting_action_skill_flow",
         "skill_based_agent_flow",
         "ppt_reference_html_flow",
+        "drm_document_text_extraction_flow",
         "business_agent_design_complete",
     ]
     assert "업무분석flow" not in {item["name"] for item in bundle["flows"]}

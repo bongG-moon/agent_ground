@@ -1,0 +1,34 @@
+[
+  {
+    "file_path": "<temporary>/mail_001/mail_001_body.txt",
+    "file_name": "mail_001_body.txt",
+    "source_kind": "mail_body",
+    "mail_index": 1,
+    "mail_subject": "검토 요청",
+    "sender": "보낸 사람",
+    "sender_email": "sender@example.invalid",
+    "received_time": "2026-07-16T01:00:00Z",
+    "is_read": false,
+    "attachment_index": 0,
+    "is_inline": false,
+    "content_type": "text/plain",
+    "drm_status": "not_applicable",
+    "extraction_error": ""
+  },
+  {
+    "file_path": "<temporary>/mail_001/001_review.pdf",
+    "file_name": "review.pdf",
+    "source_kind": "ews_attachment",
+    "mail_index": 1,
+    "mail_subject": "검토 요청",
+    "sender": "보낸 사람",
+    "sender_email": "sender@example.invalid",
+    "received_time": "2026-07-16T01:00:00Z",
+    "is_read": false,
+    "attachment_index": 1,
+    "is_inline": false,
+    "content_type": "application/pdf",
+    "drm_status": "pending",
+    "extraction_error": ""
+  }
+]

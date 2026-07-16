@@ -816,13 +816,14 @@ Git commit, push, 배포는 사용자가 명시적으로 요청했을 때만 수
 
 - `Agent_ground` 통합 폴더, 공통 manifest/registry, 반응형 HTML 포털과 자동 검증 도구를 구현했다.
 - 기존 전체 교육 포털의 본문·제목·링크·예제·샘플을 새 디자인에 이관했고, 별도 학습 안내와 문제 해결 동선을 연결했다.
-- `html_report_flow`, `enterprise_document_rag_flow`, `skill_based_agent_flow`, `ppt_reference_html_flow`와 회의 전용 하위 Flow인 `meeting_action_skill_flow`를 실행 자산으로 관리한다. 독립 기능 원본은 `components/`, Flow 종속 원본은 각 Flow의 `nodes/`로 분리했다.
+- `html_report_flow`, `enterprise_document_rag_flow`, `skill_based_agent_flow`, `ppt_reference_html_flow`, `drm_document_text_extraction_flow`와 회의 전용 하위 Flow인 `meeting_action_skill_flow`를 실행 자산으로 관리한다. 독립 기능 원본은 `components/`, Flow 종속 원본은 각 Flow의 `nodes/`로 분리했다.
 - `reusable_data_flow`는 12개 Flow 내부 Python 원본과 연결 설계를 보존하지만 실제 JSON이 과거 `업무분석flow`로 확인되어 `building`으로 격리했다. 올바른 export 제공 또는 신규 재구축 전까지 import와 전체 Bundle에서 제외한다.
 - `business_agent_design_complete`는 별도 상위 서비스로 구현했고, BEFORE/AFTER 분기형 Flow Chart와 개선 설명 HTML을 생성한다.
 - 신규 `enterprise_document_rag_flow`는 Langflow `1.8.2` / LFX `0.3.4`에서 13 nodes / 10 edges를 실제 Upload하고, 실행 node 11/11 valid 및 인용 포함 Chat Output까지 확인했다.
 - 문서 RAG의 첫 검증 backend는 외부 key가 필요 없는 `payload_lexical_v1`이며, 운영 persistent vector store·SSO·DLP는 별도 adapter와 통합 테스트가 필요한 명시적 확장 경계다.
 - 신규 `skill_based_agent_flow`는 공식 Simple Agent의 Tool 연결 계약을 사용한 하이브리드 예시다. LLM은 경비·휴가·회의 Skill Tool 중 하나를 선택하며, 경비·휴가는 개별 계산 Component를 직접 실행하고 회의는 개선형 이름 기반 Run Flow Tool이 `meeting_action_skill_flow`를 호출한다.
-- Skill Agent 예시는 `SKILL.md` 자동 탐색 구현이 아니다. 상위 Agent와 회의 하위 Flow는 2개 Flow Bundle로 함께 제공되고, 현재 전체 프로젝트 Bundle에는 격리된 재사용 데이터 Flow를 제외한 실행 가능 6개 Flow가 들어간다. 특정 모델·API Key를 JSON에 저장하지 않았으므로 실제 Agent Tool 선택과 같은 프로젝트 하위 Flow 호출 E2E는 사용자 환경의 승인 모델을 연결한 뒤 확인해야 한다.
+- Skill Agent 예시는 `SKILL.md` 자동 탐색 구현이 아니다. 상위 Agent와 회의 하위 Flow는 2개 Flow Bundle로 함께 제공되고, 현재 전체 프로젝트 Bundle에는 격리된 재사용 데이터 Flow를 제외한 실행 가능 7개 Flow가 들어간다. 특정 모델·API Key를 JSON에 저장하지 않았으므로 실제 Agent Tool 선택과 같은 프로젝트 하위 Flow 호출 E2E는 사용자 환경의 승인 모델을 연결한 뒤 확인해야 한다.
+- `drm_document_text_extraction_flow`는 PDF·Office·HWP·텍스트·CSV·일반 이미지 업로드를 허용된 DRM text API로만 전달하고 반환 평문을 LLM 없이 출력한다. 같은 공용 Component를 `mail_attachment_summary_flow`도 재사용해 EWS 첨부를 평문 TXT로 변환한다. endpoint·Bearer token·사번·업로드 경로는 Flow JSON 기본값에 저장하지 않으며 실제 사내 DRM API 호출 전까지 `user_testing`이다.
 - `ppt_reference_html_flow`는 표지·본문 이미지의 문구나 수치를 사실로 사용하지 않고 색상·여백·타이포 위계·그리드만 디자인 근거로 관찰한다. 발표 내용과 모든 표·차트 값은 사용자 brief와 dataset만 근거로 하며, LLM은 HTML/CSS/JavaScript가 아닌 디자인 분석 JSON과 슬라이드 계획 JSON만 제안한다.
 - 프레젠테이션 계획은 Flow 내부 Normalizer가 실제 dataset·column에 다시 연결하고 미지원 시각화는 명시적으로 안전한 표현으로 낮춘다. 독립 `html_presentation_renderer`는 허용된 계획만 16:9 자체 포함 HTML로 렌더링하며 외부 URL·CDN과 사용자 제공 실행 코드를 허용하지 않는다.
 - 2026-07-12에는 사내에서 반복 활용할 공용 Standalone Component 추천 후보 30종을 P0/P1/P2로 조사했고, 사용자가 선택한 `multi_image_base64_encoder`와 외부 참조 기반 `cached_named_run_flow_tool` 두 종을 실제 구현했다.

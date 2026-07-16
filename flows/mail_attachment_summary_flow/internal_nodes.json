@@ -5,25 +5,14 @@
   "flow_id": "mail_attachment_summary_flow",
   "nodes": [
     {
-      "id": "msg_attachment_extractor",
+      "id": "ews_mail_attachment_reader",
       "asset_type": "flow_node",
       "owner_flow": "mail_attachment_summary_flow",
-      "class_name": "MsgAttachmentExtractor",
-      "name_ko": "01 MSG 본문·첨부파일 분해",
+      "class_name": "OutlookEwsMailAttachmentReader",
+      "name_ko": "01 Outlook 메일·첨부 읽기 (EWS)",
       "version": "0.1.0",
-      "source_path": "nodes/msg_attachment_extractor.py",
-      "summary_ko": "여러 Outlook MSG의 본문·메타데이터와 첨부파일을 로컬 작업 경로로 평탄화해 Read File이 소비할 수 있는 DataFrame을 만듭니다.",
-      "embedded_in": ["mail_attachment_summary_flow.json"]
-    },
-    {
-      "id": "drm_unlock_adapter",
-      "asset_type": "flow_node",
-      "owner_flow": "mail_attachment_summary_flow",
-      "class_name": "DrmUnlockAdapter",
-      "name_ko": "03 첨부파일 DRM 해제",
-      "version": "0.1.0",
-      "source_path": "nodes/drm_unlock_adapter.py",
-      "summary_ko": "MSG 첨부파일을 원본과 분리된 작업 파일로 해제하는 사내 DRM SDK 연동 계약이며, 구현 전에는 fail-closed로 중단합니다.",
+      "source_path": "nodes/ews_mail_attachment_reader.py",
+      "summary_ko": "사내 EWS FindItem·GetItem·GetAttachment를 NTLM으로 호출해 메일 본문과 파일 첨부를 Read File이 소비할 로컬 DataFrame으로 만듭니다.",
       "embedded_in": ["mail_attachment_summary_flow.json"]
     }
   ]

@@ -184,7 +184,7 @@ class LangflowImportTests(unittest.TestCase):
         self.assertTrue(bundle_raw.startswith(b'{"flows":['))
         self.assertTrue(project_raw.startswith(b'{"flows":['))
         project_flows = json.loads(project_raw)["flows"]
-        self.assertEqual(len(project_flows), 6)
+        self.assertEqual(len(project_flows), 7)
         self.assertNotIn("업무분석flow", {flow.get("name") for flow in project_flows})
 
     def test_handles_decode_with_langflow_1_8_2_contract(self):

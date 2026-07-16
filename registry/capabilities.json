@@ -1,7 +1,7 @@
 {
   "schema_version": "1.0",
   "generated_at": "2026-07-16",
-  "source_of_truth": "20 qualified Component manifests and 6 Flow manifests; internal nodes are excluded",
+  "source_of_truth": "21 qualified Component manifests and 7 Flow manifests; internal nodes are excluded",
   "publication_rule": "Only approved assets may be used by Business Agent Design recommendations.",
   "assets": [
     {
@@ -645,6 +645,211 @@
       "last_verified_at": "2026-07-11",
       "documentation_path": "html/components/document_input_normalizer/index.html",
       "approved_by_user_at": null
+    },
+    {
+      "id": "drm_document_text_extractor",
+      "name_ko": "DRM 문서 텍스트 추출",
+      "class_name": "DrmDocumentTextExtractor",
+      "asset_type": "component",
+      "status": "user_testing",
+      "version": "0.2.0",
+      "packaging": "standalone",
+      "standalone": true,
+      "reusability": "shared",
+      "component_scope": "general",
+      "qualification": {
+        "decision": "qualified_component",
+        "criteria": {
+          "independent_input_output": true,
+          "functional_completeness": true,
+          "reusable_unit": true,
+          "payload_coupling": "low",
+          "validation_or_error_handling": true
+        },
+        "review_rule": "Flow에서 사용된다는 사실만으로 Component 자격을 부여하지 않습니다."
+      },
+      "owner_usage": {
+        "owner": "component_library",
+        "usage": "여러 Flow에서 직접 조합하는 공용 최소 기능",
+        "used_by_flows": [
+          "drm_document_text_extraction_flow",
+          "mail_attachment_summary_flow"
+        ]
+      },
+      "source_family": "enterprise_utility_components",
+      "summary_ko": "문서·이미지를 DRM text API에 전송해 평문 Message 또는 EWS용 TXT 작업 파일로 반환합니다.",
+      "source_file": "drm_document_text_extractor.py",
+      "inputs": [
+        {
+          "type": "FileInput",
+          "name": "document_files",
+          "display_name": "문서 파일",
+          "file_types": [
+            "bmp",
+            "csv",
+            "doc",
+            "docx",
+            "hwp",
+            "hwpx",
+            "jpeg",
+            "jpg",
+            "pdf",
+            "png",
+            "ppt",
+            "pptx",
+            "rtf",
+            "tif",
+            "tiff",
+            "txt",
+            "xls",
+            "xlsx"
+          ],
+          "info": "PDF·Office·HWP·텍스트·CSV·일반 이미지를 입력 순서대로 DRM API에 전송합니다.",
+          "required": false,
+          "is_list": true,
+          "value": []
+        },
+        {
+          "type": "DataInput",
+          "name": "file_record",
+          "display_name": "EWS 파일 항목",
+          "info": "EWS Flow에서 file_path·file_name·source_kind가 포함된 Data 한 건을 연결합니다.",
+          "required": false,
+          "advanced": true
+        },
+        {
+          "type": "MessageTextInput",
+          "name": "drm_api_url",
+          "display_name": "DRM API 주소",
+          "info": "파일을 multipart/form-data의 file 필드로 받을 DRM text API 전체 주소입니다.",
+          "required": true,
+          "value": ""
+        },
+        {
+          "type": "SecretStrInput",
+          "name": "drm_token",
+          "display_name": "DRM 토큰",
+          "info": "Authorization: Bearer 헤더에 넣을 토큰입니다. Flow JSON 기본값에는 저장하지 않습니다.",
+          "required": true,
+          "value": ""
+        },
+        {
+          "type": "SecretStrInput",
+          "name": "employee_no",
+          "display_name": "사번",
+          "info": "DRM API의 empNo 쿼리 파라미터로 전달합니다. 개인 식별값이므로 비밀 입력으로 처리합니다.",
+          "required": true,
+          "value": ""
+        },
+        {
+          "type": "MessageTextInput",
+          "name": "allowed_drm_hosts",
+          "display_name": "허용 DRM 서버",
+          "info": "업로드를 허용할 host만 쉼표로 입력합니다. 예: drm.example.internal 또는 .example.internal",
+          "required": true,
+          "value": ""
+        },
+        {
+          "type": "BoolInput",
+          "name": "allow_insecure_http",
+          "display_name": "HTTP DRM API 사용 허용",
+          "info": "기본값은 꺼짐입니다. HTTPS를 지원하지 않는 폐쇄된 사내 테스트망에서만 켜세요.",
+          "value": false,
+          "advanced": true
+        },
+        {
+          "type": "BoolInput",
+          "name": "verify_tls",
+          "display_name": "TLS 인증서 검증",
+          "info": "HTTPS 인증서를 검증합니다. 사내 CA를 설치한 운영 환경에서는 켠 상태를 유지하세요.",
+          "value": true,
+          "advanced": true
+        },
+        {
+          "type": "IntInput",
+          "name": "timeout_seconds",
+          "display_name": "제한 시간(초)",
+          "info": "파일 하나의 연결·응답 읽기 timeout입니다. 1~600초 범위입니다.",
+          "value": 180,
+          "advanced": true
+        },
+        {
+          "type": "IntInput",
+          "name": "max_files",
+          "display_name": "최대 파일 수",
+          "info": "한 번 실행에서 처리할 파일 수를 1~50개로 제한합니다.",
+          "value": 10,
+          "advanced": true
+        },
+        {
+          "type": "IntInput",
+          "name": "max_file_size_mb",
+          "display_name": "파일당 최대 크기(MB)",
+          "info": "DRM API에 업로드할 파일 하나의 최대 크기입니다.",
+          "value": 50,
+          "advanced": true
+        },
+        {
+          "type": "IntInput",
+          "name": "max_total_size_mb",
+          "display_name": "전체 최대 크기(MB)",
+          "info": "한 번 실행에서 메모리에 읽을 전체 파일의 최대 크기입니다.",
+          "value": 200,
+          "advanced": true
+        },
+        {
+          "type": "IntInput",
+          "name": "max_response_mb",
+          "display_name": "파일당 최대 응답 크기(MB)",
+          "info": "DRM API의 평문 응답을 이 크기까지만 읽습니다.",
+          "value": 20,
+          "advanced": true
+        }
+      ],
+      "outputs": [
+        {
+          "type": "Output",
+          "name": "extracted_text",
+          "display_name": "추출된 문서 텍스트",
+          "method": "build_extracted_text",
+          "types": [
+            "Message"
+          ],
+          "tool_mode": false
+        },
+        {
+          "type": "Output",
+          "name": "processed_file",
+          "display_name": "DRM 평문 작업 파일",
+          "method": "build_processed_file",
+          "types": [
+            "Data"
+          ],
+          "tool_mode": false
+        }
+      ],
+      "dependencies": [
+        "lfx",
+        "requests"
+      ],
+      "used_by_flows": [
+        "drm_document_text_extraction_flow",
+        "mail_attachment_summary_flow"
+      ],
+      "risk_tags": [
+        "file_upload",
+        "confidential_document_content",
+        "external_api_upload",
+        "credentials_required",
+        "endpoint_allowlist",
+        "https_default",
+        "plaintext_output"
+      ],
+      "verified_environment": "langflow-1.8.2-lfx-0.3.4-template-and-fake-drm-api-contract-validation",
+      "last_verified_at": "2026-07-16",
+      "documentation_path": "html/components/drm_document_text_extractor/index.html",
+      "approved_by_user_at": null,
+      "guide_file": "USAGE_GUIDE.md"
     },
     {
       "id": "expense_precheck_skill_tool",
@@ -2084,6 +2289,54 @@
       "guide_file": "USAGE_GUIDE.md"
     },
     {
+      "id": "drm_document_text_extraction_flow",
+      "name_ko": "DRM 문서 텍스트 추출 Flow",
+      "asset_type": "flow",
+      "status": "user_testing",
+      "version": "0.2.0",
+      "source_export_version": "1.8.2",
+      "summary_ko": "문서·텍스트·일반 이미지 파일을 업로드하면 허용된 사내 DRM text API에 전달하고 반환된 평문을 LLM 없이 출력합니다.",
+      "categories": [
+        "document",
+        "image",
+        "drm",
+        "text-extraction",
+        "file-upload",
+        "on-prem"
+      ],
+      "trigger_signals": [
+        "DRM 문서",
+        "PDF 텍스트 추출",
+        "PPT 텍스트 추출",
+        "Excel 텍스트 추출",
+        "Word 텍스트 추출",
+        "이미지 OCR 평문"
+      ],
+      "flow_file": "drm_document_text_extraction_flow.json",
+      "component_refs_file": "component_refs.json",
+      "internal_nodes_file": "internal_nodes.json",
+      "documentation_path": "flows/drm_document_text_extraction_flow/README.md",
+      "runtime_ready": true,
+      "verified_environment": "langflow-1.8.2-lfx-0.3.4-template-and-fake-drm-api-contract-validation",
+      "last_verified_at": "2026-07-16",
+      "approved_by_user_at": null,
+      "risk_tags": [
+        "file_upload",
+        "confidential_document_content",
+        "external_api_upload",
+        "credentials_required",
+        "endpoint_allowlist",
+        "https_default",
+        "plaintext_output",
+        "no_llm"
+      ],
+      "configuration_required": [
+        "Enter the approved DRM text API URL, Bearer token, employee number, and an exact allowed host.",
+        "Keep HTTPS and TLS verification enabled unless the approved closed test network only supports HTTP.",
+        "Confirm that the DRM API returns plain text for each enabled document or image format, including OCR text for images when required."
+      ]
+    },
+    {
       "id": "enterprise_document_rag_flow",
       "name_ko": "사내 문서 RAG Flow",
       "asset_type": "flow",
@@ -2156,28 +2409,29 @@
     },
     {
       "id": "mail_attachment_summary_flow",
-      "name_ko": "다중 MSG·DRM 첨부파일 요약 Flow",
+      "name_ko": "EWS·DRM Outlook 메일 요약 Flow",
       "asset_type": "flow",
       "status": "user_testing",
-      "version": "0.2.0",
+      "version": "0.4.0",
       "source_export_version": "1.8.2",
-      "summary_ko": "사용자가 여러 Outlook MSG를 직접 업로드하면 본문과 첨부를 분해하고, 첨부를 사내 DRM 어댑터로 해제한 뒤 파일별 분석과 전체 업무 요약을 생성합니다.",
+      "summary_ko": "사내 EWS와 NTLM 인증으로 Outlook 메일 본문·파일 첨부를 읽고, 첨부를 허용된 DRM text API의 평문 TXT로 변환한 뒤 메일별 분석과 전체 업무 요약을 생성합니다.",
       "categories": [
         "mail",
-        "msg",
+        "ews",
+        "ntlm",
         "attachment",
         "drm",
         "document",
         "summary",
-        "local-first"
+        "on-prem"
       ],
       "trigger_signals": [
-        "MSG 업로드",
-        "메일 첨부파일",
+        "EWS 메일 읽기",
+        "Outlook 받은 편지함",
+        "NTLM",
         "DRM 해제",
         "첨부 문서 요약",
-        "실행 항목",
-        "기한 정리"
+        "실행 항목"
       ],
       "flow_file": "mail_attachment_summary_flow.json",
       "component_refs_file": "component_refs.json",
@@ -2188,21 +2442,26 @@
       "last_verified_at": "2026-07-16",
       "approved_by_user_at": null,
       "risk_tags": [
-        "msg_mail_content",
-        "multiple_msg_upload",
-        "extract_msg_0_55_dependency_required",
-        "third_party_gpl_license_review_required",
-        "company_drm_sdk_implementation_required",
-        "drm_fail_closed",
-        "msg_container_drm_not_supported_before_extraction",
+        "ews_mail_content",
+        "ad_credentials_required",
+        "requests_ntlm_dependency_required",
+        "internal_nexus_dependency_install",
+        "tls_verification_disabled_by_default_for_actual_environment",
+        "drm_text_api_credentials_required",
+        "drm_endpoint_allowlist",
+        "plaintext_working_file",
+        "drm_api_fail_closed",
         "untrusted_attachment_content",
         "local_ocr",
         "approved_internal_model_required",
         "working_file_deleted_after_processing"
       ],
       "configuration_required": [
-        "Install an approved extract-msg 0.55.x runtime or replace the MSG opener with an approved internal parser.",
-        "Implement company_drm_unlock in nodes/drm_unlock_adapter.py with the approved company DRM SDK.",
+        "Configure EWS URL, mailbox, AD account, password, and the internal Nexus settings used by the actual environment.",
+        "Prefer enabling TLS verification with the internal CA bundle after confirming the current EWS certificate chain.",
+        "Configure the approved DRM text API URL, Bearer token, employee number, and exact allowed host.",
+        "For an HTTP-only closed test network, explicitly enable insecure HTTP after security approval.",
+        "Confirm the DRM API text extraction coverage for PDF, Office, HWP, text, CSV, and image attachments.",
         "Select the same approved internal or local model in both Language Model nodes."
       ]
     },

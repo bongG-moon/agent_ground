@@ -1,0 +1,628 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <base href="../../../../" />
+  <title>01 Outlook 메일·첨부 읽기 (EWS) Python 코드 · Agent Ground</title>
+  <meta name="description" content="mail_attachment_summary_flow 내부 Node 01 Outlook 메일·첨부 읽기 (EWS) Python 코드 뷰어" />
+  <link rel="stylesheet" href="assets/css/site.css" />
+  
+</head>
+<body>
+  <a class="skip-link" href="#main">본문으로 바로가기</a>
+  <header class="site-header">
+    <div class="header-inner">
+      <a class="brand" href="index.html" aria-label="Agent Ground 홈">
+        <span class="brand-mark" aria-hidden="true">AG</span>
+        <span class="brand-copy"><strong>Agent Ground</strong><small>Learn · Build · Validate</small></span>
+      </a>
+      <button class="menu-button" type="button" data-menu-button aria-expanded="false" aria-controls="site-nav" aria-label="메뉴 열기"><span class="menu-lines"></span></button>
+      <nav class="site-nav" id="site-nav" data-site-nav data-open="false" aria-label="주요 메뉴"><a href="index.html">홈</a><a href="training/index.html">처음 배우기</a><a href="flows/index.html" aria-current="page">Flows</a><a href="components/index.html">Components</a><a href="troubleshooting/index.html">실패와 해결</a><a href="business-agent-design/index.html">업무 Agent 설계</a></nav>
+    </div>
+  </header>
+  <main class="page-wrap" id="main">
+    <nav class="breadcrumbs" aria-label="현재 위치"><a href="index.html">홈</a><span aria-hidden="true">/</span><a href="flows/index.html">Flows</a><span aria-hidden="true">/</span><a href="flows/mail_attachment_summary_flow/index.html">mail_attachment_summary_flow</a><span aria-hidden="true">/</span><a href="flows/mail_attachment_summary_flow/nodes/ews_mail_attachment_reader/index.html">01 Outlook 메일·첨부 읽기 (EWS)</a><span aria-hidden="true">/</span><span>Python 코드</span></nav>
+    
+<section class="code-page-intro"><div><p class="eyebrow">Flow internal Python source</p><h1>01 Outlook 메일·첨부 읽기 (EWS)</h1><p><code>ews_mail_attachment_reader.py</code> 원문을 포털 안에서 확인합니다. 이 코드는 Component Library가 아니라 <strong>mail_attachment_summary_flow</strong>의 내부 구현입니다.</p></div><div class="code-page-actions"><a class="button button-soft" href="flows/mail_attachment_summary_flow/nodes/ews_mail_attachment_reader/index.html">내부 Node 설명으로 돌아가기</a></div></section>
+<section class="code-workspace" aria-label="Python 코드 뷰어">
+  <header class="code-toolbar"><div class="code-window-dots" aria-hidden="true"><span></span><span></span><span></span></div><div class="code-file-meta"><strong>ews_mail_attachment_reader.py</strong><span>584줄 · 24.6KB · UTF-8</span></div><button class="code-copy-button" type="button" data-copy-code>코드 복사</button></header>
+  <div class="code-editor-scroll" tabindex="0" aria-label="가로와 세로로 스크롤할 수 있는 Python 코드"><div class="code-lines" data-code-source><div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">1</span><code data-code-text>from __future__ import annotations</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">2</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">3</span><code data-code-text>import base64</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">4</span><code data-code-text>import importlib</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">5</span><code data-code-text>import re</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">6</span><code data-code-text>import subprocess</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">7</span><code data-code-text>import sys</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">8</span><code data-code-text>import tempfile</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">9</span><code data-code-text>import xml.etree.ElementTree as ET</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">10</span><code data-code-text>from pathlib import Path</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">11</span><code data-code-text>from typing import Any</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">12</span><code data-code-text>from xml.sax.saxutils import escape, quoteattr</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">13</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">14</span><code data-code-text>from lfx.custom import Component</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">15</span><code data-code-text>from lfx.io import BoolInput, IntInput, MessageTextInput, Output, SecretStrInput, StrInput</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">16</span><code data-code-text>from lfx.schema.dataframe import DataFrame</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">17</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">18</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">19</span><code data-code-text>SOAP_NS = &quot;http://schemas.xmlsoap.org/soap/envelope/&quot;</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">20</span><code data-code-text>MESSAGE_NS = &quot;http://schemas.microsoft.com/exchange/services/2006/messages&quot;</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">21</span><code data-code-text>TYPE_NS = &quot;http://schemas.microsoft.com/exchange/services/2006/types&quot;</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">22</span><code data-code-text>NS = {&quot;soap&quot;: SOAP_NS, &quot;m&quot;: MESSAGE_NS, &quot;t&quot;: TYPE_NS}</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">23</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">24</span><code data-code-text>_MAX_MAIL_COUNT = 100</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">25</span><code data-code-text>_MAX_BODY_LENGTH = 200_000</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">26</span><code data-code-text>_MAX_ATTACHMENT_SIZE_MB = 200</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">27</span><code data-code-text>_MAX_TOTAL_ATTACHMENT_MB = 1024</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">28</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">29</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">30</span><code data-code-text>class EwsReaderError(RuntimeError):</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">31</span><code data-code-text>    &quot;&quot;&quot;사용자에게 노출할 수 있는 EWS 조회 오류.&quot;&quot;&quot;</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">32</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">33</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">34</span><code data-code-text>def _clamp_int(value: Any, default: int, minimum: int, maximum: int) -&gt; int:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">35</span><code data-code-text>    try:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">36</span><code data-code-text>        number = int(value)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">37</span><code data-code-text>    except Exception:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">38</span><code data-code-text>        number = default</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">39</span><code data-code-text>    return max(minimum, min(maximum, number))</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">40</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">41</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">42</span><code data-code-text>def _safe_filename(value: Any, fallback: str) -&gt; str:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">43</span><code data-code-text>    name = Path(str(value or &quot;&quot;)).name</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">44</span><code data-code-text>    name = re.sub(r&quot;[\x00-\x1f\x7f&lt;&gt;:\&quot;/\\|?*]&quot;, &quot;_&quot;, name).strip(&quot; .&quot;)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">45</span><code data-code-text>    return name[:180] or fallback</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">46</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">47</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">48</span><code data-code-text>def _text(parent: ET.Element | None, path: str) -&gt; str:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">49</span><code data-code-text>    if parent is None:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">50</span><code data-code-text>        return &quot;&quot;</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">51</span><code data-code-text>    node = parent.find(path, NS)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">52</span><code data-code-text>    return (node.text or &quot;&quot;).strip() if node is not None else &quot;&quot;</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">53</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">54</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">55</span><code data-code-text>def _bool_text(value: str) -&gt; bool:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">56</span><code data-code-text>    return str(value or &quot;&quot;).strip().lower() == &quot;true&quot;</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">57</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">58</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">59</span><code data-code-text>def _secret_value(value: Any) -&gt; str:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">60</span><code data-code-text>    getter = getattr(value, &quot;get_secret_value&quot;, None)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">61</span><code data-code-text>    return str(getter() if callable(getter) else value or &quot;&quot;)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">62</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">63</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">64</span><code data-code-text>def _parse_xml(xml_text: str, operation: str) -&gt; ET.Element:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">65</span><code data-code-text>    try:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">66</span><code data-code-text>        root = ET.fromstring(xml_text)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">67</span><code data-code-text>    except ET.ParseError as exc:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">68</span><code data-code-text>        raise EwsReaderError(f&quot;{operation} 응답 XML을 해석하지 못했습니다.&quot;) from exc</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">69</span><code data-code-text>    response_messages = root.findall(f&quot;.//m:{operation}ResponseMessage&quot;, NS)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">70</span><code data-code-text>    if not response_messages:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">71</span><code data-code-text>        raise EwsReaderError(f&quot;{operation} 응답 메시지가 없습니다.&quot;)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">72</span><code data-code-text>    errors: list[str] = []</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">73</span><code data-code-text>    for message in response_messages:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">74</span><code data-code-text>        if message.get(&quot;ResponseClass&quot;) == &quot;Success&quot;:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">75</span><code data-code-text>            continue</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">76</span><code data-code-text>        code = _text(message, &quot;m:ResponseCode&quot;) or &quot;UnknownError&quot;</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">77</span><code data-code-text>        text = _text(message, &quot;m:MessageText&quot;)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">78</span><code data-code-text>        errors.append(f&quot;{code}: {text}&quot; if text else code)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">79</span><code data-code-text>    if errors and len(errors) == len(response_messages):</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">80</span><code data-code-text>        raise EwsReaderError(f&quot;{operation} 실패: {&#x27;; &#x27;.join(errors)}&quot;)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">81</span><code data-code-text>    return root</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">82</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">83</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">84</span><code data-code-text>def build_find_item_soap(max_count: int, email_addr: str = &quot;&quot;) -&gt; str:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">85</span><code data-code-text>    mailbox = &quot;&quot;</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">86</span><code data-code-text>    if email_addr.strip():</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">87</span><code data-code-text>        mailbox = (</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">88</span><code data-code-text>            &quot;&lt;t:Mailbox&gt;&lt;t:EmailAddress&gt;&quot;</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">89</span><code data-code-text>            f&quot;{escape(email_addr.strip())}&quot;</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">90</span><code data-code-text>            &quot;&lt;/t:EmailAddress&gt;&lt;/t:Mailbox&gt;&quot;</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">91</span><code data-code-text>        )</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">92</span><code data-code-text>    return f&quot;&quot;&quot;&lt;?xml version=&quot;1.0&quot; encoding=&quot;utf-8&quot;?&gt;</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">93</span><code data-code-text>&lt;soap:Envelope xmlns:soap=&quot;{SOAP_NS}&quot; xmlns:m=&quot;{MESSAGE_NS}&quot; xmlns:t=&quot;{TYPE_NS}&quot;&gt;</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">94</span><code data-code-text>  &lt;soap:Header&gt;&lt;t:RequestServerVersion Version=&quot;Exchange2013&quot; /&gt;&lt;/soap:Header&gt;</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">95</span><code data-code-text>  &lt;soap:Body&gt;</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">96</span><code data-code-text>    &lt;m:FindItem Traversal=&quot;Shallow&quot;&gt;</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">97</span><code data-code-text>      &lt;m:ItemShape&gt;</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">98</span><code data-code-text>        &lt;t:BaseShape&gt;Default&lt;/t:BaseShape&gt;</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">99</span><code data-code-text>        &lt;t:AdditionalProperties&gt;</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">100</span><code data-code-text>          &lt;t:FieldURI FieldURI=&quot;item:DateTimeReceived&quot; /&gt;</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">101</span><code data-code-text>          &lt;t:FieldURI FieldURI=&quot;item:HasAttachments&quot; /&gt;</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">102</span><code data-code-text>          &lt;t:FieldURI FieldURI=&quot;message:IsRead&quot; /&gt;</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">103</span><code data-code-text>        &lt;/t:AdditionalProperties&gt;</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">104</span><code data-code-text>      &lt;/m:ItemShape&gt;</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">105</span><code data-code-text>      &lt;m:IndexedPageItemView MaxEntriesReturned=&quot;{max_count}&quot; Offset=&quot;0&quot; BasePoint=&quot;Beginning&quot; /&gt;</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">106</span><code data-code-text>      &lt;m:SortOrder&gt;</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">107</span><code data-code-text>        &lt;t:FieldOrder Order=&quot;Descending&quot;&gt;&lt;t:FieldURI FieldURI=&quot;item:DateTimeReceived&quot; /&gt;&lt;/t:FieldOrder&gt;</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">108</span><code data-code-text>      &lt;/m:SortOrder&gt;</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">109</span><code data-code-text>      &lt;m:ParentFolderIds&gt;&lt;t:DistinguishedFolderId Id=&quot;inbox&quot;&gt;{mailbox}&lt;/t:DistinguishedFolderId&gt;&lt;/m:ParentFolderIds&gt;</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">110</span><code data-code-text>    &lt;/m:FindItem&gt;</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">111</span><code data-code-text>  &lt;/soap:Body&gt;</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">112</span><code data-code-text>&lt;/soap:Envelope&gt;&quot;&quot;&quot;</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">113</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">114</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">115</span><code data-code-text>def build_get_item_soap(items: list[dict[str, Any]]) -&gt; str:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">116</span><code data-code-text>    tags: list[str] = []</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">117</span><code data-code-text>    for item in items:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">118</span><code data-code-text>        item_id = quoteattr(str(item[&quot;item_id&quot;]))</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">119</span><code data-code-text>        change_key = str(item.get(&quot;change_key&quot;) or &quot;&quot;)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">120</span><code data-code-text>        change_attr = f&quot; ChangeKey={quoteattr(change_key)}&quot; if change_key else &quot;&quot;</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">121</span><code data-code-text>        tags.append(f&quot;&lt;t:ItemId Id={item_id}{change_attr}/&gt;&quot;)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">122</span><code data-code-text>    return f&quot;&quot;&quot;&lt;?xml version=&quot;1.0&quot; encoding=&quot;utf-8&quot;?&gt;</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">123</span><code data-code-text>&lt;soap:Envelope xmlns:soap=&quot;{SOAP_NS}&quot; xmlns:m=&quot;{MESSAGE_NS}&quot; xmlns:t=&quot;{TYPE_NS}&quot;&gt;</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">124</span><code data-code-text>  &lt;soap:Header&gt;&lt;t:RequestServerVersion Version=&quot;Exchange2013&quot; /&gt;&lt;/soap:Header&gt;</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">125</span><code data-code-text>  &lt;soap:Body&gt;</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">126</span><code data-code-text>    &lt;m:GetItem&gt;</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">127</span><code data-code-text>      &lt;m:ItemShape&gt;</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">128</span><code data-code-text>        &lt;t:BaseShape&gt;AllProperties&lt;/t:BaseShape&gt;</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">129</span><code data-code-text>        &lt;t:BodyType&gt;Text&lt;/t:BodyType&gt;</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">130</span><code data-code-text>      &lt;/m:ItemShape&gt;</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">131</span><code data-code-text>      &lt;m:ItemIds&gt;{&#x27;&#x27;.join(tags)}&lt;/m:ItemIds&gt;</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">132</span><code data-code-text>    &lt;/m:GetItem&gt;</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">133</span><code data-code-text>  &lt;/soap:Body&gt;</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">134</span><code data-code-text>&lt;/soap:Envelope&gt;&quot;&quot;&quot;</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">135</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">136</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">137</span><code data-code-text>def build_get_attachment_soap(attachment_ids: list[str]) -&gt; str:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">138</span><code data-code-text>    tags = &quot;&quot;.join(f&quot;&lt;t:AttachmentId Id={quoteattr(value)}/&gt;&quot; for value in attachment_ids)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">139</span><code data-code-text>    return f&quot;&quot;&quot;&lt;?xml version=&quot;1.0&quot; encoding=&quot;utf-8&quot;?&gt;</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">140</span><code data-code-text>&lt;soap:Envelope xmlns:soap=&quot;{SOAP_NS}&quot; xmlns:m=&quot;{MESSAGE_NS}&quot; xmlns:t=&quot;{TYPE_NS}&quot;&gt;</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">141</span><code data-code-text>  &lt;soap:Header&gt;&lt;t:RequestServerVersion Version=&quot;Exchange2013&quot; /&gt;&lt;/soap:Header&gt;</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">142</span><code data-code-text>  &lt;soap:Body&gt;</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">143</span><code data-code-text>    &lt;m:GetAttachment&gt;</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">144</span><code data-code-text>      &lt;m:AttachmentShape /&gt;</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">145</span><code data-code-text>      &lt;m:AttachmentIds&gt;{tags}&lt;/m:AttachmentIds&gt;</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">146</span><code data-code-text>    &lt;/m:GetAttachment&gt;</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">147</span><code data-code-text>  &lt;/soap:Body&gt;</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">148</span><code data-code-text>&lt;/soap:Envelope&gt;&quot;&quot;&quot;</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">149</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">150</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">151</span><code data-code-text>def parse_find_item_response(xml_text: str, keyword: str = &quot;&quot;, max_count: int = 10) -&gt; list[dict[str, Any]]:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">152</span><code data-code-text>    root = _parse_xml(xml_text, &quot;FindItem&quot;)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">153</span><code data-code-text>    selected: list[dict[str, Any]] = []</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">154</span><code data-code-text>    needle = keyword.strip().casefold()</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">155</span><code data-code-text>    for position, message in enumerate(root.findall(&quot;.//t:Items/t:Message&quot;, NS), 1):</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">156</span><code data-code-text>        item_id_node = message.find(&quot;t:ItemId&quot;, NS)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">157</span><code data-code-text>        if item_id_node is None or not item_id_node.get(&quot;Id&quot;):</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">158</span><code data-code-text>            continue</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">159</span><code data-code-text>        subject = _text(message, &quot;t:Subject&quot;)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">160</span><code data-code-text>        if needle and needle not in subject.casefold():</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">161</span><code data-code-text>            continue</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">162</span><code data-code-text>        selected.append(</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">163</span><code data-code-text>            {</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">164</span><code data-code-text>                &quot;item_id&quot;: item_id_node.get(&quot;Id&quot;, &quot;&quot;),</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">165</span><code data-code-text>                &quot;change_key&quot;: item_id_node.get(&quot;ChangeKey&quot;, &quot;&quot;),</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">166</span><code data-code-text>                &quot;mail_index&quot;: len(selected) + 1,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">167</span><code data-code-text>                &quot;subject&quot;: subject,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">168</span><code data-code-text>                &quot;sender&quot;: _text(message, &quot;t:Sender/t:Mailbox/t:Name&quot;),</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">169</span><code data-code-text>                &quot;sender_email&quot;: _text(message, &quot;t:Sender/t:Mailbox/t:EmailAddress&quot;),</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">170</span><code data-code-text>                &quot;received_time&quot;: _text(message, &quot;t:DateTimeReceived&quot;),</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">171</span><code data-code-text>                &quot;is_read&quot;: _bool_text(_text(message, &quot;t:IsRead&quot;)),</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">172</span><code data-code-text>                &quot;has_attachments&quot;: _bool_text(_text(message, &quot;t:HasAttachments&quot;)),</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">173</span><code data-code-text>                &quot;find_position&quot;: position,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">174</span><code data-code-text>            }</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">175</span><code data-code-text>        )</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">176</span><code data-code-text>        if len(selected) &gt;= max_count:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">177</span><code data-code-text>            break</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">178</span><code data-code-text>    return selected</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">179</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">180</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">181</span><code data-code-text>def parse_get_item_response(xml_text: str) -&gt; dict[str, dict[str, Any]]:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">182</span><code data-code-text>    root = _parse_xml(xml_text, &quot;GetItem&quot;)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">183</span><code data-code-text>    details: dict[str, dict[str, Any]] = {}</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">184</span><code data-code-text>    for message in root.findall(&quot;.//m:GetItemResponseMessage/m:Items/t:Message&quot;, NS):</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">185</span><code data-code-text>        item_id_node = message.find(&quot;t:ItemId&quot;, NS)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">186</span><code data-code-text>        item_id = item_id_node.get(&quot;Id&quot;, &quot;&quot;) if item_id_node is not None else &quot;&quot;</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">187</span><code data-code-text>        if not item_id:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">188</span><code data-code-text>            continue</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">189</span><code data-code-text>        attachments: list[dict[str, Any]] = []</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">190</span><code data-code-text>        attachment_root = message.find(&quot;t:Attachments&quot;, NS)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">191</span><code data-code-text>        if attachment_root is not None:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">192</span><code data-code-text>            for attachment in list(attachment_root):</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">193</span><code data-code-text>                kind = attachment.tag.rsplit(&quot;}&quot;, 1)[-1]</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">194</span><code data-code-text>                attachment_id_node = attachment.find(&quot;t:AttachmentId&quot;, NS)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">195</span><code data-code-text>                attachment_id = attachment_id_node.get(&quot;Id&quot;, &quot;&quot;) if attachment_id_node is not None else &quot;&quot;</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">196</span><code data-code-text>                if not attachment_id:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">197</span><code data-code-text>                    continue</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">198</span><code data-code-text>                size_text = _text(attachment, &quot;t:Size&quot;)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">199</span><code data-code-text>                try:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">200</span><code data-code-text>                    size = int(size_text or 0)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">201</span><code data-code-text>                except ValueError:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">202</span><code data-code-text>                    size = 0</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">203</span><code data-code-text>                attachments.append(</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">204</span><code data-code-text>                    {</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">205</span><code data-code-text>                        &quot;attachment_id&quot;: attachment_id,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">206</span><code data-code-text>                        &quot;kind&quot;: kind,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">207</span><code data-code-text>                        &quot;name&quot;: _text(attachment, &quot;t:Name&quot;),</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">208</span><code data-code-text>                        &quot;content_type&quot;: _text(attachment, &quot;t:ContentType&quot;),</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">209</span><code data-code-text>                        &quot;is_inline&quot;: _bool_text(_text(attachment, &quot;t:IsInline&quot;)),</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">210</span><code data-code-text>                        &quot;size&quot;: size,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">211</span><code data-code-text>                    }</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">212</span><code data-code-text>                )</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">213</span><code data-code-text>        details[item_id] = {</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">214</span><code data-code-text>            &quot;subject&quot;: _text(message, &quot;t:Subject&quot;),</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">215</span><code data-code-text>            &quot;sender&quot;: _text(message, &quot;t:From/t:Mailbox/t:Name&quot;)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">216</span><code data-code-text>            or _text(message, &quot;t:Sender/t:Mailbox/t:Name&quot;),</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">217</span><code data-code-text>            &quot;sender_email&quot;: _text(message, &quot;t:From/t:Mailbox/t:EmailAddress&quot;)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">218</span><code data-code-text>            or _text(message, &quot;t:Sender/t:Mailbox/t:EmailAddress&quot;),</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">219</span><code data-code-text>            &quot;received_time&quot;: _text(message, &quot;t:DateTimeReceived&quot;),</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">220</span><code data-code-text>            &quot;is_read&quot;: _bool_text(_text(message, &quot;t:IsRead&quot;)),</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">221</span><code data-code-text>            &quot;body&quot;: _text(message, &quot;t:Body&quot;),</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">222</span><code data-code-text>            &quot;attachments&quot;: attachments,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">223</span><code data-code-text>        }</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">224</span><code data-code-text>    return details</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">225</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">226</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">227</span><code data-code-text>def parse_get_attachment_response(xml_text: str) -&gt; dict[str, dict[str, Any]]:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">228</span><code data-code-text>    root = _parse_xml(xml_text, &quot;GetAttachment&quot;)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">229</span><code data-code-text>    result: dict[str, dict[str, Any]] = {}</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">230</span><code data-code-text>    for attachment in root.findall(&quot;.//m:GetAttachmentResponseMessage/m:Attachments/*&quot;, NS):</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">231</span><code data-code-text>        kind = attachment.tag.rsplit(&quot;}&quot;, 1)[-1]</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">232</span><code data-code-text>        attachment_id_node = attachment.find(&quot;t:AttachmentId&quot;, NS)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">233</span><code data-code-text>        attachment_id = attachment_id_node.get(&quot;Id&quot;, &quot;&quot;) if attachment_id_node is not None else &quot;&quot;</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">234</span><code data-code-text>        if not attachment_id:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">235</span><code data-code-text>            continue</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">236</span><code data-code-text>        result[attachment_id] = {</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">237</span><code data-code-text>            &quot;kind&quot;: kind,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">238</span><code data-code-text>            &quot;name&quot;: _text(attachment, &quot;t:Name&quot;),</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">239</span><code data-code-text>            &quot;content_type&quot;: _text(attachment, &quot;t:ContentType&quot;),</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">240</span><code data-code-text>            &quot;is_inline&quot;: _bool_text(_text(attachment, &quot;t:IsInline&quot;)),</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">241</span><code data-code-text>            &quot;content&quot;: _text(attachment, &quot;t:Content&quot;),</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">242</span><code data-code-text>        }</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">243</span><code data-code-text>    return result</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">244</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">245</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">246</span><code data-code-text>def _post_soap(</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">247</span><code data-code-text>    session: Any,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">248</span><code data-code-text>    ews_url: str,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">249</span><code data-code-text>    soap_body: str,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">250</span><code data-code-text>    *,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">251</span><code data-code-text>    headers: dict[str, str],</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">252</span><code data-code-text>    verify: bool | str,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">253</span><code data-code-text>    timeout: int,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">254</span><code data-code-text>    operation: str,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">255</span><code data-code-text>) -&gt; str:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">256</span><code data-code-text>    response = session.post(</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">257</span><code data-code-text>        ews_url,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">258</span><code data-code-text>        data=soap_body.encode(&quot;utf-8&quot;),</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">259</span><code data-code-text>        headers=headers,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">260</span><code data-code-text>        verify=verify,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">261</span><code data-code-text>        timeout=timeout,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">262</span><code data-code-text>    )</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">263</span><code data-code-text>    if int(getattr(response, &quot;status_code&quot;, 0)) != 200:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">264</span><code data-code-text>        raise EwsReaderError(f&quot;{operation} HTTP 실패: {getattr(response, &#x27;status_code&#x27;, 0)}&quot;)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">265</span><code data-code-text>    return str(getattr(response, &quot;text&quot;, &quot;&quot;))</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">266</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">267</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">268</span><code data-code-text>def _body_document(mail: dict[str, Any], body: str, body_length: int) -&gt; str:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">269</span><code data-code-text>    return (</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">270</span><code data-code-text>        f&quot;메일 순번: {mail[&#x27;mail_index&#x27;]}\n&quot;</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">271</span><code data-code-text>        f&quot;제목: {mail.get(&#x27;subject&#x27;) or &#x27;확인되지 않음&#x27;}\n&quot;</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">272</span><code data-code-text>        f&quot;보낸 사람: {mail.get(&#x27;sender&#x27;) or &#x27;확인되지 않음&#x27;}\n&quot;</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">273</span><code data-code-text>        f&quot;보낸 사람 주소: {mail.get(&#x27;sender_email&#x27;) or &#x27;확인되지 않음&#x27;}\n&quot;</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">274</span><code data-code-text>        f&quot;받은 시각: {mail.get(&#x27;received_time&#x27;) or &#x27;확인되지 않음&#x27;}\n&quot;</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">275</span><code data-code-text>        f&quot;읽음 여부: {mail.get(&#x27;is_read&#x27;, False)}\n\n&quot;</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">276</span><code data-code-text>        f&quot;메일 본문:\n{(body or &#x27;[본문을 읽지 못했습니다.]&#x27;)[:body_length]}\n&quot;</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">277</span><code data-code-text>    )</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">278</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">279</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">280</span><code data-code-text>def _write_notice(directory: Path, stem: str, message: str) -&gt; Path:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">281</span><code data-code-text>    path = directory / f&quot;{_safe_filename(stem, &#x27;attachment&#x27;)}_ews_notice.txt&quot;</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">282</span><code data-code-text>    path.write_text(message, encoding=&quot;utf-8&quot;)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">283</span><code data-code-text>    return path</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">284</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">285</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">286</span><code data-code-text>def fetch_ews_mail_records(</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">287</span><code data-code-text>    session: Any,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">288</span><code data-code-text>    *,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">289</span><code data-code-text>    ews_url: str,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">290</span><code data-code-text>    email_addr: str = &quot;&quot;,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">291</span><code data-code-text>    max_count: Any = 10,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">292</span><code data-code-text>    keyword: str = &quot;&quot;,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">293</span><code data-code-text>    body_length: Any = 2_000,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">294</span><code data-code-text>    include_attachments: bool = True,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">295</span><code data-code-text>    include_inline_attachments: bool = False,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">296</span><code data-code-text>    max_attachment_size_mb: Any = 30,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">297</span><code data-code-text>    max_total_attachment_mb: Any = 100,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">298</span><code data-code-text>    verify: bool | str = False,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">299</span><code data-code-text>    timeout: Any = 60,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">300</span><code data-code-text>    user_agent: str = &quot;Microsoft Office/16.0 (Microsoft Outlook 16.0; Pro)&quot;,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">301</span><code data-code-text>    output_root: str | Path | None = None,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">302</span><code data-code-text>) -&gt; list[dict[str, Any]]:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">303</span><code data-code-text>    &quot;&quot;&quot;EWS 메일·첨부를 DRM과 Read File이 소비할 DataFrame 행으로 만든다.&quot;&quot;&quot;</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">304</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">305</span><code data-code-text>    if not str(ews_url or &quot;&quot;).lower().startswith(&quot;https://&quot;):</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">306</span><code data-code-text>        raise EwsReaderError(&quot;EWS URL은 https:// 주소여야 합니다.&quot;)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">307</span><code data-code-text>    mail_limit = _clamp_int(max_count, 10, 1, _MAX_MAIL_COUNT)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">308</span><code data-code-text>    text_limit = _clamp_int(body_length, 2_000, 1, _MAX_BODY_LENGTH)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">309</span><code data-code-text>    attachment_limit = _clamp_int(max_attachment_size_mb, 30, 1, _MAX_ATTACHMENT_SIZE_MB) * 1024 * 1024</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">310</span><code data-code-text>    total_limit = _clamp_int(max_total_attachment_mb, 100, 1, _MAX_TOTAL_ATTACHMENT_MB) * 1024 * 1024</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">311</span><code data-code-text>    request_timeout = _clamp_int(timeout, 60, 5, 300)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">312</span><code data-code-text>    headers = {&quot;Content-Type&quot;: &quot;text/xml; charset=utf-8&quot;, &quot;User-Agent&quot;: user_agent.strip()}</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">313</span><code data-code-text>    destination = Path(output_root) if output_root else Path(tempfile.mkdtemp(prefix=&quot;langflow-ews-&quot;))</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">314</span><code data-code-text>    destination.mkdir(parents=True, exist_ok=True)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">315</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">316</span><code data-code-text>    find_xml = _post_soap(</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">317</span><code data-code-text>        session,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">318</span><code data-code-text>        ews_url,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">319</span><code data-code-text>        build_find_item_soap(mail_limit, email_addr),</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">320</span><code data-code-text>        headers=headers,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">321</span><code data-code-text>        verify=verify,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">322</span><code data-code-text>        timeout=request_timeout,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">323</span><code data-code-text>        operation=&quot;FindItem&quot;,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">324</span><code data-code-text>    )</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">325</span><code data-code-text>    mails = parse_find_item_response(find_xml, keyword=keyword, max_count=mail_limit)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">326</span><code data-code-text>    if not mails:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">327</span><code data-code-text>        return []</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">328</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">329</span><code data-code-text>    get_item_xml = _post_soap(</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">330</span><code data-code-text>        session,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">331</span><code data-code-text>        ews_url,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">332</span><code data-code-text>        build_get_item_soap(mails),</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">333</span><code data-code-text>        headers=headers,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">334</span><code data-code-text>        verify=verify,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">335</span><code data-code-text>        timeout=request_timeout,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">336</span><code data-code-text>        operation=&quot;GetItem&quot;,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">337</span><code data-code-text>    )</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">338</span><code data-code-text>    details = parse_get_item_response(get_item_xml)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">339</span><code data-code-text>    attachment_owner: dict[str, tuple[dict[str, Any], dict[str, Any]]] = {}</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">340</span><code data-code-text>    rows: list[dict[str, Any]] = []</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">341</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">342</span><code data-code-text>    for mail in mails:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">343</span><code data-code-text>        detail = details.get(mail[&quot;item_id&quot;], {})</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">344</span><code data-code-text>        for key in (&quot;subject&quot;, &quot;sender&quot;, &quot;sender_email&quot;, &quot;received_time&quot;):</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">345</span><code data-code-text>            if detail.get(key):</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">346</span><code data-code-text>                mail[key] = detail[key]</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">347</span><code data-code-text>        if &quot;is_read&quot; in detail:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">348</span><code data-code-text>            mail[&quot;is_read&quot;] = bool(detail[&quot;is_read&quot;])</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">349</span><code data-code-text>        mail_dir = destination / f&quot;mail_{mail[&#x27;mail_index&#x27;]:03d}&quot;</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">350</span><code data-code-text>        mail_dir.mkdir(parents=True, exist_ok=True)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">351</span><code data-code-text>        body_path = mail_dir / f&quot;mail_{mail[&#x27;mail_index&#x27;]:03d}_body.txt&quot;</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">352</span><code data-code-text>        body_path.write_text(_body_document(mail, str(detail.get(&quot;body&quot;) or &quot;&quot;), text_limit), encoding=&quot;utf-8&quot;)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">353</span><code data-code-text>        common = {</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">354</span><code data-code-text>            &quot;mail_index&quot;: mail[&quot;mail_index&quot;],</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">355</span><code data-code-text>            &quot;mail_subject&quot;: mail.get(&quot;subject&quot;, &quot;&quot;),</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">356</span><code data-code-text>            &quot;sender&quot;: mail.get(&quot;sender&quot;, &quot;&quot;),</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">357</span><code data-code-text>            &quot;sender_email&quot;: mail.get(&quot;sender_email&quot;, &quot;&quot;),</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">358</span><code data-code-text>            &quot;received_time&quot;: mail.get(&quot;received_time&quot;, &quot;&quot;),</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">359</span><code data-code-text>            &quot;is_read&quot;: bool(mail.get(&quot;is_read&quot;, False)),</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">360</span><code data-code-text>        }</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">361</span><code data-code-text>        rows.append(</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">362</span><code data-code-text>            {</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">363</span><code data-code-text>                **common,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">364</span><code data-code-text>                &quot;file_path&quot;: str(body_path),</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">365</span><code data-code-text>                &quot;file_name&quot;: body_path.name,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">366</span><code data-code-text>                &quot;source_kind&quot;: &quot;mail_body&quot;,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">367</span><code data-code-text>                &quot;attachment_index&quot;: 0,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">368</span><code data-code-text>                &quot;is_inline&quot;: False,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">369</span><code data-code-text>                &quot;content_type&quot;: &quot;text/plain&quot;,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">370</span><code data-code-text>                &quot;drm_status&quot;: &quot;not_applicable&quot;,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">371</span><code data-code-text>                &quot;extraction_error&quot;: &quot;&quot;,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">372</span><code data-code-text>            }</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">373</span><code data-code-text>        )</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">374</span><code data-code-text>        if include_attachments:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">375</span><code data-code-text>            for attachment_index, attachment in enumerate(detail.get(&quot;attachments&quot;) or [], 1):</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">376</span><code data-code-text>                attachment[&quot;attachment_index&quot;] = attachment_index</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">377</span><code data-code-text>                attachment_owner[attachment[&quot;attachment_id&quot;]] = (common, attachment)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">378</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">379</span><code data-code-text>    if not include_attachments or not attachment_owner:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">380</span><code data-code-text>        return rows</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">381</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">382</span><code data-code-text>    requested_ids: list[str] = []</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">383</span><code data-code-text>    total_declared = 0</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">384</span><code data-code-text>    for attachment_id, (common, attachment) in attachment_owner.items():</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">385</span><code data-code-text>        if attachment.get(&quot;is_inline&quot;) and not include_inline_attachments:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">386</span><code data-code-text>            continue</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">387</span><code data-code-text>        name = _safe_filename(attachment.get(&quot;name&quot;), f&quot;attachment_{attachment[&#x27;attachment_index&#x27;]:03d}.bin&quot;)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">388</span><code data-code-text>        size = int(attachment.get(&quot;size&quot;) or 0)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">389</span><code data-code-text>        if size &gt; attachment_limit or total_declared + size &gt; total_limit:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">390</span><code data-code-text>            mail_dir = destination / f&quot;mail_{common[&#x27;mail_index&#x27;]:03d}&quot;</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">391</span><code data-code-text>            notice = _write_notice(mail_dir, name, &quot;첨부파일 크기 제한으로 EWS Content를 가져오지 않았습니다.&quot;)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">392</span><code data-code-text>            rows.append(</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">393</span><code data-code-text>                {</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">394</span><code data-code-text>                    **common,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">395</span><code data-code-text>                    &quot;file_path&quot;: str(notice),</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">396</span><code data-code-text>                    &quot;file_name&quot;: name,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">397</span><code data-code-text>                    &quot;source_kind&quot;: &quot;extraction_error&quot;,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">398</span><code data-code-text>                    &quot;attachment_index&quot;: attachment[&quot;attachment_index&quot;],</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">399</span><code data-code-text>                    &quot;is_inline&quot;: bool(attachment.get(&quot;is_inline&quot;)),</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">400</span><code data-code-text>                    &quot;content_type&quot;: attachment.get(&quot;content_type&quot;, &quot;&quot;),</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">401</span><code data-code-text>                    &quot;drm_status&quot;: &quot;not_applicable&quot;,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">402</span><code data-code-text>                    &quot;extraction_error&quot;: &quot;attachment_size_limit&quot;,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">403</span><code data-code-text>                }</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">404</span><code data-code-text>            )</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">405</span><code data-code-text>            continue</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">406</span><code data-code-text>        total_declared += size</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">407</span><code data-code-text>        requested_ids.append(attachment_id)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">408</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">409</span><code data-code-text>    if not requested_ids:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">410</span><code data-code-text>        return rows</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">411</span><code data-code-text>    attachment_xml = _post_soap(</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">412</span><code data-code-text>        session,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">413</span><code data-code-text>        ews_url,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">414</span><code data-code-text>        build_get_attachment_soap(requested_ids),</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">415</span><code data-code-text>        headers=headers,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">416</span><code data-code-text>        verify=verify,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">417</span><code data-code-text>        timeout=request_timeout,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">418</span><code data-code-text>        operation=&quot;GetAttachment&quot;,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">419</span><code data-code-text>    )</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">420</span><code data-code-text>    attachments = parse_get_attachment_response(attachment_xml)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">421</span><code data-code-text>    total_downloaded = 0</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">422</span><code data-code-text>    for attachment_id in requested_ids:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">423</span><code data-code-text>        common, metadata = attachment_owner[attachment_id]</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">424</span><code data-code-text>        item = attachments.get(attachment_id, {})</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">425</span><code data-code-text>        name = _safe_filename(item.get(&quot;name&quot;) or metadata.get(&quot;name&quot;), f&quot;attachment_{metadata[&#x27;attachment_index&#x27;]:03d}.bin&quot;)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">426</span><code data-code-text>        mail_dir = destination / f&quot;mail_{common[&#x27;mail_index&#x27;]:03d}&quot;</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">427</span><code data-code-text>        if item.get(&quot;kind&quot;) != &quot;FileAttachment&quot; or not item.get(&quot;content&quot;):</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">428</span><code data-code-text>            notice = _write_notice(mail_dir, name, &quot;EWS ItemAttachment 또는 Content 없는 첨부는 자동 파일 처리하지 않았습니다.&quot;)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">429</span><code data-code-text>            rows.append(</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">430</span><code data-code-text>                {</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">431</span><code data-code-text>                    **common,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">432</span><code data-code-text>                    &quot;file_path&quot;: str(notice),</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">433</span><code data-code-text>                    &quot;file_name&quot;: name,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">434</span><code data-code-text>                    &quot;source_kind&quot;: &quot;extraction_error&quot;,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">435</span><code data-code-text>                    &quot;attachment_index&quot;: metadata[&quot;attachment_index&quot;],</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">436</span><code data-code-text>                    &quot;is_inline&quot;: bool(item.get(&quot;is_inline&quot;) or metadata.get(&quot;is_inline&quot;)),</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">437</span><code data-code-text>                    &quot;content_type&quot;: item.get(&quot;content_type&quot;) or metadata.get(&quot;content_type&quot;, &quot;&quot;),</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">438</span><code data-code-text>                    &quot;drm_status&quot;: &quot;not_applicable&quot;,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">439</span><code data-code-text>                    &quot;extraction_error&quot;: &quot;unsupported_ews_attachment&quot;,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">440</span><code data-code-text>                }</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">441</span><code data-code-text>            )</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">442</span><code data-code-text>            continue</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">443</span><code data-code-text>        try:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">444</span><code data-code-text>            content = base64.b64decode(re.sub(r&quot;\s+&quot;, &quot;&quot;, str(item[&quot;content&quot;])), validate=True)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">445</span><code data-code-text>        except Exception as exc:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">446</span><code data-code-text>            raise EwsReaderError(f&quot;첨부파일 Base64를 해석하지 못했습니다: {name}&quot;) from exc</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">447</span><code data-code-text>        total_downloaded += len(content)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">448</span><code data-code-text>        if len(content) &gt; attachment_limit or total_downloaded &gt; total_limit:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">449</span><code data-code-text>            raise EwsReaderError(&quot;다운로드된 첨부파일이 설정한 크기 제한을 초과했습니다.&quot;)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">450</span><code data-code-text>        path = mail_dir / f&quot;{metadata[&#x27;attachment_index&#x27;]:03d}_{name}&quot;</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">451</span><code data-code-text>        path.write_bytes(content)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">452</span><code data-code-text>        rows.append(</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">453</span><code data-code-text>            {</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">454</span><code data-code-text>                **common,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">455</span><code data-code-text>                &quot;file_path&quot;: str(path),</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">456</span><code data-code-text>                &quot;file_name&quot;: name,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">457</span><code data-code-text>                &quot;source_kind&quot;: &quot;ews_attachment&quot;,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">458</span><code data-code-text>                &quot;attachment_index&quot;: metadata[&quot;attachment_index&quot;],</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">459</span><code data-code-text>                &quot;is_inline&quot;: bool(item.get(&quot;is_inline&quot;) or metadata.get(&quot;is_inline&quot;)),</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">460</span><code data-code-text>                &quot;content_type&quot;: item.get(&quot;content_type&quot;) or metadata.get(&quot;content_type&quot;, &quot;&quot;),</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">461</span><code data-code-text>                &quot;drm_status&quot;: &quot;pending&quot;,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">462</span><code data-code-text>                &quot;extraction_error&quot;: &quot;&quot;,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">463</span><code data-code-text>            }</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">464</span><code data-code-text>        )</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">465</span><code data-code-text>    return rows</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">466</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">467</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">468</span><code data-code-text>def _load_http_dependencies(</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">469</span><code data-code-text>    *, auto_install: bool, nexus_url: str, trusted_host: str</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">470</span><code data-code-text>) -&gt; tuple[Any, Any]:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">471</span><code data-code-text>    try:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">472</span><code data-code-text>        import requests</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">473</span><code data-code-text>        from requests_ntlm import HttpNtlmAuth</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">474</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">475</span><code data-code-text>        return requests, HttpNtlmAuth</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">476</span><code data-code-text>    except ImportError as exc:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">477</span><code data-code-text>        if not auto_install:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">478</span><code data-code-text>            raise EwsReaderError(&quot;requests와 requests-ntlm이 필요합니다.&quot;) from exc</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">479</span><code data-code-text>        if not nexus_url.strip() or not trusted_host.strip():</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">480</span><code data-code-text>            raise EwsReaderError(&quot;자동 설치를 사용하려면 내부 Nexus URL과 Trusted Host가 필요합니다.&quot;) from exc</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">481</span><code data-code-text>        command = [</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">482</span><code data-code-text>            sys.executable,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">483</span><code data-code-text>            &quot;-m&quot;,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">484</span><code data-code-text>            &quot;pip&quot;,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">485</span><code data-code-text>            &quot;install&quot;,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">486</span><code data-code-text>            &quot;requests&quot;,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">487</span><code data-code-text>            &quot;requests-ntlm&quot;,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">488</span><code data-code-text>            &quot;--index-url&quot;,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">489</span><code data-code-text>            nexus_url.strip(),</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">490</span><code data-code-text>            &quot;--trusted-host&quot;,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">491</span><code data-code-text>            trusted_host.strip(),</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">492</span><code data-code-text>            &quot;-q&quot;,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">493</span><code data-code-text>        ]</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">494</span><code data-code-text>        try:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">495</span><code data-code-text>            subprocess.run(command, check=True, capture_output=True, text=True, timeout=180)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">496</span><code data-code-text>        except (OSError, subprocess.SubprocessError) as install_exc:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">497</span><code data-code-text>            raise EwsReaderError(&quot;내부 Nexus에서 EWS 의존성 설치에 실패했습니다.&quot;) from install_exc</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">498</span><code data-code-text>        importlib.invalidate_caches()</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">499</span><code data-code-text>        import requests</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">500</span><code data-code-text>        from requests_ntlm import HttpNtlmAuth</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">501</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">502</span><code data-code-text>        return requests, HttpNtlmAuth</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">503</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">504</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">505</span><code data-code-text>class OutlookEwsMailAttachmentReader(Component):</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">506</span><code data-code-text>    display_name = &quot;01 Outlook 메일·첨부 읽기 (EWS)&quot;</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">507</span><code data-code-text>    description = &quot;사내 EWS와 NTLM 인증으로 최근 메일 본문과 파일 첨부를 로컬 작업 경로에 가져옵니다.&quot;</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">508</span><code data-code-text>    documentation: str = &quot;https://docs.langflow.org/components-custom-components&quot;</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">509</span><code data-code-text>    icon = &quot;MailSearch&quot;</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">510</span><code data-code-text>    name = &quot;OutlookEwsMailAttachmentReader&quot;</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">511</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">512</span><code data-code-text>    inputs = [</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">513</span><code data-code-text>        StrInput(name=&quot;email_addr&quot;, display_name=&quot;이메일 주소&quot;, info=&quot;조회할 Outlook 이메일 주소&quot;, value=&quot;&quot;),</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">514</span><code data-code-text>        StrInput(name=&quot;username&quot;, display_name=&quot;AD 계정&quot;, info=&quot;도메인을 제외한 AD 계정&quot;, value=&quot;&quot;),</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">515</span><code data-code-text>        SecretStrInput(name=&quot;password&quot;, display_name=&quot;AD 비밀번호&quot;, info=&quot;Flow JSON에 저장하지 않습니다.&quot;, value=&quot;&quot;),</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">516</span><code data-code-text>        StrInput(name=&quot;ad_domain&quot;, display_name=&quot;AD 도메인&quot;, value=&quot;hynixad&quot;, advanced=True),</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">517</span><code data-code-text>        StrInput(name=&quot;ews_url&quot;, display_name=&quot;EWS URL&quot;, info=&quot;예: https://mail.example.invalid/EWS/Exchange.asmx&quot;, value=&quot;&quot;),</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">518</span><code data-code-text>        IntInput(name=&quot;max_count&quot;, display_name=&quot;읽을 메일 수&quot;, value=10),</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">519</span><code data-code-text>        MessageTextInput(name=&quot;keyword&quot;, display_name=&quot;제목 필터 키워드&quot;, value=&quot;&quot;),</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">520</span><code data-code-text>        IntInput(name=&quot;body_length&quot;, display_name=&quot;본문 읽기 길이&quot;, value=2_000),</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">521</span><code data-code-text>        BoolInput(name=&quot;include_attachments&quot;, display_name=&quot;첨부파일 읽기&quot;, value=True),</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">522</span><code data-code-text>        BoolInput(name=&quot;include_inline_attachments&quot;, display_name=&quot;인라인 첨부 포함&quot;, value=False, advanced=True),</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">523</span><code data-code-text>        IntInput(name=&quot;max_attachment_size_mb&quot;, display_name=&quot;첨부당 최대 크기(MB)&quot;, value=30, advanced=True),</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">524</span><code data-code-text>        IntInput(name=&quot;max_total_attachment_mb&quot;, display_name=&quot;전체 첨부 최대 크기(MB)&quot;, value=100, advanced=True),</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">525</span><code data-code-text>        BoolInput(name=&quot;verify_tls&quot;, display_name=&quot;TLS 인증서 검증&quot;, value=False, advanced=True),</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">526</span><code data-code-text>        StrInput(name=&quot;ca_bundle_path&quot;, display_name=&quot;사내 CA Bundle 경로&quot;, value=&quot;&quot;, advanced=True),</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">527</span><code data-code-text>        IntInput(name=&quot;request_timeout&quot;, display_name=&quot;EWS Timeout(초)&quot;, value=60, advanced=True),</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">528</span><code data-code-text>        StrInput(</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">529</span><code data-code-text>            name=&quot;user_agent&quot;,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">530</span><code data-code-text>            display_name=&quot;EWS User-Agent&quot;,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">531</span><code data-code-text>            value=&quot;Microsoft Office/16.0 (Microsoft Outlook 16.0.17031; Pro)&quot;,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">532</span><code data-code-text>            advanced=True,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">533</span><code data-code-text>        ),</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">534</span><code data-code-text>        BoolInput(name=&quot;auto_install_dependencies&quot;, display_name=&quot;내부 Nexus에서 의존성 자동 설치&quot;, value=True, advanced=True),</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">535</span><code data-code-text>        StrInput(name=&quot;nexus_url&quot;, display_name=&quot;내부 Nexus Simple URL&quot;, value=&quot;&quot;, advanced=True),</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">536</span><code data-code-text>        StrInput(name=&quot;trusted_host&quot;, display_name=&quot;Nexus Trusted Host&quot;, value=&quot;&quot;, advanced=True),</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">537</span><code data-code-text>    ]</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">538</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">539</span><code data-code-text>    outputs = [</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">540</span><code data-code-text>        Output(</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">541</span><code data-code-text>            display_name=&quot;메일 본문·첨부 항목&quot;,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">542</span><code data-code-text>            name=&quot;mail_items&quot;,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">543</span><code data-code-text>            method=&quot;build_mail_items&quot;,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">544</span><code data-code-text>            types=[&quot;DataFrame&quot;],</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">545</span><code data-code-text>        )</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">546</span><code data-code-text>    ]</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">547</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">548</span><code data-code-text>    def build_mail_items(self) -&gt; DataFrame:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">549</span><code data-code-text>        requests, HttpNtlmAuth = _load_http_dependencies(</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">550</span><code data-code-text>            auto_install=bool(getattr(self, &quot;auto_install_dependencies&quot;, True)),</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">551</span><code data-code-text>            nexus_url=str(getattr(self, &quot;nexus_url&quot;, &quot;&quot;) or &quot;&quot;),</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">552</span><code data-code-text>            trusted_host=str(getattr(self, &quot;trusted_host&quot;, &quot;&quot;) or &quot;&quot;),</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">553</span><code data-code-text>        )</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">554</span><code data-code-text>        username = str(getattr(self, &quot;username&quot;, &quot;&quot;) or &quot;&quot;).strip()</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">555</span><code data-code-text>        password = _secret_value(getattr(self, &quot;password&quot;, &quot;&quot;))</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">556</span><code data-code-text>        domain = str(getattr(self, &quot;ad_domain&quot;, &quot;hynixad&quot;) or &quot;hynixad&quot;).strip()</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">557</span><code data-code-text>        if not username or not password:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">558</span><code data-code-text>            raise EwsReaderError(&quot;AD 계정과 비밀번호가 필요합니다.&quot;)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">559</span><code data-code-text>        session = requests.Session()</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">560</span><code data-code-text>        session.auth = HttpNtlmAuth(f&quot;{domain}\\{username}&quot;, password, session=session)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">561</span><code data-code-text>        verify_tls = bool(getattr(self, &quot;verify_tls&quot;, False))</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">562</span><code data-code-text>        ca_bundle = str(getattr(self, &quot;ca_bundle_path&quot;, &quot;&quot;) or &quot;&quot;).strip()</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">563</span><code data-code-text>        verify: bool | str = ca_bundle if verify_tls and ca_bundle else verify_tls</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">564</span><code data-code-text>        if verify is False:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">565</span><code data-code-text>            import urllib3</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">566</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">567</span><code data-code-text>            urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">568</span><code data-code-text>        rows = fetch_ews_mail_records(</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">569</span><code data-code-text>            session,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">570</span><code data-code-text>            ews_url=str(getattr(self, &quot;ews_url&quot;, &quot;&quot;) or &quot;&quot;),</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">571</span><code data-code-text>            email_addr=str(getattr(self, &quot;email_addr&quot;, &quot;&quot;) or &quot;&quot;),</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">572</span><code data-code-text>            max_count=getattr(self, &quot;max_count&quot;, 10),</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">573</span><code data-code-text>            keyword=str(getattr(self, &quot;keyword&quot;, &quot;&quot;) or &quot;&quot;),</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">574</span><code data-code-text>            body_length=getattr(self, &quot;body_length&quot;, 2_000),</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">575</span><code data-code-text>            include_attachments=bool(getattr(self, &quot;include_attachments&quot;, True)),</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">576</span><code data-code-text>            include_inline_attachments=bool(getattr(self, &quot;include_inline_attachments&quot;, False)),</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">577</span><code data-code-text>            max_attachment_size_mb=getattr(self, &quot;max_attachment_size_mb&quot;, 30),</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">578</span><code data-code-text>            max_total_attachment_mb=getattr(self, &quot;max_total_attachment_mb&quot;, 100),</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">579</span><code data-code-text>            verify=verify,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">580</span><code data-code-text>            timeout=getattr(self, &quot;request_timeout&quot;, 60),</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">581</span><code data-code-text>            user_agent=str(getattr(self, &quot;user_agent&quot;, &quot;&quot;) or &quot;&quot;),</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">582</span><code data-code-text>        )</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">583</span><code data-code-text>        self.status = f&quot;EWS 조회 완료 · 메일 항목 {len(rows)}개&quot;</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">584</span><code data-code-text>        return DataFrame(rows)</code></div></div></div>
+  <footer class="code-status"><span>Python</span><span>Flow internal</span><span data-copy-status aria-live="polite">복사할 때 외부 서버를 호출하지 않습니다.</span></footer>
+</section>
+<div class="page-actions"><button class="back-button" type="button" data-back data-fallback="flows/mail_attachment_summary_flow/nodes/ews_mail_attachment_reader/index.html">← 이전 화면</button><a class="button button-soft" href="flows/mail_attachment_summary_flow/nodes/ews_mail_attachment_reader/index.html#contract">입출력 계약</a><a class="button button-soft" href="flows/mail_attachment_summary_flow/index.html">mail_attachment_summary_flow</a></div>
+
+  </main>
+  <footer class="site-footer">
+    <div class="footer-inner">
+      <div><strong>Agent Ground</strong><p>실제 Agent Builder 환경에서 검증된 교육자료, Standalone Component와 Flow를 함께 쌓아갑니다.</p></div>
+      <div class="footer-links"><a href="training/index.html">처음 배우기</a><a href="troubleshooting/index.html">실패와 해결</a><a href="../AGENT_GROUND_PROJECT_MASTER_GUIDE.md">프로젝트 기준</a></div>
+    </div>
+  </footer>
+  <script src="assets/js/site.js"></script>
+  
+</body>
+</html>

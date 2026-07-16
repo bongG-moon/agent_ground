@@ -51,6 +51,7 @@ COMPONENT_GROUPS = (
         "범용 Component",
         "파일 변환, 데이터 조회와 Flow 실행처럼 여러 업무에서 바로 재사용하는 기능입니다.",
         {
+            "drm_document_text_extractor",
             "multi_image_base64_encoder",
             "cached_named_run_flow_tool",
             "oracle_table_query",
@@ -103,6 +104,7 @@ COMPONENT_GROUP_BY_ID = {
 }
 
 FLOW_LABELS = {
+    "drm_document_text_extraction_flow": "DRM 문서 텍스트 추출 Flow",
     "reusable_data_flow": "재사용 데이터 Flow",
     "html_report_flow": "HTML 보고서 Flow",
     "enterprise_document_rag_flow": "사내 문서 RAG Flow",
@@ -294,6 +296,28 @@ def prune_internal_component_pages(internal_nodes: list[dict]) -> int:
     return removed
 
 
+def prune_stale_flow_node_pages(
+    internal_by_flow: dict[str, list[dict]], flow_ids: set[str]
+) -> int:
+    """현재 internal_nodes.json에서 빠진 생성 HTML node 디렉터리만 제거한다."""
+    flows_root = (HTML_ROOT / "flows").resolve()
+    removed = 0
+    for flow_id in sorted(flow_ids):
+        nodes_root = (flows_root / flow_id / "nodes").resolve()
+        expected_parent = (flows_root / flow_id).resolve()
+        if nodes_root.parent != expected_parent or expected_parent.parent != flows_root:
+            raise ValueError(f"안전하지 않은 Flow Node HTML 경로: {nodes_root}")
+        if not nodes_root.is_dir():
+            continue
+        expected_ids = {str(node["id"]) for node in internal_by_flow.get(flow_id, [])}
+        for target in nodes_root.iterdir():
+            resolved = target.resolve()
+            if target.is_dir() and resolved.parent == nodes_root and target.name not in expected_ids:
+                shutil.rmtree(resolved)
+                removed += 1
+    return removed
+
+
 def home_page(component_count: int, flow_count: int) -> str:
     content = f"""
 <section class="hero">
@@ -371,7 +395,7 @@ def training_page() -> str:
   <div class="notice notice-info" style="margin-top:18px"><strong>현재 환경과 다르면?</strong>억지로 설명서에 맞추지 않습니다. 실제 화면, 오류 문구, 입력값을 기록하고 문제 해결 문서를 만든 뒤 교육자료를 고칩니다.</div>
 </section>
 <section class="section">
-  <div class="section-heading"><p class="eyebrow">Practice</p><h2>현재 준비된 여섯 가지 실습</h2></div>
+  <div class="section-heading"><p class="eyebrow">Practice</p><h2>현재 준비된 일곱 가지 실습</h2></div>
   <div class="grid grid-3">
     <a class="card card-link" href="flows/reusable_data_flow/index.html"><div class="meta-row">{badge('building')}</div><h3>실습 A · 여러 데이터 소스 조회</h3><p>현재 Flow export 불일치로 실습을 보류했습니다. 연결 설계와 복구 조건만 먼저 확인합니다.</p></a>
     <a class="card card-link" href="components/direct-data-access/index.html"><div class="meta-row">{badge('user_testing')}</div><h3>실습 B · 한 소스 직접 조회</h3><p>필요한 접속값과 조회 조건을 직접 넣고 <code>data_table</code> 하나를 받는 최소 연결을 배웁니다.</p></a>
@@ -379,6 +403,7 @@ def training_page() -> str:
     <a class="card card-link" href="flows/enterprise_document_rag_flow/index.html"><div class="meta-row">{badge('user_testing')}</div><h3>실습 D · 근거 있는 문서 답변</h3><p>문서 준비 → ACL 검색 → 품질 gate → 인용과 거절의 흐름을 배웁니다.</p></a>
     <a class="card card-link" href="flows/skill_based_agent_flow/index.html"><div class="meta-row">{badge('user_testing')}</div><h3>실습 E · 하이브리드 Skill Tool</h3><p>작은 계산은 직접 Component Tool로, 확장 가능한 업무는 Run Flow Tool로 실행하는 차이를 배웁니다.</p></a>
     <a class="card card-link" href="flows/ppt_reference_html_flow/index.html"><div class="meta-row">{badge('user_testing')}</div><h3>실습 F · 이미지 양식으로 HTML 발표자료</h3><p>표지·본문 참조 이미지, 발표 내용과 데이터가 디자인 분석 → 계획 검증 → 슬라이드 렌더링으로 이어지는 과정을 배웁니다.</p></a>
+    <a class="card card-link" href="flows/drm_document_text_extraction_flow/index.html"><div class="meta-row">{badge('user_testing')}</div><h3>실습 G · DRM 문서 텍스트 추출</h3><p>PDF·PPT·Excel·Word 업로드가 허용 서버 확인 → DRM text API → 평문 Message 출력으로 이어지는 최소 연결을 배웁니다.</p></a>
   </div>
 </section>
 <section class="section">
@@ -460,6 +485,42 @@ def flow_asset_sections(flow_id: str, refs: dict, component_map: dict[str, dict]
         else ""
     )
     return component_section + node_section
+
+
+def generic_flow_page(
+    flow: dict,
+    refs: dict,
+    component_map: dict[str, dict],
+    internal_by_flow: dict[str, list[dict]],
+) -> str:
+    """전용 소개 화면이 없는 실행 Flow에도 깨지지 않는 표준 상세 화면을 만든다."""
+    asset_sections = flow_asset_sections(flow["id"], refs, component_map, internal_by_flow)
+    flow_id = flow["id"]
+    configuration = flow.get("configuration_required", [])
+    configuration_items = "".join(f"<li>{esc(item)}</li>" for item in configuration)
+    configuration_section = (
+        '<section class="section"><div class="section-heading"><p class="eyebrow">Configuration</p>'
+        '<h2>첫 실행 전에 입력할 값</h2></div><div class="card"><ul class="check-list">'
+        f"{configuration_items}</ul></div></section>"
+        if configuration_items
+        else ""
+    )
+    content = f"""
+<section class="hero"><div class="meta-row">{badge(flow['status'])}<span class="tag">v{esc(flow['version'])}</span><span class="tag">Export {esc(flow['source_export_version'])}</span></div><div class="hero-kicker">Runnable Flow</div><h1>{esc(flow['name_ko'])}</h1><p>{esc(flow['summary_ko'])}</p><div class="hero-actions"><a class="button button-primary" href="../flows/{esc(flow_id)}/{esc(flow['flow_file'])}">Flow JSON 열기</a><a class="button button-secondary" href="../flows/{esc(flow_id)}/README.md">사용 가이드 열기</a></div></section>
+<section class="section"><div class="notice notice-testing"><strong>현재 상태는 <code>{esc(flow['status'])}</code>입니다.</strong>정적 schema와 격리 계약 검증 범위는 manifest에 기록되어 있으며, 실제 사내 endpoint·자격증명·업무 파일을 사용한 확인과 사용자 완료 승인은 별도입니다.</div></section>
+{configuration_section}
+{asset_sections}
+<section class="section"><div class="grid grid-2"><div class="card"><h3>위험·운영 태그</h3>{tags(flow.get('risk_tags', []))}</div><div class="card"><h3>검증 환경</h3><p><code>{esc(flow.get('verified_environment', '-'))}</code></p><p>마지막 기록: {esc(flow.get('last_verified_at', '-'))}</p></div></div></section>
+<div class="page-actions"><button class="back-button" type="button" data-back data-fallback="flows/index.html">← 이전 화면</button><a class="button button-soft" href="flows/index.html">Flow 목록</a><a class="button button-soft" href="index.html">홈</a></div>
+"""
+    return shell(
+        title=flow["name_ko"],
+        description=flow["summary_ko"],
+        current="flows",
+        base="../../",
+        breadcrumbs=[("홈", "index.html"), ("Flows", "flows/index.html"), (flow["name_ko"], None)],
+        content=content,
+    )
 
 
 def reusable_flow_page(flow: dict, refs: dict, component_map: dict[str, dict], internal_by_flow: dict[str, list[dict]]) -> str:
@@ -720,10 +781,10 @@ def enterprise_utility_page(components: list[dict]) -> str:
         return "".join(rendered)
 
     content = f"""
-<section class="hero"><div class="meta-row">{badge('user_testing')}<span class="tag">30 Recommendations</span><span class="tag">{len(utility_components)} Selected</span></div><div class="hero-kicker">Enterprise component research</div><h1>추천 목록에서 선택한 Component를<br />하나씩 검증해 구현합니다</h1><p>웹 조사 후보 중 Multi Image Base64 Encoder와 Cached Named Run Flow Tool을 Standalone 자산으로 구현했습니다. 나머지 항목은 아직 추천·미구현 상태입니다.</p><div class="hero-actions"><a class="button button-primary" href="#selected-components">선택 구현 보기</a><a class="button button-secondary" href="#recommendations">추천 ITEM 보기</a><a class="button button-secondary" href="../components/ENTERPRISE_UTILITY_COMPONENT_ITEM_LIST.md">전체 조사 문서</a></div></section>
+<section class="hero"><div class="meta-row">{badge('user_testing')}<span class="tag">30 Recommendations</span><span class="tag">{len(utility_components)} Implemented</span></div><div class="hero-kicker">Enterprise component research</div><h1>공용 Component를<br />하나씩 검증해 구현합니다</h1><p>웹 조사 후보 중 Multi Image Base64 Encoder와 Cached Named Run Flow Tool을 구현했고, 실제 문서 업로드 요구에서 DRM Document Text Extractor를 추가했습니다. 추천 목록의 나머지 항목은 아직 추천·미구현 상태입니다.</p><div class="hero-actions"><a class="button button-primary" href="#selected-components">구현 자산 보기</a><a class="button button-secondary" href="#recommendations">추천 ITEM 보기</a><a class="button button-secondary" href="../components/ENTERPRISE_UTILITY_COMPONENT_ITEM_LIST.md">전체 조사 문서</a></div></section>
 <div class="metric-strip" aria-label="추천 목록 현황"><div class="metric"><strong>30</strong><span>추천 ITEM</span></div><div class="metric"><strong>10</strong><span>P0 우선 후보</span></div><div class="metric"><strong>11</strong><span>P1 업무 연동</span></div><div class="metric"><strong>{len(utility_components)}</strong><span>선택 구현·검증 중</span></div></div>
-<section class="section"><div class="notice notice-testing"><strong>선택한 두 Component는 아직 승인 전입니다.</strong>실제 Langflow 1.8.2 runtime 검증 후에도 사용자가 Builder에서 직접 확인하기 전까지 <code>user_testing</code>을 유지합니다. 추천 목록의 나머지 항목은 코드가 없는 설계 후보입니다.</div></section>
-<section class="section" id="selected-components"><div class="section-heading"><p class="eyebrow">Selected implementation</p><h2>이번에 선택해 구현한 공용 Component</h2><p>특정 Flow에 종속되지 않으며 각 Python 파일 하나로 등록합니다.</p></div><div class="grid grid-2">{utility_cards}</div></section>
+<section class="section"><div class="notice notice-testing"><strong>구현 Component는 아직 승인 전입니다.</strong>실제 Langflow 1.8.2 runtime 검증 후에도 사용자가 Builder에서 직접 확인하기 전까지 <code>user_testing</code>을 유지합니다. 추천 목록의 나머지 항목은 코드가 없는 설계 후보입니다.</div></section>
+<section class="section" id="selected-components"><div class="section-heading"><p class="eyebrow">Implemented components</p><h2>구현한 공용 Component</h2><p>특정 Flow에 종속되지 않으며 각 Python 파일 하나로 등록합니다.</p></div><div class="grid grid-2">{utility_cards}</div></section>
 <section class="section"><div class="section-heading"><p class="eyebrow">Selection principles</p><h2>기본 Node를 복제하지 않고 반복 업무의 경계를 찾았습니다</h2><p>일반 Read File, API Request, Webhook과 Loop는 그대로 사용하고, 그 앞뒤에서 반복되는 안전·계약·순서·승인 문제를 Component 후보로 선정했습니다.</p></div><div class="grid grid-3"><div class="card"><span class="card-number">01</span><h3>파일·이미지</h3><p>다중 업로드 순서, Base64, hash, 크기와 안전 정책을 명시합니다.</p></div><div class="card"><span class="card-number">02</span><h3>연동·검증</h3><p>Webhook·API·LLM 결과를 공통 계약으로 정규화하고 잘못된 입력을 차단합니다.</p></div><div class="card"><span class="card-number">03</span><h3>실행·운영</h3><p>배치, 승인 재개, 중복 실행, 감사와 사람 이관을 관리합니다.</p></div></div></section>
 <section class="section" id="recommendations"><div class="section-heading"><p class="eyebrow">P0 · Start here</p><h2>외부 인프라 없이 먼저 만들기 좋은 10개</h2><p>여러 Flow에서 재사용 가능하고 표준 라이브러리 중심으로 구현할 수 있는 후보입니다.</p></div><div class="table-wrap"><table><thead><tr><th>우선순위</th><th>추천 ID</th><th>활용</th><th>상태</th></tr></thead><tbody>{rows(p0, 'P0')}</tbody></table></div></section>
 <section class="section"><div class="section-heading"><p class="eyebrow">P1 · Enterprise integration</p><h2>사내 API·승인·운영 연동 11개</h2></div><div class="table-wrap"><table><thead><tr><th>우선순위</th><th>추천 ID</th><th>활용</th><th>상태</th></tr></thead><tbody>{rows(p1, 'P1')}</tbody></table></div></section>
@@ -735,7 +796,7 @@ def enterprise_utility_page(components: list[dict]) -> str:
 """
     return shell(
         title="사내 공용 Component 추천·구현 현황",
-        description="회사 업무용 Langflow Standalone Component 후보 30개와 선택 구현 2개",
+        description=f"회사 업무용 Langflow Standalone Component 후보 30개와 구현 자산 {len(utility_components)}개",
         current="components",
         base="../../",
         breadcrumbs=[("홈", "index.html"), ("Components", "components/index.html"), ("추천 ITEM", None)],
@@ -1100,7 +1161,7 @@ def rag_troubleshooting_page() -> str:
 <section class="section"><div class="section-heading"><p class="eyebrow">Builder compatibility</p><h2>Import 성공만으로 완료 처리하지 않았습니다</h2></div><div class="grid grid-3"><div class="card"><h3>Runtime template</h3><p>9개 Custom Component node를 실제 LFX <code>create_component_template</code>로 생성해 UI field와 port를 source class에서 다시 만들었습니다.</p></div><div class="card"><h3>Handle contract</h3><p>10개 edge의 문자열 handle과 <code>edge.data</code>를 <code>œ</code> quote 형식으로 일치시키고 구형 <code>┇</code> delimiter를 금지했습니다.</p></div><div class="card"><h3>Full build</h3><p>임시 Flow를 실제 local Builder에 넣어 실행 node가 모두 <code>valid=true</code>인지 확인한 뒤 테스트 Flow를 삭제했습니다.</p></div></div></section>
 <section class="section"><div class="section-heading"><p class="eyebrow">Known 1.8.2 boundary</p><h2>기본 Milvus node로 바로 바꾸면 안 되는 이유</h2></div><div class="notice notice-testing"><strong>현재 데모가 payload 검색을 쓰는 이유입니다.</strong>Langflow 1.8.2 기본 Milvus 검색은 이 Flow가 요구하는 ACL search filter·score threshold·stable-ID replacement를 제공하지 않습니다. 또한 <code>{{ingest_data: [records]}}</code>를 담은 Data 하나를 기본 Milvus의 ingest에 연결하면 record별 chunk가 아니라 text가 빈 단일 문서로 변환될 수 있습니다.</div><div class="card" style="margin-top:16px"><ul class="check-list"><li>운영 Vector DB adapter는 ACL filter를 similarity search 쿼리 안에서 적용해야 합니다.</li><li>적재 output은 실제 node가 받는 <code>list[Data]</code> 또는 DataFrame 계약으로 맞춥니다.</li><li>동일 문서 반복 적재, 새 version 교체, tombstone 삭제를 실제 collection row 수로 확인합니다.</li><li>검색 결과의 page/locator와 권한 밖 정보 비노출을 통합 테스트합니다.</li></ul></div></section>
 <section class="section"><div class="section-heading"><p class="eyebrow">Security follow-up</p><h2>실행 환경 자격증명도 별도 조치 필요</h2></div><div class="notice notice-testing"><strong>P0 · 노출 가능 key 회전</strong>현재 Desktop 실행 프로세스의 시작 정보에 LLM API key 환경 변수가 포함된 정황을 확인했습니다. 값은 문서나 결과에 기록하지 않았습니다. 해당 key는 회전하고, command line이 아닌 Langflow Global Variables 또는 사내 secret manager 기반 주입으로 바꾼 뒤 process/log 노출 여부를 재확인해야 합니다.</div></section>
-<section class="section"><div class="section-heading"><p class="eyebrow">Regression result</p><h2>수정 후 확인 항목</h2></div><div class="card"><ul class="check-list"><li>대표 질문은 <code>answer</code> 상태와 숫자 인용을 반환합니다.</li><li>근거 없는 질문과 권한 밖 보안 문서 질문은 인용 없이 동일한 안전 문구로 거절합니다.</li><li>관련 악성 문서는 제외되며 관련 없는 정상 문서의 문구는 전체 질문을 막지 않습니다.</li><li>PII raw value, 권한 밖 ID·제목·본문·후보 수가 사용자 결과에 나타나지 않습니다.</li><li>Component source와 Flow JSON 내장 code가 byte-for-byte 일치합니다.</li><li>전체 Flow Bundle은 BOM 없이 실행 가능 6개 Flow를 포함합니다.</li></ul></div></section>
+<section class="section"><div class="section-heading"><p class="eyebrow">Regression result</p><h2>수정 후 확인 항목</h2></div><div class="card"><ul class="check-list"><li>대표 질문은 <code>answer</code> 상태와 숫자 인용을 반환합니다.</li><li>근거 없는 질문과 권한 밖 보안 문서 질문은 인용 없이 동일한 안전 문구로 거절합니다.</li><li>관련 악성 문서는 제외되며 관련 없는 정상 문서의 문구는 전체 질문을 막지 않습니다.</li><li>PII raw value, 권한 밖 ID·제목·본문·후보 수가 사용자 결과에 나타나지 않습니다.</li><li>Component source와 Flow JSON 내장 code가 byte-for-byte 일치합니다.</li><li>전체 Flow Bundle은 BOM 없이 실행 가능 7개 Flow를 포함합니다.</li></ul></div></section>
 <div class="page-actions"><button class="back-button" type="button" data-back data-fallback="troubleshooting/index.html">← 이전 화면</button><a class="button button-soft" href="troubleshooting/index.html">실패와 해결 목록</a><a class="button button-soft" href="index.html">홈</a></div>
 """
     return shell(title="문서 RAG 정상 질문 거절 문제", description="Langflow 1.8.2 문서 RAG 검색 오탐과 token 점수 문제 해결 기록", current="troubleshooting", base="../", breadcrumbs=[("홈", "index.html"), ("실패와 해결", "troubleshooting/index.html"), ("문서 RAG 정상 질문 거절", None)], content=content)
@@ -1172,7 +1233,7 @@ def business_page() -> str:
 
 <section class="section"><div class="section-heading"><p class="eyebrow">Rendering contract</p><h2>최종 결과에서 반드시 지킬 표현 규칙</h2></div><div class="grid grid-3"><div class="card"><span class="card-number">01</span><h3>실제 연결 구조</h3><p>노드 나열 대신 방향 화살표, 시작·종료, 의사결정 다이아몬드와 분기 라벨을 렌더링합니다.</p></div><div class="card"><span class="card-number">02</span><h3>변경 상태 매핑</h3><p>BEFORE와 AFTER의 같은 단계 ID를 비교해 유지·변경·추가·사람 검토를 색상과 텍스트로 함께 표시합니다.</p></div><div class="card"><span class="card-number">03</span><h3>설명 Drill-down</h3><p>변경된 노드마다 버튼을 제공하고 이유, 구현 자산, 연결 방식, 검증과 통제를 상세 패널로 엽니다.</p></div></div></section>
 
-<section class="section" id="roadmap"><div class="section-heading"><p class="eyebrow">Import & verify</p><h2>JSON 하나로 전체 Flow 확인</h2><p>개별 Import와 여러 Flow 일괄 Import를 모두 제공합니다.</p></div><div class="grid grid-3"><div class="card"><span class="card-number">01</span><h3>개별 Flow Import</h3><p><code>business_agent_design_complete.json</code>은 메인 10개 node와 운영자용 카탈로그 5개 node를 한 Canvas에서 확인하는 파일입니다.</p><a class="text-link" href="../business_agent_design/flow/business_agent_design_complete.json">개별 JSON 열기 →</a></div><div class="card"><span class="card-number">02</span><h3>Business Bundle</h3><p><code>00_business_agent_design_ALL_FLOWS.json</code>은 Langflow의 전체 Flow Import 화면에서 사용하는 <code>{{"flows": [...]}}</code> 형식입니다.</p><a class="text-link" href="../business_agent_design/flow/00_business_agent_design_ALL_FLOWS.json">Business Bundle 열기 →</a></div><div class="card"><span class="card-number">03</span><h3>Agent Ground 전체</h3><p>실행 가능한 다섯 기반 Flow와 Business Agent Design을 한 번에 넣으려면 프로젝트 전체 Bundle을 사용합니다.</p><a class="text-link" href="../flows/00_AGENT_GROUND_ALL_FLOWS.json">6개 Flow Bundle 열기 →</a></div></div><div class="notice notice-testing" style="margin-top:16px"><strong>재사용 데이터 Flow는 제외했습니다.</strong>현재 export가 다른 업무 Flow로 확인되어 복구 전까지 전체 Bundle에 넣지 않습니다.</div><div class="card" style="margin-top:16px"><ul class="check-list"><li>모든 edge handle은 Langflow 1.8.2 UI 계약인 <code>œ</code> quote delimiter로 생성했습니다.</li><li>개별 JSON과 Bundle은 UTF-8 BOM 없이 생성했습니다.</li><li>Decision node의 분기 label·condition과 변경 node의 improvement detail을 자동 검증합니다.</li><li>Renderer는 검증된 graph JSON만 사용하고 LLM이 만든 HTML을 실행하지 않습니다.</li></ul></div></section>
+<section class="section" id="roadmap"><div class="section-heading"><p class="eyebrow">Import & verify</p><h2>JSON 하나로 전체 Flow 확인</h2><p>개별 Import와 여러 Flow 일괄 Import를 모두 제공합니다.</p></div><div class="grid grid-3"><div class="card"><span class="card-number">01</span><h3>개별 Flow Import</h3><p><code>business_agent_design_complete.json</code>은 메인 10개 node와 운영자용 카탈로그 5개 node를 한 Canvas에서 확인하는 파일입니다.</p><a class="text-link" href="../business_agent_design/flow/business_agent_design_complete.json">개별 JSON 열기 →</a></div><div class="card"><span class="card-number">02</span><h3>Business Bundle</h3><p><code>00_business_agent_design_ALL_FLOWS.json</code>은 Langflow의 전체 Flow Import 화면에서 사용하는 <code>{{"flows": [...]}}</code> 형식입니다.</p><a class="text-link" href="../business_agent_design/flow/00_business_agent_design_ALL_FLOWS.json">Business Bundle 열기 →</a></div><div class="card"><span class="card-number">03</span><h3>Agent Ground 전체</h3><p>실행 가능한 여섯 기반 Flow와 Business Agent Design을 한 번에 넣으려면 프로젝트 전체 Bundle을 사용합니다.</p><a class="text-link" href="../flows/00_AGENT_GROUND_ALL_FLOWS.json">7개 Flow Bundle 열기 →</a></div></div><div class="notice notice-testing" style="margin-top:16px"><strong>재사용 데이터 Flow는 제외했습니다.</strong>현재 export가 다른 업무 Flow로 확인되어 복구 전까지 전체 Bundle에 넣지 않습니다.</div><div class="card" style="margin-top:16px"><ul class="check-list"><li>모든 edge handle은 Langflow 1.8.2 UI 계약인 <code>œ</code> quote delimiter로 생성했습니다.</li><li>개별 JSON과 Bundle은 UTF-8 BOM 없이 생성했습니다.</li><li>Decision node의 분기 label·condition과 변경 node의 improvement detail을 자동 검증합니다.</li><li>Renderer는 검증된 graph JSON만 사용하고 LLM이 만든 HTML을 실행하지 않습니다.</li></ul></div></section>
 """
     return shell(title="업무 Agent 설계", description="분기형 BEFORE/AFTER 업무 Flow Chart와 인터랙티브 개선 설명 시안", current="business", base="../", breadcrumbs=[("홈", "index.html"), ("업무 Agent 설계", None)], content=content, extra_head='<link rel="stylesheet" href="assets/css/business-design.css" />', extra_scripts='<script src="assets/js/business-design.js"></script>')
 
@@ -1195,6 +1256,7 @@ def main() -> None:
     }
     flow_map = {flow["id"]: flow for flow in flows}
     pruned_component_dirs = prune_internal_component_pages(internal_nodes)
+    pruned_flow_node_dirs = prune_stale_flow_node_pages(internal_by_flow, set(flow_map))
 
     write_page(HTML_ROOT / "index.html", home_page(len(components), len(flows)))
     write_page(HTML_ROOT / "training" / "overview.html", training_page())
@@ -1204,6 +1266,18 @@ def main() -> None:
     write_page(HTML_ROOT / "flows" / "enterprise_document_rag_flow" / "index.html", enterprise_document_rag_flow_page(flow_map["enterprise_document_rag_flow"], refs_map["enterprise_document_rag_flow"], component_map, internal_by_flow))
     write_page(HTML_ROOT / "flows" / "skill_based_agent_flow" / "index.html", skill_based_agent_flow_page(flow_map["skill_based_agent_flow"], refs_map["skill_based_agent_flow"], component_map, internal_by_flow))
     write_page(HTML_ROOT / "flows" / "ppt_reference_html_flow" / "index.html", ppt_reference_html_flow_page(flow_map["ppt_reference_html_flow"], refs_map["ppt_reference_html_flow"], component_map, internal_by_flow))
+    specialized_flow_ids = {
+        "reusable_data_flow",
+        "html_report_flow",
+        "enterprise_document_rag_flow",
+        "skill_based_agent_flow",
+        "ppt_reference_html_flow",
+    }
+    for flow_id in sorted(set(flow_map) - specialized_flow_ids):
+        write_page(
+            HTML_ROOT / "flows" / flow_id / "index.html",
+            generic_flow_page(flow_map[flow_id], refs_map[flow_id], component_map, internal_by_flow),
+        )
     write_page(HTML_ROOT / "components" / "index.html", components_index(components))
     write_page(HTML_ROOT / "components" / "enterprise-utility" / "index.html", enterprise_utility_page(components))
     write_page(HTML_ROOT / "components" / "direct-data-access" / "index.html", direct_data_access_page(components))
@@ -1224,7 +1298,9 @@ def main() -> None:
     write_page(HTML_ROOT / "business-agent-design" / "index.html", business_page())
     print(
         f"Built {len(components) * 2 + len(internal_nodes) * 2 + 15} HTML pages "
-        f"(Component {len(components)}, internal Node {len(internal_nodes)}, stale Component dirs removed {pruned_component_dirs})"
+        f"(Component {len(components)}, internal Node {len(internal_nodes)}, "
+        f"stale Component dirs removed {pruned_component_dirs}, "
+        f"stale Flow Node dirs removed {pruned_flow_node_dirs})"
     )
 
 

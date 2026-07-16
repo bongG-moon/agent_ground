@@ -1,0 +1,6 @@
+{
+  "flow_id": "drm_document_text_extraction_flow",
+  "components": [
+    {"id": "drm_document_text_extractor", "version": "0.2.0"}
+  ]
+}

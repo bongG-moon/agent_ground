@@ -33,6 +33,7 @@ PROJECT_FLOW_SOURCES = (
     ROOT / "flows" / "skill_based_agent_flow" / "meeting_action_skill_flow.json",
     ROOT / "flows" / "skill_based_agent_flow" / "skill_based_agent_flow.json",
     FLOW_TARGET,
+    ROOT / "flows" / "drm_document_text_extraction_flow" / "drm_document_text_extraction_flow.json",
     ROOT / "business_agent_design" / "flow" / "business_agent_design_complete.json",
 )
 
@@ -554,6 +555,7 @@ def _validate_written_files() -> None:
         "meeting_action_skill_flow",
         "skill_based_agent_flow",
         "ppt_reference_html_flow",
+        "drm_document_text_extraction_flow",
         "business_agent_design_complete",
     ]
     if names != expected:
