@@ -1,0 +1,15 @@
+{
+  "schema_version": 2,
+  "skill_id": "find-animation-opportunities",
+  "title": "Find Animation Opportunities",
+  "description": "Finds high-value places to add motion while explicitly rejecting unnecessary animation.",
+  "status": "active",
+  "recommended_mode": "run-flow",
+  "reason": "The workflow inspects a codebase, filters candidates, and returns structured findings without modifying source.",
+  "canonical_skill_path": "skills/find-animation-opportunities/SKILL.md",
+  "prompt_file": null,
+  "configuration": {},
+  "source_sha256": "3d6533767ebcf4fb73ee7a2d9544a88671d09d50c4bf36c9b824768bca1dd9fb",
+  "security_profile": "internal-enterprise",
+  "security_policy_file": "SECURITY_PROFILE.md"
+}

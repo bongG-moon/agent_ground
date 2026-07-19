@@ -1,0 +1,19 @@
+{
+  "schema_version": 2,
+  "skill_id": "performance-optimization",
+  "title": "Performance Optimization",
+  "description": "Measures and improves frontend, backend, query, database, and Core Web Vitals bottlenecks.",
+  "status": "active",
+  "recommended_mode": "run-flow",
+  "reason": "This lifecycle workflow has checkpoints, evidence requirements, and verification gates that map cleanly to a reusable Run Flow.",
+  "canonical_skill_path": "skills/performance-optimization/SKILL.md",
+  "prompt_file": null,
+  "configuration": {},
+  "source_sha256": "60964a3e973b9a2aa83fbda87cecde279a7ad0155dd551faf253c8a382e5ac89",
+  "security_profile": "internal-enterprise",
+  "security_policy_file": "SECURITY_PROFILE.md",
+  "collection_id": "addy-agent-skills",
+  "shared_references": [
+    "collections/addy-agent-skills/shared/references/performance-checklist.md"
+  ]
+}

@@ -1,0 +1,15 @@
+{
+  "schema_version": 2,
+  "skill_id": "animation-vocabulary",
+  "title": "Animation Vocabulary",
+  "description": "Maps vague descriptions of web motion effects to precise animation terminology.",
+  "status": "active",
+  "recommended_mode": "prompt-template",
+  "reason": "This is compact reference knowledge with no external action or state.",
+  "canonical_skill_path": "skills/animation-vocabulary/SKILL.md",
+  "prompt_file": "PROMPT_TEMPLATE.md",
+  "configuration": {},
+  "source_sha256": "d718b48fe3c7898804d588f050a2e266d82c9f5ef51da256c8cb8b5951527757",
+  "security_profile": "internal-enterprise",
+  "security_policy_file": "SECURITY_PROFILE.md"
+}

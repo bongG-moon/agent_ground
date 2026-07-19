@@ -1,0 +1,19 @@
+{
+  "schema_version": 2,
+  "skill_id": "planning-and-task-breakdown",
+  "title": "Planning and Task Breakdown",
+  "description": "Breaks specifications and clear requirements into ordered, scoped, and parallelizable tasks.",
+  "status": "active",
+  "recommended_mode": "run-flow",
+  "reason": "This lifecycle workflow has checkpoints, evidence requirements, and verification gates that map cleanly to a reusable Run Flow.",
+  "canonical_skill_path": "skills/planning-and-task-breakdown/SKILL.md",
+  "prompt_file": null,
+  "configuration": {},
+  "source_sha256": "d87ff6bb23aa791f78a504d784e903bb13602975923f884af5d13d5b66b1651a",
+  "security_profile": "internal-enterprise",
+  "security_policy_file": "SECURITY_PROFILE.md",
+  "collection_id": "addy-agent-skills",
+  "shared_references": [
+    "collections/addy-agent-skills/shared/references/definition-of-done.md"
+  ]
+}

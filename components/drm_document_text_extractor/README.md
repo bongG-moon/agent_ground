@@ -1,11 +1,11 @@
-# DRM 문서 텍스트 추출
+# 문서 텍스트 추출 (DRM 자동)
 
-문서·이미지를 DRM text API에 전송해 평문 Message 또는 EWS용 TXT 작업 파일로 반환합니다.
+처리 모드에 따라 일반 파일은 로컬에서 읽고 DRM 파일만 API로 보내 평문을 반환합니다.
 
 ## 상태
 
 - ID: `drm_document_text_extractor`
-- 버전: `0.2.0`
+- 버전: `0.3.0`
 - 상태: `user_testing`
 - 패키징: `standalone`
 - Component 범위: `general`
@@ -18,10 +18,11 @@
 | --- | --- | --- | --- | --- | --- |
 | 문서 파일 | `document_files` | `FileInput` | True | False | False |
 | EWS 파일 항목 | `file_record` | `DataInput` | False | False | True |
-| DRM API 주소 | `drm_api_url` | `MessageTextInput` | False | True | False |
-| DRM 토큰 | `drm_token` | `SecretStrInput` | False | True | False |
-| 사번 | `employee_no` | `SecretStrInput` | False | True | False |
-| 허용 DRM 서버 | `allowed_drm_hosts` | `MessageTextInput` | False | True | False |
+| 처리 모드 | `processing_mode` | `DropdownInput` | False | True | False |
+| DRM API 주소 | `drm_api_url` | `MessageTextInput` | False | False | False |
+| DRM 토큰 | `drm_token` | `SecretStrInput` | False | False | False |
+| 사번 | `employee_no` | `SecretStrInput` | False | False | False |
+| 허용 DRM 서버 | `allowed_drm_hosts` | `MessageTextInput` | False | False | False |
 | HTTP DRM API 사용 허용 | `allow_insecure_http` | `BoolInput` | False | False | True |
 | TLS 인증서 검증 | `verify_tls` | `BoolInput` | False | False | True |
 | 제한 시간(초) | `timeout_seconds` | `IntInput` | False | False | True |
@@ -35,7 +36,7 @@
 | 화면 이름 | 코드 이름 | 타입 | 실행 method |
 | --- | --- | --- | --- |
 | 추출된 문서 텍스트 | `extracted_text` | `Message` | `build_extracted_text` |
-| DRM 평문 작업 파일 | `processed_file` | `Data` | `build_processed_file` |
+| 처리된 파일 | `processed_file` | `Data` | `build_processed_file` |
 
 
 ## 상세 사용 가이드

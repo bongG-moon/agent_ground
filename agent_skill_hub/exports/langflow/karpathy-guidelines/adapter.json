@@ -1,0 +1,15 @@
+{
+  "schema_version": 2,
+  "skill_id": "karpathy-guidelines",
+  "title": "Karpathy Guidelines",
+  "description": "Behavioral coding guidance that favors explicit assumptions, simple implementations, surgical changes, and verifiable outcomes.",
+  "status": "active",
+  "recommended_mode": "system-prompt",
+  "reason": "These behavioral constraints should apply before the agent decides whether to call a tool.",
+  "canonical_skill_path": "skills/karpathy-guidelines/SKILL.md",
+  "prompt_file": "SYSTEM_PROMPT.md",
+  "configuration": {},
+  "source_sha256": "6e22cc54cb02a5e98ae42d06d9d7292db0c1b43894831b32879beb0166b2aea7",
+  "security_profile": "internal-enterprise",
+  "security_policy_file": "SECURITY_PROFILE.md"
+}

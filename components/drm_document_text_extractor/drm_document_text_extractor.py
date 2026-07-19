@@ -10,7 +10,16 @@ from typing import Any
 from urllib.parse import urlsplit
 
 from lfx.custom import Component
-from lfx.io import BoolInput, DataInput, FileInput, IntInput, MessageTextInput, Output, SecretStrInput
+from lfx.io import (
+    BoolInput,
+    DataInput,
+    DropdownInput,
+    FileInput,
+    IntInput,
+    MessageTextInput,
+    Output,
+    SecretStrInput,
+)
 from lfx.schema import Data, Message
 
 
@@ -65,10 +74,23 @@ MAX_FILE_SIZE_MB = 500
 MAX_TOTAL_SIZE_MB = 1000
 MAX_RESPONSE_MB = 100
 CHUNK_SIZE = 64 * 1024
+PROCESSING_MODE_AUTO = "자동(로컬 우선)"
+PROCESSING_MODE_ALWAYS_DRM = "항상 DRM API"
+PROCESSING_MODE_BYPASS_DRM = "DRM 미사용"
+PROCESSING_MODES = [
+    PROCESSING_MODE_AUTO,
+    PROCESSING_MODE_ALWAYS_DRM,
+    PROCESSING_MODE_BYPASS_DRM,
+]
+LOCAL_EXTRACTION_EXTENSIONS = {".pdf", ".docx", ".pptx", ".xlsx", ".txt", ".csv"}
 
 
 class DrmTextExtractionError(RuntimeError):
     """토큰, endpoint 전체 주소와 문서 본문을 노출하지 않는 실행 오류입니다."""
+
+
+class LocalTextExtractionError(RuntimeError):
+    """문서 본문이나 로컬 절대경로를 노출하지 않는 로컬 추출 오류입니다."""
 
 
 def _text_value(value: Any) -> str:
@@ -92,6 +114,23 @@ def _bool_value(value: Any, field_name: str) -> bool:
     if text in {"false", "0", "no", "n", "off", ""}:
         return False
     raise ValueError(f"{field_name} 값은 true 또는 false여야 합니다.")
+
+
+def _processing_mode(value: Any) -> str:
+    text = _text_value(value).strip()
+    aliases = {
+        "": PROCESSING_MODE_AUTO,
+        "auto": PROCESSING_MODE_AUTO,
+        PROCESSING_MODE_AUTO.lower(): PROCESSING_MODE_AUTO,
+        "always_drm": PROCESSING_MODE_ALWAYS_DRM,
+        PROCESSING_MODE_ALWAYS_DRM.lower(): PROCESSING_MODE_ALWAYS_DRM,
+        "bypass_drm": PROCESSING_MODE_BYPASS_DRM,
+        PROCESSING_MODE_BYPASS_DRM.lower(): PROCESSING_MODE_BYPASS_DRM,
+    }
+    normalized = aliases.get(text.lower())
+    if normalized is None:
+        raise ValueError(f"처리 모드는 {', '.join(PROCESSING_MODES)} 중 하나여야 합니다.")
+    return normalized
 
 
 def _bounded_int(value: Any, field_name: str, minimum: int, maximum: int) -> int:
@@ -201,6 +240,130 @@ def _read_file_bytes(item: Any, position: int, maximum_bytes: int) -> tuple[byte
     if not content:
         raise ValueError(f"빈 파일은 처리할 수 없습니다: {filename}")
     return content, filename
+
+
+def _validate_local_text(text: str, filename: str, maximum_chars: int) -> str:
+    normalized = text.replace("\x00", "").strip()
+    if not normalized:
+        raise LocalTextExtractionError(f"로컬에서 읽을 수 있는 텍스트가 없습니다: {filename}")
+    if len(normalized) > maximum_chars:
+        raise LocalTextExtractionError(f"로컬 추출 텍스트가 설정한 최대 크기를 초과했습니다: {filename}")
+    control_count = sum(
+        1 for character in normalized if ord(character) < 32 and character not in {"\n", "\r", "\t"}
+    )
+    if control_count > max(4, len(normalized) // 100):
+        raise LocalTextExtractionError(f"로컬 추출 결과가 텍스트 형식이 아닙니다: {filename}")
+    return normalized
+
+
+def _decode_local_text(content: bytes, filename: str) -> tuple[str, str]:
+    for encoding in ("utf-8-sig", "cp949", "euc-kr"):
+        try:
+            return content.decode(encoding), encoding
+        except UnicodeDecodeError:
+            continue
+    raise LocalTextExtractionError(f"로컬에서 파일 문자 인코딩을 판별하지 못했습니다: {filename}")
+
+
+def _extract_local_text(content: bytes, filename: str, maximum_chars: int) -> tuple[str, str]:
+    """현 Langflow Desktop에 포함된 parser로 일반 파일의 텍스트를 추출합니다."""
+
+    extension = Path(filename).suffix.lower()
+    if extension not in LOCAL_EXTRACTION_EXTENSIONS:
+        raise LocalTextExtractionError(
+            f"이 형식은 로컬 추출을 지원하지 않아 DRM API 처리가 필요합니다: {filename}"
+        )
+
+    try:
+        if extension == ".pdf":
+            pdf_reader = import_module("pypdf").PdfReader(io.BytesIO(content))
+            if bool(getattr(pdf_reader, "is_encrypted", False)):
+                raise LocalTextExtractionError(f"암호화되었거나 보호된 PDF입니다: {filename}")
+            text = "\n\n".join(page.extract_text() or "" for page in pdf_reader.pages)
+            parser_name = "local-pypdf"
+        elif extension == ".docx":
+            document = import_module("docx").Document(io.BytesIO(content))
+            blocks = [paragraph.text for paragraph in document.paragraphs if paragraph.text.strip()]
+            for table in document.tables:
+                for row in table.rows:
+                    values = [cell.text.strip() for cell in row.cells]
+                    if any(values):
+                        blocks.append("\t".join(values))
+            text = "\n\n".join(blocks)
+            parser_name = "local-python-docx"
+        elif extension == ".pptx":
+            presentation = import_module("pptx").Presentation(io.BytesIO(content))
+            blocks: list[str] = []
+            for slide_index, slide in enumerate(presentation.slides, start=1):
+                slide_blocks: list[str] = []
+                for shape in slide.shapes:
+                    shape_text = str(getattr(shape, "text", "") or "").strip()
+                    if shape_text:
+                        slide_blocks.append(shape_text)
+                    if bool(getattr(shape, "has_table", False)):
+                        for row in shape.table.rows:
+                            values = [cell.text.strip() for cell in row.cells]
+                            if any(values):
+                                slide_blocks.append("\t".join(values))
+                if slide_blocks:
+                    blocks.append(f"[SLIDE {slide_index}]\n" + "\n".join(slide_blocks))
+            text = "\n\n".join(blocks)
+            parser_name = "local-python-pptx"
+        elif extension == ".xlsx":
+            workbook = import_module("openpyxl").load_workbook(
+                io.BytesIO(content), read_only=True, data_only=True
+            )
+            try:
+                blocks = []
+                current_chars = 0
+                for worksheet in workbook.worksheets:
+                    sheet_lines = [f"[SHEET] {worksheet.title}"]
+                    for row in worksheet.iter_rows(values_only=True):
+                        values = ["" if value is None else str(value) for value in row]
+                        if not any(value.strip() for value in values):
+                            continue
+                        line = "\t".join(values).rstrip()
+                        current_chars += len(line) + 1
+                        if current_chars > maximum_chars:
+                            raise LocalTextExtractionError(
+                                f"로컬 추출 텍스트가 설정한 최대 크기를 초과했습니다: {filename}"
+                            )
+                        sheet_lines.append(line)
+                    blocks.append("\n".join(sheet_lines))
+                text = "\n\n".join(blocks)
+            finally:
+                workbook.close()
+            parser_name = "local-openpyxl"
+        else:
+            text, parser_name = _decode_local_text(content, filename)
+    except LocalTextExtractionError:
+        raise
+    except ModuleNotFoundError:
+        raise LocalTextExtractionError(
+            f"로컬 추출에 필요한 Langflow 패키지가 설치되어 있지 않습니다: {filename}"
+        ) from None
+    except Exception:
+        raise LocalTextExtractionError(
+            f"로컬에서 파일을 해석하지 못했습니다. DRM 파일일 수 있습니다: {filename}"
+        ) from None
+
+    return _validate_local_text(text, filename, maximum_chars), parser_name
+
+
+def _local_result(content: bytes, filename: str, maximum_chars: int) -> dict[str, Any]:
+    text, parser_name = _extract_local_text(content, filename, maximum_chars)
+    return {
+        "file_name": filename,
+        "extension": Path(filename).suffix.lower(),
+        "source_bytes": len(content),
+        "response_bytes": 0,
+        "char_count": len(text),
+        "encoding": parser_name,
+        "http_status": None,
+        "processing_path": "local",
+        "drm_status": "not_required",
+        "text": text,
+    }
 
 
 def _parse_api_url(value: Any, allow_insecure_http: Any) -> tuple[str, str, bool]:
@@ -384,6 +547,8 @@ def _post_file(
             "char_count": len(text),
             "encoding": encoding,
             "http_status": status_code,
+            "processing_path": "drm_api",
+            "drm_status": "text_extracted",
             "text": text,
         }
     finally:
@@ -392,11 +557,12 @@ def _post_file(
 
 def extract_document_texts(
     document_files: Any,
-    drm_api_url: Any,
-    drm_token: Any,
-    employee_no: Any,
-    allowed_drm_hosts: Any,
+    drm_api_url: Any = "",
+    drm_token: Any = "",
+    employee_no: Any = "",
+    allowed_drm_hosts: Any = "",
     *,
+    processing_mode: Any = PROCESSING_MODE_AUTO,
     allow_insecure_http: Any = False,
     verify_tls: Any = True,
     timeout_seconds: Any = DEFAULT_TIMEOUT_SECONDS,
@@ -406,34 +572,16 @@ def extract_document_texts(
     max_response_mb: Any = DEFAULT_MAX_RESPONSE_MB,
     transport: Any | None = None,
 ) -> dict[str, Any]:
-    """업로드 문서를 DRM text API에 하나씩 보내고 평문 텍스트 결과를 반환합니다."""
+    """처리 모드에 따라 로컬 또는 DRM API로 문서 텍스트를 추출합니다."""
 
     files = _normalize_files(document_files)
+    mode = _processing_mode(processing_mode)
     file_limit = _bounded_int(max_files, "최대 파일 수", 1, MAX_FILES)
     if not files:
-        raise ValueError("DRM API로 처리할 문서 또는 이미지 파일을 한 개 이상 입력해 주세요.")
+        raise ValueError("처리할 문서 또는 이미지 파일을 한 개 이상 입력해 주세요.")
     if len(files) > file_limit:
         raise ValueError(f"업로드 파일 수가 최대 {file_limit}개를 초과했습니다.")
 
-    token = _text_value(drm_token).strip()
-    emp_no = _text_value(employee_no).strip()
-    if not token:
-        raise ValueError("DRM 토큰을 입력해 주세요.")
-    if not emp_no:
-        raise ValueError("사번을 입력해 주세요.")
-    if len(token) > 8192 or "\r" in token or "\n" in token:
-        raise ValueError("DRM 토큰 형식이 올바르지 않습니다.")
-    if len(emp_no) > 128 or "\r" in emp_no or "\n" in emp_no:
-        raise ValueError("사번 형식이 올바르지 않습니다.")
-
-    url, host, is_https = _parse_api_url(drm_api_url, allow_insecure_http)
-    allowed_hosts = _parse_allowed_hosts(allowed_drm_hosts)
-    if not _host_is_allowed(host, allowed_hosts):
-        raise ValueError("DRM API 서버가 허용 서버 목록에 없습니다.")
-
-    tls_verification = _bool_value(verify_tls, "TLS 인증서 검증")
-    if not is_https:
-        tls_verification = False
     timeout = _bounded_int(timeout_seconds, "제한 시간", 1, MAX_TIMEOUT_SECONDS)
     per_file_bytes = _bounded_int(
         max_file_size_mb, "파일당 최대 크기", 1, MAX_FILE_SIZE_MB
@@ -454,25 +602,61 @@ def extract_document_texts(
             raise ValueError("업로드 파일의 전체 크기가 설정한 제한을 초과했습니다.")
         prepared.append((content, filename))
 
-    try:
-        client = transport or import_module("requests")
-    except ModuleNotFoundError as exc:
-        raise ValueError("DRM API 호출에 필요한 requests 패키지가 설치되어 있지 않습니다.") from exc
+    local_results: dict[int, dict[str, Any]] = {}
+    drm_indexes: list[int] = []
+    for index, (content, filename) in enumerate(prepared):
+        if mode == PROCESSING_MODE_ALWAYS_DRM:
+            drm_indexes.append(index)
+            continue
+        try:
+            local_results[index] = _local_result(content, filename, response_limit_bytes)
+        except LocalTextExtractionError:
+            if mode == PROCESSING_MODE_BYPASS_DRM:
+                raise ValueError(
+                    f"DRM 미사용 모드에서 로컬 텍스트 추출에 실패했습니다: {filename}"
+                ) from None
+            drm_indexes.append(index)
 
-    results = [
-        _post_file(
-            client=client,
-            url=url,
-            token=token,
-            employee_no=emp_no,
-            filename=filename,
-            content=content,
-            timeout_seconds=timeout,
-            verify_tls=tls_verification,
-            max_response_bytes=response_limit_bytes,
-        )
-        for content, filename in prepared
-    ]
+    drm_results: dict[int, dict[str, Any]] = {}
+    if drm_indexes:
+        token = _text_value(drm_token).strip()
+        emp_no = _text_value(employee_no).strip()
+        if not token:
+            raise ValueError("DRM API 호출이 필요한 파일이 있어 DRM 토큰을 입력해야 합니다.")
+        if not emp_no:
+            raise ValueError("DRM API 호출이 필요한 파일이 있어 사번을 입력해야 합니다.")
+        if len(token) > 8192 or "\r" in token or "\n" in token:
+            raise ValueError("DRM 토큰 형식이 올바르지 않습니다.")
+        if len(emp_no) > 128 or "\r" in emp_no or "\n" in emp_no:
+            raise ValueError("사번 형식이 올바르지 않습니다.")
+
+        url, host, is_https = _parse_api_url(drm_api_url, allow_insecure_http)
+        allowed_hosts = _parse_allowed_hosts(allowed_drm_hosts)
+        if not _host_is_allowed(host, allowed_hosts):
+            raise ValueError("DRM API 서버가 허용 서버 목록에 없습니다.")
+        tls_verification = _bool_value(verify_tls, "TLS 인증서 검증")
+        if not is_https:
+            tls_verification = False
+        try:
+            client = transport or import_module("requests")
+        except ModuleNotFoundError as exc:
+            raise ValueError("DRM API 호출에 필요한 requests 패키지가 설치되어 있지 않습니다.") from exc
+
+        for index in drm_indexes:
+            content, filename = prepared[index]
+            drm_results[index] = _post_file(
+                client=client,
+                url=url,
+                token=token,
+                employee_no=emp_no,
+                filename=filename,
+                content=content,
+                timeout_seconds=timeout,
+                verify_tls=tls_verification,
+                max_response_bytes=response_limit_bytes,
+            )
+
+    results = [local_results.get(index) or drm_results[index] for index in range(len(prepared))]
     return {
         "success": True,
         "data": results,
@@ -482,6 +666,10 @@ def extract_document_texts(
             "total_source_bytes": total_bytes,
             "total_response_bytes": sum(item["response_bytes"] for item in results),
             "total_char_count": sum(item["char_count"] for item in results),
+            "processing_mode": mode,
+            "local_file_count": sum(item["processing_path"] == "local" for item in results),
+            "drm_file_count": sum(item["processing_path"] == "drm_api" for item in results),
+            "network_called": bool(drm_indexes),
             "order_preserved": True,
             "redirects_allowed": False,
             "response_type": "plain_text",
@@ -503,11 +691,12 @@ def _data_payload(value: Any) -> dict[str, Any]:
 
 def process_file_record(
     file_record: Any,
-    drm_api_url: Any,
-    drm_token: Any,
-    employee_no: Any,
-    allowed_drm_hosts: Any,
+    drm_api_url: Any = "",
+    drm_token: Any = "",
+    employee_no: Any = "",
+    allowed_drm_hosts: Any = "",
     *,
+    processing_mode: Any = PROCESSING_MODE_AUTO,
     allow_insecure_http: Any = False,
     verify_tls: Any = True,
     timeout_seconds: Any = DEFAULT_TIMEOUT_SECONDS,
@@ -516,9 +705,10 @@ def process_file_record(
     output_root: str | Path | None = None,
     transport: Any | None = None,
 ) -> dict[str, Any]:
-    """EWS 항목 한 개를 처리하고 Read File이 읽을 평문 TXT 경로를 반환합니다."""
+    """EWS 항목을 원본 경로로 통과시키거나 DRM 평문 TXT 경로로 반환합니다."""
 
     record = _data_payload(file_record)
+    mode = _processing_mode(processing_mode)
     source_kind = str(record.get("source_kind") or "ews_attachment")
     source_path = Path(str(record.get("file_path") or ""))
     original_name = _safe_filename(record.get("file_name") or source_path.name, 1)
@@ -528,7 +718,59 @@ def process_file_record(
     if source_kind in {"mail_body", "extraction_error"}:
         record["drm_status"] = "not_applicable"
         record["drm_error"] = ""
+        record["drm_text_char_count"] = 0
+        record["local_text_char_count"] = 0
+        record["processing_mode"] = mode
+        record["processing_path"] = "original_file"
+        record["local_probe_status"] = "not_applicable"
         return record
+
+    per_file_bytes = _bounded_int(
+        max_file_size_mb, "파일당 최대 크기", 1, MAX_FILE_SIZE_MB
+    ) * 1024 * 1024
+    response_limit_bytes = _bounded_int(
+        max_response_mb, "파일당 최대 응답 크기", 1, MAX_RESPONSE_MB
+    ) * 1024 * 1024
+    content, checked_name = _read_file_bytes(
+        {"file_path": str(source_path), "filename": original_name}, 1, per_file_bytes
+    )
+
+    if mode == PROCESSING_MODE_BYPASS_DRM:
+        record.update(
+            {
+                "original_file_path": str(source_path),
+                "original_file_name": checked_name,
+                "drm_status": "bypassed_by_mode",
+                "drm_error": "",
+                "drm_text_char_count": 0,
+                "processing_mode": mode,
+                "processing_path": "original_file",
+                "local_probe_status": "skipped_by_mode",
+            }
+        )
+        return record
+
+    if mode == PROCESSING_MODE_AUTO:
+        try:
+            local_item = _local_result(content, checked_name, response_limit_bytes)
+        except LocalTextExtractionError:
+            local_item = None
+        if local_item is not None:
+            record.update(
+                {
+                    "original_file_path": str(source_path),
+                    "original_file_name": checked_name,
+                    "drm_status": "not_required",
+                    "drm_error": "",
+                    "drm_text_char_count": 0,
+                    "local_text_char_count": local_item["char_count"],
+                    "local_parser": local_item["encoding"],
+                    "processing_mode": mode,
+                    "processing_path": "original_file",
+                    "local_probe_status": "succeeded",
+                }
+            )
+            return record
 
     result = extract_document_texts(
         [{"file_path": str(source_path), "filename": original_name}],
@@ -536,6 +778,7 @@ def process_file_record(
         drm_token,
         employee_no,
         allowed_drm_hosts,
+        processing_mode=PROCESSING_MODE_ALWAYS_DRM,
         allow_insecure_http=allow_insecure_http,
         verify_tls=verify_tls,
         timeout_seconds=timeout_seconds,
@@ -569,6 +812,11 @@ def process_file_record(
             "drm_response_encoding": item["encoding"],
             "drm_response_bytes": item["response_bytes"],
             "drm_text_char_count": item["char_count"],
+            "processing_mode": mode,
+            "processing_path": "drm_api",
+            "local_probe_status": (
+                "not_run" if mode == PROCESSING_MODE_ALWAYS_DRM else "failed"
+            ),
         }
     )
     return record
@@ -578,13 +826,14 @@ def format_extraction_message(result: dict[str, Any]) -> str:
     items = result.get("data") if isinstance(result, dict) else None
     if not isinstance(items, list) or not items:
         raise ValueError("추출된 문서 텍스트가 없습니다.")
-    blocks = ["# DRM 문서 텍스트 추출 결과"]
+    blocks = ["# 문서 텍스트 추출 결과"]
     total = len(items)
     for index, item in enumerate(items, start=1):
         blocks.append(
             "\n".join(
                 [
                     f"[FILE {index}/{total}] {item['file_name']}",
+                    f"처리 경로: {'로컬 추출' if item['processing_path'] == 'local' else 'DRM API'}",
                     f"문자 수: {item['char_count']:,}",
                     "",
                     str(item["text"]),
@@ -596,8 +845,8 @@ def format_extraction_message(result: dict[str, Any]) -> str:
 
 
 class DrmDocumentTextExtractor(Component):
-    display_name = "DRM 문서 텍스트 추출"
-    description = "문서·이미지를 DRM text API에 전송해 평문 Message 또는 EWS용 TXT 작업 파일로 반환합니다."
+    display_name = "문서 텍스트 추출 (DRM 자동)"
+    description = "처리 모드에 따라 일반 파일은 로컬에서 읽고 DRM 파일만 API로 보내 평문을 반환합니다."
     icon = "FileLock2"
     name = "DrmDocumentTextExtractor"
 
@@ -606,7 +855,7 @@ class DrmDocumentTextExtractor(Component):
             name="document_files",
             display_name="문서 파일",
             file_types=SUPPORTED_FILE_TYPES,
-            info="PDF·Office·HWP·텍스트·CSV·일반 이미지를 입력 순서대로 DRM API에 전송합니다.",
+            info="PDF·Office·HWP·텍스트·CSV·일반 이미지를 처리 모드에 따라 로컬 또는 DRM API로 읽습니다.",
             required=False,
             is_list=True,
             value=[],
@@ -619,32 +868,45 @@ class DrmDocumentTextExtractor(Component):
             required=False,
             advanced=True,
         ),
+        DropdownInput(
+            name="processing_mode",
+            display_name="처리 모드",
+            options=PROCESSING_MODES,
+            value=PROCESSING_MODE_AUTO,
+            info=(
+                "자동은 PDF·DOCX·PPTX·XLSX·TXT·CSV를 로컬에서 먼저 읽고 실패한 파일만 DRM API로 보냅니다. "
+                "그 밖의 형식은 DRM API로 처리합니다. 항상 DRM은 모든 파일을 API로 보내며, "
+                "DRM 미사용은 네트워크 호출을 금지합니다."
+            ),
+            required=True,
+            real_time_refresh=True,
+        ),
         MessageTextInput(
             name="drm_api_url",
             display_name="DRM API 주소",
-            info="파일을 multipart/form-data의 file 필드로 받을 DRM text API 전체 주소입니다.",
-            required=True,
+            info="DRM API 호출이 필요한 모드에서 사용할 전체 주소입니다.",
+            required=False,
             value="",
         ),
         SecretStrInput(
             name="drm_token",
             display_name="DRM 토큰",
-            info="Authorization: Bearer 헤더에 넣을 토큰입니다. Flow JSON 기본값에는 저장하지 않습니다.",
-            required=True,
+            info="DRM API 호출 시 Authorization: Bearer 헤더에 넣습니다. Flow JSON에는 저장하지 않습니다.",
+            required=False,
             value="",
         ),
         SecretStrInput(
             name="employee_no",
             display_name="사번",
-            info="DRM API의 empNo 쿼리 파라미터로 전달합니다. 개인 식별값이므로 비밀 입력으로 처리합니다.",
-            required=True,
+            info="DRM API 호출 시 empNo로 전달합니다. 개인 식별값이므로 비밀 입력으로 처리합니다.",
+            required=False,
             value="",
         ),
         MessageTextInput(
             name="allowed_drm_hosts",
             display_name="허용 DRM 서버",
-            info="업로드를 허용할 host만 쉼표로 입력합니다. 예: drm.example.internal 또는 .example.internal",
-            required=True,
+            info="DRM API 호출을 허용할 host만 입력합니다. 예: drm.example.internal 또는 .example.internal",
+            required=False,
             value="",
         ),
         BoolInput(
@@ -678,7 +940,7 @@ class DrmDocumentTextExtractor(Component):
         IntInput(
             name="max_file_size_mb",
             display_name="파일당 최대 크기(MB)",
-            info="DRM API에 업로드할 파일 하나의 최대 크기입니다.",
+            info="로컬 추출 또는 DRM API 업로드를 허용할 파일 하나의 최대 크기입니다.",
             value=DEFAULT_MAX_FILE_SIZE_MB,
             advanced=True,
         ),
@@ -692,7 +954,7 @@ class DrmDocumentTextExtractor(Component):
         IntInput(
             name="max_response_mb",
             display_name="파일당 최대 응답 크기(MB)",
-            info="DRM API의 평문 응답을 이 크기까지만 읽습니다.",
+            info="로컬 추출 텍스트와 DRM API 평문 응답을 이 크기까지만 읽습니다.",
             value=DEFAULT_MAX_RESPONSE_MB,
             advanced=True,
         ),
@@ -709,13 +971,37 @@ class DrmDocumentTextExtractor(Component):
         ),
         Output(
             name="processed_file",
-            display_name="DRM 평문 작업 파일",
+            display_name="처리된 파일",
             method="build_processed_file",
             types=["Data"],
             cache=False,
             tool_mode=False,
         ),
     ]
+
+    def update_build_config(
+        self,
+        build_config: dict[str, Any],
+        field_value: Any,
+        field_name: str | None = None,
+    ) -> dict[str, Any]:
+        """DRM 미사용 모드에서는 네트워크 설정 입력을 숨깁니다."""
+
+        if field_name != "processing_mode":
+            return build_config
+        uses_drm = _processing_mode(field_value) != PROCESSING_MODE_BYPASS_DRM
+        for name in (
+            "drm_api_url",
+            "drm_token",
+            "employee_no",
+            "allowed_drm_hosts",
+            "allow_insecure_http",
+            "verify_tls",
+            "timeout_seconds",
+        ):
+            if name in build_config:
+                build_config[name]["show"] = uses_drm
+        return build_config
 
     def build_extracted_text(self) -> Message:
         result = extract_document_texts(
@@ -724,6 +1010,7 @@ class DrmDocumentTextExtractor(Component):
             drm_token=getattr(self, "drm_token", ""),
             employee_no=getattr(self, "employee_no", ""),
             allowed_drm_hosts=getattr(self, "allowed_drm_hosts", ""),
+            processing_mode=getattr(self, "processing_mode", PROCESSING_MODE_AUTO),
             allow_insecure_http=getattr(self, "allow_insecure_http", False),
             verify_tls=getattr(self, "verify_tls", True),
             timeout_seconds=getattr(self, "timeout_seconds", DEFAULT_TIMEOUT_SECONDS),
@@ -735,7 +1022,8 @@ class DrmDocumentTextExtractor(Component):
         meta = result["meta"]
         self.status = (
             f"추출 완료 · 파일 {meta['file_count']}개 · "
-            f"응답 {meta['total_response_bytes']:,}바이트 · 텍스트 {meta['total_char_count']:,}자"
+            f"로컬 {meta['local_file_count']} · DRM {meta['drm_file_count']} · "
+            f"텍스트 {meta['total_char_count']:,}자"
         )
         return Message(text=format_extraction_message(result))
 
@@ -746,6 +1034,7 @@ class DrmDocumentTextExtractor(Component):
             drm_token=getattr(self, "drm_token", ""),
             employee_no=getattr(self, "employee_no", ""),
             allowed_drm_hosts=getattr(self, "allowed_drm_hosts", ""),
+            processing_mode=getattr(self, "processing_mode", PROCESSING_MODE_AUTO),
             allow_insecure_http=getattr(self, "allow_insecure_http", False),
             verify_tls=getattr(self, "verify_tls", True),
             timeout_seconds=getattr(self, "timeout_seconds", DEFAULT_TIMEOUT_SECONDS),
@@ -753,7 +1042,7 @@ class DrmDocumentTextExtractor(Component):
             max_response_mb=getattr(self, "max_response_mb", DEFAULT_MAX_RESPONSE_MB),
         )
         self.status = (
-            f"DRM 상태: {record.get('drm_status')} · "
+            f"처리 경로: {record.get('processing_path')} · DRM 상태: {record.get('drm_status')} · "
             f"{record.get('original_file_name') or record.get('file_name')}"
         )
         return Data(data=record)

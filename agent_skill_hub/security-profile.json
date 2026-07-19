@@ -1,0 +1,45 @@
+{
+  "schema_version": 1,
+  "id": "internal-enterprise",
+  "title": "Internal Claude Code and ChatGPT Enterprise",
+  "policy_file": "SECURITY_PROFILE.md",
+  "approved_model_boundaries": [
+    "company-internal-claude-code-model",
+    "chatgpt-enterprise-workspace"
+  ],
+  "public_read_only_ingress": true,
+  "prohibited_actions": [
+    "third-party-model-review",
+    "public-mcp-with-confidential-data",
+    "external-telemetry",
+    "feedback-or-transcript-upload",
+    "public-git-write",
+    "public-ci-or-deployment",
+    "remote-memory-capture",
+    "internal-url-webfetch",
+    "authenticated-personal-browser-control"
+  ],
+  "explicit_only_skills": [
+    "apple-design",
+    "emil-design-eng",
+    "find-animation-opportunities",
+    "improve-animations",
+    "review-animations"
+  ],
+  "excluded_skill_ids": [
+    "agent-skill-creator",
+    "agentmemory",
+    "baseline-ui",
+    "ci-cd-and-automation",
+    "fixing-accessibility",
+    "fixing-metadata",
+    "fixing-motion-performance",
+    "improve-ui",
+    "remotion-best-practices",
+    "superpowers",
+    "ui-skills-root",
+    "ui-ux-pro-max",
+    "understand-anything",
+    "using-agent-skills"
+  ]
+}

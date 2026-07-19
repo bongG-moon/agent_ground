@@ -1,0 +1,19 @@
+{
+  "schema_version": 2,
+  "skill_id": "observability-and-instrumentation",
+  "title": "Observability and Instrumentation",
+  "description": "Adds logging, metrics, tracing, and alerting so production behavior is visible and diagnosable.",
+  "status": "active",
+  "recommended_mode": "run-flow",
+  "reason": "This lifecycle workflow has checkpoints, evidence requirements, and verification gates that map cleanly to a reusable Run Flow.",
+  "canonical_skill_path": "skills/observability-and-instrumentation/SKILL.md",
+  "prompt_file": null,
+  "configuration": {},
+  "source_sha256": "6f635e51b983a6d7b562e5f377775fb4474e85f5708d11f7affbdecbae8b2ba0",
+  "security_profile": "internal-enterprise",
+  "security_policy_file": "SECURITY_PROFILE.md",
+  "collection_id": "addy-agent-skills",
+  "shared_references": [
+    "collections/addy-agent-skills/shared/references/observability-checklist.md"
+  ]
+}

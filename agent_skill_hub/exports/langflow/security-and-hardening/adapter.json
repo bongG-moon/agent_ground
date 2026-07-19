@@ -1,0 +1,19 @@
+{
+  "schema_version": 2,
+  "skill_id": "security-and-hardening",
+  "title": "Security and Hardening",
+  "description": "Hardens input handling, authentication, storage, sessions, and third-party integrations against vulnerabilities.",
+  "status": "active",
+  "recommended_mode": "run-flow",
+  "reason": "This lifecycle workflow has checkpoints, evidence requirements, and verification gates that map cleanly to a reusable Run Flow.",
+  "canonical_skill_path": "skills/security-and-hardening/SKILL.md",
+  "prompt_file": null,
+  "configuration": {},
+  "source_sha256": "7edb5505ac083e4f8ab1e2999d4f74673b3043441d3bce2434726853b002932c",
+  "security_profile": "internal-enterprise",
+  "security_policy_file": "SECURITY_PROFILE.md",
+  "collection_id": "addy-agent-skills",
+  "shared_references": [
+    "collections/addy-agent-skills/shared/references/security-checklist.md"
+  ]
+}

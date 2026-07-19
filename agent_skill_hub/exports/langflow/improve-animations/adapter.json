@@ -1,0 +1,17 @@
+{
+  "schema_version": 2,
+  "skill_id": "improve-animations",
+  "title": "Improve Animations",
+  "description": "Audits a codebase's motion system and writes prioritized, self-contained implementation plans without changing source code.",
+  "status": "active",
+  "recommended_mode": "run-flow",
+  "reason": "This is a stateful audit-to-plan workflow with supporting standards and plan templates.",
+  "canonical_skill_path": "skills/improve-animations/SKILL.md",
+  "prompt_file": null,
+  "configuration": {
+    "references_required": true
+  },
+  "source_sha256": "68f17bbc4671593d2f43dba26a679243e2153ba5f26965fb7d59df52842534ff",
+  "security_profile": "internal-enterprise",
+  "security_policy_file": "SECURITY_PROFILE.md"
+}

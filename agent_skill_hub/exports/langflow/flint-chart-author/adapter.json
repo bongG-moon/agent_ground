@@ -1,0 +1,18 @@
+{
+  "schema_version": 2,
+  "skill_id": "flint-chart-author",
+  "title": "Flint Chart Author",
+  "description": "Authors semantic Flint chart specifications and guides agents through validation, rendering, and JS/TS integration.",
+  "status": "active",
+  "recommended_mode": "mcp-tool",
+  "reason": "Use the Skill as authoring guidance and approved internal Flint MCP for executable validation and rendering.",
+  "canonical_skill_path": "skills/flint-chart-author/SKILL.md",
+  "prompt_file": "PROMPT_TEMPLATE.md",
+  "configuration": {
+    "mcp_command": "flint-chart-mcp",
+    "fallback_mode": "prompt-template"
+  },
+  "source_sha256": "cce2c70af796de0978c667e19d91f16b7d4c5afd9771514feed6c3660f2dabae",
+  "security_profile": "internal-enterprise",
+  "security_policy_file": "SECURITY_PROFILE.md"
+}

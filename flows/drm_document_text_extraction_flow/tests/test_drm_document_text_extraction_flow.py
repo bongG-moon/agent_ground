@@ -94,11 +94,11 @@ def test_package_contract_and_supported_formats() -> None:
     )
 
     assert manifest["status"] == "user_testing"
-    assert manifest["version"] == "0.2.0"
+    assert manifest["version"] == "0.3.0"
     assert manifest["runtime_ready"] is True
     assert refs == {
         "flow_id": "drm_document_text_extraction_flow",
-        "components": [{"id": "drm_document_text_extractor", "version": "0.2.0"}],
+        "components": [{"id": "drm_document_text_extractor", "version": "0.3.0"}],
     }
     assert internal["nodes"] == []
     file_input = next(item for item in component_manifest["inputs"] if item["name"] == "document_files")
@@ -112,6 +112,7 @@ def test_package_contract_and_supported_formats() -> None:
         "drm_api_url",
         "drm_token",
         "employee_no",
+        "processing_mode",
     }
     assert {item["name"]: item["types"] for item in component_manifest["outputs"]} == {
         "extracted_text": ["Message"],
@@ -134,6 +135,10 @@ def test_flow_embeds_component_source_and_connects_message_to_chat_output() -> N
     assert template["drm_token"]["password"] is True
     assert template["employee_no"]["password"] is True
     assert template["allowed_drm_hosts"]["value"] == ""
+    assert template["processing_mode"]["value"] == "자동(로컬 우선)"
+    assert template["processing_mode"]["real_time_refresh"] is True
+    for field_name in ("drm_api_url", "drm_token", "employee_no", "allowed_drm_hosts"):
+        assert template[field_name]["required"] is False
     assert template["allow_insecure_http"]["value"] is False
     assert template["verify_tls"]["value"] is True
     assert template["document_files"]["file_path"] in ("", [])
@@ -149,6 +154,30 @@ def test_flow_embeds_component_source_and_connects_message_to_chat_output() -> N
     assert decode_handle(edge["targetHandle"]) == edge["data"]["targetHandle"]
     assert edge["data"]["sourceHandle"]["name"] == "extracted_text"
     assert edge["data"]["targetHandle"]["fieldName"] == "input_value"
+
+
+def test_bypass_mode_hides_drm_network_settings() -> None:
+    module = load_component_module()
+    update_build_config = module.DrmDocumentTextExtractor.update_build_config
+    field_names = (
+        "drm_api_url",
+        "drm_token",
+        "employee_no",
+        "allowed_drm_hosts",
+        "allow_insecure_http",
+        "verify_tls",
+        "timeout_seconds",
+    )
+    config = {name: {"show": True} for name in field_names}
+    updated = update_build_config(
+        object(), config, module.PROCESSING_MODE_BYPASS_DRM, "processing_mode"
+    )
+    assert all(updated[name]["show"] is False for name in field_names)
+
+    updated = update_build_config(
+        object(), updated, module.PROCESSING_MODE_AUTO, "processing_mode"
+    )
+    assert all(updated[name]["show"] is True for name in field_names)
 
 
 def test_extracts_multiple_files_with_original_request_contract(tmp_path: Path) -> None:
@@ -182,6 +211,9 @@ def test_extracts_multiple_files_with_original_request_contract(tmp_path: Path) 
     assert [item["file_name"] for item in result["data"]] == ["guide.pdf", "cost.xlsx"]
     assert [item["text"] for item in result["data"]] == [first_text, second_text]
     assert result["meta"]["file_count"] == 2
+    assert result["meta"]["local_file_count"] == 0
+    assert result["meta"]["drm_file_count"] == 2
+    assert result["meta"]["network_called"] is True
     assert all(response.closed for response in responses)
     assert [call["content"] for call in client.calls] == [b"%PDF fake", b"PK fake-xlsx"]
     for call in client.calls:
@@ -198,6 +230,82 @@ def test_extracts_multiple_files_with_original_request_contract(tmp_path: Path) 
     assert first_text in message
     assert "[FILE 2/2] cost.xlsx" in message
     assert second_text in message
+
+
+def test_auto_mode_extracts_plain_office_and_text_files_without_drm(tmp_path: Path) -> None:
+    module = load_component_module()
+
+    from docx import Document
+    from openpyxl import Workbook
+    from pptx import Presentation
+
+    docx_path = tmp_path / "plain.docx"
+    document = Document()
+    document.add_paragraph("일반 Word 본문")
+    document.save(docx_path)
+
+    pptx_path = tmp_path / "plain.pptx"
+    presentation = Presentation()
+    slide = presentation.slides.add_slide(presentation.slide_layouts[1])
+    slide.shapes.title.text = "일반 PowerPoint 제목"
+    slide.placeholders[1].text = "발표 본문"
+    presentation.save(pptx_path)
+
+    xlsx_path = tmp_path / "plain.xlsx"
+    workbook = Workbook()
+    worksheet = workbook.active
+    worksheet.title = "계획"
+    worksheet.append(["항목", "금액"])
+    worksheet.append(["설비", 1200])
+    workbook.save(xlsx_path)
+    workbook.close()
+
+    txt_path = tmp_path / "plain.txt"
+    txt_path.write_text("일반 텍스트 본문", encoding="utf-8")
+
+    client = FakeClient([])
+    result = module.extract_document_texts(
+        [docx_path, pptx_path, xlsx_path, txt_path],
+        processing_mode=module.PROCESSING_MODE_AUTO,
+        transport=client,
+    )
+
+    assert client.calls == []
+    assert result["meta"]["local_file_count"] == 4
+    assert result["meta"]["drm_file_count"] == 0
+    assert result["meta"]["network_called"] is False
+    assert [item["processing_path"] for item in result["data"]] == ["local"] * 4
+    combined = "\n".join(item["text"] for item in result["data"])
+    assert "일반 Word 본문" in combined
+    assert "일반 PowerPoint 제목" in combined
+    assert "설비\t1200" in combined
+    assert "일반 텍스트 본문" in combined
+
+
+def test_bypass_mode_never_calls_drm_and_rejects_nonlocal_direct_format(tmp_path: Path) -> None:
+    module = load_component_module()
+    text_file = tmp_path / "plain.csv"
+    text_file.write_text("name,value\nalpha,1", encoding="utf-8")
+    client = FakeClient([])
+
+    result = module.extract_document_texts(
+        text_file,
+        processing_mode=module.PROCESSING_MODE_BYPASS_DRM,
+        transport=client,
+    )
+    assert result["data"][0]["processing_path"] == "local"
+    assert result["meta"]["network_called"] is False
+    assert client.calls == []
+
+    legacy = tmp_path / "legacy.xls"
+    legacy.write_bytes(b"legacy workbook")
+    with pytest.raises(ValueError, match="DRM 미사용 모드에서 로컬 텍스트 추출에 실패"):
+        module.extract_document_texts(
+            legacy,
+            processing_mode=module.PROCESSING_MODE_BYPASS_DRM,
+            transport=client,
+        )
+    assert client.calls == []
 
 
 def test_allowlist_and_http_policy_fail_before_upload(tmp_path: Path) -> None:

@@ -1,0 +1,16 @@
+{
+  "schema_version": 2,
+  "skill_id": "source-driven-development",
+  "title": "Source-Driven Development",
+  "description": "Grounds implementation decisions in current official documentation and source-cited evidence.",
+  "status": "active",
+  "recommended_mode": "run-flow",
+  "reason": "This lifecycle workflow has checkpoints, evidence requirements, and verification gates that map cleanly to a reusable Run Flow.",
+  "canonical_skill_path": "skills/source-driven-development/SKILL.md",
+  "prompt_file": null,
+  "configuration": {},
+  "source_sha256": "2bae79786f4c732db8ff8c518bd9009957ecb9c16aeb73e891507a0f0dbb7b89",
+  "security_profile": "internal-enterprise",
+  "security_policy_file": "SECURITY_PROFILE.md",
+  "collection_id": "addy-agent-skills"
+}

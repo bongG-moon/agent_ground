@@ -1,0 +1,221 @@
+{
+  "schema_version": 1,
+  "id": "addy-agent-skills",
+  "source_url": "https://github.com/addyosmani/agent-skills",
+  "resolved_url": "https://github.com/addyosmani/agent-skills",
+  "commit": "5a1b82d6445d1e2f0abeea1072851419a50c0e5c",
+  "license": "MIT",
+  "imported_on": "2026-07-17",
+  "skills": [
+    {
+      "id": "api-and-interface-design",
+      "source_path": "skills/api-and-interface-design",
+      "source_tree": "79410f2b6928b5ecb760e34e4c58c68de71f7fd8",
+      "skill_sha256": "293db2903b41316a5109a1e0ce3e1740eeafae31735bc1f9143dafbfd1187363",
+      "package_sha256": "a259dfb41986a2b7ff250853fe2921c87384e5c5cb2001e01bc3e1b688a8a69d"
+    },
+    {
+      "id": "browser-testing-with-devtools",
+      "source_path": "skills/browser-testing-with-devtools",
+      "source_tree": "42be59520831f02c46bce7bed1aac6ab0592947c",
+      "skill_sha256": "4bdc63ddb38481f7b227af917986f1982722d0e4fd9e60c484331b5fc402b178",
+      "package_sha256": "ce354972ac91177c280c41c6b987974293240a8db1cc7e6ae60712692e8ab81b",
+      "source_skill_sha256": "4e3aacd6a380cd25bc6c2d67fdd1c926a9b22535b8a62109ecd33cefd909e3d9",
+      "source_package_sha256": "b2e436c51dc2804ddfc463afa840f0c28fc240ab432c20b5720ce3ba41a47722",
+      "derivation": "internal-enterprise-sanitized-canonical"
+    },
+    {
+      "id": "code-review-and-quality",
+      "source_path": "skills/code-review-and-quality",
+      "source_tree": "1252ada5c8ac5d557f4633d95972c102b8a199fe",
+      "skill_sha256": "cc42278de327881c977d90b164296d7b06b59c5ecf118e5f4ed23616ddf7d3d8",
+      "package_sha256": "16ad5a5bb9be587161c4b8e9a4fbebf62fbd0eb7df2ba57dcd2f1090fe879fee",
+      "source_skill_sha256": "bec431b759ff389e47b8d2c9d74e1981ff93cf5f3c36b4a3b6a71a75c250be2c",
+      "source_package_sha256": "94ecc0ee940a0fd75de62bcf18cdd8737c9709307c6002d4f1f8a31f2962f778",
+      "derivation": "internal-enterprise-sanitized-canonical"
+    },
+    {
+      "id": "code-simplification",
+      "source_path": "skills/code-simplification",
+      "source_tree": "15b6e21924188ee46402a8c91963162fd9056c7d",
+      "skill_sha256": "f0c5ed754057eb0c1e027e2587f59de816651feb5e837242296c43ea21cf621d",
+      "package_sha256": "8aacbd3476325976c991b2571b34369ffe9c4da9e7fcf5b3262cad95d9c1aec6"
+    },
+    {
+      "id": "context-engineering",
+      "source_path": "skills/context-engineering",
+      "source_tree": "453c3e8d973ddb10402b7c4e6b0d7fce295a43a8",
+      "skill_sha256": "97e9778bd1f1a9bc7f114ef5b2305f9e754b4d0e80f0de5d6861f31aa8665e79",
+      "package_sha256": "190a66e61a7d6e49ebacb6f257f5d0ab6b4143d56cb1e45e75de2f6aa8374562",
+      "source_skill_sha256": "ff9d4e5706bdd2eb7de1bfed569f1f42d28e478979ce6fcc32e617e7861b491d",
+      "source_package_sha256": "a69d4b2345d2478c146f7fa8f07f37a9b50d19dbe864a07d925a01c1befb39d6",
+      "derivation": "internal-enterprise-sanitized-canonical"
+    },
+    {
+      "id": "debugging-and-error-recovery",
+      "source_path": "skills/debugging-and-error-recovery",
+      "source_tree": "8845857bad758f5313263b7d79f7d82067b764bb",
+      "skill_sha256": "00daabd00051328c24737fbf6752047c41a426ba3880c0b01ff8769f164331cb",
+      "package_sha256": "99e43f191324551174e4005c5a8bacd1af37cdc4b6789ef73383ba67fdd73adf",
+      "source_skill_sha256": "927ad6917fa2891827351cfa3470cd715423faaa5c5f27fe74534d9324c35eea",
+      "source_package_sha256": "0be7995abfb87b45455bc84fd8fbcaeaf4c2587fc82e09bdc8bd2de71041a1e2",
+      "derivation": "internal-enterprise-sanitized-canonical"
+    },
+    {
+      "id": "deprecation-and-migration",
+      "source_path": "skills/deprecation-and-migration",
+      "source_tree": "f710bd017dedb2615d78b4ce6ab42ce9f5a542f2",
+      "skill_sha256": "c41472b42b8ed070b2d586c5123267203018cd5d9fb07b2024836706b782ace5",
+      "package_sha256": "4503451b77cc10d25d36a66eec8126275e7cb8fec3236ea50a9b44c89cf1d2c6",
+      "source_skill_sha256": "92d9846321fab624eded7ac55d19a7738cfd2321c2be2e35eb153dcacf7359de",
+      "source_package_sha256": "3dae80c6138077fd67bc917224cc94335d71f299eb57a84ccf6b1ebe8cfeaeea",
+      "derivation": "internal-enterprise-sanitized-canonical"
+    },
+    {
+      "id": "documentation-and-adrs",
+      "source_path": "skills/documentation-and-adrs",
+      "source_tree": "85f57bdd7dcddaa589c6f36e8ac87423005c3de0",
+      "skill_sha256": "d05a6198e1ca360d2e1cf9b4e0ab2e490df918c4916d2a8aa70f3847c57e7e1b",
+      "package_sha256": "a0f159130346ee04dfb166859d49cc2c296e861262dd0fa861be1cdbd6e8ee95",
+      "source_skill_sha256": "b867bb80fb681257c7625ae59a0dfd849b1fc0f0a2f0338e7923f38030df9793",
+      "source_package_sha256": "6d3711bb0d3a5b16e6023ecc00a2956e2adbcd09e794eaa50f55dc7d4fbf62f4",
+      "derivation": "internal-enterprise-sanitized-canonical"
+    },
+    {
+      "id": "doubt-driven-development",
+      "source_path": "skills/doubt-driven-development",
+      "source_tree": "65fe0595fb161817e8073be1671a65eb4341fa55",
+      "skill_sha256": "df3313db6566675a3a3c2c9fe9c4de0a890564ccff5a5cfa664e922bbea2a983",
+      "package_sha256": "9c1fa3d409985f1af8a867785fcf31a6676989ca6280827ad2a970597c3f5ad6",
+      "source_skill_sha256": "59aef769adeae40aad67a1d54474aaf914ea7ecdfc2a4752a54840a8d29f80de",
+      "source_package_sha256": "09134ab45ba62aa5f6581147cb969d2f6f43840e5c8da6fcb00d4ce092e50c4a",
+      "derivation": "internal-enterprise-sanitized-canonical"
+    },
+    {
+      "id": "frontend-ui-engineering",
+      "source_path": "skills/frontend-ui-engineering",
+      "source_tree": "f70bc8f809c39b8e4b7cf7227f9c7d509d73fa13",
+      "skill_sha256": "9c284b1f06d617b289c0d250004af5cbaedd5135071e1b17c0211a0aa03a73a4",
+      "package_sha256": "99c34bd6a75c02be5983de2685f40a0c450bcc783d92b2b1169ca0126e17316e"
+    },
+    {
+      "id": "git-workflow-and-versioning",
+      "source_path": "skills/git-workflow-and-versioning",
+      "source_tree": "6c54b67dd522883fc69013535c7cf35b8cdb8930",
+      "skill_sha256": "054cd2815842944afbea3170746ec75f10f29083e5f30ab15ce733c5565b2a84",
+      "package_sha256": "42dfcba481da77ed789ea9bb7b1181fd76ad481fed09ebe74f65f7eccbd2cc44",
+      "source_skill_sha256": "51677cf03845dd29d08ea4d3125665057b720aea3dccc572f25d8b172409ece6",
+      "source_package_sha256": "7bdb685b69883b1d264e48ca8d156d7308e94b9a0d9eb48e0bf618dfce7201d2",
+      "derivation": "internal-enterprise-sanitized-canonical"
+    },
+    {
+      "id": "idea-refine",
+      "source_path": "skills/idea-refine",
+      "source_tree": "14f474d8f51370ddd9127ff3d171810a1acf891a",
+      "skill_sha256": "79e773058963adc7646b0115b4f8a4afc974c5ff95843e4ef1cafff3cb51899e",
+      "package_sha256": "da2143cb6dd0d0843cd3fa143f4471e9c8733b57d9a64e921dfc15eb2ffa2b6b"
+    },
+    {
+      "id": "incremental-implementation",
+      "source_path": "skills/incremental-implementation",
+      "source_tree": "da7154bb2c7b46a921534ed03c9ca15376602dc1",
+      "skill_sha256": "6b23adb2df42fbffee14584ddf2152143c4c3961b58564153b8c93a438db11c7",
+      "package_sha256": "2f60326f76f1479d7801cea3cb621534de4126c082031a15420eddfe51cb3211",
+      "source_skill_sha256": "960f2ed08ccdd51527c347d29d2d00c80edb9992e95d67030d8a289ba04eed4e",
+      "source_package_sha256": "49c1dd4b6bec3338947ac9a40e40e3835d1ec39c6ce1cbcdb46f3b86e6001ab8",
+      "derivation": "internal-enterprise-sanitized-canonical"
+    },
+    {
+      "id": "interview-me",
+      "source_path": "skills/interview-me",
+      "source_tree": "0797d64561cca6ad975d9e5d1f1497cba83a517b",
+      "skill_sha256": "1d94741d10d2c826cd0c191aea3981ee94c8abb27ef2a166f6a372117d06448f",
+      "package_sha256": "9076ab06f6d373c6ec96e9753583ed17790ab65e860c47f25aaa33c31545c9f4"
+    },
+    {
+      "id": "observability-and-instrumentation",
+      "source_path": "skills/observability-and-instrumentation",
+      "source_tree": "e970a55caf9ef4128bdb04af83b4a4dd08045b37",
+      "skill_sha256": "6f635e51b983a6d7b562e5f377775fb4474e85f5708d11f7affbdecbae8b2ba0",
+      "package_sha256": "fb20cb4620682e98a65c279af3d359f5dfdd708bbd9720ac524e2bfac56beb8c",
+      "source_skill_sha256": "40c59a0c3ba28f5697600add521e38f81f880f986317628cdc0df9bdb8acf126",
+      "source_package_sha256": "d1999ac5cac56bdf8a34e9183191073e4084f69ffed036898643b17167adc866",
+      "derivation": "internal-enterprise-sanitized-canonical"
+    },
+    {
+      "id": "performance-optimization",
+      "source_path": "skills/performance-optimization",
+      "source_tree": "c329c2c8d8b760d794b864a5b642e0a80a49a68e",
+      "skill_sha256": "60964a3e973b9a2aa83fbda87cecde279a7ad0155dd551faf253c8a382e5ac89",
+      "package_sha256": "a51a6c28a90b3fb4af652b40b7586d51502fbd712e2b17db03cc4e7aa9248658",
+      "source_skill_sha256": "c56f6059fed0b77c50c946e38275f04c8b297657f3742d5782ee564514ecc4dc",
+      "source_package_sha256": "e6bf2cefb32ea2334bf238d4aa6d757875f491564b720117a98a3f14f8d4a5f9",
+      "derivation": "internal-enterprise-sanitized-canonical"
+    },
+    {
+      "id": "planning-and-task-breakdown",
+      "source_path": "skills/planning-and-task-breakdown",
+      "source_tree": "bad0e4c4216693e6908e273228b1484fdd6d2246",
+      "skill_sha256": "d87ff6bb23aa791f78a504d784e903bb13602975923f884af5d13d5b66b1651a",
+      "package_sha256": "75f73f0a252680d6e99adb0157ab7989ac4a07bfc123f059204b8ba8ffc6b60a"
+    },
+    {
+      "id": "security-and-hardening",
+      "source_path": "skills/security-and-hardening",
+      "source_tree": "360a9928af79444e0148dae714570a7c3478e97b",
+      "skill_sha256": "7edb5505ac083e4f8ab1e2999d4f74673b3043441d3bce2434726853b002932c",
+      "package_sha256": "46f9ae2e72f33ed20fd1050c37e01e854b0181f73bec3991b89cd35c8ab60564",
+      "source_skill_sha256": "266c60e073bc81651ad070a1427a93af4d062dc44470580eae31806b38561833",
+      "source_package_sha256": "210983d0c3c8b4347b72374aee05736a049818d0dae6a57eb4a701a93c2e3cc0",
+      "derivation": "internal-enterprise-sanitized-canonical"
+    },
+    {
+      "id": "shipping-and-launch",
+      "source_path": "skills/shipping-and-launch",
+      "source_tree": "4f404de257f66732e1507cddf060adcd435a1322",
+      "skill_sha256": "68abd5f433b04ab3ec10fa7342002a74eadc300b955a7b94cc48fce6280f24a5",
+      "package_sha256": "9dc808cb0fbe1d13b7b1ee494c5b258dbaa333b28565f95df489390698e2c234",
+      "source_skill_sha256": "efc70a45ad6435d93f2b3cef16c125ff6d75a2383e49f30056fcba04b27d6e4a",
+      "source_package_sha256": "b72ab2aa314da91e63536ef682cf711c1e602407ee1da35ef9f0603f076c0810",
+      "derivation": "internal-enterprise-sanitized-canonical"
+    },
+    {
+      "id": "source-driven-development",
+      "source_path": "skills/source-driven-development",
+      "source_tree": "f935ca8f7220760d619a02b55948ad534f4078b5",
+      "skill_sha256": "2bae79786f4c732db8ff8c518bd9009957ecb9c16aeb73e891507a0f0dbb7b89",
+      "package_sha256": "8cc1e8d9a557d51c30141a903ae6b457756b9405c2643a7bc169a45329e799ea",
+      "source_skill_sha256": "b979e7531ea601ed14a090f32a5b135db517c48ab9821c5e8b09efd80f4ff4d8",
+      "source_package_sha256": "f01c3b061691b5c27ab6ee139eb45a663468c1f1a91c47b0930c5f0ba9e7c254",
+      "derivation": "internal-enterprise-sanitized-canonical"
+    },
+    {
+      "id": "spec-driven-development",
+      "source_path": "skills/spec-driven-development",
+      "source_tree": "8a6049f381636e580e2db44e6cc65cb5682b8bcc",
+      "skill_sha256": "af5b873414a8b45b96b0d30d5297400f55eb3a56425161a088e470c14260a1e5",
+      "package_sha256": "9f5ca9670a92cdf8bbccefe9f182edae76245acbe5d1a85a545183fb117ee035"
+    },
+    {
+      "id": "test-driven-development",
+      "source_path": "skills/test-driven-development",
+      "source_tree": "817d040d93228719aa21c8cd04ea05717a1cdcbf",
+      "skill_sha256": "a1a1d2101d273aab6be12c6fab266467eea838c9523788108eb291ec1eed32c8",
+      "package_sha256": "2adbebd0b77e8a755c23e346a3c6bc5a23d96d7d2acaf743085143fa487542a0",
+      "source_skill_sha256": "6c60e193d77a6c52eb3d9a7ca774f1801b9f798ec34f075720e0425a8094f50e",
+      "source_package_sha256": "03744a8cfc878716d0ca79969a4a17a9233de2cde3ab94380080fa72afd065d8",
+      "derivation": "internal-enterprise-sanitized-canonical"
+    }
+  ],
+  "shared_packages": [
+    {
+      "id": "addy-agent-skills-shared",
+      "source_paths": [
+        "LICENSE",
+        "references"
+      ],
+      "canonical_path": "collections/addy-agent-skills/shared",
+      "package_sha256": "0094fc3555e0771f68818c86accae04c15103559d8c913415e7b457deb9e39bb"
+    }
+  ]
+}

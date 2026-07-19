@@ -1,0 +1,15 @@
+{
+  "schema_version": 2,
+  "skill_id": "apple-design",
+  "title": "Apple Design",
+  "description": "Applies fluid, physical, interruptible Apple-style interaction and motion principles to web interfaces.",
+  "status": "active",
+  "recommended_mode": "prompt-template",
+  "reason": "Use as specialist design context when a flow is building or reviewing gesture and motion behavior.",
+  "canonical_skill_path": "skills/apple-design/SKILL.md",
+  "prompt_file": "PROMPT_TEMPLATE.md",
+  "configuration": {},
+  "source_sha256": "11840b24a11d7f94f39c6aaab074750ae4e4de4ef54ee4b1dd97e16ebd485e61",
+  "security_profile": "internal-enterprise",
+  "security_policy_file": "SECURITY_PROFILE.md"
+}

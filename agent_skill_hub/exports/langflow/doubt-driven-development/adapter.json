@@ -1,0 +1,19 @@
+{
+  "schema_version": 2,
+  "skill_id": "doubt-driven-development",
+  "title": "Doubt-Driven Development",
+  "description": "Applies fresh-context adversarial review to high-stakes or non-trivial decisions before they stand.",
+  "status": "active",
+  "recommended_mode": "run-flow",
+  "reason": "This lifecycle workflow has checkpoints, evidence requirements, and verification gates that map cleanly to a reusable Run Flow.",
+  "canonical_skill_path": "skills/doubt-driven-development/SKILL.md",
+  "prompt_file": null,
+  "configuration": {},
+  "source_sha256": "df3313db6566675a3a3c2c9fe9c4de0a890564ccff5a5cfa664e922bbea2a983",
+  "security_profile": "internal-enterprise",
+  "security_policy_file": "SECURITY_PROFILE.md",
+  "collection_id": "addy-agent-skills",
+  "shared_references": [
+    "collections/addy-agent-skills/shared/references/orchestration-patterns.md"
+  ]
+}

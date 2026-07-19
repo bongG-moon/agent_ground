@@ -1,6 +1,6 @@
 {
   "flow_id": "mail_attachment_summary_flow",
   "components": [
-    {"id": "drm_document_text_extractor", "version": "0.2.0"}
+    {"id": "drm_document_text_extractor", "version": "0.3.0"}
   ]
 }

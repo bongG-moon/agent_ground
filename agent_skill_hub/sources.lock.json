@@ -1,0 +1,118 @@
+{
+  "schema_version": 2,
+  "sources": [
+    {
+      "id": "karpathy-guidelines",
+      "source_url": "https://github.com/forrestchang/andrej-karpathy-skills",
+      "resolved_url": "https://github.com/multica-ai/andrej-karpathy-skills",
+      "source_path": "skills/karpathy-guidelines",
+      "commit": "2c606141936f1eeef17fa3043a72095b4765b9c2",
+      "skill_sha256": "6e22cc54cb02a5e98ae42d06d9d7292db0c1b43894831b32879beb0166b2aea7",
+      "package_sha256": "f582414709019b919d9f3a1df4b9c91e48797cc0cfbbeea74831b6becd751478",
+      "license": "MIT",
+      "imported_on": "2026-07-17"
+    },
+    {
+      "id": "flint-chart-author",
+      "source_url": "https://github.com/microsoft/flint-chart",
+      "resolved_url": "https://github.com/microsoft/flint-chart",
+      "source_path": "agent-skills/flint-chart-author",
+      "commit": "8e8d1d2d451f8895472e32d41d3b7e9309666562",
+      "source_tree": "cbf20b48ddd52925cd858166a4c9d672ee48b2ec",
+      "skill_sha256": "cce2c70af796de0978c667e19d91f16b7d4c5afd9771514feed6c3660f2dabae",
+      "package_sha256": "2e946fdd822b57b97e658b5a208647521af414e41c5c1cd806150542aa502d1c",
+      "license": "MIT",
+      "imported_on": "2026-07-17",
+      "source_skill_sha256": "2edc54d380136910f1268d794aec7385ccff5e1b3cfbddd09c04d8dbb2739653",
+      "source_package_sha256": "2423caeaa438c915fb7a8c041de310692a3f67dc9a1d06e74e0714f36be1ce6b",
+      "derivation": "internal-enterprise-sanitized-canonical"
+    },
+    {
+      "id": "hallmark",
+      "source_url": "https://github.com/nutlope/hallmark",
+      "resolved_url": "https://github.com/nutlope/hallmark",
+      "source_path": "skills/hallmark",
+      "commit": "aeb42fb354ff4efa36ab475773a082315a3af2ce",
+      "source_tree": "3943c7eb8106e9352f9b164ec81f9bb262d2951b",
+      "skill_sha256": "f777ac98d4886556f2a30e8813ba12ff06d42b2facbc298215228acdef9b4697",
+      "package_sha256": "808cc543d2884a64e9768c40186c5895f20524416088114139b8f4fefdbc7e7e",
+      "license": "MIT",
+      "imported_on": "2026-07-17",
+      "source_skill_sha256": "5437b73a1a829210681ca21fa09b7276a5978875f960d3998846e0dc333e9343",
+      "source_package_sha256": "df35c065dc273974e323cf2cfde48a6192489c8f3ab224fd88dc0d4590e5e0c1",
+      "derivation": "internal-enterprise-sanitized-canonical"
+    },
+    {
+      "id": "animation-vocabulary",
+      "source_url": "https://github.com/emilkowalski/skills",
+      "resolved_url": "https://github.com/emilkowalski/skills",
+      "source_path": "skills/animation-vocabulary",
+      "commit": "6bf24434f7730ad169077756cf9c7cd7bd675fc6",
+      "source_tree": "e6dc24ca1ff1e70c9677df9a1d2d1c80415cbb3c",
+      "skill_sha256": "d718b48fe3c7898804d588f050a2e266d82c9f5ef51da256c8cb8b5951527757",
+      "package_sha256": "ec855d80e0f7baf83484b6074cd8dbc9a522a3f75786b4e98b41b99094c53fa3",
+      "license": "MIT",
+      "imported_on": "2026-07-17"
+    },
+    {
+      "id": "apple-design",
+      "source_url": "https://github.com/emilkowalski/skills",
+      "resolved_url": "https://github.com/emilkowalski/skills",
+      "source_path": "skills/apple-design",
+      "commit": "6bf24434f7730ad169077756cf9c7cd7bd675fc6",
+      "source_tree": "e9f5b472dfb28d8cf29f64001b6c01ef94b8168b",
+      "skill_sha256": "11840b24a11d7f94f39c6aaab074750ae4e4de4ef54ee4b1dd97e16ebd485e61",
+      "package_sha256": "5b0dd536df3ecb7c62b95143f5a7fb788d173e27133231df8a8d8ca7d07565ef",
+      "license": "MIT",
+      "imported_on": "2026-07-17"
+    },
+    {
+      "id": "emil-design-eng",
+      "source_url": "https://github.com/emilkowalski/skills",
+      "resolved_url": "https://github.com/emilkowalski/skills",
+      "source_path": "skills/emil-design-eng",
+      "commit": "6bf24434f7730ad169077756cf9c7cd7bd675fc6",
+      "source_tree": "0e6f8d7223a0abe73f81e890b3ec76257029a834",
+      "skill_sha256": "433b5a239cda18e0576e4e558532e7e53512e21fafe5b85db4894c28ec399b72",
+      "package_sha256": "379e0d42eeb1bd2a1c27ff6a781e637cabeb8fd647d24c560585f72db827547c",
+      "license": "MIT",
+      "imported_on": "2026-07-17"
+    },
+    {
+      "id": "find-animation-opportunities",
+      "source_url": "https://github.com/emilkowalski/skills",
+      "resolved_url": "https://github.com/emilkowalski/skills",
+      "source_path": "skills/find-animation-opportunities",
+      "commit": "6bf24434f7730ad169077756cf9c7cd7bd675fc6",
+      "source_tree": "4edcac8e6465888285b5607c80adb6c0c151f060",
+      "skill_sha256": "3d6533767ebcf4fb73ee7a2d9544a88671d09d50c4bf36c9b824768bca1dd9fb",
+      "package_sha256": "81163161add5376a8a1f08e37743600487e5ca0366fbf5837925134f009e8f21",
+      "license": "MIT",
+      "imported_on": "2026-07-17"
+    },
+    {
+      "id": "improve-animations",
+      "source_url": "https://github.com/emilkowalski/skills",
+      "resolved_url": "https://github.com/emilkowalski/skills",
+      "source_path": "skills/improve-animations",
+      "commit": "6bf24434f7730ad169077756cf9c7cd7bd675fc6",
+      "source_tree": "ec57cb65ea60a23af278d305d1425ce4f998f510",
+      "skill_sha256": "68f17bbc4671593d2f43dba26a679243e2153ba5f26965fb7d59df52842534ff",
+      "package_sha256": "d69c2645adf5b8ca39661e34f1e349f4785a2ffa944c631197c94d583e6897f7",
+      "license": "MIT",
+      "imported_on": "2026-07-17"
+    },
+    {
+      "id": "review-animations",
+      "source_url": "https://github.com/emilkowalski/skills",
+      "resolved_url": "https://github.com/emilkowalski/skills",
+      "source_path": "skills/review-animations",
+      "commit": "6bf24434f7730ad169077756cf9c7cd7bd675fc6",
+      "source_tree": "0012fc43a25cce5df019102ab28bb6a68ad9db3d",
+      "skill_sha256": "27c1ec78634a08bcb588229497f4fbc3bcb9db8f8032dcdd275eb844f30fc004",
+      "package_sha256": "fb4c2ff4c8877fa5e8025c998be7222db77adf475096dfdd6da578120417a712",
+      "license": "MIT",
+      "imported_on": "2026-07-17"
+    }
+  ]
+}

@@ -1,0 +1,15 @@
+{
+  "schema_version": 2,
+  "skill_id": "emil-design-eng",
+  "title": "Emil Design Engineering",
+  "description": "Design-engineering guidance for UI polish, component craft, animation decisions, and interaction details.",
+  "status": "active",
+  "recommended_mode": "prompt-template",
+  "reason": "Use as on-demand design-engineering context rather than an always-on global system prompt.",
+  "canonical_skill_path": "skills/emil-design-eng/SKILL.md",
+  "prompt_file": "PROMPT_TEMPLATE.md",
+  "configuration": {},
+  "source_sha256": "433b5a239cda18e0576e4e558532e7e53512e21fafe5b85db4894c28ec399b72",
+  "security_profile": "internal-enterprise",
+  "security_policy_file": "SECURITY_PROFILE.md"
+}

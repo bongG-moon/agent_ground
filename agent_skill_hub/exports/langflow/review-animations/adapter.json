@@ -1,0 +1,17 @@
+{
+  "schema_version": 2,
+  "skill_id": "review-animations",
+  "title": "Review Animations",
+  "description": "Reviews animation code against a high craft, performance, physicality, and accessibility bar.",
+  "status": "active",
+  "recommended_mode": "run-flow",
+  "reason": "This explicit review workflow needs diff context, standards, structured findings, and an approval verdict.",
+  "canonical_skill_path": "skills/review-animations/SKILL.md",
+  "prompt_file": null,
+  "configuration": {
+    "references_required": true
+  },
+  "source_sha256": "27c1ec78634a08bcb588229497f4fbc3bcb9db8f8032dcdd275eb844f30fc004",
+  "security_profile": "internal-enterprise",
+  "security_policy_file": "SECURITY_PROFILE.md"
+}

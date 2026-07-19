@@ -1,0 +1,16 @@
+{
+  "schema_version": 2,
+  "skill_id": "idea-refine",
+  "title": "Idea Refine",
+  "description": "Turns vague ideas into actionable concepts through structured divergent and convergent thinking.",
+  "status": "active",
+  "recommended_mode": "run-flow",
+  "reason": "This lifecycle workflow has checkpoints, evidence requirements, and verification gates that map cleanly to a reusable Run Flow.",
+  "canonical_skill_path": "skills/idea-refine/SKILL.md",
+  "prompt_file": null,
+  "configuration": {},
+  "source_sha256": "79e773058963adc7646b0115b4f8a4afc974c5ff95843e4ef1cafff3cb51899e",
+  "security_profile": "internal-enterprise",
+  "security_policy_file": "SECURITY_PROFILE.md",
+  "collection_id": "addy-agent-skills"
+}

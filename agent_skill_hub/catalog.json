@@ -1,0 +1,184 @@
+{
+  "schema_version": 2,
+  "name": "agent-skill-hub",
+  "description": "Portable skills for vibe coding, agent implementation, design engineering, and Langflow integration.",
+  "security_profile": "internal-enterprise",
+  "skills": [
+    {
+      "id": "karpathy-guidelines",
+      "title": "Karpathy Guidelines",
+      "description": "Behavioral coding guidance that favors explicit assumptions, simple implementations, surgical changes, and verifiable outcomes.",
+      "status": "active",
+      "categories": ["coding", "agent-design", "review", "testing"],
+      "canonical_path": "skills/karpathy-guidelines/SKILL.md",
+      "targets": ["codex", "chatgpt-desktop", "claude-code", "generic-cli", "chatgpt", "langflow"],
+      "activation": {
+        "native_agents": "implicit-or-explicit",
+        "chatgpt": "project-instructions",
+        "generic_cli": "native-agent-skill-or-file-path",
+        "langflow": "system-prompt"
+      },
+      "langflow": {
+        "recommended_mode": "system-prompt",
+        "reason": "These behavioral constraints should apply before the agent decides whether to call a tool."
+      }
+    },
+    {
+      "id": "flint-chart-author",
+      "title": "Flint Chart Author",
+      "description": "Authors semantic Flint chart specifications and guides agents through validation, rendering, and JS/TS integration.",
+      "status": "active",
+      "categories": ["data-visualization", "charting", "coding", "agent-design"],
+      "canonical_path": "skills/flint-chart-author/SKILL.md",
+      "targets": ["codex", "chatgpt-desktop", "claude-code", "generic-cli", "chatgpt", "langflow"],
+      "activation": {
+        "native_agents": "implicit-or-explicit",
+        "chatgpt": "native-skill",
+        "generic_cli": "native-agent-skill-or-file-path",
+        "langflow": "mcp-tool"
+      },
+      "langflow": {
+        "recommended_mode": "mcp-tool",
+        "reason": "Use the Skill as authoring guidance and approved internal Flint MCP for executable validation and rendering.",
+        "mcp_command": "flint-chart-mcp",
+        "fallback_mode": "prompt-template"
+      }
+    },
+    {
+      "id": "hallmark",
+      "title": "Hallmark",
+      "description": "Anti-AI-slop design workflow for greenfield pages, audits, redesigns, and design-DNA studies.",
+      "status": "active",
+      "categories": ["design", "frontend", "ui", "review"],
+      "canonical_path": "skills/hallmark/SKILL.md",
+      "targets": ["codex", "chatgpt-desktop", "claude-code", "generic-cli", "chatgpt", "langflow"],
+      "activation": {
+        "native_agents": "implicit-or-explicit",
+        "chatgpt": "native-skill",
+        "generic_cli": "native-agent-skill-or-file-path",
+        "langflow": "run-flow"
+      },
+      "langflow": {
+        "recommended_mode": "run-flow",
+        "reason": "Hallmark is a multi-step design workflow with extensive progressive-disclosure references, not a single prompt or tool call.",
+        "references_required": true
+      }
+    },
+    {
+      "id": "animation-vocabulary",
+      "title": "Animation Vocabulary",
+      "description": "Maps vague descriptions of web motion effects to precise animation terminology.",
+      "status": "active",
+      "categories": ["design", "motion", "terminology"],
+      "canonical_path": "skills/animation-vocabulary/SKILL.md",
+      "targets": ["codex", "chatgpt-desktop", "claude-code", "generic-cli", "chatgpt", "langflow"],
+      "activation": {
+        "native_agents": "implicit-or-explicit",
+        "chatgpt": "native-skill",
+        "generic_cli": "native-agent-skill-or-file-path",
+        "langflow": "prompt-template"
+      },
+      "langflow": {
+        "recommended_mode": "prompt-template",
+        "reason": "This is compact reference knowledge with no external action or state."
+      }
+    },
+    {
+      "id": "apple-design",
+      "title": "Apple Design",
+      "description": "Applies fluid, physical, interruptible Apple-style interaction and motion principles to web interfaces.",
+      "status": "active",
+      "categories": ["design", "motion", "ui", "frontend"],
+      "canonical_path": "skills/apple-design/SKILL.md",
+      "targets": ["codex", "chatgpt-desktop", "claude-code", "generic-cli", "chatgpt", "langflow"],
+      "activation": {
+        "native_agents": "explicit",
+        "chatgpt": "native-skill",
+        "generic_cli": "native-agent-skill-or-file-path",
+        "langflow": "prompt-template"
+      },
+      "langflow": {
+        "recommended_mode": "prompt-template",
+        "reason": "Use as specialist design context when a flow is building or reviewing gesture and motion behavior."
+      }
+    },
+    {
+      "id": "emil-design-eng",
+      "title": "Emil Design Engineering",
+      "description": "Design-engineering guidance for UI polish, component craft, animation decisions, and interaction details.",
+      "status": "active",
+      "categories": ["design", "frontend", "ui", "motion"],
+      "canonical_path": "skills/emil-design-eng/SKILL.md",
+      "targets": ["codex", "chatgpt-desktop", "claude-code", "generic-cli", "chatgpt", "langflow"],
+      "activation": {
+        "native_agents": "explicit",
+        "chatgpt": "native-skill",
+        "generic_cli": "native-agent-skill-or-file-path",
+        "langflow": "prompt-template"
+      },
+      "langflow": {
+        "recommended_mode": "prompt-template",
+        "reason": "Use as on-demand design-engineering context rather than an always-on global system prompt."
+      }
+    },
+    {
+      "id": "find-animation-opportunities",
+      "title": "Find Animation Opportunities",
+      "description": "Finds high-value places to add motion while explicitly rejecting unnecessary animation.",
+      "status": "active",
+      "categories": ["design", "motion", "review", "planning"],
+      "canonical_path": "skills/find-animation-opportunities/SKILL.md",
+      "targets": ["codex", "chatgpt-desktop", "claude-code", "generic-cli", "chatgpt", "langflow"],
+      "activation": {
+        "native_agents": "explicit",
+        "chatgpt": "native-skill",
+        "generic_cli": "native-agent-skill-or-file-path",
+        "langflow": "run-flow"
+      },
+      "langflow": {
+        "recommended_mode": "run-flow",
+        "reason": "The workflow inspects a codebase, filters candidates, and returns structured findings without modifying source."
+      }
+    },
+    {
+      "id": "improve-animations",
+      "title": "Improve Animations",
+      "description": "Audits a codebase's motion system and writes prioritized, self-contained implementation plans without changing source code.",
+      "status": "active",
+      "categories": ["design", "motion", "audit", "planning"],
+      "canonical_path": "skills/improve-animations/SKILL.md",
+      "targets": ["codex", "chatgpt-desktop", "claude-code", "generic-cli", "chatgpt", "langflow"],
+      "activation": {
+        "native_agents": "explicit",
+        "chatgpt": "native-skill",
+        "generic_cli": "native-agent-skill-or-file-path",
+        "langflow": "run-flow"
+      },
+      "langflow": {
+        "recommended_mode": "run-flow",
+        "reason": "This is a stateful audit-to-plan workflow with supporting standards and plan templates.",
+        "references_required": true
+      }
+    },
+    {
+      "id": "review-animations",
+      "title": "Review Animations",
+      "description": "Reviews animation code against a high craft, performance, physicality, and accessibility bar.",
+      "status": "active",
+      "categories": ["design", "motion", "review", "accessibility"],
+      "canonical_path": "skills/review-animations/SKILL.md",
+      "targets": ["codex", "chatgpt-desktop", "claude-code", "generic-cli", "chatgpt", "langflow"],
+      "activation": {
+        "native_agents": "explicit",
+        "chatgpt": "native-skill",
+        "generic_cli": "native-agent-skill-or-file-path",
+        "langflow": "run-flow"
+      },
+      "langflow": {
+        "recommended_mode": "run-flow",
+        "reason": "This explicit review workflow needs diff context, standards, structured findings, and an approval verdict.",
+        "references_required": true
+      }
+    }
+  ]
+}

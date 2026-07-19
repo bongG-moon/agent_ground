@@ -99,11 +99,11 @@ def test_package_contract_reuses_drm_component_and_has_one_internal_node() -> No
     internal = json.loads((FLOW_ROOT / "internal_nodes.json").read_text(encoding="utf-8"))
 
     assert manifest["status"] == "user_testing"
-    assert manifest["version"] == "0.4.0"
+    assert manifest["version"] == "0.5.0"
     assert manifest["source_export_version"] == "1.8.2"
     assert refs == {
         "flow_id": "mail_attachment_summary_flow",
-        "components": [{"id": "drm_document_text_extractor", "version": "0.2.0"}],
+        "components": [{"id": "drm_document_text_extractor", "version": "0.3.0"}],
     }
     assert internal["flow_id"] == "mail_attachment_summary_flow"
     assert {item["id"] for item in internal["nodes"]} == {"ews_mail_attachment_reader"}
@@ -168,6 +168,7 @@ def test_ews_secrets_are_blank_and_read_file_uses_dynamic_local_path() -> None:
         assert drm_template[field]["value"] == ""
     assert drm_template["drm_token"]["password"] is True
     assert drm_template["employee_no"]["password"] is True
+    assert drm_template["processing_mode"]["value"] == "자동(로컬 우선)"
     assert drm_template["allow_insecure_http"]["value"] is False
     assert drm_template["verify_tls"]["value"] is True
     assert drm_node["data"]["selected_output"] == "processed_file"
@@ -352,6 +353,31 @@ def test_drm_component_posts_ews_attachment_and_writes_plain_text(tmp_path: Path
             "allow_redirects": False,
         }
     ]
+
+
+def test_drm_component_auto_and_bypass_modes_pass_original_file_without_api(tmp_path: Path) -> None:
+    module = load_module(DRM_SOURCE, "mail_flow_plain_file_modes_test")
+    plain = tmp_path / "plain.txt"
+    plain.write_text("일반 첨부 본문", encoding="utf-8")
+
+    automatic = module.process_file_record(
+        {"file_path": str(plain), "file_name": "plain.txt", "source_kind": "ews_attachment"},
+        processing_mode=module.PROCESSING_MODE_AUTO,
+    )
+    assert automatic["file_path"] == str(plain)
+    assert automatic["drm_status"] == "not_required"
+    assert automatic["processing_path"] == "original_file"
+    assert automatic["local_text_char_count"] == len("일반 첨부 본문")
+
+    legacy = tmp_path / "plain.xls"
+    legacy.write_bytes(b"plain legacy workbook")
+    bypassed = module.process_file_record(
+        {"file_path": str(legacy), "file_name": "plain.xls", "source_kind": "ews_attachment"},
+        processing_mode=module.PROCESSING_MODE_BYPASS_DRM,
+    )
+    assert bypassed["file_path"] == str(legacy)
+    assert bypassed["drm_status"] == "bypassed_by_mode"
+    assert bypassed["processing_path"] == "original_file"
 
 
 def test_prompts_are_grounded_and_samples_are_safe() -> None:

@@ -1,0 +1,16 @@
+{
+  "schema_version": 2,
+  "skill_id": "debugging-and-error-recovery",
+  "title": "Debugging and Error Recovery",
+  "description": "Uses systematic root-cause analysis for failing tests, broken builds, unexpected behavior, and recovery.",
+  "status": "active",
+  "recommended_mode": "run-flow",
+  "reason": "This lifecycle workflow has checkpoints, evidence requirements, and verification gates that map cleanly to a reusable Run Flow.",
+  "canonical_skill_path": "skills/debugging-and-error-recovery/SKILL.md",
+  "prompt_file": null,
+  "configuration": {},
+  "source_sha256": "00daabd00051328c24737fbf6752047c41a426ba3880c0b01ff8769f164331cb",
+  "security_profile": "internal-enterprise",
+  "security_policy_file": "SECURITY_PROFILE.md",
+  "collection_id": "addy-agent-skills"
+}

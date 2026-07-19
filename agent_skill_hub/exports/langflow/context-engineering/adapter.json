@@ -1,0 +1,16 @@
+{
+  "schema_version": 2,
+  "skill_id": "context-engineering",
+  "title": "Context Engineering",
+  "description": "Optimizes agent rules, context setup, session starts, and task switching when output quality matters.",
+  "status": "active",
+  "recommended_mode": "run-flow",
+  "reason": "This lifecycle workflow has checkpoints, evidence requirements, and verification gates that map cleanly to a reusable Run Flow.",
+  "canonical_skill_path": "skills/context-engineering/SKILL.md",
+  "prompt_file": null,
+  "configuration": {},
+  "source_sha256": "97e9778bd1f1a9bc7f114ef5b2305f9e754b4d0e80f0de5d6861f31aa8665e79",
+  "security_profile": "internal-enterprise",
+  "security_policy_file": "SECURITY_PROFILE.md",
+  "collection_id": "addy-agent-skills"
+}

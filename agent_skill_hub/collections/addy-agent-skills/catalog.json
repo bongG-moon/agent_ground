@@ -1,0 +1,312 @@
+{
+  "schema_version": 1,
+  "id": "addy-agent-skills",
+  "title": "Addy Osmani Agent Skills",
+  "description": "Production-oriented agent workflows spanning discovery, specification, implementation, review, testing, delivery, and operations.",
+  "skill_defaults": {
+    "status": "active",
+    "targets": [
+      "codex",
+      "chatgpt-desktop",
+      "claude-code",
+      "generic-cli",
+      "chatgpt",
+      "langflow"
+    ],
+    "activation": {
+      "native_agents": "implicit-or-explicit",
+      "chatgpt": "native-skill",
+      "generic_cli": "native-agent-skill-or-file-path",
+      "langflow": "run-flow"
+    },
+    "langflow": {
+      "recommended_mode": "run-flow",
+      "reason": "This lifecycle workflow has checkpoints, evidence requirements, and verification gates that map cleanly to a reusable Run Flow."
+    },
+    "security_profile": "internal-enterprise"
+  },
+  "skills": [
+    {
+      "id": "api-and-interface-design",
+      "title": "API and Interface Design",
+      "description": "Guides stable API and interface design across endpoints, module boundaries, public contracts, and frontend/backend integration.",
+      "categories": [
+        "coding",
+        "api",
+        "architecture"
+      ],
+      "canonical_path": "skills/api-and-interface-design/SKILL.md"
+    },
+    {
+      "id": "browser-testing-with-devtools",
+      "title": "Browser Testing with DevTools",
+      "description": "Tests and debugs browser applications with Chrome DevTools MCP using real DOM, console, network, performance, and visual evidence.",
+      "categories": [
+        "testing",
+        "browser",
+        "debugging"
+      ],
+      "canonical_path": "skills/browser-testing-with-devtools/SKILL.md",
+      "langflow": {
+        "recommended_mode": "mcp-tool",
+        "reason": "The workflow needs live browser inspection through Chrome DevTools MCP; a Run Flow remains the non-MCP fallback.",
+        "mcp_server": "chrome-devtools",
+        "fallback_mode": "run-flow"
+      }
+    },
+    {
+      "id": "code-review-and-quality",
+      "title": "Code Review and Quality",
+      "description": "Performs multi-axis code review before merge and produces actionable quality findings.",
+      "categories": [
+        "coding",
+        "review",
+        "quality"
+      ],
+      "canonical_path": "skills/code-review-and-quality/SKILL.md",
+      "shared_references": [
+        "security-checklist.md",
+        "performance-checklist.md"
+      ]
+    },
+    {
+      "id": "code-simplification",
+      "title": "Code Simplification",
+      "description": "Refactors working code for clarity and maintainability without changing behavior.",
+      "categories": [
+        "coding",
+        "refactoring",
+        "quality"
+      ],
+      "canonical_path": "skills/code-simplification/SKILL.md"
+    },
+    {
+      "id": "context-engineering",
+      "title": "Context Engineering",
+      "description": "Optimizes agent rules, context setup, session starts, and task switching when output quality matters.",
+      "categories": [
+        "agent-design",
+        "context",
+        "workflow"
+      ],
+      "canonical_path": "skills/context-engineering/SKILL.md"
+    },
+    {
+      "id": "debugging-and-error-recovery",
+      "title": "Debugging and Error Recovery",
+      "description": "Uses systematic root-cause analysis for failing tests, broken builds, unexpected behavior, and recovery.",
+      "categories": [
+        "coding",
+        "debugging",
+        "testing"
+      ],
+      "canonical_path": "skills/debugging-and-error-recovery/SKILL.md"
+    },
+    {
+      "id": "deprecation-and-migration",
+      "title": "Deprecation and Migration",
+      "description": "Plans safe deprecation, migration, compatibility, and sunset paths for old systems, APIs, and features.",
+      "categories": [
+        "coding",
+        "migration",
+        "architecture"
+      ],
+      "canonical_path": "skills/deprecation-and-migration/SKILL.md"
+    },
+    {
+      "id": "documentation-and-adrs",
+      "title": "Documentation and ADRs",
+      "description": "Captures architectural decisions, public API changes, feature context, and durable project documentation.",
+      "categories": [
+        "documentation",
+        "architecture",
+        "decision-records"
+      ],
+      "canonical_path": "skills/documentation-and-adrs/SKILL.md"
+    },
+    {
+      "id": "doubt-driven-development",
+      "title": "Doubt-Driven Development",
+      "description": "Applies fresh-context adversarial review to high-stakes or non-trivial decisions before they stand.",
+      "categories": [
+        "coding",
+        "review",
+        "verification"
+      ],
+      "canonical_path": "skills/doubt-driven-development/SKILL.md",
+      "shared_references": [
+        "orchestration-patterns.md"
+      ]
+    },
+    {
+      "id": "frontend-ui-engineering",
+      "title": "Frontend UI Engineering",
+      "description": "Builds accessible, responsive, production-quality interfaces, components, layouts, and stateful experiences.",
+      "categories": [
+        "frontend",
+        "ui",
+        "accessibility"
+      ],
+      "canonical_path": "skills/frontend-ui-engineering/SKILL.md",
+      "shared_references": [
+        "accessibility-checklist.md"
+      ]
+    },
+    {
+      "id": "git-workflow-and-versioning",
+      "title": "Git Workflow and Versioning",
+      "description": "Structures commits, branches, conflict resolution, releases, semantic versions, tags, and changelogs.",
+      "categories": [
+        "coding",
+        "git",
+        "release"
+      ],
+      "canonical_path": "skills/git-workflow-and-versioning/SKILL.md"
+    },
+    {
+      "id": "idea-refine",
+      "title": "Idea Refine",
+      "description": "Turns vague ideas into actionable concepts through structured divergent and convergent thinking.",
+      "categories": [
+        "ideation",
+        "planning",
+        "product"
+      ],
+      "canonical_path": "skills/idea-refine/SKILL.md"
+    },
+    {
+      "id": "incremental-implementation",
+      "title": "Incremental Implementation",
+      "description": "Lands multi-file changes in small, verifiable increments instead of one large implementation step.",
+      "categories": [
+        "coding",
+        "implementation",
+        "verification"
+      ],
+      "canonical_path": "skills/incremental-implementation/SKILL.md",
+      "shared_references": [
+        "definition-of-done.md"
+      ]
+    },
+    {
+      "id": "interview-me",
+      "title": "Interview Me",
+      "description": "Extracts underlying intent from underspecified requests with a one-question-at-a-time interview.",
+      "categories": [
+        "requirements",
+        "interview",
+        "planning"
+      ],
+      "canonical_path": "skills/interview-me/SKILL.md"
+    },
+    {
+      "id": "observability-and-instrumentation",
+      "title": "Observability and Instrumentation",
+      "description": "Adds logging, metrics, tracing, and alerting so production behavior is visible and diagnosable.",
+      "categories": [
+        "coding",
+        "observability",
+        "operations"
+      ],
+      "canonical_path": "skills/observability-and-instrumentation/SKILL.md",
+      "shared_references": [
+        "observability-checklist.md"
+      ]
+    },
+    {
+      "id": "performance-optimization",
+      "title": "Performance Optimization",
+      "description": "Measures and improves frontend, backend, query, database, and Core Web Vitals bottlenecks.",
+      "categories": [
+        "coding",
+        "performance",
+        "profiling"
+      ],
+      "canonical_path": "skills/performance-optimization/SKILL.md",
+      "shared_references": [
+        "performance-checklist.md"
+      ]
+    },
+    {
+      "id": "planning-and-task-breakdown",
+      "title": "Planning and Task Breakdown",
+      "description": "Breaks specifications and clear requirements into ordered, scoped, and parallelizable tasks.",
+      "categories": [
+        "planning",
+        "agent-design",
+        "workflow"
+      ],
+      "canonical_path": "skills/planning-and-task-breakdown/SKILL.md",
+      "shared_references": [
+        "definition-of-done.md"
+      ]
+    },
+    {
+      "id": "security-and-hardening",
+      "title": "Security and Hardening",
+      "description": "Hardens input handling, authentication, storage, sessions, and third-party integrations against vulnerabilities.",
+      "categories": [
+        "coding",
+        "security",
+        "review"
+      ],
+      "canonical_path": "skills/security-and-hardening/SKILL.md",
+      "shared_references": [
+        "security-checklist.md"
+      ]
+    },
+    {
+      "id": "shipping-and-launch",
+      "title": "Shipping and Launch",
+      "description": "Prepares production releases with readiness checks, monitoring, staged rollout, and rollback planning.",
+      "categories": [
+        "release",
+        "operations",
+        "planning"
+      ],
+      "canonical_path": "skills/shipping-and-launch/SKILL.md",
+      "shared_references": [
+        "definition-of-done.md",
+        "security-checklist.md",
+        "performance-checklist.md",
+        "accessibility-checklist.md"
+      ]
+    },
+    {
+      "id": "source-driven-development",
+      "title": "Source-Driven Development",
+      "description": "Grounds implementation decisions in current official documentation and source-cited evidence.",
+      "categories": [
+        "coding",
+        "research",
+        "documentation"
+      ],
+      "canonical_path": "skills/source-driven-development/SKILL.md"
+    },
+    {
+      "id": "spec-driven-development",
+      "title": "Spec-Driven Development",
+      "description": "Creates a clear specification before coding a new project, feature, or significant change.",
+      "categories": [
+        "specification",
+        "planning",
+        "requirements"
+      ],
+      "canonical_path": "skills/spec-driven-development/SKILL.md"
+    },
+    {
+      "id": "test-driven-development",
+      "title": "Test-Driven Development",
+      "description": "Drives new behavior, fixes, and logic changes through tests that prove the outcome.",
+      "categories": [
+        "coding",
+        "testing",
+        "verification"
+      ],
+      "canonical_path": "skills/test-driven-development/SKILL.md",
+      "shared_references": [
+        "testing-patterns.md"
+      ]
+    }
+  ]
+}

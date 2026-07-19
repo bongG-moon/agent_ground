@@ -132,6 +132,7 @@ def _build_component_node(wrapper: dict[str, Any]) -> tuple[dict[str, Any], str]
     node["data"]["display_name"] = config.get("display_name") or instance.__class__.__name__
     node["data"]["description"] = config.get("description") or ""
     node["data"]["selected_output"] = "extracted_text"
+    _rename_node(node, "01 문서 텍스트 추출 (DRM 자동)")
     return node, source
 
 
@@ -209,14 +210,14 @@ def build_flow() -> tuple[dict[str, Any], str]:
             "viewport": {"x": 110.0, "y": 170.0, "zoom": 0.72},
         },
         "description": (
-            "Langflow 1.8.2 flow that uploads documents, text files, or common images "
-            "to an allowlisted DRM text API and returns the extracted plain text without an LLM."
+            "Langflow 1.8.2 flow that extracts plain files locally, sends protected or unsupported files "
+            "to an allowlisted DRM text API, and returns the combined text without an LLM."
         ),
         "endpoint_name": "drm-document-text-extraction",
         "id": str(
             uuid.uuid5(
                 uuid.NAMESPACE_URL,
-                "agent-ground/drm-document-text-extraction-flow/0.2.0",
+                "agent-ground/drm-document-text-extraction-flow/0.3.0",
             )
         ),
         "is_component": False,
@@ -275,6 +276,8 @@ def validate_flow(flow: dict[str, Any], source: str) -> None:
         raise ValueError("HTTP 허용 기본값은 false여야 합니다.")
     if template["verify_tls"].get("value") is not True:
         raise ValueError("TLS 검증 기본값은 true여야 합니다.")
+    if template["processing_mode"].get("value") != "자동(로컬 우선)":
+        raise ValueError("직접 업로드 Flow의 기본 처리 모드는 자동(로컬 우선)이어야 합니다.")
     if template["document_files"].get("file_path"):
         raise ValueError("배포 Flow에는 사용자 파일 경로를 포함할 수 없습니다.")
     if template["document_files"].get("required") is not True:

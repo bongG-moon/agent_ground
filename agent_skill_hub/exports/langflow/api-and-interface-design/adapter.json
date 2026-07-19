@@ -1,0 +1,16 @@
+{
+  "schema_version": 2,
+  "skill_id": "api-and-interface-design",
+  "title": "API and Interface Design",
+  "description": "Guides stable API and interface design across endpoints, module boundaries, public contracts, and frontend/backend integration.",
+  "status": "active",
+  "recommended_mode": "run-flow",
+  "reason": "This lifecycle workflow has checkpoints, evidence requirements, and verification gates that map cleanly to a reusable Run Flow.",
+  "canonical_skill_path": "skills/api-and-interface-design/SKILL.md",
+  "prompt_file": null,
+  "configuration": {},
+  "source_sha256": "293db2903b41316a5109a1e0ce3e1740eeafae31735bc1f9143dafbfd1187363",
+  "security_profile": "internal-enterprise",
+  "security_policy_file": "SECURITY_PROFILE.md",
+  "collection_id": "addy-agent-skills"
+}

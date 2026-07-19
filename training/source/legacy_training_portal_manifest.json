@@ -1,5 +1,5 @@
 {
-  "source_path": "C:\\Users\\qkekt\\Desktop\\langflow교육자료\\LANGFLOW_INTERNAL_TRAINING_PORTAL.html",
+  "source_path": "C:\\Users\\<사용자명>\\Desktop\\langflow교육자료\\LANGFLOW_INTERNAL_TRAINING_PORTAL.html",
   "source_sha256": "df35f246c992322bab5cbaa9ed4d834903d9b38c9bbc7d46465f2b6783afc109",
   "content_markup_sha256": "8a3865d72c70964a9a08535387534f7f63cf193a198a57a300dcdf995a32928e",
   "source_lines": 6444,
@@ -8,7 +8,7 @@
   "source_references": 202,
   "references_preserved": true,
   "content_markup_preserved": true,
-  "target_path": "C:\\Users\\qkekt\\Desktop\\Agent_ground\\html\\training\\index.html",
+  "target_path": "C:\\Users\\<사용자명>\\Desktop\\Agent_ground\\html\\training\\index.html",
   "design_mode": "agent_ground_restructured",
   "policy": "Keep the complete legacy content area while replacing the legacy shell, navigation, and visual design."
 }

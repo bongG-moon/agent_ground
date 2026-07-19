@@ -1,0 +1,17 @@
+{
+  "schema_version": 2,
+  "skill_id": "hallmark",
+  "title": "Hallmark",
+  "description": "Anti-AI-slop design workflow for greenfield pages, audits, redesigns, and design-DNA studies.",
+  "status": "active",
+  "recommended_mode": "run-flow",
+  "reason": "Hallmark is a multi-step design workflow with extensive progressive-disclosure references, not a single prompt or tool call.",
+  "canonical_skill_path": "skills/hallmark/SKILL.md",
+  "prompt_file": null,
+  "configuration": {
+    "references_required": true
+  },
+  "source_sha256": "f777ac98d4886556f2a30e8813ba12ff06d42b2facbc298215228acdef9b4697",
+  "security_profile": "internal-enterprise",
+  "security_policy_file": "SECURITY_PROFILE.md"
+}

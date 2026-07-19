@@ -1,0 +1,20 @@
+{
+  "schema_version": 2,
+  "skill_id": "code-review-and-quality",
+  "title": "Code Review and Quality",
+  "description": "Performs multi-axis code review before merge and produces actionable quality findings.",
+  "status": "active",
+  "recommended_mode": "run-flow",
+  "reason": "This lifecycle workflow has checkpoints, evidence requirements, and verification gates that map cleanly to a reusable Run Flow.",
+  "canonical_skill_path": "skills/code-review-and-quality/SKILL.md",
+  "prompt_file": null,
+  "configuration": {},
+  "source_sha256": "cc42278de327881c977d90b164296d7b06b59c5ecf118e5f4ed23616ddf7d3d8",
+  "security_profile": "internal-enterprise",
+  "security_policy_file": "SECURITY_PROFILE.md",
+  "collection_id": "addy-agent-skills",
+  "shared_references": [
+    "collections/addy-agent-skills/shared/references/security-checklist.md",
+    "collections/addy-agent-skills/shared/references/performance-checklist.md"
+  ]
+}

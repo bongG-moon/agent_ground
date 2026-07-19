@@ -1,0 +1,19 @@
+{
+  "schema_version": 2,
+  "skill_id": "frontend-ui-engineering",
+  "title": "Frontend UI Engineering",
+  "description": "Builds accessible, responsive, production-quality interfaces, components, layouts, and stateful experiences.",
+  "status": "active",
+  "recommended_mode": "run-flow",
+  "reason": "This lifecycle workflow has checkpoints, evidence requirements, and verification gates that map cleanly to a reusable Run Flow.",
+  "canonical_skill_path": "skills/frontend-ui-engineering/SKILL.md",
+  "prompt_file": null,
+  "configuration": {},
+  "source_sha256": "9c284b1f06d617b289c0d250004af5cbaedd5135071e1b17c0211a0aa03a73a4",
+  "security_profile": "internal-enterprise",
+  "security_policy_file": "SECURITY_PROFILE.md",
+  "collection_id": "addy-agent-skills",
+  "shared_references": [
+    "collections/addy-agent-skills/shared/references/accessibility-checklist.md"
+  ]
+}

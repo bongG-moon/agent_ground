@@ -1,0 +1,22 @@
+{
+  "schema_version": 2,
+  "skill_id": "shipping-and-launch",
+  "title": "Shipping and Launch",
+  "description": "Prepares production releases with readiness checks, monitoring, staged rollout, and rollback planning.",
+  "status": "active",
+  "recommended_mode": "run-flow",
+  "reason": "This lifecycle workflow has checkpoints, evidence requirements, and verification gates that map cleanly to a reusable Run Flow.",
+  "canonical_skill_path": "skills/shipping-and-launch/SKILL.md",
+  "prompt_file": null,
+  "configuration": {},
+  "source_sha256": "68abd5f433b04ab3ec10fa7342002a74eadc300b955a7b94cc48fce6280f24a5",
+  "security_profile": "internal-enterprise",
+  "security_policy_file": "SECURITY_PROFILE.md",
+  "collection_id": "addy-agent-skills",
+  "shared_references": [
+    "collections/addy-agent-skills/shared/references/definition-of-done.md",
+    "collections/addy-agent-skills/shared/references/security-checklist.md",
+    "collections/addy-agent-skills/shared/references/performance-checklist.md",
+    "collections/addy-agent-skills/shared/references/accessibility-checklist.md"
+  ]
+}
