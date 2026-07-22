@@ -866,7 +866,7 @@ class DrmDocumentTextExtractor(Component):
             display_name="EWS 파일 항목",
             info="EWS Flow에서 file_path·file_name·source_kind가 포함된 Data 한 건을 연결합니다.",
             required=False,
-            advanced=True,
+            advanced=False,
         ),
         DropdownInput(
             name="processing_mode",

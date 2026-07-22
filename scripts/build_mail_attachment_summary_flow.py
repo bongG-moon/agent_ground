@@ -332,6 +332,12 @@ def _add_edge(
     if not isinstance(target_input, dict):
         raise ValueError(f"입력 포트가 없습니다: {target['id']}.{input_name}")
 
+    # 연결에 사용하는 입력은 캔버스에서 즉시 보여야 합니다. Core Component의
+    # 기본값이 advanced=True여도 가져온 Flow에서 연결선을 확인·복구할 수 있도록
+    # 모든 일반 edge 대상 포트를 전면에 노출합니다.
+    target_input["show"] = True
+    target_input["advanced"] = False
+
     output_types = source_output.get("types") or [source_output.get("selected") or "Data"]
     input_types = target_input.get("input_types") or (
         ["Message"] if target_input.get("type") == "str" else ["Data"]
@@ -615,6 +621,13 @@ def validate_flow(flow: dict[str, Any], sources: dict[str, str]) -> None:
                 raise ValueError(f"edge handle/data 불일치: {edge.get('id')} {key}")
             if edge[key] != _handle_text(edge["data"][key]):
                 raise ValueError(f"Langflow 1.8.2 handle 형식이 아닙니다: {edge.get('id')} {key}")
+
+        target_handle = edge["data"]["targetHandle"]
+        field_name = target_handle.get("fieldName")
+        if field_name:
+            target_field = node_by_id[edge["target"]]["data"]["node"]["template"][field_name]
+            if target_field.get("show") is not True or target_field.get("advanced") is not False:
+                raise ValueError(f"연결 입력 포트가 전면에 노출되지 않았습니다: {edge['target']}.{field_name}")
 
     file_node = node_by_id["File-mailAttachments"]
     file_template = file_node["data"]["node"]["template"]

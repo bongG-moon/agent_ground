@@ -121,6 +121,7 @@ def test_flow_contains_expected_ews_drm_graph() -> None:
     }
 
     ids = {node["id"] for node in nodes}
+    nodes_by_id = {node["id"]: node for node in nodes}
     for edge in edges:
         assert edge["source"] in ids
         assert edge["target"] in ids
@@ -128,6 +129,13 @@ def test_flow_contains_expected_ews_drm_graph() -> None:
         assert "┇" not in edge["targetHandle"]
         assert decode_handle(edge["sourceHandle"]) == edge["data"]["sourceHandle"]
         assert decode_handle(edge["targetHandle"]) == edge["data"]["targetHandle"]
+
+        target_handle = edge["data"]["targetHandle"]
+        field_name = target_handle.get("fieldName")
+        if field_name:
+            target_field = nodes_by_id[edge["target"]]["data"]["node"]["template"][field_name]
+            assert target_field["show"] is True
+            assert target_field["advanced"] is False
 
     edge_pairs = {(edge["source"], edge["target"]) for edge in edges}
     assert (
@@ -171,6 +179,8 @@ def test_ews_secrets_are_blank_and_read_file_uses_dynamic_local_path() -> None:
     assert drm_template["processing_mode"]["value"] == "자동(로컬 우선)"
     assert drm_template["allow_insecure_http"]["value"] is False
     assert drm_template["verify_tls"]["value"] is True
+    assert drm_template["file_record"]["show"] is True
+    assert drm_template["file_record"]["advanced"] is False
     assert drm_node["data"]["selected_output"] == "processed_file"
 
     file_node = node_by_id(flow, "File-mailAttachments")
@@ -180,6 +190,8 @@ def test_ews_secrets_are_blank_and_read_file_uses_dynamic_local_path() -> None:
     assert file_template["advanced_mode"]["value"] is True
     assert file_template["ocr_engine"]["value"] == "easyocr"
     assert file_template["delete_server_file_after_processing"]["value"] is True
+    assert file_template["file_path"]["show"] is True
+    assert file_template["file_path"]["advanced"] is False
     assert file_node["data"]["selected_output"] == "dataframe"
 
 
