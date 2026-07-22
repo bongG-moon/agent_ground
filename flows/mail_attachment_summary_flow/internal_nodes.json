@@ -14,6 +14,39 @@
       "source_path": "nodes/ews_mail_attachment_reader.py",
       "summary_ko": "사내 EWS FindItem·GetItem·GetAttachment를 NTLM으로 호출해 메일 본문과 파일 첨부를 Read File이 소비할 로컬 DataFrame으로 만듭니다.",
       "embedded_in": ["mail_attachment_summary_flow.json"]
+    },
+    {
+      "id": "dummy_ews_mail_items",
+      "asset_type": "flow_node",
+      "owner_flow": "mail_attachment_summary_flow",
+      "class_name": "DummyEwsMailItems",
+      "name_ko": "01T 테스트 EWS 메일·첨부 데이터",
+      "version": "0.1.1",
+      "source_path": "nodes/dummy_ews_mail_items.py",
+      "summary_ko": "EWS 연결 없이 메일 본문과 TXT 첨부의 로컬 파일 및 실제 EWS와 같은 DataFrame 행을 생성합니다.",
+      "embedded_in": ["mail_attachment_summary_dummy_flow.json"]
+    },
+    {
+      "id": "stable_mail_file_reader",
+      "asset_type": "flow_node",
+      "owner_flow": "mail_attachment_summary_flow",
+      "class_name": "StableMailFileReader",
+      "name_ko": "04 안정형 메일 파일 읽기",
+      "version": "0.1.1",
+      "source_path": "nodes/stable_mail_file_reader.py",
+      "summary_ko": "Langflow Read File을 재사용하면서 출력 포트를 DataFrame으로 고정하고 TXT 등은 표준 파서, 문서·이미지는 Advanced Parser로 자동 분기합니다.",
+      "embedded_in": ["mail_attachment_summary_flow.json", "mail_attachment_summary_dummy_flow.json"]
+    },
+    {
+      "id": "mail_dataframe_formatter",
+      "asset_type": "flow_node",
+      "owner_flow": "mail_attachment_summary_flow",
+      "class_name": "MailDataFrameFormatter",
+      "name_ko": "메일 DataFrame 내용 정리",
+      "version": "0.1.0",
+      "source_path": "nodes/mail_dataframe_formatter.py",
+      "summary_ko": "Read File과 Loop Done의 DataFrame을 단일 DataFrame 입력 계약으로 받아 Message로 변환합니다.",
+      "embedded_in": ["mail_attachment_summary_flow.json", "mail_attachment_summary_dummy_flow.json"]
     }
   ]
 }

@@ -16,6 +16,10 @@
 | 10 | 08 EWS 메일 통합 요약 프롬프트 | `prompt` | 09 전체 EWS 메일 통합 요약 모델 | `input_value` | Message |
 | 11 | 09 전체 EWS 메일 통합 요약 모델 | `text_output` | 10 EWS 메일 정리 결과 | `input_value` | Message |
 
+`04 → 05`는 양쪽을 모두 `DataFrame` 단일 타입으로 고정합니다. Langflow 1.8.2 기본 Read File은 서버 경로 입력에서 캔버스를 다시 열면 출력을 `Raw Content(Message)`로 복원할 수 있습니다. 04는 Read File의 문서·이미지 파싱 기능을 상속하되 동적 출력 변경만 막은 `StableMailFileReader`이므로 `dataframe` 포트와 연결선이 유지됩니다. 05도 기본 Parser 복제본이 아니라 Flow에 내장된 `MailDataFrameFormatter`이므로 설치 버전별 `JSON or Table`/`Data or DataFrame` 포트명 차이에 영향을 받지 않습니다.
+
+테스트용 `mail_attachment_summary_dummy_flow.json`에서는 1번 연결의 출발점만 `01T 테스트 EWS 메일·첨부 데이터.mail_items(DataFrame)`로 바뀌며 이후 연결과 타입은 운영 Flow와 같습니다.
+
 ## DRM 평문 출력 계약
 
 `source_kind=ews_attachment`이면 처리 모드에 따라 원본 파일 경로를 유지하거나 DRM API 평문을 새 TXT 파일로 저장합니다.
@@ -39,7 +43,7 @@
 
 `not_required`와 `bypassed_by_mode`는 `file_path`가 원본을 가리키며, `text_extracted`만 DRM 평문 TXT를 가리킵니다. 메일 제목·발신자·수신 시각·첨부 순번 등 기존 EWS 메타데이터는 그대로 유지합니다. 메일 본문과 `extraction_error` 안내 파일은 `drm_status=not_applicable`로 통과합니다.
 
-## Read File 설정
+## 안정형 Read File 설정
 
 | 항목 | 값 |
 | --- | --- |
@@ -52,4 +56,4 @@
 | Silent Errors | `false` |
 | Delete After Processing | `true` |
 
-DRM 처리 첨부는 이미 TXT이므로 OCR이 필요하지 않습니다. 일반 파일 원본과 `DRM 미사용` 이미지 파일을 읽기 위해 Advanced Parser와 OCR 설정을 유지합니다.
+DRM 처리 첨부와 메일 본문 TXT는 04가 자동으로 표준 텍스트 파서에 전달하므로 Docling의 `File format not allowed` 오류가 발생하지 않습니다. PDF·Office·이미지 원본은 Advanced Parser와 OCR 설정을 사용합니다.

@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "generated_at": "2026-07-17",
+  "generated_at": "2026-07-22",
   "source_of_truth": "21 qualified Component manifests and 7 Flow manifests; internal nodes are excluded",
   "publication_rule": "Only approved assets may be used by Business Agent Design recommendations.",
   "assets": [
@@ -2430,7 +2430,7 @@
       "name_ko": "EWS·DRM Outlook 메일 요약 Flow",
       "asset_type": "flow",
       "status": "user_testing",
-      "version": "0.5.0",
+      "version": "0.6.3",
       "source_export_version": "1.8.2",
       "summary_ko": "사내 EWS로 메일을 읽고 일반 첨부는 로컬 파싱, 보호 첨부는 DRM API 평문 TXT로 처리한 뒤 메일별·전체 요약을 생성합니다.",
       "categories": [
@@ -2452,12 +2452,16 @@
         "실행 항목"
       ],
       "flow_file": "mail_attachment_summary_flow.json",
+      "subflow_files": [
+        "mail_attachment_summary_dummy_flow.json"
+      ],
+      "test_flow_file": "mail_attachment_summary_dummy_flow.json",
       "component_refs_file": "component_refs.json",
       "internal_nodes_file": "internal_nodes.json",
       "documentation_path": "flows/mail_attachment_summary_flow/README.md",
       "runtime_ready": true,
       "verified_environment": "langflow-1.8.2-lfx-0.3.4-generated-internal-node-schema-static-validation",
-      "last_verified_at": "2026-07-16",
+      "last_verified_at": "2026-07-22",
       "approved_by_user_at": null,
       "risk_tags": [
         "ews_mail_content",

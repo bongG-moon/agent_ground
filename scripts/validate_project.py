@@ -69,7 +69,10 @@ INTERNAL_NODE_IDS_BY_FLOW = {
     },
     "skill_based_agent_flow": {"demo_skill_catalog_builder"},
     "mail_attachment_summary_flow": {
+        "dummy_ews_mail_items",
         "ews_mail_attachment_reader",
+        "mail_dataframe_formatter",
+        "stable_mail_file_reader",
     },
     "ppt_reference_html_flow": {
         "presentation_request_builder",

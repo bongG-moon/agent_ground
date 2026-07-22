@@ -2,8 +2,10 @@ from __future__ import annotations
 
 import importlib.util
 import json
+import sys
+from copy import deepcopy
 from pathlib import Path
-from types import ModuleType
+from types import ModuleType, SimpleNamespace
 
 import pytest
 
@@ -11,12 +13,18 @@ import pytest
 ROOT = Path(__file__).resolve().parents[3]
 FLOW_ROOT = ROOT / "flows" / "mail_attachment_summary_flow"
 FLOW_PATH = FLOW_ROOT / "mail_attachment_summary_flow.json"
+DUMMY_FLOW_PATH = FLOW_ROOT / "mail_attachment_summary_dummy_flow.json"
 EWS_SOURCE = FLOW_ROOT / "nodes" / "ews_mail_attachment_reader.py"
+DUMMY_SOURCE = FLOW_ROOT / "nodes" / "dummy_ews_mail_items.py"
+FORMATTER_SOURCE = FLOW_ROOT / "nodes" / "mail_dataframe_formatter.py"
+STABLE_FILE_SOURCE = FLOW_ROOT / "nodes" / "stable_mail_file_reader.py"
 DRM_SOURCE = ROOT / "components" / "drm_document_text_extractor" / "drm_document_text_extractor.py"
 
 ALLOWED_NODE_TYPES = {
-    "File",
+    "DummyEwsMailItems",
+    "MailDataFrameFormatter",
     "OutlookEwsMailAttachmentReader",
+    "StableMailFileReader",
     "DrmDocumentTextExtractor",
     "LoopComponent",
     "ParserComponent",
@@ -73,8 +81,8 @@ GET_ATTACHMENT_XML = """<?xml version="1.0" encoding="utf-8"?>
 </s:Envelope>"""
 
 
-def load_flow() -> dict:
-    return json.loads(FLOW_PATH.read_text(encoding="utf-8"))
+def load_flow(path: Path = FLOW_PATH) -> dict:
+    return json.loads(path.read_text(encoding="utf-8"))
 
 
 def node_by_id(flow: dict, node_id: str) -> dict:
@@ -89,24 +97,31 @@ def load_module(path: Path, name: str) -> ModuleType:
     spec = importlib.util.spec_from_file_location(name, path)
     assert spec and spec.loader
     module = importlib.util.module_from_spec(spec)
+    sys.modules[name] = module
     spec.loader.exec_module(module)
     return module
 
 
-def test_package_contract_reuses_drm_component_and_has_one_internal_node() -> None:
+def test_package_contract_reuses_drm_component_and_registers_internal_nodes() -> None:
     manifest = json.loads((FLOW_ROOT / "manifest.json").read_text(encoding="utf-8"))
     refs = json.loads((FLOW_ROOT / "component_refs.json").read_text(encoding="utf-8"))
     internal = json.loads((FLOW_ROOT / "internal_nodes.json").read_text(encoding="utf-8"))
 
     assert manifest["status"] == "user_testing"
-    assert manifest["version"] == "0.5.0"
+    assert manifest["version"] == "0.6.3"
     assert manifest["source_export_version"] == "1.8.2"
+    assert manifest["test_flow_file"] == "mail_attachment_summary_dummy_flow.json"
     assert refs == {
         "flow_id": "mail_attachment_summary_flow",
         "components": [{"id": "drm_document_text_extractor", "version": "0.3.0"}],
     }
     assert internal["flow_id"] == "mail_attachment_summary_flow"
-    assert {item["id"] for item in internal["nodes"]} == {"ews_mail_attachment_reader"}
+    assert {item["id"] for item in internal["nodes"]} == {
+        "ews_mail_attachment_reader",
+        "dummy_ews_mail_items",
+        "mail_dataframe_formatter",
+        "stable_mail_file_reader",
+    }
 
 
 def test_flow_contains_expected_ews_drm_graph() -> None:
@@ -143,13 +158,48 @@ def test_flow_contains_expected_ews_drm_graph() -> None:
         "LoopComponent-mailAttachments",
     ) in edge_pairs
     assert ("LoopComponent-mailAttachments", "DrmDocumentTextExtractor-mailAttachments") in edge_pairs
-    assert ("DrmDocumentTextExtractor-mailAttachments", "File-mailAttachments") in edge_pairs
+    assert (
+        "DrmDocumentTextExtractor-mailAttachments",
+        "StableMailFileReader-mailAttachments",
+    ) in edge_pairs
+    assert (
+        "StableMailFileReader-mailAttachments",
+        "MailDataFrameFormatter-mailAttachmentItem",
+    ) in edge_pairs
+
+    file_to_formatter = next(
+        edge
+        for edge in edges
+        if edge["source"] == "StableMailFileReader-mailAttachments"
+        and edge["target"] == "MailDataFrameFormatter-mailAttachmentItem"
+    )
+    assert file_to_formatter["data"]["sourceHandle"]["output_types"] == ["DataFrame"]
+    assert file_to_formatter["data"]["targetHandle"]["inputTypes"] == ["DataFrame"]
+
+
+def test_dummy_flow_replaces_only_ews_source_and_keeps_typed_pipeline() -> None:
+    flow = load_flow(DUMMY_FLOW_PATH)
+    nodes = flow["data"]["nodes"]
+    edges = flow["data"]["edges"]
+    assert len(nodes) == 13
+    assert len(edges) == 11
+    assert any(node["id"] == "DummyEwsMailItems-mailAttachments" for node in nodes)
+    assert not any(node["id"] == "OutlookEwsMailAttachmentReader-mailAttachments" for node in nodes)
+    assert any(
+        edge["source"] == "DummyEwsMailItems-mailAttachments"
+        and edge["target"] == "LoopComponent-mailAttachments"
+        and edge["data"]["sourceHandle"]["output_types"] == ["DataFrame"]
+        for edge in edges
+    )
 
 
 def test_internal_and_shared_component_sources_are_embedded_exactly() -> None:
     flow = load_flow()
     source_by_node = {
         "OutlookEwsMailAttachmentReader-mailAttachments": EWS_SOURCE.read_text(encoding="utf-8"),
+        "MailDataFrameFormatter-mailAttachmentItem": FORMATTER_SOURCE.read_text(encoding="utf-8"),
+        "MailDataFrameFormatter-mailAttachmentAggregate": FORMATTER_SOURCE.read_text(encoding="utf-8"),
+        "StableMailFileReader-mailAttachments": STABLE_FILE_SOURCE.read_text(encoding="utf-8"),
         "DrmDocumentTextExtractor-mailAttachments": DRM_SOURCE.read_text(encoding="utf-8"),
     }
     for node_id, source in source_by_node.items():
@@ -159,6 +209,84 @@ def test_internal_and_shared_component_sources_are_embedded_exactly() -> None:
     assert "process_file_record" in drm_source
     assert '"Authorization": f"Bearer {token}"' in drm_source
     assert '"params": {"empNo": employee_no}' in drm_source
+
+    dummy_flow = load_flow(DUMMY_FLOW_PATH)
+    assert (
+        node_by_id(dummy_flow, "DummyEwsMailItems-mailAttachments")["data"]["node"]["template"]["code"]["value"]
+        == DUMMY_SOURCE.read_text(encoding="utf-8")
+    )
+
+
+def test_dummy_rows_and_formatter_run_without_ews_or_drm(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    dummy_module = load_module(DUMMY_SOURCE, "mail_flow_dummy_source_test")
+    formatter_module = load_module(FORMATTER_SOURCE, "mail_flow_formatter_test")
+    rows = dummy_module.build_dummy_mail_rows(mail_count=2, include_attachments=True, output_root=tmp_path)
+    assert len(rows) == 4
+    assert [row["source_kind"] for row in rows] == [
+        "mail_body",
+        "ews_attachment",
+        "mail_body",
+        "ews_attachment",
+    ]
+    assert all(Path(row["file_path"]).is_file() for row in rows)
+    assert all("attachment_id" not in row and "item_id" not in row for row in rows)
+
+    monkeypatch.setattr(dummy_module, "build_dummy_mail_rows", lambda **_kwargs: rows)
+    dummy_component = dummy_module.DummyEwsMailItems()
+    dummy_component.mail_count = 2
+    dummy_component.include_attachments = True
+    result = dummy_component.build_mail_items()
+    assert dummy_component.status is result
+    assert len(result) == 4
+
+    from lfx.schema.dataframe import DataFrame
+
+    message = formatter_module.format_dataframe(
+        DataFrame([{"mail_index": 1, "text": "테스트 본문"}]),
+        mode="Parser",
+        pattern="메일 {mail_index}: {text} / {missing_key}",
+        separator="\n",
+        clean_data=True,
+    )
+    assert message == "메일 1: 테스트 본문 /"
+
+
+def test_stable_file_reader_keeps_dataframe_output_and_routes_text_away_from_docling(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    flow = load_flow()
+    file_node = node_by_id(flow, "StableMailFileReader-mailAttachments")
+    module = load_module(STABLE_FILE_SOURCE, "mail_flow_stable_file_reader_test")
+    frontend_node = deepcopy(file_node["data"]["node"])
+
+    for field_name, field_value in (
+        ("path", ["sample.txt"]),
+        ("path", ["sample.xlsx"]),
+        ("advanced_mode", False),
+        ("advanced_mode", True),
+    ):
+        updated = module.StableMailFileReader.update_outputs(
+            object(), frontend_node, field_name, field_value
+        )
+        assert [(output["name"], output["types"]) for output in updated["outputs"]] == [
+            ("dataframe", ["DataFrame"])
+        ]
+
+    parser_modes: list[tuple[str, bool]] = []
+
+    def fake_process_files(component, batch):
+        parser_modes.append((Path(batch[0].path).suffix, component.advanced_mode))
+        return batch
+
+    monkeypatch.setattr(module.FileComponent, "process_files", fake_process_files)
+    component = module.StableMailFileReader()
+    component.advanced_mode = True
+    files = [SimpleNamespace(path=Path("sample.txt")), SimpleNamespace(path=Path("sample.pdf"))]
+    assert component.process_files(files) == files
+    assert parser_modes == [(".txt", False), (".pdf", True)]
+    assert component.advanced_mode is True
 
 
 def test_ews_secrets_are_blank_and_read_file_uses_dynamic_local_path() -> None:
@@ -183,7 +311,7 @@ def test_ews_secrets_are_blank_and_read_file_uses_dynamic_local_path() -> None:
     assert drm_template["file_record"]["advanced"] is False
     assert drm_node["data"]["selected_output"] == "processed_file"
 
-    file_node = node_by_id(flow, "File-mailAttachments")
+    file_node = node_by_id(flow, "StableMailFileReader-mailAttachments")
     file_template = file_node["data"]["node"]["template"]
     assert file_template["storage_location"]["value"] == [{"name": "Local", "icon": "hard-drive"}]
     assert file_template["path"]["file_path"] == []

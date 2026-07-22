@@ -12,6 +12,10 @@
 - 일반 파일은 원본 경로로, 로컬 판별 실패 파일은 DRM API의 UTF-8 `.txt` 경로로 `Read File`에 전달합니다.
 - `항상 DRM API`에서는 `multipart/form-data`의 `file`, `Authorization: Bearer`, `empNo`, 기본 180초 timeout으로 모든 첨부를 처리합니다.
 - EWS·Nexus·DRM 주소, AD 계정·비밀번호, Bearer 토큰과 사번은 Flow JSON 기본값에 포함하지 않습니다.
+- 기본 Read File은 서버 경로 입력에서 출력을 `Raw Content(Message)`로 되돌리는 동적 동작이 있으므로, 04는 Read File을 상속한 `StableMailFileReader`로 구성했습니다.
+- `04 파일 내용 DataFrame(DataFrame) → 05 DataFrame 입력(DataFrame)`을 정확한 단일 타입으로 고정해 Flow를 가져올 때도 연결선이 유지됩니다.
+- 04는 TXT·CSV·JSON·Markdown·XML·HTML·소스 파일을 표준 파서로 읽고, PDF·Office·이미지는 필요할 때 Advanced Parser/Docling으로 처리합니다. 따라서 DRM 평문 TXT에 Docling을 강제하지 않습니다.
+- EWS가 없는 테스트 환경에서는 `mail_attachment_summary_dummy_flow.json`을 사용해 네트워크 호출 없이 메일 본문과 TXT 첨부를 생성할 수 있습니다.
 
 Microsoft 문서상 `GetItem`은 첨부 메타데이터를 반환하며 실제 FileAttachment Content에는 `GetAttachment`가 추가로 필요합니다.
 
@@ -64,6 +68,15 @@ Chat Input --------------------------------\
 6. DRM 주소가 HTTP라면 폐쇄망·보안 승인을 확인한 뒤 `HTTP DRM API 사용 허용`을 켭니다.
 7. 두 Language Model에 같은 사내 승인 모델을 선택합니다.
 8. EWS 노드부터 Chat Output까지 실행합니다.
+
+## EWS 없는 테스트 환경
+
+1. `mail_attachment_summary_dummy_flow.json`을 새 Flow로 가져옵니다.
+2. `01T 테스트 EWS 메일·첨부 데이터`에서 더미 메일 수와 첨부 포함 여부를 선택합니다.
+3. DRM 노드는 `자동(로컬 우선)`을 유지합니다. 더미 첨부가 TXT이므로 DRM API를 호출하지 않습니다.
+4. 두 Language Model에 사내 승인 모델을 선택하고 Chat Output까지 실행합니다.
+
+기본 설정은 메일 2통을 만들며 각 메일은 본문 1개와 TXT 첨부 1개를 가져 총 4개 Loop 항목이 됩니다. 생성 행은 운영 EWS와 동일하게 `mail_index`, `mail_subject`, `sender`, `received_time`, `file_path`, `source_kind`, `drm_status` 등을 포함합니다.
 
 ## 실패 정책
 

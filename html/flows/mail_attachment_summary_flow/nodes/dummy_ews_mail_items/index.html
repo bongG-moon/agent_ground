@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <base href="../../../../" />
+  <title>01T 테스트 EWS 메일·첨부 데이터 · Agent Ground</title>
+  <meta name="description" content="mail_attachment_summary_flow 내부 구현 Node: EWS 연결 없이 메일 본문과 TXT 첨부의 로컬 파일 및 실제 EWS와 같은 DataFrame 행을 생성합니다." />
+  <link rel="stylesheet" href="assets/css/site.css" />
+  
+</head>
+<body>
+  <a class="skip-link" href="#main">본문으로 바로가기</a>
+  <header class="site-header">
+    <div class="header-inner">
+      <a class="brand" href="index.html" aria-label="Agent Ground 홈">
+        <span class="brand-mark" aria-hidden="true">AG</span>
+        <span class="brand-copy"><strong>Agent Ground</strong><small>Learn · Build · Validate</small></span>
+      </a>
+      <button class="menu-button" type="button" data-menu-button aria-expanded="false" aria-controls="site-nav" aria-label="메뉴 열기"><span class="menu-lines"></span></button>
+      <nav class="site-nav" id="site-nav" data-site-nav data-open="false" aria-label="주요 메뉴"><a href="index.html">홈</a><a href="training/index.html">처음 배우기</a><a href="flows/index.html" aria-current="page">Flows</a><a href="components/index.html">Components</a><a href="troubleshooting/index.html">실패와 해결</a><a href="business-agent-design/index.html">업무 Agent 설계</a></nav>
+    </div>
+  </header>
+  <main class="page-wrap" id="main">
+    <nav class="breadcrumbs" aria-label="현재 위치"><a href="index.html">홈</a><span aria-hidden="true">/</span><a href="flows/index.html">Flows</a><span aria-hidden="true">/</span><a href="flows/mail_attachment_summary_flow/index.html">mail_attachment_summary_flow</a><span aria-hidden="true">/</span><a href="flows/mail_attachment_summary_flow/index.html#internal-nodes">내부 구현 Node</a><span aria-hidden="true">/</span><span>01T 테스트 EWS 메일·첨부 데이터</span></nav>
+    
+<section class="hero component-hero"><div class="meta-row"><span class="badge badge-testing">검증 중</span><span class="tag">Flow 내부 구현 Node</span><span class="tag">Standalone 파일</span><span class="tag">v0.1.1</span></div><div class="hero-kicker">mail_attachment_summary_flow</div><h1>01T 테스트 EWS 메일·첨부 데이터</h1><div class="component-contract-overview" aria-label="내부 Node 핵심 계약"><article class="contract-overview-card contract-overview-purpose"><span class="contract-overview-label">이 Flow에서 하는 일</span><p>EWS 연결 없이 메일 본문과 TXT 첨부의 로컬 파일 및 실제 EWS와 같은 DataFrame 행을 생성합니다.</p></article><article class="contract-overview-card"><span class="contract-overview-label">입력 · 3개 · 필수 0개</span><ul class="contract-preview-list"><li><span class="contract-field-name">더미 메일 수</span><span class="contract-field-meta">IntInput · 선택</span></li><li><span class="contract-field-name">더미 첨부파일 포함</span><span class="contract-field-meta">BoolInput · 선택</span></li><li><span class="contract-field-name">테스트 시나리오 표시</span><span class="contract-field-meta">StrInput · 선택</span></li></ul></article><article class="contract-overview-card"><span class="contract-overview-label">출력 · 1개</span><ul class="contract-preview-list"><li><span class="contract-field-name">더미 메일 본문·첨부 항목</span><span class="contract-field-meta">DataFrame · 출력</span></li></ul></article></div><div class="hero-actions"><a class="button button-primary" href="flows/mail_attachment_summary_flow/nodes/dummy_ews_mail_items/code.html">Python 코드 보기</a><a class="button button-secondary" href="flows/mail_attachment_summary_flow/nodes/dummy_ews_mail_items/index.html#contract">입출력 상세 계약</a><a class="button button-secondary" href="flows/mail_attachment_summary_flow/index.html">소유 Flow로 돌아가기</a></div></section>
+<section class="section"><div class="notice notice-info"><strong>Component Library 대상이 아닙니다.</strong>이 Node는 <code>mail_attachment_summary_flow</code>의 중간 payload와 실행 순서에 종속됩니다. 다른 Flow에서 재사용하려면 독립 기능·계약·검증 기준을 먼저 정의해 Component로 승격해야 합니다.</div></section>
+<section class="section"><div class="grid grid-3"><div class="card"><h3>Node ID</h3><p><code>dummy_ews_mail_items</code></p></div><div class="card"><h3>Class</h3><p><code>DummyEwsMailItems</code></p></div><div class="card"><h3>원본 위치</h3><p><code>flows/mail_attachment_summary_flow/nodes/dummy_ews_mail_items.py</code></p></div></div></section>
+<section class="section" id="contract"><div class="section-heading"><p class="eyebrow">Input contract</p><h2>입력 상세 계약</h2><p>이 Flow의 앞 Node가 전달해야 하는 이름과 타입을 확인합니다.</p></div><div class="table-wrap"><table><thead><tr><th>화면 이름</th><th>코드 이름</th><th>입력 UI</th><th>연결 타입</th><th>설명</th><th>기본값</th><th>목록·선택 조건</th><th>필수</th><th>고급</th></tr></thead><tbody><tr><td>더미 메일 수</td><td><code>mail_count</code></td><td><code>IntInput</code></td><td><code>-</code></td><td>1~10통의 테스트 메일을 만듭니다.</td><td><code>2</code></td><td>-</td><td>아니오</td><td>아니오</td></tr><tr><td>더미 첨부파일 포함</td><td><code>include_attachments</code></td><td><code>BoolInput</code></td><td><code>-</code></td><td>-</td><td><code>true</code></td><td>-</td><td>아니오</td><td>아니오</td></tr><tr><td>테스트 시나리오 표시</td><td><code>scenario_label</code></td><td><code>StrInput</code></td><td><code>-</code></td><td>상태 표시용이며 메일 내용에는 포함되지 않습니다.</td><td><code>EWS 연결 없는 로컬 통합 테스트</code></td><td>-</td><td>아니오</td><td>예</td></tr></tbody></table></div></section>
+<section class="section" id="output-contract"><div class="section-heading"><p class="eyebrow">Output contract</p><h2>출력 상세 계약</h2><p>이 Flow 안에서 다음 Node로 전달되는 Output 타입과 method를 확인합니다.</p></div><div class="table-wrap"><table><thead><tr><th>화면 이름</th><th>코드 이름</th><th>Output 타입</th><th>다음 연결 위치</th><th>Method</th><th>그룹 출력</th><th>도구 모드</th></tr></thead><tbody><tr><td>더미 메일 본문·첨부 항목</td><td><code>mail_items</code></td><td><code>DataFrame</code></td><td>DataFrame 또는 표 입력 Component·Node</td><td><code>build_mail_items</code></td><td>아니오</td><td>아니오</td></tr></tbody></table></div></section>
+<section class="section"><div class="grid grid-2"><div class="card"><h3>의존성</h3><p>이 Node를 포함한 Flow 실행 환경에 필요한 패키지입니다.</p><div class="tag-list"><span class="tag">lfx</span></div></div><div class="card"><h3>위험 태그</h3><p>자격증명, 외부 접근, 데이터 처리와 관련된 검토 항목입니다.</p><div class="tag-list"><span class="tag">별도 위험 태그 없음</span></div></div></div></section>
+<div class="page-actions"><button class="back-button" type="button" data-back data-fallback="flows/mail_attachment_summary_flow/index.html">← 이전 화면</button><a class="button button-soft" href="flows/mail_attachment_summary_flow/index.html">mail_attachment_summary_flow</a><a class="button button-soft" href="flows/index.html">Flow 목록</a><a class="button button-soft" href="index.html">홈</a></div>
+
+  </main>
+  <footer class="site-footer">
+    <div class="footer-inner">
+      <div><strong>Agent Ground</strong><p>실제 Agent Builder 환경에서 검증된 교육자료, Standalone Component와 Flow를 함께 쌓아갑니다.</p></div>
+      <div class="footer-links"><a href="training/index.html">처음 배우기</a><a href="troubleshooting/index.html">실패와 해결</a><a href="../AGENT_GROUND_PROJECT_MASTER_GUIDE.md">프로젝트 기준</a></div>
+    </div>
+  </footer>
+  <script src="assets/js/site.js"></script>
+  
+</body>
+</html>

@@ -25,13 +25,16 @@ except ImportError as exc:  # pragma: no cover - 잘못된 Python 환경에서�
 ROOT = Path(__file__).resolve().parents[1]
 FLOW_ROOT = ROOT / "flows" / "mail_attachment_summary_flow"
 FLOW_TARGET = FLOW_ROOT / "mail_attachment_summary_flow.json"
+DUMMY_FLOW_TARGET = FLOW_ROOT / "mail_attachment_summary_dummy_flow.json"
 
 LANGFLOW_VERSION = "1.8.2"
 LFX_VERSION = "0.3.4"
 
 ALLOWED_NODE_TYPES = {
-    "File",
+    "DummyEwsMailItems",
+    "MailDataFrameFormatter",
     "OutlookEwsMailAttachmentReader",
+    "StableMailFileReader",
     "DrmDocumentTextExtractor",
     "LoopComponent",
     "ParserComponent",
@@ -70,6 +73,30 @@ INTERNAL_NODE_SPECS = (
         "flows/mail_attachment_summary_flow/nodes/ews_mail_attachment_reader.py",
         "OutlookEwsMailAttachmentReader-mailAttachments",
         (0.0, 160.0),
+    ),
+    CustomNodeSpec(
+        "dummy_reader",
+        "flows/mail_attachment_summary_flow/nodes/dummy_ews_mail_items.py",
+        "DummyEwsMailItems-mailAttachments",
+        (0.0, 160.0),
+    ),
+    CustomNodeSpec(
+        "files",
+        "flows/mail_attachment_summary_flow/nodes/stable_mail_file_reader.py",
+        "StableMailFileReader-mailAttachments",
+        (1260.0, 40.0),
+    ),
+    CustomNodeSpec(
+        "item_parser",
+        "flows/mail_attachment_summary_flow/nodes/mail_dataframe_formatter.py",
+        "MailDataFrameFormatter-mailAttachmentItem",
+        (1680.0, 40.0),
+    ),
+    CustomNodeSpec(
+        "aggregate_parser",
+        "flows/mail_attachment_summary_flow/nodes/mail_dataframe_formatter.py",
+        "MailDataFrameFormatter-mailAttachmentAggregate",
+        (850.0, 520.0),
     ),
 )
 
@@ -188,24 +215,13 @@ def _configure_file_node(node: dict[str, Any]) -> None:
     path_field["value"] = ""
     path_field["file_path"] = []
 
-    donor_output = deepcopy(node["data"]["node"]["outputs"][0])
-    donor_output.update(
-        {
-            "display_name": "Files",
-            "name": "dataframe",
-            "method": "load_files",
-            "selected": "DataFrame",
-            "types": ["DataFrame"],
-            "tool_mode": True,
-        }
-    )
-    node["data"]["node"]["outputs"] = [donor_output]
+    output = node["data"]["node"]["outputs"][0]
+    if output.get("name") != "dataframe" or output.get("types") != ["DataFrame"]:
+        raise ValueError("04 파일 읽기 Custom Component의 출력은 DataFrame이어야 합니다.")
     node["data"]["selected_output"] = "dataframe"
 
 
-def _configure_parser(
-    node: dict[str, Any], *, display_name: str, mode: str, pattern: str, chat_output_donor: dict[str, Any]
-) -> None:
+def _configure_parser(node: dict[str, Any], *, display_name: str, mode: str, pattern: str) -> None:
     _rename_node(node, display_name)
     _set_template_value(node, "mode", mode)
     _set_template_value(node, "pattern", pattern)
@@ -215,17 +231,7 @@ def _configure_parser(
         template = node["data"]["node"]["template"]
         template["pattern"]["show"] = False
         template["pattern"]["required"] = False
-        clean_data = deepcopy(chat_output_donor["data"]["node"]["template"]["clean_data"])
-        clean_data.update(
-            {
-                "name": "clean_data",
-                "display_name": "Clean Data",
-                "value": True,
-                "advanced": True,
-                "required": False,
-            }
-        )
-        template["clean_data"] = clean_data
+        template["clean_data"]["value"] = True
 
 
 def _configure_model(node: dict[str, Any], *, display_name: str, system_message: str, max_tokens: int) -> None:
@@ -404,15 +410,13 @@ def _add_loop_return_edge(flow: dict[str, Any], source: dict[str, Any], loop: di
     )
 
 
-def build_flow() -> tuple[dict[str, Any], dict[str, str]]:
+def build_flow(*, use_dummy_source: bool = False) -> tuple[dict[str, Any], dict[str, str]]:
     document_starter = _load_starter("Document Q&A.json")
     loop_starter = _load_starter("Research Translation Loop.json")
     image_starter = _load_starter("Image Sentiment Analysis.json")
 
-    file_donor = _find_node(document_starter, "File-b2gOG")
     prompt_donor = _find_node(document_starter, "Prompt-odlqe")
     loop_donor = _find_node(loop_starter, "LoopComponent-GtPZT")
-    parser_donor = _find_node(loop_starter, "ParserComponent-pXAMb")
     model_donor = _find_node(loop_starter, "LanguageModelComponent-XKvly")
     chat_input_donor = _find_node(image_starter, "ChatInput-7S2Wg")
     chat_output_donor = _find_node(image_starter, "ChatOutput-Ou5RJ")
@@ -420,13 +424,8 @@ def build_flow() -> tuple[dict[str, Any], dict[str, str]]:
 
     sources: dict[str, str] = {}
     nodes: dict[str, dict[str, Any]] = {
-        "files": _clone_node(file_donor, "File-mailAttachments", (1260.0, 40.0)),
         "loop": _clone_node(loop_donor, "LoopComponent-mailAttachments", (430.0, 160.0)),
-        "item_parser": _clone_node(parser_donor, "ParserComponent-mailAttachmentItem", (1680.0, 40.0)),
         "item_model": _clone_node(model_donor, "LanguageModelComponent-mailAttachmentItem", (2100.0, 40.0)),
-        "aggregate_parser": _clone_node(
-            parser_donor, "ParserComponent-mailAttachmentAggregate", (850.0, 520.0)
-        ),
         "chat_input": _clone_node(chat_input_donor, "ChatInput-mailAttachmentRequest", (850.0, 900.0)),
         "final_prompt": _clone_node(prompt_donor, "Prompt-mailAttachmentFinal", (2520.0, 430.0)),
         "final_model": _clone_node(model_donor, "LanguageModelComponent-mailAttachmentFinal", (2940.0, 430.0)),
@@ -462,7 +461,6 @@ def build_flow() -> tuple[dict[str, Any], dict[str, str]]:
             "Advanced Parser 변환 내용:\n{exported_content}\n\n"
             "파싱 오류:\n{error}"
         ),
-        chat_output_donor=chat_output_donor,
     )
     _configure_model(
         nodes["item_model"],
@@ -481,7 +479,6 @@ def build_flow() -> tuple[dict[str, Any], dict[str, str]]:
         display_name="07 메일 항목별 요약 합치기",
         mode="Stringify",
         pattern="",
-        chat_output_donor=chat_output_donor,
     )
     _configure_chat_input(nodes["chat_input"])
     _configure_prompt(nodes["final_prompt"], donor_variable_name="Document")
@@ -497,18 +494,29 @@ def build_flow() -> tuple[dict[str, Any], dict[str, str]]:
     )
     _configure_chat_output(nodes["chat_output"])
 
+    source_key = "dummy_reader" if use_dummy_source else "ews_reader"
+    source_node = nodes[source_key]
     first_note = _build_note(
         note_donor,
         "note-mailAttachment-firstRun",
         (-410.0, 20.0),
         (
             "## 첫 실행\n\n"
-            "1. `01 Outlook 메일·첨부 읽기 (EWS)`에 EWS·AD·Nexus 값을 입력합니다.\n"
-            "2. 첨부 처리 모드를 선택합니다. 기본 자동 모드는 일반 파일을 먼저 로컬에서 읽습니다.\n"
-            "3. DRM fallback을 쓸 경우 API URL·Bearer 토큰·사번·허용 host를 입력합니다.\n"
-            "4. 두 Language Model에 같은 사내 승인 모델을 선택합니다.\n"
-            "5. Chat Output까지 실행합니다.\n\n"
-            "EWS 본문은 그대로 통과하고 일반 첨부는 원본 경로, DRM 첨부는 API 평문 TXT로 전달됩니다."
+            + (
+                "1. `01T 테스트 EWS 메일·첨부 데이터`는 EWS 호출 없이 메일 본문과 TXT 첨부를 만듭니다.\n"
+                "2. DRM 노드는 `자동(로컬 우선)`을 유지하면 네트워크를 호출하지 않습니다.\n"
+                "3. 두 Language Model에 같은 사내 승인 모델을 선택합니다.\n"
+                "4. Chat Output까지 실행합니다.\n\n"
+                "이 Flow는 테스트 전용이며 운영 EWS 자격증명을 사용하지 않습니다."
+                if use_dummy_source
+                else
+                "1. `01 Outlook 메일·첨부 읽기 (EWS)`에 EWS·AD·Nexus 값을 입력합니다.\n"
+                "2. 첨부 처리 모드를 선택합니다. 기본 자동 모드는 일반 파일을 먼저 로컬에서 읽습니다.\n"
+                "3. DRM fallback을 쓸 경우 API URL·Bearer 토큰·사번·허용 host를 입력합니다.\n"
+                "4. 두 Language Model에 같은 사내 승인 모델을 선택합니다.\n"
+                "5. Chat Output까지 실행합니다.\n\n"
+                "EWS 본문은 그대로 통과하고 일반 첨부는 원본 경로, DRM 첨부는 API 평문 TXT로 전달됩니다."
+            )
         ),
         "blue",
     )
@@ -532,7 +540,7 @@ def build_flow() -> tuple[dict[str, Any], dict[str, str]]:
             "edges": [],
             "nodes": [
                 first_note,
-                nodes["ews_reader"],
+                source_node,
                 nodes["loop"],
                 nodes["drm"],
                 nodes["files"],
@@ -548,21 +556,37 @@ def build_flow() -> tuple[dict[str, Any], dict[str, str]]:
             "viewport": {"x": 65.0, "y": 70.0, "zoom": 0.28},
         },
         "description": (
-            "Langflow 1.8.2 flow that reads Outlook mail bodies and file attachments through internal EWS/NTLM, "
-            "routes plain attachments through local parsing and protected files through an allowlisted DRM text API, "
-            "then produces one Korean work summary."
+            "Langflow 1.8.2 test flow that creates realistic local EWS mail rows without network access."
+            if use_dummy_source
+            else (
+                "Langflow 1.8.2 flow that reads Outlook mail bodies and file attachments through internal EWS/NTLM, "
+                "routes plain attachments through local parsing and protected files through an allowlisted DRM text API, "
+                "then produces one Korean work summary."
+            )
         ),
-        "endpoint_name": "ews-mail-attachment-summary",
-        "id": str(uuid.uuid5(uuid.NAMESPACE_URL, "agent-ground/mail-attachment-summary-flow/0.5.0")),
+        "endpoint_name": "dummy-ews-mail-attachment-summary" if use_dummy_source else "ews-mail-attachment-summary",
+        "id": str(
+            uuid.uuid5(
+                uuid.NAMESPACE_URL,
+                "agent-ground/mail-attachment-summary-dummy-flow/0.6.3"
+                if use_dummy_source
+                else "agent-ground/mail-attachment-summary-flow/0.6.3",
+            )
+        ),
         "is_component": False,
         "last_tested_version": LANGFLOW_VERSION,
         "locked": False,
-        "name": "mail_attachment_summary_flow",
-        "tags": ["mail", "ews", "ntlm", "attachment", "drm", "summary", "on-prem"],
+        "name": "mail_attachment_summary_dummy_flow" if use_dummy_source else "mail_attachment_summary_flow",
+        "tags": (
+            ["mail", "ews", "dummy", "test", "attachment", "drm", "summary", "local"]
+            if use_dummy_source
+            else ["mail", "ews", "ntlm", "attachment", "drm", "summary", "on-prem"]
+        ),
     }
 
     for source_key, output_name, target_key, input_name in EDGE_SPECS:
-        _add_edge(flow, nodes[source_key], output_name, nodes[target_key], input_name)
+        actual_source_key = "dummy_reader" if use_dummy_source and source_key == "ews_reader" else source_key
+        _add_edge(flow, nodes[actual_source_key], output_name, nodes[target_key], input_name)
     _add_loop_return_edge(flow, nodes["item_model"], nodes["loop"])
     return flow, sources
 
@@ -573,7 +597,7 @@ def _decode_handle(value: str) -> dict[str, Any]:
     return json.loads(value.replace("œ", '"'))
 
 
-def validate_flow(flow: dict[str, Any], sources: dict[str, str]) -> None:
+def validate_flow(flow: dict[str, Any], sources: dict[str, str], *, use_dummy_source: bool = False) -> None:
     if importlib.metadata.version("langflow") != LANGFLOW_VERSION:
         raise ValueError(
             f"Langflow {LANGFLOW_VERSION}가 필요합니다: {importlib.metadata.version('langflow')}"
@@ -595,6 +619,8 @@ def validate_flow(flow: dict[str, Any], sources: dict[str, str]) -> None:
         raise ValueError(f"허용하지 않은 node가 포함되었습니다: {sorted(unexpected)}")
 
     for spec in CUSTOM_NODE_SPECS:
+        if spec.node_id not in node_by_id:
+            continue
         config = node_by_id[spec.node_id]["data"]["node"]
         embedded_code = config["template"]["code"]["value"]
         if embedded_code != sources[spec.node_id]:
@@ -629,10 +655,10 @@ def validate_flow(flow: dict[str, Any], sources: dict[str, str]) -> None:
             if target_field.get("show") is not True or target_field.get("advanced") is not False:
                 raise ValueError(f"연결 입력 포트가 전면에 노출되지 않았습니다: {edge['target']}.{field_name}")
 
-    file_node = node_by_id["File-mailAttachments"]
+    file_node = node_by_id["StableMailFileReader-mailAttachments"]
     file_template = file_node["data"]["node"]["template"]
     if file_node["data"].get("selected_output") != "dataframe":
-        raise ValueError("Read File의 다중 파일 출력은 dataframe이어야 합니다.")
+        raise ValueError("04 파일 읽기의 고정 출력은 dataframe이어야 합니다.")
     if file_template["storage_location"].get("value") != [{"name": "Local", "icon": "hard-drive"}]:
         raise ValueError("Read File은 Local storage만 기본 선택해야 합니다.")
     if file_template["advanced_mode"].get("value") is not True:
@@ -640,14 +666,33 @@ def validate_flow(flow: dict[str, Any], sources: dict[str, str]) -> None:
     if file_template["path"].get("file_path"):
         raise ValueError("배포 Flow에는 사용자 파일 경로를 포함할 수 없습니다.")
 
-    ews_template = node_by_id["OutlookEwsMailAttachmentReader-mailAttachments"]["data"]["node"]["template"]
-    for field_name in ("email_addr", "username", "password", "ews_url", "nexus_url", "trusted_host"):
-        if ews_template[field_name].get("value"):
-            raise ValueError(f"배포 Flow에는 EWS 환경값을 포함할 수 없습니다: {field_name}")
-    if ews_template["password"].get("password") is not True:
-        raise ValueError("AD 비밀번호는 Secret 입력이어야 합니다.")
-    if ews_template["verify_tls"].get("value") is not False:
-        raise ValueError("실제 제공 환경과 맞추기 위해 TLS 기본값은 false여야 합니다.")
+    if use_dummy_source:
+        dummy_node = node_by_id["DummyEwsMailItems-mailAttachments"]
+        dummy_template = dummy_node["data"]["node"]["template"]
+        if dummy_template["mail_count"].get("value") != 2:
+            raise ValueError("더미 Flow는 기본 메일 2통을 생성해야 합니다.")
+        if dummy_template["include_attachments"].get("value") is not True:
+            raise ValueError("더미 Flow는 기본 첨부파일을 포함해야 합니다.")
+    else:
+        ews_template = node_by_id["OutlookEwsMailAttachmentReader-mailAttachments"]["data"]["node"]["template"]
+        for field_name in ("email_addr", "username", "password", "ews_url", "nexus_url", "trusted_host"):
+            if ews_template[field_name].get("value"):
+                raise ValueError(f"배포 Flow에는 EWS 환경값을 포함할 수 없습니다: {field_name}")
+        if ews_template["password"].get("password") is not True:
+            raise ValueError("AD 비밀번호는 Secret 입력이어야 합니다.")
+        if ews_template["verify_tls"].get("value") is not False:
+            raise ValueError("실제 제공 환경과 맞추기 위해 TLS 기본값은 false여야 합니다.")
+
+    file_to_formatter = next(
+        edge
+        for edge in edges
+        if edge["source"] == "StableMailFileReader-mailAttachments"
+        and edge["target"] == "MailDataFrameFormatter-mailAttachmentItem"
+    )
+    if file_to_formatter["data"]["sourceHandle"].get("output_types") != ["DataFrame"]:
+        raise ValueError("04 Read File 출력은 DataFrame이어야 합니다.")
+    if file_to_formatter["data"]["targetHandle"].get("inputTypes") != ["DataFrame"]:
+        raise ValueError("05 메일 내용 정리 입력은 DataFrame 단일 타입이어야 합니다.")
 
     drm_node = node_by_id["DrmDocumentTextExtractor-mailAttachments"]
     drm_template = drm_node["data"]["node"]["template"]
@@ -684,12 +729,17 @@ def main() -> int:
     args = parser.parse_args()
 
     flow, sources = build_flow()
+    dummy_flow, dummy_sources = build_flow(use_dummy_source=True)
     validate_flow(flow, sources)
+    validate_flow(dummy_flow, dummy_sources, use_dummy_source=True)
     if args.check:
         if not FLOW_TARGET.is_file() or _read_json(FLOW_TARGET) != flow:
             raise ValueError(f"생성 Flow가 최신 상태가 아닙니다: {FLOW_TARGET}")
+        if not DUMMY_FLOW_TARGET.is_file() or _read_json(DUMMY_FLOW_TARGET) != dummy_flow:
+            raise ValueError(f"생성 더미 Flow가 최신 상태가 아닙니다: {DUMMY_FLOW_TARGET}")
     else:
         _write_json(FLOW_TARGET, flow)
+        _write_json(DUMMY_FLOW_TARGET, dummy_flow)
 
     raw = FLOW_TARGET.read_bytes()
     if raw.startswith(b"\xef\xbb\xbf"):
@@ -701,9 +751,10 @@ def main() -> int:
                 "langflow_version": importlib.metadata.version("langflow"),
                 "lfx_version": importlib.metadata.version("lfx"),
                 "flow": str(FLOW_TARGET),
+                "dummy_flow": str(DUMMY_FLOW_TARGET),
                 "nodes": len(flow["data"]["nodes"]),
                 "edges": len(flow["data"]["edges"]),
-                "custom_components": len(CUSTOM_NODE_SPECS),
+                "custom_components_per_flow": 5,
                 "external_tools": 0,
                 "status": "ok",
             },
