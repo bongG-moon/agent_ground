@@ -48,6 +48,7 @@ ALLOWED_NODE_TYPES = {
 EDGE_SPECS = (
     ("ews_reader", "mail_items", "loop", "data"),
     ("loop", "item", "drm", "file_record"),
+    ("vision_model", "model_output", "drm", "vision_model"),
     ("drm", "processed_file", "files", "file_path"),
     ("files", "dataframe", "item_parser", "input_data"),
     ("item_parser", "parsed_text", "item_model", "input_value"),
@@ -246,6 +247,17 @@ def _configure_model(node: dict[str, Any], *, display_name: str, system_message:
     node["data"]["selected_output"] = "text_output"
 
 
+def _configure_vision_model(node: dict[str, Any]) -> None:
+    _rename_node(node, "03A JPG 이미지 해석 모델 (vLLM)")
+    _set_template_value(node, "model", [])
+    _set_template_value(node, "api_key", "")
+    _set_template_value(node, "temperature", 0.1)
+    _set_template_value(node, "stream", False)
+    if "max_tokens" in node["data"]["node"]["template"]:
+        _set_template_value(node, "max_tokens", 1800)
+    node["data"]["selected_output"] = "model_output"
+
+
 def _configure_prompt(node: dict[str, Any], *, donor_variable_name: str) -> None:
     _rename_node(node, "08 EWS 메일 통합 요약 프롬프트")
     template = node["data"]["node"]["template"]
@@ -425,6 +437,9 @@ def build_flow(*, use_dummy_source: bool = False) -> tuple[dict[str, Any], dict[
     sources: dict[str, str] = {}
     nodes: dict[str, dict[str, Any]] = {
         "loop": _clone_node(loop_donor, "LoopComponent-mailAttachments", (430.0, 160.0)),
+        "vision_model": _clone_node(
+            model_donor, "LanguageModelComponent-mailAttachmentVision", (850.0, -390.0)
+        ),
         "item_model": _clone_node(model_donor, "LanguageModelComponent-mailAttachmentItem", (2100.0, 40.0)),
         "chat_input": _clone_node(chat_input_donor, "ChatInput-mailAttachmentRequest", (850.0, 900.0)),
         "final_prompt": _clone_node(prompt_donor, "Prompt-mailAttachmentFinal", (2520.0, 430.0)),
@@ -436,7 +451,8 @@ def build_flow(*, use_dummy_source: bool = False) -> tuple[dict[str, Any], dict[
 
     _configure_file_node(nodes["files"])
     _rename_node(nodes["loop"], "02 EWS 메일 항목별 반복")
-    _rename_node(nodes["drm"], "03 EWS 첨부 처리 모드·텍스트 추출")
+    _configure_vision_model(nodes["vision_model"])
+    _rename_node(nodes["drm"], "03B EWS 문서·JPG·미지원 첨부 처리")
     nodes["drm"]["data"]["selected_output"] = "processed_file"
     _configure_parser(
         nodes["item_parser"],
@@ -456,6 +472,8 @@ def build_flow(*, use_dummy_source: bool = False) -> tuple[dict[str, Any], dict[
             "DRM 상태: {drm_status}\n"
             "로컬 추출 문자 수: {local_text_char_count}\n"
             "DRM 평문 문자 수: {drm_text_char_count}\n"
+            "이미지 해석 상태: {vision_status}\n"
+            "이미지 해석 문자 수: {vision_text_char_count}\n"
             "추출 오류: {extraction_error}\n\n"
             "일반 추출 텍스트:\n{text}\n\n"
             "Advanced Parser 변환 내용:\n{exported_content}\n\n"
@@ -505,17 +523,19 @@ def build_flow(*, use_dummy_source: bool = False) -> tuple[dict[str, Any], dict[
             + (
                 "1. `01T 테스트 EWS 메일·첨부 데이터`는 EWS 호출 없이 메일 본문과 TXT 첨부를 만듭니다.\n"
                 "2. DRM 노드는 `자동(로컬 우선)`을 유지하면 네트워크를 호출하지 않습니다.\n"
-                "3. 두 Language Model에 같은 사내 승인 모델을 선택합니다.\n"
-                "4. Chat Output까지 실행합니다.\n\n"
+                "3. `03A JPG 이미지 해석 모델`에는 사내 vLLM Vision 모델을 선택합니다.\n"
+                "4. 두 요약 Language Model에 같은 사내 승인 모델을 선택합니다.\n"
+                "5. Chat Output까지 실행합니다.\n\n"
                 "이 Flow는 테스트 전용이며 운영 EWS 자격증명을 사용하지 않습니다."
                 if use_dummy_source
                 else
                 "1. `01 Outlook 메일·첨부 읽기 (EWS)`에 EWS·AD·Nexus 값을 입력합니다.\n"
                 "2. 첨부 처리 모드를 선택합니다. 기본 자동 모드는 일반 파일을 먼저 로컬에서 읽습니다.\n"
-                "3. DRM fallback을 쓸 경우 API URL·Bearer 토큰·사번·허용 host를 입력합니다.\n"
-                "4. 두 Language Model에 같은 사내 승인 모델을 선택합니다.\n"
-                "5. Chat Output까지 실행합니다.\n\n"
-                "EWS 본문은 그대로 통과하고 일반 첨부는 원본 경로, DRM 첨부는 API 평문 TXT로 전달됩니다."
+                "3. DRM fallback을 쓸 경우 API URL·Bearer 토큰·사번을 입력합니다.\n"
+                "4. `03A JPG 이미지 해석 모델`에는 사내 vLLM Vision 모델을 선택합니다.\n"
+                "5. 두 요약 Language Model에 같은 사내 승인 모델을 선택합니다.\n"
+                "6. Chat Output까지 실행합니다.\n\n"
+                "EWS 본문은 그대로 통과하고 일반 첨부는 원본 경로, DRM·JPG 첨부는 평문 TXT로 전달됩니다."
             )
         ),
         "blue",
@@ -529,7 +549,8 @@ def build_flow(*, use_dummy_source: bool = False) -> tuple[dict[str, Any], dict[
             "Outlook Connector, Microsoft Graph, MCP, API Request Component는 사용하지 않습니다. "
             "사내 EWS SOAP와 NTLM 인증을 직접 사용하며 `requests-ntlm`이 필요합니다. "
             "자동 모드는 PDF·DOCX·PPTX·XLSX·TXT·CSV를 로컬에서 먼저 판별하고 실패한 첨부만 DRM API로 보냅니다. "
-            "항상 DRM 모드는 허용 host에만 원본 첨부를 multipart로 보내며 실패 시 원본을 우회 전달하지 않습니다. "
+            "JPG/JPEG는 별도 Vision 모델로 해석하며 ZIP·RAR·7Z·TAR·GZ 등 미지원 형식은 안내 TXT로 바꿔 Loop를 계속합니다. "
+            "DRM API 호출 실패 시 원본 보호 파일을 우회 전달하지 않습니다. "
             "TLS 검증을 끄면 인증서 위조를 탐지하지 못하므로 사내 CA bundle 사용을 권장합니다."
         ),
         "amber",
@@ -542,6 +563,7 @@ def build_flow(*, use_dummy_source: bool = False) -> tuple[dict[str, Any], dict[
                 first_note,
                 source_node,
                 nodes["loop"],
+                nodes["vision_model"],
                 nodes["drm"],
                 nodes["files"],
                 nodes["item_parser"],
@@ -560,7 +582,8 @@ def build_flow(*, use_dummy_source: bool = False) -> tuple[dict[str, Any], dict[
             if use_dummy_source
             else (
                 "Langflow 1.8.2 flow that reads Outlook mail bodies and file attachments through internal EWS/NTLM, "
-                "routes plain attachments through local parsing and protected files through an allowlisted DRM text API, "
+                "routes plain attachments through local parsing, protected files through the configured DRM text API, "
+                "JPG/JPEG through a connected vLLM-compatible Vision model, and unsupported archives to skip notices, "
                 "then produces one Korean work summary."
             )
         ),
@@ -568,9 +591,9 @@ def build_flow(*, use_dummy_source: bool = False) -> tuple[dict[str, Any], dict[
         "id": str(
             uuid.uuid5(
                 uuid.NAMESPACE_URL,
-                "agent-ground/mail-attachment-summary-dummy-flow/0.6.3"
+                "agent-ground/mail-attachment-summary-dummy-flow/0.7.0"
                 if use_dummy_source
-                else "agent-ground/mail-attachment-summary-flow/0.6.3",
+                else "agent-ground/mail-attachment-summary-flow/0.7.0",
             )
         ),
         "is_component": False,
@@ -580,7 +603,7 @@ def build_flow(*, use_dummy_source: bool = False) -> tuple[dict[str, Any], dict[
         "tags": (
             ["mail", "ews", "dummy", "test", "attachment", "drm", "summary", "local"]
             if use_dummy_source
-            else ["mail", "ews", "ntlm", "attachment", "drm", "summary", "on-prem"]
+            else ["mail", "ews", "ntlm", "attachment", "drm", "vision", "vllm", "summary", "on-prem"]
         ),
     }
 
@@ -607,7 +630,7 @@ def validate_flow(flow: dict[str, Any], sources: dict[str, str], *, use_dummy_so
 
     nodes = flow.get("data", {}).get("nodes", [])
     edges = flow.get("data", {}).get("edges", [])
-    if len(nodes) != 13 or len(edges) != 11:
+    if len(nodes) != 14 or len(edges) != 12:
         raise ValueError(f"예상하지 못한 graph 크기입니다: nodes={len(nodes)}, edges={len(edges)}")
     node_by_id = {node.get("id"): node for node in nodes}
     if len(node_by_id) != len(nodes) or None in node_by_id:
@@ -698,7 +721,7 @@ def validate_flow(flow: dict[str, Any], sources: dict[str, str], *, use_dummy_so
     drm_template = drm_node["data"]["node"]["template"]
     if drm_node["data"].get("selected_output") != "processed_file":
         raise ValueError("EWS Flow의 DRM Component 출력은 processed_file이어야 합니다.")
-    for field_name in ("drm_api_url", "drm_token", "employee_no", "allowed_drm_hosts"):
+    for field_name in ("drm_api_url", "drm_token", "employee_no"):
         if drm_template[field_name].get("value"):
             raise ValueError(f"배포 Flow에는 DRM 환경값을 포함할 수 없습니다: {field_name}")
     if drm_template["drm_token"].get("password") is not True:
@@ -711,8 +734,15 @@ def validate_flow(flow: dict[str, Any], sources: dict[str, str], *, use_dummy_so
         raise ValueError("DRM HTTPS 인증서 검증 기본값은 true여야 합니다.")
     if drm_template["processing_mode"].get("value") != "자동(로컬 우선)":
         raise ValueError("EWS 첨부 기본 처리 모드는 자동(로컬 우선)이어야 합니다.")
+    if drm_template["vision_model"].get("show") is not True:
+        raise ValueError("JPG 이미지 해석 모델 연결 입력은 전면에 표시되어야 합니다.")
+
+    vision_model_node = node_by_id["LanguageModelComponent-mailAttachmentVision"]
+    if vision_model_node["data"].get("selected_output") != "model_output":
+        raise ValueError("JPG 이미지 해석 모델은 LanguageModel 출력을 사용해야 합니다.")
 
     for model_id in (
+        "LanguageModelComponent-mailAttachmentVision",
         "LanguageModelComponent-mailAttachmentItem",
         "LanguageModelComponent-mailAttachmentFinal",
     ):

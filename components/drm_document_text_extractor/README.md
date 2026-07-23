@@ -1,11 +1,11 @@
 # 문서 텍스트 추출 (DRM 자동)
 
-처리 모드에 따라 일반 파일은 로컬에서 읽고 DRM 파일만 API로 보내 평문을 반환합니다.
+일반 문서는 로컬/DRM 경로로 처리하고 EWS JPG/JPEG는 연결된 Vision 모델로 해석하며 미지원 형식은 오류 대신 안내 텍스트로 반환합니다.
 
 ## 상태
 
 - ID: `drm_document_text_extractor`
-- 버전: `0.3.0`
+- 버전: `0.5.0`
 - 상태: `user_testing`
 - 패키징: `standalone`
 - Component 범위: `general`
@@ -17,12 +17,12 @@
 | 화면 이름 | 코드 이름 | 타입 | 목록 | 필수 | 고급 |
 | --- | --- | --- | --- | --- | --- |
 | 문서 파일 | `document_files` | `FileInput` | True | False | False |
-| EWS 파일 항목 | `file_record` | `DataInput` | False | False | True |
+| EWS 파일 항목 | `file_record` | `DataInput` | False | False | False |
+| JPG 이미지 해석 모델 | `vision_model` | `LanguageModel` | False | False | False |
 | 처리 모드 | `processing_mode` | `DropdownInput` | False | True | False |
 | DRM API 주소 | `drm_api_url` | `MessageTextInput` | False | False | False |
 | DRM 토큰 | `drm_token` | `SecretStrInput` | False | False | False |
 | 사번 | `employee_no` | `SecretStrInput` | False | False | False |
-| 허용 DRM 서버 | `allowed_drm_hosts` | `MessageTextInput` | False | False | False |
 | HTTP DRM API 사용 허용 | `allow_insecure_http` | `BoolInput` | False | False | True |
 | TLS 인증서 검증 | `verify_tls` | `BoolInput` | False | False | True |
 | 제한 시간(초) | `timeout_seconds` | `IntInput` | False | False | True |

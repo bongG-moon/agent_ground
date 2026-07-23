@@ -3,9 +3,9 @@
   "name_ko": "DRM 문서 텍스트 추출 Flow",
   "asset_type": "flow",
   "status": "user_testing",
-  "version": "0.3.0",
+  "version": "0.4.1",
   "source_export_version": "1.8.2",
-  "summary_ko": "일반 문서는 로컬에서 추출하고 보호되었거나 로컬 해석이 불가능한 파일만 DRM API에 전달해 평문을 LLM 없이 출력합니다.",
+  "summary_ko": "일반 문서는 로컬에서 추출하고 보호 문서는 DRM API로 처리하며 ZIP 등 미지원 형식은 오류 대신 안내 텍스트로 반환합니다.",
   "categories": ["document", "image", "drm", "text-extraction", "file-upload", "on-prem"],
   "trigger_signals": ["DRM 문서", "PDF 텍스트 추출", "PPT 텍스트 추출", "Excel 텍스트 추출", "Word 텍스트 추출", "이미지 OCR 평문"],
   "flow_file": "drm_document_text_extraction_flow.json",
@@ -13,22 +13,22 @@
   "internal_nodes_file": "internal_nodes.json",
   "documentation_path": "flows/drm_document_text_extraction_flow/README.md",
   "runtime_ready": true,
-  "verified_environment": "langflow-1.8.2-lfx-0.3.4-template-and-fake-drm-api-contract-validation",
-  "last_verified_at": "2026-07-16",
+  "verified_environment": "langflow-1.8.2-lfx-0.3.4-template-fake-drm-and-unsupported-file-contract-validation",
+  "last_verified_at": "2026-07-23",
   "approved_by_user_at": null,
   "risk_tags": [
     "file_upload",
     "confidential_document_content",
     "external_api_upload",
     "credentials_required",
-    "endpoint_allowlist",
     "https_default",
+    "unsupported_attachment_skip_safe",
     "plaintext_output",
     "no_llm"
   ],
   "configuration_required": [
     "Choose auto, always DRM, or DRM bypass processing mode. Auto performs local-first extraction.",
-    "Enter the approved DRM text API URL, Bearer token, employee number, and exact allowed host when DRM calls may occur.",
+    "Enter the approved DRM text API URL, Bearer token, and employee number when DRM calls may occur.",
     "Keep HTTPS and TLS verification enabled unless the approved closed test network only supports HTTP.",
     "Confirm that the DRM API returns plain text for each enabled document or image format, including OCR text for images when required."
   ]

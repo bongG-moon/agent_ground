@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 import importlib.util
 import json
 import sys
@@ -108,12 +109,12 @@ def test_package_contract_reuses_drm_component_and_registers_internal_nodes() ->
     internal = json.loads((FLOW_ROOT / "internal_nodes.json").read_text(encoding="utf-8"))
 
     assert manifest["status"] == "user_testing"
-    assert manifest["version"] == "0.6.3"
+    assert manifest["version"] == "0.7.0"
     assert manifest["source_export_version"] == "1.8.2"
     assert manifest["test_flow_file"] == "mail_attachment_summary_dummy_flow.json"
     assert refs == {
         "flow_id": "mail_attachment_summary_flow",
-        "components": [{"id": "drm_document_text_extractor", "version": "0.3.0"}],
+        "components": [{"id": "drm_document_text_extractor", "version": "0.5.0"}],
     }
     assert internal["flow_id"] == "mail_attachment_summary_flow"
     assert {item["id"] for item in internal["nodes"]} == {
@@ -128,8 +129,8 @@ def test_flow_contains_expected_ews_drm_graph() -> None:
     flow = load_flow()
     nodes = flow["data"]["nodes"]
     edges = flow["data"]["edges"]
-    assert len(nodes) == 13
-    assert len(edges) == 11
+    assert len(nodes) == 14
+    assert len(edges) == 12
     assert {node["data"]["type"] for node in nodes} <= ALLOWED_NODE_TYPES
     assert not {"Agent", "APIRequest", "MCPTools", "RunFlow"} & {
         node["data"]["type"] for node in nodes
@@ -159,6 +160,10 @@ def test_flow_contains_expected_ews_drm_graph() -> None:
     ) in edge_pairs
     assert ("LoopComponent-mailAttachments", "DrmDocumentTextExtractor-mailAttachments") in edge_pairs
     assert (
+        "LanguageModelComponent-mailAttachmentVision",
+        "DrmDocumentTextExtractor-mailAttachments",
+    ) in edge_pairs
+    assert (
         "DrmDocumentTextExtractor-mailAttachments",
         "StableMailFileReader-mailAttachments",
     ) in edge_pairs
@@ -181,8 +186,8 @@ def test_dummy_flow_replaces_only_ews_source_and_keeps_typed_pipeline() -> None:
     flow = load_flow(DUMMY_FLOW_PATH)
     nodes = flow["data"]["nodes"]
     edges = flow["data"]["edges"]
-    assert len(nodes) == 13
-    assert len(edges) == 11
+    assert len(nodes) == 14
+    assert len(edges) == 12
     assert any(node["id"] == "DummyEwsMailItems-mailAttachments" for node in nodes)
     assert not any(node["id"] == "OutlookEwsMailAttachmentReader-mailAttachments" for node in nodes)
     assert any(
@@ -300,7 +305,7 @@ def test_ews_secrets_are_blank_and_read_file_uses_dynamic_local_path() -> None:
 
     drm_node = node_by_id(flow, "DrmDocumentTextExtractor-mailAttachments")
     drm_template = drm_node["data"]["node"]["template"]
-    for field in ("drm_api_url", "drm_token", "employee_no", "allowed_drm_hosts"):
+    for field in ("drm_api_url", "drm_token", "employee_no"):
         assert drm_template[field]["value"] == ""
     assert drm_template["drm_token"]["password"] is True
     assert drm_template["employee_no"]["password"] is True
@@ -309,6 +314,8 @@ def test_ews_secrets_are_blank_and_read_file_uses_dynamic_local_path() -> None:
     assert drm_template["verify_tls"]["value"] is True
     assert drm_template["file_record"]["show"] is True
     assert drm_template["file_record"]["advanced"] is False
+    assert drm_template["vision_model"]["show"] is True
+    assert drm_template["vision_model"]["advanced"] is False
     assert drm_node["data"]["selected_output"] == "processed_file"
 
     file_node = node_by_id(flow, "StableMailFileReader-mailAttachments")
@@ -326,6 +333,7 @@ def test_ews_secrets_are_blank_and_read_file_uses_dynamic_local_path() -> None:
 def test_models_have_no_default_provider_or_secret() -> None:
     flow = load_flow()
     for node_id in (
+        "LanguageModelComponent-mailAttachmentVision",
         "LanguageModelComponent-mailAttachmentItem",
         "LanguageModelComponent-mailAttachmentFinal",
     ):
@@ -409,7 +417,6 @@ def test_drm_component_passes_mail_body_without_api_credentials(tmp_path: Path) 
         "",
         "",
         "",
-        "",
     )
     assert body["file_path"] == str(source)
     assert body["drm_status"] == "not_applicable"
@@ -467,7 +474,6 @@ def test_drm_component_posts_ews_attachment_and_writes_plain_text(tmp_path: Path
         "http://drm.example.internal/DRM/decrypt/text",
         "TOKEN_VALUE",
         "X000000",
-        "drm.example.internal",
         allow_insecure_http=True,
         output_root=tmp_path / "drm-text-output",
         transport=client,
@@ -493,6 +499,94 @@ def test_drm_component_posts_ews_attachment_and_writes_plain_text(tmp_path: Path
             "allow_redirects": False,
         }
     ]
+
+
+def test_unsupported_archive_becomes_notice_and_does_not_stop_loop(tmp_path: Path) -> None:
+    module = load_module(DRM_SOURCE, "mail_flow_unsupported_attachment_test")
+    source = tmp_path / "evidence.zip"
+    source.write_bytes(b"PK archive content is intentionally not opened")
+
+    result = module.process_file_record(
+        {
+            "file_path": str(source),
+            "file_name": "evidence.zip",
+            "source_kind": "ews_attachment",
+            "mail_subject": "첨부 검토",
+        },
+        output_root=tmp_path / "unsupported-output",
+    )
+
+    assert result["mail_subject"] == "첨부 검토"
+    assert result["processing_path"] == "skipped_unsupported"
+    assert result["extraction_error"] == "unsupported_file_type"
+    assert result["drm_status"] == "not_applicable"
+    assert result["file_name"] == "evidence_unsupported_notice.txt"
+    assert "지원하지 않는 첨부파일 형식" in Path(result["file_path"]).read_text(encoding="utf-8")
+    assert source.read_bytes() == b"PK archive content is intentionally not opened"
+
+
+def test_jpeg_attachment_uses_connected_vision_model_and_writes_text(tmp_path: Path) -> None:
+    module = load_module(DRM_SOURCE, "mail_flow_jpeg_vision_test")
+    source = tmp_path / "equipment.jpg"
+    source.write_bytes(b"\xff\xd8\xff\xe0fake-jpeg-payload")
+
+    class VisionModel:
+        def __init__(self) -> None:
+            self.calls: list = []
+
+        async def ainvoke(self, messages):
+            self.calls.append(messages)
+            return SimpleNamespace(content="설비 전면 사진이며 경고등이 켜져 있습니다.")
+
+    model = VisionModel()
+    result = asyncio.run(
+        module.process_file_record_with_vision(
+            {
+                "file_path": str(source),
+                "file_name": "equipment.jpg",
+                "source_kind": "ews_attachment",
+                "mail_subject": "설비 상태 확인",
+            },
+            model,
+            output_root=tmp_path / "vision-output",
+        )
+    )
+
+    assert result["processing_path"] == "vision_model"
+    assert result["vision_status"] == "text_extracted"
+    assert result["drm_status"] == "not_applicable"
+    assert result["file_name"] == "equipment_vision_text.txt"
+    assert Path(result["file_path"]).read_text(encoding="utf-8") == "설비 전면 사진이며 경고등이 켜져 있습니다."
+    assert len(model.calls) == 1
+    content = model.calls[0][0].content
+    assert content[0]["type"] == "text"
+    assert content[1]["type"] == "image_url"
+    assert content[1]["image_url"]["url"].startswith("data:image/jpeg;base64,")
+
+
+def test_jpeg_without_vision_model_becomes_failure_notice(tmp_path: Path) -> None:
+    module = load_module(DRM_SOURCE, "mail_flow_jpeg_missing_model_test")
+    source = tmp_path / "equipment.jpeg"
+    source.write_bytes(b"\xff\xd8\xff\xe0fake-jpeg-payload")
+
+    result = asyncio.run(
+        module.process_file_record_with_vision(
+            {
+                "file_path": str(source),
+                "file_name": "equipment.jpeg",
+                "source_kind": "ews_attachment",
+            },
+            None,
+            output_root=tmp_path / "vision-notice-output",
+        )
+    )
+
+    assert result["processing_path"] == "vision_failed"
+    assert result["vision_status"] == "failed"
+    assert result["extraction_error"] == "vision_model_missing"
+    assert "Language Model이 연결되지 않았습니다" in Path(result["file_path"]).read_text(
+        encoding="utf-8"
+    )
 
 
 def test_drm_component_auto_and_bypass_modes_pass_original_file_without_api(tmp_path: Path) -> None:

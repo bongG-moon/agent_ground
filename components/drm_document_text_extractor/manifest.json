@@ -4,7 +4,7 @@
   "class_name": "DrmDocumentTextExtractor",
   "asset_type": "component",
   "status": "user_testing",
-  "version": "0.3.0",
+  "version": "0.5.0",
   "packaging": "standalone",
   "standalone": true,
   "reusability": "shared",
@@ -29,7 +29,7 @@
     ]
   },
   "source_family": "enterprise_utility_components",
-  "summary_ko": "처리 모드에 따라 일반 파일은 로컬에서 읽고 DRM 파일만 API로 보내 평문을 반환합니다.",
+  "summary_ko": "일반 문서는 로컬/DRM 경로로 처리하고 EWS JPG/JPEG는 연결된 Vision 모델로 해석하며 미지원 형식은 오류 대신 안내 텍스트로 반환합니다.",
   "source_file": "drm_document_text_extractor.py",
   "inputs": [
     {
@@ -54,9 +54,14 @@
         "tiff",
         "txt",
         "xls",
-        "xlsx"
+        "xlsx",
+        "7z",
+        "gz",
+        "rar",
+        "tar",
+        "zip"
       ],
-      "info": "PDF·Office·HWP·텍스트·CSV·일반 이미지를 처리 모드에 따라 로컬 또는 DRM API로 읽습니다.",
+      "info": "지원 문서는 로컬 또는 DRM API로 읽고 ZIP·RAR·7Z·TAR·GZ는 내용을 열지 않은 채 미지원 안내로 처리합니다.",
       "required": false,
       "is_list": true,
       "value": []
@@ -67,7 +72,18 @@
       "display_name": "EWS 파일 항목",
       "info": "EWS Flow에서 file_path·file_name·source_kind가 포함된 Data 한 건을 연결합니다.",
       "required": false,
-      "advanced": true
+      "advanced": false
+    },
+    {
+      "type": "HandleInput",
+      "name": "vision_model",
+      "display_name": "JPG 이미지 해석 모델",
+      "input_types": [
+        "LanguageModel"
+      ],
+      "required": false,
+      "advanced": false,
+      "info": "EWS의 JPG/JPEG 첨부를 해석할 Vision Language Model입니다. 사내 vLLM이 OpenAI 호환 멀티모달 모델을 제공하면 기본 Language Model 노드를 연결합니다."
     },
     {
       "type": "DropdownInput",
@@ -79,7 +95,7 @@
         "DRM 미사용"
       ],
       "value": "자동(로컬 우선)",
-      "info": "자동은 PDF·DOCX·PPTX·XLSX·TXT·CSV를 로컬에서 먼저 읽고 실패한 파일만 DRM API로 보냅니다. 그 밖의 형식은 DRM API로 처리합니다. 항상 DRM은 모든 파일을 API로 보내며, DRM 미사용은 네트워크 호출을 금지합니다.",
+      "info": "자동은 PDF·DOCX·PPTX·XLSX·TXT·CSV를 로컬에서 먼저 읽고 실패한 파일만 DRM API로 보냅니다. 그 밖의 형식은 DRM API로 처리합니다. 항상 DRM은 모든 파일을 API로 보내며, DRM 미사용은 DRM API 호출을 금지합니다. EWS JPG/JPEG의 Vision 모델 경로는 별도로 동작합니다.",
       "required": true
     },
     {
@@ -103,14 +119,6 @@
       "name": "employee_no",
       "display_name": "사번",
       "info": "DRM API 호출 시 empNo로 전달합니다. 개인 식별값이므로 비밀 입력으로 처리합니다.",
-      "required": false,
-      "value": ""
-    },
-    {
-      "type": "MessageTextInput",
-      "name": "allowed_drm_hosts",
-      "display_name": "허용 DRM 서버",
-      "info": "DRM API 호출을 허용할 host만 입력합니다. 예: drm.example.internal 또는 .example.internal",
       "required": false,
       "value": ""
     },
@@ -195,6 +203,7 @@
   ],
   "dependencies": [
     "docx",
+    "langchain_core.messages",
     "lfx",
     "openpyxl",
     "pptx",
@@ -210,12 +219,14 @@
     "confidential_document_content",
     "external_api_upload",
     "credentials_required",
-    "endpoint_allowlist",
     "https_default",
-    "plaintext_output"
+    "plaintext_output",
+    "multimodal_image_content",
+    "vision_model_optional",
+    "unsupported_attachment_skip_safe"
   ],
-  "verified_environment": "langflow-1.8.2-lfx-0.3.4-template-and-fake-drm-api-contract-validation",
-  "last_verified_at": "2026-07-17",
+  "verified_environment": "langflow-1.8.2-lfx-0.3.4-template-fake-drm-and-vision-model-contract-validation",
+  "last_verified_at": "2026-07-23",
   "documentation_path": "html/components/drm_document_text_extractor/index.html",
   "approved_by_user_at": null,
   "guide_file": "USAGE_GUIDE.md"

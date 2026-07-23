@@ -91,8 +91,8 @@ INTERNAL_NODE_IDS = {
 COMPONENT_VERSION_OVERRIDES = {
     # 외부 Tool 입력 계약이 node-ID 기반에서 고정 question으로 변경된 호환성 수정입니다.
     "cached_named_run_flow_tool": "0.2.0",
-    # 일반 파일 로컬 추출, DRM 강제, DRM 미사용의 처리 모드 계약을 추가했습니다.
-    "drm_document_text_extractor": "0.3.0",
+    # 미지원 형식 skip-safe 처리와 EWS JPG/JPEG Vision 모델 경로를 추가했습니다.
+    "drm_document_text_extractor": "0.5.0",
 }
 
 DIRECT_DATA_ACCESS_IDS = {
@@ -145,9 +145,11 @@ RISK_TAGS = {
         "confidential_document_content",
         "external_api_upload",
         "credentials_required",
-        "endpoint_allowlist",
         "https_default",
         "plaintext_output",
+        "multimodal_image_content",
+        "vision_model_optional",
+        "unsupported_attachment_skip_safe",
     ],
     "html_template_renderer": ["html_output"],
     "html_presentation_renderer": ["html_output", "inline_svg", "self_contained_artifact", "motion_policy"],
@@ -274,9 +276,9 @@ def component_release(component_id: str) -> dict[str, Any]:
         last_verified_at = "2026-07-12"
         if component_id == "drm_document_text_extractor":
             verified_environment = (
-                "langflow-1.8.2-lfx-0.3.4-template-and-fake-drm-api-contract-validation"
+                "langflow-1.8.2-lfx-0.3.4-template-fake-drm-and-vision-model-contract-validation"
             )
-            last_verified_at = "2026-07-17"
+            last_verified_at = "2026-07-23"
         return {
             "source_family": "enterprise_utility_components",
             "version": COMPONENT_VERSION_OVERRIDES.get(component_id, "0.1.0"),

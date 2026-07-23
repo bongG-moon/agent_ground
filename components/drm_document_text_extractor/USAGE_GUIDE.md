@@ -15,6 +15,9 @@ EWS 첨부 처리에서는 다음 별도 포트를 사용합니다.
 EWS 파일 항목.file_record (Data)
   -> 문서 텍스트 추출 (DRM 자동).processed_file (Data)
   -> Read File.file_path
+
+JPG 이미지 해석 Language Model.model_output (LanguageModel)
+  -> 문서 텍스트 추출 (DRM 자동).vision_model (LanguageModel)
 ```
 
 ## 설정 순서
@@ -23,16 +26,13 @@ EWS 파일 항목.file_record (Data)
 2. 처리 모드를 선택합니다. 기본값은 `자동(로컬 우선)`입니다.
 3. DRM 호출 가능성이 있으면 API 전체 URL을 입력합니다.
 4. Bearer 토큰과 사번은 Secret 입력에 넣습니다.
-5. URL의 host를 `허용 DRM 서버`에 정확히 입력합니다.
-6. 가능하면 HTTPS와 TLS 인증서 검증을 유지합니다.
+5. 가능하면 HTTPS와 TLS 인증서 검증을 유지합니다.
 
 | 처리 모드 | 직접 업로드 | EWS `processed_file` |
 | --- | --- | --- |
 | `자동(로컬 우선)` | 로컬 추출 성공 파일은 Message에 바로 포함, 나머지만 DRM API | 일반 파일은 원본 경로 통과, 나머지는 DRM TXT 생성 |
 | `항상 DRM API` | 모든 파일을 DRM API 처리 | 모든 첨부를 DRM TXT로 변환 |
-| `DRM 미사용` | 로컬 지원 형식만 추출하고 네트워크 금지 | 원본 파일 경로를 그대로 `Read File`로 전달 |
-
-하위 도메인을 묶어 허용해야 할 때만 `.example.internal`처럼 앞에 점을 붙인 suffix 규칙을 사용할 수 있습니다. `https://`, path, port는 allowlist에 넣지 않습니다.
+| `DRM 미사용` | 로컬 지원 형식만 추출하고 DRM API를 호출하지 않음 | 문서는 원본 경로 통과, JPG/JPEG Vision 경로는 별도 동작 |
 
 ## 원본 Python 코드와의 대응
 
@@ -55,15 +55,19 @@ EWS 파일 항목.file_record (Data)
 - PDF, PowerPoint, Excel, Word, HWP/HWPX, RTF
 - TXT, CSV
 - PNG, JPG/JPEG, BMP, TIF/TIFF
+- 미지원 안내 처리: ZIP, RAR, 7Z, TAR, GZ
 
-로컬 직접 추출은 PDF, DOCX, PPTX, XLSX, TXT, CSV를 지원합니다. 구형 Office, HWP/HWPX, RTF, 이미지는 자동 모드에서 DRM API로 fallback합니다. 이미지 OCR은 DRM API 또는 EWS Flow 뒤의 `Read File` 파서 구현에 따릅니다.
+로컬 직접 추출은 PDF, DOCX, PPTX, XLSX, TXT, CSV를 지원합니다. 구형 Office, HWP/HWPX, RTF와 비-JPEG 이미지는 자동 모드에서 DRM API로 fallback합니다. EWS의 JPG/JPEG는 `vision_model`이 연결되어 있으면 Data URL 멀티모달 입력으로 전달하고 결과를 UTF-8 TXT로 저장합니다.
+
+ZIP·RAR·7Z·TAR·GZ는 압축을 풀거나 내부 파일을 실행하지 않습니다. `skipped_unsupported` 상태와 사유가 적힌 안내 텍스트를 반환하므로 여러 첨부 중 하나가 미지원 형식이어도 Loop는 계속됩니다.
 
 ## 실패 정책
 
-- 필수값 누락, 비허용 확장자, 파일 수·크기 초과: 네트워크 호출 전 실패
+- 미지원 확장자: 파일 내용을 열지 않고 `skipped_unsupported` 안내 결과 반환
+- 파일 수·크기 초과: 네트워크 호출 전 실패
+- JPG/JPEG Vision 모델 미연결·호출 실패: `vision_failed` 안내 TXT를 반환하고 다음 Loop 항목 계속
 - `DRM 미사용` 직접 업로드에서 로컬 미지원·손상 파일: 네트워크 fallback 없이 실패
 - 자동 모드의 로컬 추출 실패: DRM 설정이 있으면 API fallback, 없으면 필요한 설정을 안내하고 실패
-- URL host allowlist 불일치: 문서를 보내지 않고 실패
 - HTTP 3xx/4xx/5xx, timeout, 빈 응답: 해당 실행 실패
 - 오류에는 토큰, 사번, 전체 endpoint, API 응답 본문과 문서 본문을 넣지 않음
 

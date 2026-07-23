@@ -9,7 +9,6 @@
 | DRM API 주소 | `https://drm.example.internal/DRM/decrypt/text` |
 | DRM 토큰 | Flow의 Secret 입력에 직접 입력 |
 | 사번 | Flow의 Secret 입력에 직접 입력 |
-| 허용 DRM 서버 | `drm.example.internal` |
 | HTTP DRM API 사용 허용 | `false` |
 | TLS 인증서 검증 | `true` |
 

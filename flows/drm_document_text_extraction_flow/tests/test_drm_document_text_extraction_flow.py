@@ -94,21 +94,22 @@ def test_package_contract_and_supported_formats() -> None:
     )
 
     assert manifest["status"] == "user_testing"
-    assert manifest["version"] == "0.3.0"
+    assert manifest["version"] == "0.4.1"
     assert manifest["runtime_ready"] is True
     assert refs == {
         "flow_id": "drm_document_text_extraction_flow",
-        "components": [{"id": "drm_document_text_extractor", "version": "0.3.0"}],
+        "components": [{"id": "drm_document_text_extractor", "version": "0.5.0"}],
     }
     assert internal["nodes"] == []
     file_input = next(item for item in component_manifest["inputs"] if item["name"] == "document_files")
-    assert {"pdf", "pptx", "xlsx", "docx", "hwp", "txt", "csv", "png", "jpg"} <= set(
+    assert {"pdf", "pptx", "xlsx", "docx", "hwp", "txt", "csv", "png", "jpg", "zip"} <= set(
         file_input["file_types"]
     )
     assert file_input["required"] is False
     assert {item["name"] for item in component_manifest["inputs"]} >= {
         "document_files",
         "file_record",
+        "vision_model",
         "drm_api_url",
         "drm_token",
         "employee_no",
@@ -134,16 +135,16 @@ def test_flow_embeds_component_source_and_connects_message_to_chat_output() -> N
     assert template["employee_no"]["value"] == ""
     assert template["drm_token"]["password"] is True
     assert template["employee_no"]["password"] is True
-    assert template["allowed_drm_hosts"]["value"] == ""
     assert template["processing_mode"]["value"] == "자동(로컬 우선)"
     assert template["processing_mode"]["real_time_refresh"] is True
-    for field_name in ("drm_api_url", "drm_token", "employee_no", "allowed_drm_hosts"):
+    for field_name in ("drm_api_url", "drm_token", "employee_no"):
         assert template[field_name]["required"] is False
     assert template["allow_insecure_http"]["value"] is False
     assert template["verify_tls"]["value"] is True
     assert template["document_files"]["file_path"] in ("", [])
     assert template["document_files"]["required"] is True
     assert template["file_record"]["show"] is False
+    assert template["vision_model"]["show"] is False
 
     edge = flow["data"]["edges"][0]
     assert (edge["source"], edge["target"]) == (
@@ -163,7 +164,6 @@ def test_bypass_mode_hides_drm_network_settings() -> None:
         "drm_api_url",
         "drm_token",
         "employee_no",
-        "allowed_drm_hosts",
         "allow_insecure_http",
         "verify_tls",
         "timeout_seconds",
@@ -203,7 +203,6 @@ def test_extracts_multiple_files_with_original_request_contract(tmp_path: Path) 
         "https://drm.example.internal/DRM/decrypt/text",
         "TOKEN_VALUE",
         "X000000",
-        "drm.example.internal",
         transport=client,
     )
 
@@ -308,22 +307,11 @@ def test_bypass_mode_never_calls_drm_and_rejects_nonlocal_direct_format(tmp_path
     assert client.calls == []
 
 
-def test_allowlist_and_http_policy_fail_before_upload(tmp_path: Path) -> None:
+def test_http_policy_fails_before_upload(tmp_path: Path) -> None:
     module = load_component_module()
     document = tmp_path / "review.docx"
     document.write_bytes(b"PK fake-docx")
     client = FakeClient([FakeResponse(b"unused")])
-
-    with pytest.raises(ValueError, match="허용 서버 목록"):
-        module.extract_document_texts(
-            str(document),
-            "https://other.example.internal/DRM/decrypt/text",
-            "TOKEN_VALUE",
-            "X000000",
-            "drm.example.internal",
-            transport=client,
-        )
-    assert client.calls == []
 
     with pytest.raises(ValueError, match="HTTP로 보낼 수 없습니다"):
         module.extract_document_texts(
@@ -331,7 +319,6 @@ def test_allowlist_and_http_policy_fail_before_upload(tmp_path: Path) -> None:
             "http://drm.example.internal/DRM/decrypt/text",
             "TOKEN_VALUE",
             "X000000",
-            "drm.example.internal",
             transport=client,
         )
     assert client.calls == []
@@ -349,7 +336,6 @@ def test_http_can_be_explicitly_enabled_for_closed_network(tmp_path: Path) -> No
         "http://drm.example.internal/DRM/decrypt/text",
         "TOKEN_VALUE",
         "X000000",
-        "drm.example.internal",
         allow_insecure_http=True,
         transport=client,
     )
@@ -357,20 +343,23 @@ def test_http_can_be_explicitly_enabled_for_closed_network(tmp_path: Path) -> No
     assert client.calls[0]["verify"] is False
 
 
-def test_invalid_format_and_size_fail_before_upload(tmp_path: Path) -> None:
+def test_unsupported_format_is_skipped_and_size_fails_before_upload(tmp_path: Path) -> None:
     module = load_component_module()
     text_file = tmp_path / "archive.zip"
     text_file.write_bytes(b"not supported")
     client = FakeClient([FakeResponse(b"unused")])
-    with pytest.raises(ValueError, match="지원하지 않는 파일 형식"):
-        module.extract_document_texts(
-            str(text_file),
-            "https://drm.example.internal/DRM/decrypt/text",
-            "TOKEN_VALUE",
-            "X000000",
-            "drm.example.internal",
-            transport=client,
-        )
+    skipped = module.extract_document_texts(
+        str(text_file),
+        "https://drm.example.internal/DRM/decrypt/text",
+        "TOKEN_VALUE",
+        "X000000",
+        transport=client,
+    )
+    assert skipped["data"][0]["processing_path"] == "skipped_unsupported"
+    assert skipped["data"][0]["drm_status"] == "not_applicable"
+    assert "지원하지 않는 첨부파일 형식" in skipped["data"][0]["text"]
+    assert skipped["meta"]["skipped_file_count"] == 1
+    assert skipped["meta"]["network_called"] is False
 
     pdf = tmp_path / "large.pdf"
     pdf.write_bytes(b"x" * (1024 * 1024 + 1))
@@ -380,7 +369,6 @@ def test_invalid_format_and_size_fail_before_upload(tmp_path: Path) -> None:
             "https://drm.example.internal/DRM/decrypt/text",
             "TOKEN_VALUE",
             "X000000",
-            "drm.example.internal",
             max_file_size_mb=1,
             transport=client,
         )
@@ -404,7 +392,6 @@ def test_http_error_does_not_expose_response_body_or_secret(tmp_path: Path) -> N
             "https://drm.example.internal/DRM/decrypt/text",
             secret,
             "X000000",
-            "drm.example.internal",
             transport=client,
         )
     message = str(caught.value)

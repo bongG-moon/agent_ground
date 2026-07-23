@@ -29,7 +29,7 @@
 
 ## 5. DRM fail-closed
 
-- 입력: 비허용 host, 4xx/5xx, timeout, 빈 평문 응답
+- 입력: 잘못된 URL, 4xx/5xx, timeout, 빈 평문 응답
 - 기대: 보호 첨부 원본으로 fallback하지 않고 실행 중단
 - 기대: 오류에 토큰·사번·응답 본문·문서 본문을 포함하지 않음
 

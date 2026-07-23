@@ -124,6 +124,7 @@ def _build_component_node(wrapper: dict[str, Any]) -> tuple[dict[str, Any], str]
     # 이 직접 업로드 Flow에서는 파일 입력만 사용하도록 UI 계약을 좁힌다.
     config["template"]["document_files"]["required"] = True
     config["template"]["file_record"]["show"] = False
+    config["template"]["vision_model"]["show"] = False
 
     node = _clone_node(wrapper, "DrmDocumentTextExtractor-drmDocument", (0.0, 80.0))
     node["data"]["type"] = instance.__class__.__name__
@@ -210,14 +211,15 @@ def build_flow() -> tuple[dict[str, Any], str]:
             "viewport": {"x": 110.0, "y": 170.0, "zoom": 0.72},
         },
         "description": (
-            "Langflow 1.8.2 flow that extracts plain files locally, sends protected or unsupported files "
-            "to an allowlisted DRM text API, and returns the combined text without an LLM."
+            "Langflow 1.8.2 flow that extracts plain files locally, sends protected files "
+            "to the configured DRM text API, skips unsupported archive formats with a notice, "
+            "and returns the combined text without an LLM."
         ),
         "endpoint_name": "drm-document-text-extraction",
         "id": str(
             uuid.uuid5(
                 uuid.NAMESPACE_URL,
-                "agent-ground/drm-document-text-extraction-flow/0.3.0",
+                "agent-ground/drm-document-text-extraction-flow/0.4.1",
             )
         ),
         "is_component": False,
@@ -269,7 +271,7 @@ def validate_flow(flow: dict[str, Any], source: str) -> None:
         raise ValueError("Component runtime template이 다릅니다.")
 
     template = config["template"]
-    for field_name in ("drm_api_url", "drm_token", "employee_no", "allowed_drm_hosts"):
+    for field_name in ("drm_api_url", "drm_token", "employee_no"):
         if template[field_name].get("value"):
             raise ValueError(f"배포 Flow에는 DRM 환경값을 포함할 수 없습니다: {field_name}")
     if template["allow_insecure_http"].get("value") is not False:
@@ -284,6 +286,8 @@ def validate_flow(flow: dict[str, Any], source: str) -> None:
         raise ValueError("직접 업로드 Flow에서는 문서 파일이 필수여야 합니다.")
     if template["file_record"].get("show") is not False:
         raise ValueError("직접 업로드 Flow에서는 EWS file_record 입력을 숨겨야 합니다.")
+    if template["vision_model"].get("show") is not False:
+        raise ValueError("직접 업로드 Flow에서는 EWS 전용 Vision 모델 입력을 숨겨야 합니다.")
 
     edge = edges[0]
     if edge.get("source") not in node_by_id or edge.get("target") not in node_by_id:
