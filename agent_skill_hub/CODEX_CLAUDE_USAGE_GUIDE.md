@@ -53,7 +53,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File "$HubRoot\install.ps1" `
   -SecurityProfile InternalEnterprise
 ```
 
-현재 31개의 `active` Skill이 설치됩니다. 정확한 ID와 역할은 [SKILL_INVENTORY.md](./SKILL_INVENTORY.md)를 확인합니다. 일부만 설치하려면:
+현재 31개의 `active` Skill이 설치됩니다. `project-design-context`는 평가 중인 candidate라서 기본 설치에서는 빠집니다. 정확한 ID와 역할은 [SKILL_INVENTORY.md](./SKILL_INVENTORY.md)를 확인합니다. 일부만 설치하려면:
 
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File "$HubRoot\install.ps1" `
@@ -74,6 +74,21 @@ powershell -NoProfile -ExecutionPolicy Bypass -File "$HubRoot\install.ps1" `
   -ProjectRoot $ProjectRoot `
   -SecurityProfile InternalEnterprise
 ```
+
+candidate를 시험할 때는 운영 경로가 아니라 별도 local 폴더에만 설치합니다.
+
+```powershell
+$EvalTarget = Join-Path $ProjectRoot '.skill-eval'
+
+powershell -NoProfile -ExecutionPolicy Bypass -File "$HubRoot\install.ps1" `
+  -Target Custom `
+  -Destination $EvalTarget `
+  -Skill project-design-context `
+  -IncludeCandidates `
+  -SecurityProfile InternalEnterprise
+```
+
+blind routing eval과 보안 검토를 통과해 `active`로 승격되기 전에는 사용자 범위나 운영 프로젝트에 candidate를 설치하지 않습니다.
 
 ## 5. 사용자 범위 설치
 

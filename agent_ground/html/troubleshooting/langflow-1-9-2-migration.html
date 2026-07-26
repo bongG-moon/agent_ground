@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <base href="../" />
+  <title>Langflow 1.9.2 이관 안내 · Agent Ground</title>
+  <meta name="description" content="Agent Ground 자산의 Langflow 1.9.2 이관 기준과 검증 범위" />
+  <link rel="stylesheet" href="assets/css/site.css" />
+  
+</head>
+<body>
+  <a class="skip-link" href="#main">본문으로 바로가기</a>
+  <header class="site-header">
+    <div class="header-inner">
+      <a class="brand" href="index.html" aria-label="Agent Ground 홈">
+        <span class="brand-mark" aria-hidden="true">AG</span>
+        <span class="brand-copy"><strong>Agent Ground</strong><small>Learn · Build · Validate</small></span>
+      </a>
+      <button class="menu-button" type="button" data-menu-button aria-expanded="false" aria-controls="site-nav" aria-label="메뉴 열기"><span class="menu-lines"></span></button>
+      <nav class="site-nav" id="site-nav" data-site-nav data-open="false" aria-label="주요 메뉴"><a href="index.html">홈</a><a href="training/index.html">처음 배우기</a><a href="flows/index.html">Flows</a><a href="components/index.html">Components</a><a href="troubleshooting/index.html" aria-current="page">실패와 해결</a><a href="business-agent-design/index.html">업무 Agent 설계</a></nav>
+    </div>
+  </header>
+  <main class="page-wrap" id="main">
+    <nav class="breadcrumbs" aria-label="현재 위치"><a href="index.html">홈</a><span aria-hidden="true">/</span><a href="troubleshooting/index.html">실패와 해결</a><span aria-hidden="true">/</span><span>Langflow 1.9.2 이관</span></nav>
+    
+<section class="hero"><div class="meta-row"><span class="badge badge-testing">현재 기본 환경</span><span class="tag">Langflow 1.9.2</span><span class="tag">langflow-base 0.9.2</span><span class="tag">LFX 0.4.2</span></div><div class="hero-kicker">Version migration</div><h1>버전 문자열이 아니라<br />실행 계약을 다시 만들었습니다</h1><p>Agent Ground의 Component와 Flow를 1.9.2 실제 패키지에서 다시 읽고, 입력·출력 schema, 코드 metadata와 연결선을 새 계약으로 생성했습니다.</p><div class="hero-actions"><a class="button button-primary" href="training/index.html#version-baseline">교육자료의 현재 기준</a><a class="button button-secondary" href="../training/references/LANGFLOW_1_9_2_MIGRATION_GUIDE.md">이관 원문</a></div></section>
+<section class="section"><div class="section-heading"><p class="eyebrow">What changed</p><h2>1.9.2 이관에서 다시 만든 것</h2></div><div class="pipeline"><div class="pipeline-step"><small>01</small><strong>정확한 버전 고정</strong></div><div class="pipeline-step"><small>02</small><strong>Standalone loader</strong></div><div class="pipeline-step"><small>03</small><strong>Node template 재생성</strong></div><div class="pipeline-step"><small>04</small><strong>Edge handle 재생성</strong></div><div class="pipeline-step"><small>05</small><strong>Graph parse</strong></div></div><div class="card" style="margin-top:16px"><ul class="check-list"><li>기본 node는 Langflow 1.9.2 starter 또는 LFX 0.4.2 Component index를 사용합니다.</li><li>Custom node는 원본 Python으로 UI field, output, code hash와 dependency metadata를 다시 만듭니다.</li><li>새 output/input 타입으로 모든 연결선의 구조화 handle과 <code>œ</code> 문자열을 다시 만듭니다.</li><li>개별 Flow와 통합 Bundle을 1.9.2 backend Graph parser로 읽습니다.</li></ul></div></section>
+<section class="section"><div class="section-heading"><p class="eyebrow">Type names</p><h2>JSON·Table과 Data·DataFrame은 왜 함께 보이나</h2><p>1.9 화면 이름과 Python 호환 클래스 이름의 차이입니다.</p></div><div class="table-wrap"><table><thead><tr><th>1.9.2 화면</th><th>Python 호환 클래스</th><th>용도</th></tr></thead><tbody><tr><td><code>JSON</code></td><td><code>Data</code></td><td>key/value 구조화 데이터</td></tr><tr><td><code>Table</code></td><td><code>DataFrame</code></td><td>행과 열이 있는 표</td></tr><tr><td><code>Message</code></td><td><code>Message</code></td><td>대화 입력·출력</td></tr></tbody></table></div></section>
+<section class="section"><div class="section-heading"><p class="eyebrow">Builder changes</p><h2>모델·MCP·Custom Component</h2></div><div class="grid grid-3"><div class="card"><h3>통합 모델 선택기</h3><p>배포 JSON에 특정 공급자와 API Key를 고정하지 않고 사용자 Builder에서 조직 승인 모델을 선택합니다.</p></div><div class="card"><h3>MCP Servers</h3><p>Settings에서 MCP 서버를 등록하고 MCP sidebar에서 Tool을 가져옵니다. 서버 설정은 사용자 환경 DB에 존재해야 합니다.</p></div><div class="card"><h3>운영 허용 정책</h3><p><code>LANGFLOW_ALLOW_CUSTOM_COMPONENTS=false</code>이면 임의 코드 생성·편집이 제한됩니다. 승인된 <code>LANGFLOW_COMPONENTS_PATH</code> 배포 절차를 확인합니다.</p></div></div></section>
+<section class="section"><div class="section-heading"><p class="eyebrow">Validation boundary</p><h2>통과한 검사와 남은 사용자 확인</h2></div><div class="grid grid-2"><div class="notice notice-info"><strong>프로젝트에서 확인</strong>Standalone loader, LFX template 생성, embedded source 동기화, edge port 계약, 개별 Flow와 Bundle Graph parse, 단위·계약 테스트</div><div class="notice notice-testing"><strong>사용자 환경에서 확인</strong>실제 UI Import, 승인 LLM Tool 선택, Oracle·EWS·DRM·GooDocs·Datalake·MCP와 사내 endpoint 실행</div></div></section>
+<div class="page-actions"><button class="back-button" type="button" data-back data-fallback="troubleshooting/index.html">← 이전 화면</button><a class="button button-soft" href="troubleshooting/index.html">실패와 해결 목록</a><a class="button button-soft" href="training/index.html">전체 교육자료</a><a class="button button-soft" href="index.html">홈</a></div>
+
+  </main>
+  <footer class="site-footer">
+    <div class="footer-inner">
+      <div><strong>Agent Ground</strong><p>실제 Agent Builder 환경에서 검증된 교육자료, Standalone Component와 Flow를 함께 쌓아갑니다.</p></div>
+      <div class="footer-links"><a href="training/index.html">처음 배우기</a><a href="troubleshooting/index.html">실패와 해결</a><a href="../AGENT_GROUND_PROJECT_MASTER_GUIDE.md">프로젝트 기준</a></div>
+    </div>
+  </footer>
+  <script src="assets/js/site.js"></script>
+  
+</body>
+</html>

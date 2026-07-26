@@ -1,8 +1,8 @@
 # Skill 배포 전 평가
 
-새 외부 Skill은 바로 `active`로 만들지 않습니다. 먼저 `candidate`로 등록하고 보안 검토와 blind routing eval을 모두 통과시킵니다. 현재 candidate와 suite는 0개입니다.
+새 외부 Skill은 바로 `active`로 만들지 않습니다. 먼저 `candidate`로 등록하고 보안 검토와 blind routing eval을 모두 통과시킵니다. 현재 `project-design-context` 1개가 `project-design-context-routing-v1` suite의 평가를 기다리고 있습니다.
 
-기존 비승인 candidate는 평가 대기 상태로 남겨두지 않고 파일과 파생 항목을 모두 삭제했습니다. 재반입이 필요하면 [EXCLUDED_SKILLS.md](./EXCLUDED_SKILLS.md)의 조건에 따라 새 candidate로 시작합니다.
+기존에 제외하기로 결정한 Skill은 평가 대기 상태로 남겨두지 않고 파일과 파생 항목을 모두 삭제했습니다. 재반입이 필요하면 [EXCLUDED_SKILLS.md](./EXCLUDED_SKILLS.md)의 조건에 따라 새 candidate로 시작합니다.
 
 ## 반입 전 보안 평가
 
@@ -29,6 +29,14 @@ python .\agent_skill_hub\scripts\skill_eval.py score --suite <suite-id> --result
 ```
 
 승인된 사내 Claude endpoint와 ChatGPT Enterprise에서 각각 실행합니다. 외부 model로 평가하지 않습니다.
+
+현재 candidate의 블라인드 패킷은 다음처럼 만듭니다.
+
+```powershell
+python .\agent_skill_hub\scripts\skill_eval.py prepare `
+  --suite project-design-context-routing-v1 `
+  --output .\.pytest-tmp\project-design-context-routing-v1-blind.jsonl
+```
 
 ## 승격 기준
 

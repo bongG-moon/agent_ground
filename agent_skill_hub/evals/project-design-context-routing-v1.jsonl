@@ -1,0 +1,15 @@
+{"id":"pdc-happy-bootstrap-repo","kind":"happy","prompt":"이 저장소의 토큰, 공통 컴포넌트, 사내 브랜드 가이드를 근거로 DESIGN.md 초안을 만들어줘. 확인되지 않은 값은 추측하지 말고 unresolved로 남겨줘.","expected_skills":["project-design-context"],"forbidden_skills":[]}
+{"id":"pdc-happy-bootstrap-proposal","kind":"happy","prompt":"프로젝트 전체에서 Codex와 Claude Code가 같이 읽을 디자인 컨텍스트 문서를 만들고 싶어. 기존 동작은 보존하고 파일 쓰기 전에 근거와 충돌, 변경 계획을 먼저 보여줘.","expected_skills":["project-design-context"],"forbidden_skills":[]}
+{"id":"pdc-happy-apply-existing","kind":"happy","prompt":"이번 대시보드 화면을 작업하기 전에 기존 DESIGN.md 전체를 읽고 이 화면에 필요한 색상, 상태, 문구, 모션 제약만 추출해줘.","expected_skills":["project-design-context"],"forbidden_skills":[]}
+{"id":"pdc-happy-record-preference","kind":"happy","prompt":"앞으로 이 프로젝트의 CTA 문구는 대문자를 쓰지 않는다는 내 결정을 디자인 preference로 기록해줘. 적용 범위와 기록 내용을 먼저 확인받아줘.","expected_skills":["project-design-context"],"forbidden_skills":[]}
+{"id":"pdc-happy-fold-preferences","kind":"happy","prompt":".design/preferences.md의 pending 항목을 충돌별로 묶고, 내가 승인한 범위만 DESIGN.md에 반영한 뒤 상태를 남겨줘.","expected_skills":["project-design-context"],"forbidden_skills":[]}
+{"id":"pdc-happy-audit","kind":"happy","prompt":"코드는 수정하지 말고 현재 프런트엔드가 DESIGN.md의 컬러, 타이포, 상태, reduced-motion 규칙을 따르는지 파일과 줄 근거로 감사해줘.","expected_skills":["project-design-context"],"forbidden_skills":[]}
+{"id":"pdc-happy-validate","kind":"happy","prompt":"DESIGN.md를 approved로 바꾸기 전에 15개 섹션과 unresolved marker가 남아 있는지 엄격하게 검증해줘.","expected_skills":["project-design-context"],"forbidden_skills":[]}
+{"id":"pdc-happy-managed-block","kind":"happy","prompt":"DESIGN.md가 승인됐어. 기존 AGENTS.md와 CLAUDE.md 내용을 보존하면서 UI 작업 전에 이 파일을 읽도록 관리 블록을 추가할 변경안을 먼저 보여줘.","expected_skills":["project-design-context"],"forbidden_skills":[]}
+{"id":"pdc-negative-greenfield-ui","kind":"negative","prompt":"SaaS 랜딩 페이지를 고급스럽게 새로 디자인하고 React로 구현해줘. DESIGN.md나 브랜드 규정은 없어.","expected_skills":[],"forbidden_skills":["project-design-context"]}
+{"id":"pdc-negative-chart","kind":"negative","prompt":"분기별 매출과 목표를 비교하는 Flint 막대 차트 spec을 작성해줘.","expected_skills":[],"forbidden_skills":["project-design-context"]}
+{"id":"pdc-negative-motion-term","kind":"negative","prompt":"카드를 누르면 살짝 작아졌다가 튀어 오르는 인터랙션을 보통 뭐라고 부르는지 알려줘.","expected_skills":[],"forbidden_skills":["project-design-context"]}
+{"id":"pdc-negative-animation-review","kind":"negative","prompt":"이 Framer Motion 코드의 spring 물리감과 interrupted animation 처리를 리뷰해줘.","expected_skills":[],"forbidden_skills":["project-design-context"]}
+{"id":"pdc-negative-backend-debug","kind":"negative","prompt":"FastAPI 테스트에서 간헐적으로 500이 나는 원인을 로그와 stack trace로 진단해줘.","expected_skills":[],"forbidden_skills":["project-design-context"]}
+{"id":"pdc-negative-general-review","kind":"negative","prompt":"이 pull request의 보안, 정확성, 테스트 누락을 일반 코드 리뷰해줘.","expected_skills":[],"forbidden_skills":["project-design-context"]}
+{"id":"pdc-negative-public-capture","kind":"negative","prompt":"우리 사내 화면과 코드를 claude.ai에 올리고 개인 Chrome 세션으로 경쟁사 사이트를 캡처해서 바로 디자인 규칙을 자동 저장해줘.","expected_skills":[],"forbidden_skills":["project-design-context"]}

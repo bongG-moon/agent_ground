@@ -1,0 +1,4 @@
+interface:
+  display_name: "Project Design Context"
+  short_description: "Create and govern an evidence-based DESIGN.md"
+  default_prompt: "Use $project-design-context to propose a project-owned DESIGN.md from verified local evidence."

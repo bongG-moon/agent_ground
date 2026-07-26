@@ -1,6 +1,6 @@
 # 현재 Skill 목록과 삭제 이력
 
-기준일: 2026-07-19  
+기준일: 2026-07-26  
 보안 프로필: `internal-enterprise`
 
 ## 요약
@@ -8,10 +8,10 @@
 | 구분 | 수량 | 상태 |
 | --- | ---: | --- |
 | 활성 Skill | 31 | 설치·export 가능 |
-| candidate Skill | 0 | 현재 없음 |
+| candidate Skill | 1 | eval 전 격리; 기본 설치 제외 |
 | 삭제 Skill | 14 | canonical 폴더와 파생 파일까지 제거 |
-| Langflow export 폴더 | 31 | 활성 Skill과 일치 |
-| routing eval suite | 0 | 새 candidate 반입 시 생성 |
+| Langflow export 폴더 | 32 | 활성 31 + candidate 1 |
+| routing eval suite | 1 | candidate용 15개 case |
 
 삭제 Skill은 `EXCLUDED_SKILLS.md`의 이력에만 이름과 사유가 남아 있습니다. 실제 Skill 폴더, catalog entry, source lock entry, eval case, Langflow export, 전용 import script는 존재하지 않습니다.
 
@@ -72,6 +72,12 @@
 | `deprecation-and-migration` | 폐기·migration·호환성 계획 |
 | `documentation-and-adrs` | 문서와 ADR 작성 |
 | `context-engineering` | Agent context와 project rule 관리 |
+
+## 평가 중인 candidate Skill 1개
+
+| ID | 역할 | 상태 |
+| --- | --- | --- |
+| `project-design-context` | 검증된 프로젝트 근거로 `DESIGN.md`를 생성·적용·기록·통합·감사 | `project-design-context-routing-v1` pending; 기본 설치 제외 |
 
 ## 삭제된 Skill 14개
 

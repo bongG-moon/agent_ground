@@ -2,7 +2,7 @@
 
 Langflow 전용 Skill 사본을 만들지 않습니다. `skills/<id>/SKILL.md`를 정본으로 두고 `scripts/build_exports.py`가 `exports/langflow/<id>/`를 생성합니다.
 
-현재 활성 Skill 31개와 Langflow export 폴더 31개가 일치합니다. 삭제된 14개는 adapter와 Prompt도 제거되어 Registry에 노출되지 않습니다. 전체 목록은 [SKILL_INVENTORY.md](./SKILL_INVENTORY.md)를 확인합니다.
+현재 Langflow export 폴더는 활성 Skill 31개와 격리된 candidate 1개를 합친 32개입니다. candidate adapter는 평가용으로만 생성되며 운영 Registry에는 노출하지 않습니다. 삭제된 14개는 adapter와 Prompt도 제거되어 있습니다. 전체 목록은 [SKILL_INVENTORY.md](./SKILL_INVENTORY.md)를 확인합니다.
 
 ## 필수 보안 경계
 
@@ -26,6 +26,8 @@ Langflow 전용 Skill 사본을 만들지 않습니다. `skills/<id>/SKILL.md`�
 Flint는 승인된 local `flint-chart-mcp`가 있을 때만 `mcp-tool`로 실행합니다. Browser testing도 local isolated DevTools MCP와 localhost/승인된 사내 test app에만 연결합니다. Tool이 없으면 Prompt fallback으로 낮추고 실행 성공을 가장하지 않습니다.
 
 `addy-agent-skills`의 22개 Skill은 대부분 `run-flow`가 적합하지만 한 요청에 여러 lifecycle workflow를 동시에 시작하지 않습니다. 가장 구체적인 primary workflow 하나를 선택하고 security, review, test checklist를 필요한 단계에서만 참조합니다.
+
+`project-design-context`는 `run-flow` candidate입니다. `DESIGN.md` 로드와 context 추출, 충돌 탐지는 read-only 단계로 두고, 파일 쓰기는 사람의 승인 뒤 별도 local component에서만 수행합니다. `status == active`와 eval 통과 전에는 운영 Registry에 등록하지 않습니다.
 
 ## Registry loader 조건
 

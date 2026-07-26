@@ -23,5 +23,15 @@
     "no_op_accuracy": 0.9,
     "exact_match": 0.85
   },
-  "suites": []
+  "suites": [
+    {
+      "id": "project-design-context-routing-v1",
+      "description": "Routes DESIGN.md governance requests while rejecting ordinary UI, chart, motion, and general engineering work.",
+      "skills": [
+        "project-design-context"
+      ],
+      "cases_path": "evals/project-design-context-routing-v1.jsonl",
+      "status": "pending"
+    }
+  ]
 }

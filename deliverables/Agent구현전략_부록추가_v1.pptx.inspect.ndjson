@@ -1,0 +1,209 @@
+{"kind":"deck","id":"pr/dtkcbw","name":"Deck"}
+{"kind":"layout","layoutId":"/ppt/slideMasters/slideMaster1.xml","name":"","type":"master","placeholders":[{"name":"title","type":"title","textPreview":"마스터 제목 스타일 편집"},{"name":"body","type":"body","textPreview":"마스터 텍스트 스타일을 편집하려면 클릭 | 두 번째 수준 | 세 번째 수준 | 네 번째 수준 | 다섯 번째 수준"},{"name":"dateTime","type":"dateTime","textPreview":"2026-07-21"},{"name":"footer","type":"footer"},{"name":"slideNumber","type":"slideNumber","textPreview":"‹#›"}]}
+{"kind":"layout","layoutId":"/ppt/slideLayouts/slideLayout1.xml","name":"제목 슬라이드","type":"title","placeholders":[{"name":"title","type":"title","textPreview":"마스터 제목 스타일 편집"},{"name":"subtitle","type":"subtitle","textPreview":"클릭하여 마스터 부제목 스타일 편집"},{"name":"dateTime","type":"dateTime","textPreview":"2026-07-21"},{"name":"footer","type":"footer"},{"name":"slideNumber","type":"slideNumber","textPreview":"‹#›"}]}
+{"kind":"layout","layoutId":"/ppt/slideLayouts/slideLayout2.xml","name":"제목 및 내용","type":"obj","placeholders":[{"name":"title","type":"title","textPreview":"마스터 제목 스타일 편집"},{"name":"2","textPreview":"마스터 텍스트 스타일을 편집하려면 클릭 | 두 번째 수준 | 세 번째 수준 | 네 번째 수준 | 다섯 번째 수준"},{"name":"dateTime","type":"dateTime","textPreview":"2026-07-21"},{"name":"footer","type":"footer"},{"name":"slideNumber","type":"slideNumber","textPreview":"‹#›"}]}
+{"kind":"layout","layoutId":"/ppt/slideLayouts/slideLayout3.xml","name":"구역 머리글","type":"secHead","placeholders":[{"name":"title","type":"title","textPreview":"마스터 제목 스타일 편집"},{"name":"body","type":"body","textPreview":"마스터 텍스트 스타일을 편집하려면 클릭"},{"name":"dateTime","type":"dateTime","textPreview":"2026-07-21"},{"name":"footer","type":"footer"},{"name":"slideNumber","type":"slideNumber","textPreview":"‹#›"}]}
+{"kind":"layout","layoutId":"/ppt/slideLayouts/slideLayout4.xml","name":"콘텐츠 2개","type":"twoObj","placeholders":[{"name":"title","type":"title","textPreview":"마스터 제목 스타일 편집"},{"name":"2","textPreview":"마스터 텍스트 스타일을 편집하려면 클릭 | 두 번째 수준 | 세 번째 수준 | 네 번째 수준 | 다섯 번째 수준"},{"name":"3","textPreview":"마스터 텍스트 스타일을 편집하려면 클릭 | 두 번째 수준 | 세 번째 수준 | 네 번째 수준 | 다섯 번째 수준"},{"name":"dateTime","type":"dateTime","textPreview":"2026-07-21"},{"name":"footer","type":"footer"},{"name":"slideNumber","type":"slideNumber","textPreview":"‹#›"}]}
+{"kind":"layout","layoutId":"/ppt/slideLayouts/slideLayout5.xml","name":"비교","type":"twoTxTwoObj","placeholders":[{"name":"title","type":"title","textPreview":"마스터 제목 스타일 편집"},{"name":"body","type":"body","textPreview":"마스터 텍스트 스타일을 편집하려면 클릭"},{"name":"3","textPreview":"마스터 텍스트 스타일을 편집하려면 클릭 | 두 번째 수준 | 세 번째 수준 | 네 번째 수준 | 다섯 번째 수준"},{"name":"body","type":"body","textPreview":"마스터 텍스트 스타일을 편집하려면 클릭"},{"name":"5","textPreview":"마스터 텍스트 스타일을 편집하려면 클릭 | 두 번째 수준 | 세 번째 수준 | 네 번째 수준 | 다섯 번째 수준"},{"name":"dateTime","type":"dateTime","textPreview":"2026-07-21"},{"name":"footer","type":"footer"},{"name":"slideNumber","type":"slideNumber","textPreview":"‹#›"}]}
+{"kind":"layout","layoutId":"/ppt/slideLayouts/slideLayout6.xml","name":"제목만","type":"titleOnly","placeholders":[{"name":"title","type":"title","textPreview":"마스터 제목 스타일 편집"},{"name":"dateTime","type":"dateTime","textPreview":"2026-07-21"},{"name":"footer","type":"footer"},{"name":"slideNumber","type":"slideNumber","textPreview":"‹#›"}]}
+{"kind":"layout","layoutId":"/ppt/slideLayouts/slideLayout7.xml","name":"빈 화면","type":"blank","placeholders":[{"name":"dateTime","type":"dateTime","textPreview":"2026-07-21"},{"name":"footer","type":"footer"},{"name":"slideNumber","type":"slideNumber","textPreview":"‹#›"}]}
+{"kind":"layout","layoutId":"/ppt/slideLayouts/slideLayout8.xml","name":"캡션 있는 콘텐츠","type":"objTx","placeholders":[{"name":"title","type":"title","textPreview":"마스터 제목 스타일 편집"},{"name":"2","textPreview":"마스터 텍스트 스타일을 편집하려면 클릭 | 두 번째 수준 | 세 번째 수준 | 네 번째 수준 | 다섯 번째 수준"},{"name":"body","type":"body","textPreview":"마스터 텍스트 스타일을 편집하려면 클릭"},{"name":"dateTime","type":"dateTime","textPreview":"2026-07-21"},{"name":"footer","type":"footer"},{"name":"slideNumber","type":"slideNumber","textPreview":"‹#›"}]}
+{"kind":"layout","layoutId":"/ppt/slideLayouts/slideLayout9.xml","name":"캡션 있는 그림","type":"picTx","placeholders":[{"name":"title","type":"title","textPreview":"마스터 제목 스타일 편집"},{"name":"picture","type":"picture"},{"name":"body","type":"body","textPreview":"마스터 텍스트 스타일을 편집하려면 클릭"},{"name":"dateTime","type":"dateTime","textPreview":"2026-07-21"},{"name":"footer","type":"footer"},{"name":"slideNumber","type":"slideNumber","textPreview":"‹#›"}]}
+{"kind":"layout","layoutId":"/ppt/slideLayouts/slideLayout10.xml","name":"제목 및 세로 텍스트","type":"vertTx","placeholders":[{"name":"title","type":"title","textPreview":"마스터 제목 스타일 편집"},{"name":"body","type":"body","textPreview":"마스터 텍스트 스타일을 편집하려면 클릭 | 두 번째 수준 | 세 번째 수준 | 네 번째 수준 | 다섯 번째 수준"},{"name":"dateTime","type":"dateTime","textPreview":"2026-07-21"},{"name":"footer","type":"footer"},{"name":"slideNumber","type":"slideNumber","textPreview":"‹#›"}]}
+{"kind":"layout","layoutId":"/ppt/slideLayouts/slideLayout11.xml","name":"세로 제목 및 텍스트","type":"vertTitleAndTx","placeholders":[{"name":"title","type":"title","textPreview":"마스터 제목 스타일 편집"},{"name":"body","type":"body","textPreview":"마스터 텍스트 스타일을 편집하려면 클릭 | 두 번째 수준 | 세 번째 수준 | 네 번째 수준 | 다섯 번째 수준"},{"name":"dateTime","type":"dateTime","textPreview":"2026-07-21"},{"name":"footer","type":"footer"},{"name":"slideNumber","type":"slideNumber","textPreview":"‹#›"}]}
+{"kind":"slide","id":"sl/y90nupkv","slide":1,"title":"사용자 요청","textShapes":45}
+{"kind":"shape","id":"sh/sryl4zqx","slide":1,"name":"사각형: 둥근 모서리 6","bbox":[41.01,188.63,756.04,503.94]}
+{"kind":"shape","id":"sh/83upcvyx","slide":1,"name":"직사각형 255","bbox":[51.69,500.59,730.95,180.41]}
+{"kind":"shape","id":"sh/65g3298r","slide":1,"name":"직선 연결선 4","bbox":[28.2,74.5,1152,0]}
+{"kind":"shape","id":"sh/nydczmpk","slide":1,"name":"skill","bbox":[61.65,512.05,303.49,66.52]}
+{"kind":"shape","id":"sh/mx4v6hoz","slide":1,"name":"skill","bbox":[416.48,512.05,358.99,66.52]}
+{"kind":"shape","id":"sh/p4bu5s76","slide":1,"name":"skill","bbox":[62.22,603.33,713.25,66.52]}
+{"kind":"shape","id":"sh/wzy1szid","slide":1,"name":"skill","bbox":[601.64,321.21,173.83,72.96]}
+{"kind":"shape","id":"sh/i1gje90j","slide":1,"name":"skill","bbox":[62.22,321.21,167.4,72.96]}
+{"kind":"shape","id":"sh/uxgjq907","slide":1,"name":"skill","bbox":[264.21,321.21,243.28,130.58]}
+{"kind":"shape","id":"sh/7ydcjy9o","slide":1,"name":"직선 화살표 연결선 38","bbox":[595.97,578.57,0,26.63]}
+{"kind":"shape","id":"sh/6d4vats3","slide":1,"name":"연결선: 꺾임 41","bbox":[460.78,376.86,60.26,210.13]}
+{"kind":"shape","id":"sh/wjitkzq1","slide":1,"name":"연결선: 꺾임 43","bbox":[269.49,395.7,60.26,172.45]}
+{"kind":"shape","id":"sh/x4rat47m","slide":1,"name":"연결선: 꺾임 46","bbox":[583.33,406.82,117.87,92.58]}
+{"kind":"shape","id":"sh/ah0bip8v","slide":1,"name":"직선 화살표 연결선 53","bbox":[229.62,357.7,32.45,0]}
+{"kind":"shape","id":"sh/vi9srupg","slide":1,"name":"직선 화살표 연결선 56","bbox":[509.62,357.7,92.02,0]}
+{"kind":"textbox","id":"sh/ra54bix8","slide":1,"name":"TextBox 61","text":"사용자 요청","textPreview":"사용자 요청","textChars":6,"textLines":1,"bbox":[85.82,331.37,120.2,32.31]}
+{"kind":"textbox","id":"sh/q9wnidgn","slide":1,"name":"TextBox 62","text":"Sub Agent","textPreview":"Sub Agent","textChars":9,"textLines":1,"bbox":[634.48,331.37,113.97,32.31]}
+{"kind":"textbox","id":"sh/4ne5g3yh","slide":1,"name":"TextBox 64","text":"Main/Super Agent","textPreview":"Main/Super Agent","textChars":16,"textLines":1,"bbox":[285.73,357.12,218.5,35.54]}
+{"kind":"textbox","id":"sh/3ahk3u54","slide":1,"name":"TextBox 83","text":"SKILL","textPreview":"SKILL","textChars":5,"textLines":1,"bbox":[177.42,513.43,67.18,32.31]}
+{"kind":"textbox","id":"sh/298ju94j","slide":1,"name":"TextBox 84","text":"MCP","textPreview":"MCP","textChars":3,"textLines":1,"bbox":[429.45,513.43,61.29,32.31]}
+{"kind":"textbox","id":"sh/4bq1wzmp","slide":1,"name":"TextBox 86","text":"Tool활용을 위한 공통 연결 형식","textPreview":"Tool활용을 위한 공통 연결 형식","textChars":19,"textLines":1,"bbox":[514.15,517.96,234.3,27.47]}
+{"kind":"textbox","id":"sh/8j2xsbmd","slide":1,"name":"TextBox 97","text":"필요 시 위임","textPreview":"필요 시 위임","textChars":7,"textLines":1,"bbox":[504.23,360.5,96.13,25.85]}
+{"kind":"textbox","id":"sh/m90f2hwn","slide":1,"name":"TextBox 107","text":"업무 Workflow 참조","textPreview":"업무 Workflow 참조","textChars":14,"textLines":1,"bbox":[233.06,455.08,140.56,25.85]}
+{"kind":"textbox","id":"sh/pgzax4jm","slide":1,"name":"TextBox 109","text":"질문 이해 / 계획 수립 / 기능 선택\n실행 조정 / 결과 통합","textPreview":"질문 이해 / 계획 수립 / 기능 선택 | 실행 조정 / 결과 통합","textChars":35,"textLines":2,"bbox":[278.68,396.83,224.71,42.01]}
+{"kind":"textbox","id":"sh/3ehsve1w","slide":1,"name":"TextBox 111","text":"ORCHESTRATION","textPreview":"ORCHESTRATION","textChars":13,"textLines":1,"bbox":[320.57,328.36,131.81,25.85]}
+{"kind":"textbox","id":"sh/bi1sze1s","slide":1,"name":"TextBox 115","text":"Agent가 Tool을 발견/호출하고 결과를 받을 수 있는 규약","textPreview":"Agent가 Tool을 발견/호출하고 결과를 받을 수 있는 규약","textChars":35,"textLines":1,"bbox":[425.95,548.25,328.71,24.23]}
+{"kind":"textbox","id":"sh/kratwza5","slide":1,"name":"TextBox 119","text":"어떤 Tool을 어떤 순서/기준으로 사용할 지 정의한\nAI용 업무절차서, 반복 업무를 안정적으로 실행","textPreview":"어떤 Tool을 어떤 순서/기준으로 사용할 지 정의한 | AI용 업무절차서, 반복 업무를 안정적으로 실행","textChars":56,"textLines":2,"bbox":[68.67,538.57,291.52,38.78]}
+{"kind":"textbox","id":"sh/ypsbupsz","slide":1,"name":"TextBox 121","text":"전문 판단/독립 기능이\n필요한 경우만 위임","textPreview":"전문 판단/독립 기능이 | 필요한 경우만 위임","textChars":23,"textLines":2,"bbox":[618.59,357.22,141.74,38.78]}
+{"kind":"textbox","id":"sh/jq1s3u9k","slide":1,"name":"TextBox 122","text":"질문/지시/출력물 요청","textPreview":"질문/지시/출력물 요청","textChars":12,"textLines":1,"bbox":[74.71,359.57,142.41,24.23]}
+{"kind":"textbox","id":"sh/tw3a94rm","slide":1,"name":"TextBox 124","text":"TOOL · 실제 실행 기능","textPreview":"TOOL · 실제 실행 기능","textChars":15,"textLines":1,"bbox":[69.15,605.2,210.81,32.31]}
+{"kind":"textbox","id":"sh/gv214fa1","slide":1,"name":"TextBox 150","text":"업무 책임 범위에 따라 단위 기능 또는 완결된 복합 Tool로 구현","textPreview":"업무 책임 범위에 따라 단위 기능 또는 완결된 복합 Tool로 구현","textChars":37,"textLines":1,"bbox":[69.15,637.26,402.93,25.85]}
+{"kind":"shape","id":"sh/cnmlcza9","slide":1,"name":"tool-sep-2","bbox":[567.71,612.44,1,48]}
+{"kind":"shape","id":"sh/w3edon2h","slide":1,"name":"tool-sep-2","bbox":[679.1,612.44,1,48]}
+{"kind":"textbox","id":"sh/sri10va5","slide":1,"name":"TextBox 154","text":"데이터 조회","textPreview":"데이터 조회","textChars":6,"textLines":1,"bbox":[478.18,613.06,84.18,24.23]}
+{"kind":"textbox","id":"sh/a1wvmx4r","slide":1,"name":"TextBox 161","text":"DB · API · 문서","textPreview":"DB · API · 문서","textChars":13,"textLines":1,"bbox":[470.44,634.33,99.66,24.23]}
+{"kind":"textbox","id":"sh/7q9krq9k","slide":1,"name":"TextBox 155","text":"분석/업무 로직","textPreview":"분석/업무 로직","textChars":8,"textLines":1,"bbox":[573.75,614.13,101.68,24.23]}
+{"kind":"textbox","id":"sh/v25wv2lc","slide":1,"name":"TextBox 162","text":"계산 · 예측 · 판단","textPreview":"계산 · 예측 · 판단","textChars":12,"textLines":1,"bbox":[567.44,635.41,114.31,24.23]}
+{"kind":"textbox","id":"sh/6p0jylsz","slide":1,"name":"TextBox 156","text":"Legacy연계","textPreview":"Legacy연계","textChars":8,"textLines":1,"bbox":[684.72,613.72,83.17,24.23]}
+{"kind":"textbox","id":"sh/8zudknml","slide":1,"name":"TextBox 163","text":"실제 조치 실행","textPreview":"실제 조치 실행","textChars":8,"textLines":1,"bbox":[676.05,634.99,100.51,24.23]}
+{"kind":"shape","id":"sh/dc3e5sny","slide":1,"name":"이등변 삼각형 175","bbox":[76.59,256.95,679.78,60.14]}
+{"kind":"shape","id":"sh/val0zmlk","slide":1,"name":"사각형: 둥근 모서리 184","bbox":[62.74,192.94,713.82,88.41]}
+{"kind":"textbox","id":"sh/hc3i1wja","slide":1,"name":"TextBox 186","text":"Agent Harness","textPreview":"Agent Harness","textChars":13,"textLines":1,"bbox":[331.27,192.8,170.4,35.54]}
+{"kind":"textbox","id":"sh/jel0361g","slide":1,"name":"TextBox 188","text":"AI가 장기적인 목표를 잃지 않고 통제된 데이터와 정해진 절차(가드레일) 안에서 움직이게 하는 시스템","textPreview":"AI가 장기적인 목표를 잃지 않고 통제된 데이터와 정해진 절차(가드레일) 안에서 움직이게 하는 시스템","textChars":56,"textLines":1,"bbox":[67.84,225.22,697.28,27.47]}
+{"kind":"textbox","id":"sh/s7yl0vmx","slide":1,"name":"TextBox 190","text":"지시 문서","textPreview":"지시 문서","textChars":5,"textLines":1,"bbox":[135.5,251.54,83.84,27.47]}
+{"kind":"textbox","id":"sh/r65krq5s","slide":1,"name":"TextBox 191","text":"아키텍처 제약","textPreview":"아키텍처 제약","textChars":7,"textLines":1,"bbox":[242.64,251.54,113.46,27.47]}
+{"kind":"textbox","id":"sh/65w3y547","slide":1,"name":"TextBox 192","text":"지식 저장소","textPreview":"지식 저장소","textChars":6,"textLines":1,"bbox":[379.41,251.54,98.65,27.47]}
+{"kind":"textbox","id":"sh/1c72xk3u","slide":1,"name":"TextBox 193","text":"피드백 루프 및 가드레일","textPreview":"피드백 루프 및 가드레일","textChars":13,"textLines":1,"bbox":[501.37,251.54,183.14,27.47]}
+{"kind":"shape","id":"sh/fapkvalo","slide":1,"name":"tool-sep-2","bbox":[230.49,257.73,1,18.9]}
+{"kind":"shape","id":"sh/e9g32543","slide":1,"name":"tool-sep-2","bbox":[367.26,257.73,1,18.9]}
+{"kind":"shape","id":"sh/p0rm1k3q","slide":1,"name":"tool-sep-2","bbox":[489.22,257.73,1,18.9]}
+{"kind":"textbox","id":"sh/3el8b650","slide":1,"name":"section-text-우리 부문 적용 전략","text":"우리 부문 적용 전략","textPreview":"우리 부문 적용 전략","textChars":11,"textLines":1,"bbox":[847.62,215.35,160,28]}
+{"kind":"shape","id":"sh/dknqhgn2","slide":1,"name":"vertical-divider","bbox":[818.29,192.8,1.89,489.74]}
+{"kind":"shape","id":"sh/kva5onmh","slide":1,"name":"strategy-sep-1","bbox":[841.42,356.3,388,1]}
+{"kind":"shape","id":"sh/bql4bm1w","slide":1,"name":"strategy-sep-2","bbox":[835.62,492.49,388,1]}
+{"kind":"textbox","id":"sh/twfa1ovm","slide":1,"name":"TextBox 234","text":"[ P&T AI Agent 구조 ]","textPreview":"[ P&T AI Agent 구조 ]","textChars":19,"textLines":1,"bbox":[51.69,157.21,215.45,32.31]}
+{"kind":"textbox","id":"sh/6torq9wv","slide":1,"name":"TextBox 235","text":"[부문 적용 전략]","textPreview":"[부문 적용 전략]","textChars":10,"textLines":1,"bbox":[841.34,157.21,159.07,32.31]}
+{"kind":"textbox","id":"sh/ozm9gfex","slide":1,"name":"TextBox 237","text":"01","textPreview":"01","textChars":2,"textLines":1,"bbox":[835.62,207.2,47.32,38.78]}
+{"kind":"textbox","id":"sh/90vapkvi","slide":1,"name":"TextBox 238","text":"02","textPreview":"02","textChars":2,"textLines":1,"bbox":[835.62,357.74,47.32,38.78]}
+{"kind":"textbox","id":"sh/1sra54zy","slide":1,"name":"TextBox 239","text":"03","textPreview":"03","textChars":2,"textLines":1,"bbox":[835.62,497.17,47.32,38.78]}
+{"kind":"textbox","id":"sh/grytcjid","slide":1,"name":"TextBox 240","text":"공통 실행 기반","textPreview":"공통 실행 기반","textChars":8,"textLines":1,"bbox":[881.31,208.82,163.78,35.54]}
+{"kind":"textbox","id":"sh/fqps3ehs","slide":1,"name":"TextBox 241","text":"업무 기능은 조직 자율","textPreview":"업무 기능은 조직 자율","textChars":12,"textLines":1,"bbox":[881.31,359.35,235.98,35.54]}
+{"kind":"textbox","id":"sh/epgba907","slide":1,"name":"TextBox 242","text":"연결 경계만 공통화","textPreview":"연결 경계만 공통화","textChars":10,"textLines":1,"bbox":[881.31,498.78,206.87,35.54]}
+{"kind":"textbox","id":"sh/to7a14zm","slide":1,"name":"TextBox 243","text":"실행을 위한 업무 Tool/Skill은 현업이 설계\n구현하는 방식은 수준에 따라 자유롭게 선택\n    : 초/중급 – Agent Builder, 고급 – Code기반","textPreview":"실행을 위한 업무 Tool/Skill은 현업이 설계 | 구현하는 방식은 수준에 따라 자유롭게 선택 |     : 초/중급 – Agent Builder, 고급 – Code기반","textChars":92,"textLines":3,"bbox":[855.84,401.68,357.32,82.52]}
+{"kind":"textbox","id":"sh/s3y98zih","slide":1,"name":"TextBox 244","text":"Main Agent 및 Harness구조는 공통 기반 활용\n구독 영역을 기반으로 필요한 기능만 활용\n활용 플랫폼은 적합성 검토 후 선정 예정\n   : 전사 Gaia2.0 / P&M PINOT 中 선택 @10월","textPreview":"Main Agent 및 Harness구조는 공통 기반 활용 | 구독 영역을 기반으로 필요한 기능만 활용 | 활용 플랫폼은 적합성 검토 후 선정 예정 |    : 전사 Gaia2.0 / P&M PINOT 中 선택 @10월","textChars":116,"textLines":4,"bbox":[855.84,239.63,372.1,107.73]}
+{"kind":"textbox","id":"sh/r2pszuhw","slide":1,"name":"TextBox 245","text":"Tool이름과 내부 구현 방식은 자유\nMCP 호출 방식과 공통 출력 형식만 유지","textPreview":"Tool이름과 내부 구현 방식은 자유 | MCP 호출 방식과 공통 출력 형식만 유지","textChars":44,"textLines":2,"bbox":[855.84,537.48,332.41,57.32]}
+{"kind":"shape","id":"sh/507axkzq","slide":1,"name":"skill-role","bbox":[839.26,610.05,406.85,70.95]}
+{"kind":"textbox","id":"sh/4ze94zi5","slide":1,"name":"TextBox 248","text":"중복 기능은 실제 재사용 수요를 확인한 뒤 공용화","textPreview":"중복 기능은 실제 재사용 수요를 확인한 뒤 공용화","textChars":27,"textLines":1,"bbox":[853.52,619.07,382.57,29.08]}
+{"kind":"textbox","id":"sh/u5c7elg3","slide":1,"name":"TextBox 249","text":"사전 통제보다는 사용성과 운영 효율을 기준으로 판단","textPreview":"사전 통제보다는 사용성과 운영 효율을 기준으로 판단","textChars":28,"textLines":1,"bbox":[835.62,644.03,418.41,29.08]}
+{"kind":"textbox","id":"sh/h8nq90fe","slide":1,"name":"TextBox 252","text":"공통 AI Agent 기반 위에 조직별 업무 특성을 반영한 Skill과 Tool을 연결","textPreview":"공통 AI Agent 기반 위에 조직별 업무 특성을 반영한 Skill과 Tool을 연결","textChars":48,"textLines":1,"bbox":[0,93.17,1280,42.01]}
+{"kind":"textbox","id":"sh/72l83qxc","slide":1,"name":"직사각형 254","text":"00. P&T AI Agent 추진 전략 ","textPreview":"00. P&T AI Agent 추진 전략","textChars":23,"textLines":1,"bbox":[20,20.5,1100,49]}
+{"kind":"textbox","id":"sh/yds761gv","slide":1,"name":"TextBox 257","text":"※ Skill/MCP Market","textPreview":"※ Skill/MCP Market","textChars":18,"textLines":1,"bbox":[41.79,484.21,140.39,25.85]}
+{"kind":"notes","id":"nt/y90nupkv","slide":1,"text":""}
+{"kind":"slide","id":"sl/hwbqtkby","slide":2,"title":"Sub Agent","textShapes":34}
+{"kind":"shape","id":"sh/w3i1sfa9","slide":2,"name":"사각형: 둥근 모서리 6","bbox":[41.01,188.63,756.04,503.94]}
+{"kind":"shape","id":"sh/fadgzu58","slide":2,"name":"skill","bbox":[62,585,714,72]}
+{"kind":"shape","id":"sh/u94fqp4n","slide":2,"name":"skill","bbox":[62,455,350,105]}
+{"kind":"shape","id":"sh/p0vy54na","slide":2,"name":"skill","bbox":[426,455,350,105]}
+{"kind":"shape","id":"sh/onydsbmd","slide":2,"name":"skill","bbox":[546,310,230,110]}
+{"kind":"shape","id":"sh/a9gvulkj","slide":2,"name":"skill","bbox":[304,310,226,110]}
+{"kind":"shape","id":"sh/mlgvq147","slide":2,"name":"skill","bbox":[62,310,226,110]}
+{"kind":"textbox","id":"sh/jix0niho","slide":2,"name":"TextBox 61","text":"Sub Agent","textPreview":"Sub Agent","textChars":9,"textLines":1,"bbox":[338,326,158,32.31]}
+{"kind":"textbox","id":"sh/ihozedgj","slide":2,"name":"TextBox 62","text":"Skill","textPreview":"Skill","textChars":5,"textLines":1,"bbox":[586,326,150,32.31]}
+{"kind":"textbox","id":"sh/wf6hcnyd","slide":2,"name":"TextBox 64","text":"Main Agent","textPreview":"Main Agent","textChars":10,"textLines":1,"bbox":[82,344,186,35.54]}
+{"kind":"textbox","id":"sh/jqt8nid8","slide":2,"name":"TextBox 83","text":"Main Agent는 조정 · Skill은 방법 · Tool은 실행 · MCP는 연결 · Harness는 통제","textPreview":"Main Agent는 조정 · Skill은 방법 · Tool은 실행 · MCP는 연결 · Harness는 통제","textChars":61,"textLines":1,"bbox":[90,602,660,32.31]}
+{"kind":"textbox","id":"sh/ipk7udcn","slide":2,"name":"TextBox 84","text":"MCP","textPreview":"MCP","textChars":3,"textLines":1,"bbox":[85,467,75,32.31]}
+{"kind":"textbox","id":"sh/4r2pwnut","slide":2,"name":"TextBox 86","text":"Agent와 Tool 사이의 공통 연결 규약","textPreview":"Agent와 Tool 사이의 공통 연결 규약","textChars":24,"textLines":1,"bbox":[165,470,225,27.47]}
+{"kind":"textbox","id":"sh/1kbidgju","slide":2,"name":"TextBox 109","text":"요청 이해·계획·기능 선택\n실행 조정·결과 통합","textPreview":"요청 이해·계획·기능 선택 | 실행 조정·결과 통합","textChars":26,"textLines":2,"bbox":[80,382,190,42.01]}
+{"kind":"textbox","id":"sh/zit0bq14","slide":2,"name":"TextBox 111","text":"ORCHESTRATION","textPreview":"ORCHESTRATION","textChars":13,"textLines":1,"bbox":[105,321,140,25.85]}
+{"kind":"textbox","id":"sh/nmt0fq10","slide":2,"name":"TextBox 115","text":"Tool·Resource·Prompt를 발견하고 호출하며 결과를 교환","textPreview":"Tool·Resource·Prompt를 발견하고 호출하며 결과를 교환","textChars":38,"textLines":1,"bbox":[85,515,305,32]}
+{"kind":"textbox","id":"sh/uts3698n","slide":2,"name":"TextBox 121","text":"업무 수행 순서·판단 기준\n주의사항·결과 형식","textPreview":"업무 수행 순서·판단 기준 | 주의사항·결과 형식","textChars":25,"textLines":2,"bbox":[568,368,186,48]}
+{"kind":"textbox","id":"sh/vulkfep8","slide":2,"name":"TextBox 122","text":"전문영역 또는 독립 작업을 분담\n필요한 경우만 사용","textPreview":"전문영역 또는 독립 작업을 분담 | 필요한 경우만 사용","textChars":28,"textLines":2,"bbox":[326,368,182,48]}
+{"kind":"textbox","id":"sh/5k32lo7a","slide":2,"name":"TextBox 124","text":"Tool · 실제 실행 기능","textPreview":"Tool · 실제 실행 기능","textChars":15,"textLines":1,"bbox":[450,467,270,32.31]}
+{"kind":"textbox","id":"sh/cv6lwjuh","slide":2,"name":"TextBox 150","text":"데이터 조회·분석·파일 생성·시스템 변경 등 실제 동작 수행","textPreview":"데이터 조회·분석·파일 생성·시스템 변경 등 실제 동작 수행","textChars":33,"textLines":1,"bbox":[450,510,300,43]}
+{"kind":"shape","id":"sh/fihwbm9o","slide":2,"name":"사각형: 둥근 모서리 184","bbox":[62.74,192.94,713.82,88.41]}
+{"kind":"textbox","id":"sh/1kzedwru","slide":2,"name":"TextBox 186","text":"Harness · 전체 실행과 통제","textPreview":"Harness · 전체 실행과 통제","textChars":19,"textLines":1,"bbox":[175,198,490,35.54]}
+{"kind":"textbox","id":"sh/vmdwz29k","slide":2,"name":"TextBox 188","text":"Agent Loop·Context·권한·승인·재시도·검증·로그를 관리하는 공통 실행환경","textPreview":"Agent Loop·Context·권한·승인·재시도·검증·로그를 관리하는 공통 실행환경","textChars":48,"textLines":1,"bbox":[90,231,660,27.47]}
+{"kind":"textbox","id":"sh/cfuhcvuh","slide":2,"name":"TextBox 190","text":"Agent Loop","textPreview":"Agent Loop","textChars":10,"textLines":1,"bbox":[112,253,110,27.47]}
+{"kind":"textbox","id":"sh/be1g3qtw","slide":2,"name":"TextBox 191","text":"권한·승인","textPreview":"권한·승인","textChars":5,"textLines":1,"bbox":[255,253,110,27.47]}
+{"kind":"textbox","id":"sh/qdszalcb","slide":2,"name":"TextBox 192","text":"Timeout·Retry","textPreview":"Timeout·Retry","textChars":13,"textLines":1,"bbox":[392,253,120,27.47]}
+{"kind":"textbox","id":"sh/l43i9kby","slide":2,"name":"TextBox 193","text":"검증·감사 로그","textPreview":"검증·감사 로그","textChars":8,"textLines":1,"bbox":[550,253,150,27.47]}
+{"kind":"shape","id":"sh/lc7u9kb6","slide":2,"name":"vertical-divider","bbox":[818.29,192.8,1.89,489.74]}
+{"kind":"shape","id":"sh/sna90ral","slide":2,"name":"strategy-sep-1","bbox":[841.42,356.3,388,1]}
+{"kind":"shape","id":"sh/zmtwbel8","slide":2,"name":"strategy-sep-2","bbox":[835.62,492.49,388,1]}
+{"kind":"textbox","id":"sh/1oruh0ju","slide":2,"name":"TextBox 234","text":"[ 구성요소별 역할 ]","textPreview":"[ 구성요소별 역할 ]","textChars":12,"textLines":1,"bbox":[51.69,157.21,300,32.31]}
+{"kind":"textbox","id":"sh/elgbm5kj","slide":2,"name":"TextBox 235","text":"[ 혼동하기 쉬운 차이 ]","textPreview":"[ 혼동하기 쉬운 차이 ]","textChars":14,"textLines":1,"bbox":[841.34,157.21,300,32.31]}
+{"kind":"textbox","id":"sh/oritsf2l","slide":2,"name":"TextBox 237","text":"01","textPreview":"01","textChars":2,"textLines":1,"bbox":[835.62,207.2,47.32,38.78]}
+{"kind":"textbox","id":"sh/psrulkj6","slide":2,"name":"TextBox 238","text":"02","textPreview":"02","textChars":2,"textLines":1,"bbox":[835.62,357.74,47.32,38.78]}
+{"kind":"textbox","id":"sh/90ju1076","slide":2,"name":"TextBox 239","text":"03","textPreview":"03","textChars":2,"textLines":1,"bbox":[835.62,497.17,47.32,38.78]}
+{"kind":"textbox","id":"sh/ozat8v6l","slide":2,"name":"TextBox 240","text":"Skill과 Harness","textPreview":"Skill과 Harness","textChars":14,"textLines":1,"bbox":[881.31,208.82,340,35.54]}
+{"kind":"textbox","id":"sh/ny1czapg","slide":2,"name":"TextBox 241","text":"Main Agent와 Sub Agent","textPreview":"Main Agent와 Sub Agent","textChars":21,"textLines":1,"bbox":[881.31,359.36,340,35.54]}
+{"kind":"textbox","id":"sh/mx8b65ov","slide":2,"name":"TextBox 242","text":"Tool과 MCP","textPreview":"Tool과 MCP","textChars":9,"textLines":1,"bbox":[881.31,498.79,340,35.54]}
+{"kind":"textbox","id":"sh/1wzux07a","slide":2,"name":"TextBox 243","text":"Main: 계획·조정·결과 통합\nSub: 필요한 경우 전문 작업 분담","textPreview":"Main: 계획·조정·결과 통합 | Sub: 필요한 경우 전문 작업 분담","textChars":38,"textLines":2,"bbox":[855.84,401.68,357.32,84.48]}
+{"kind":"textbox","id":"sh/0vqt4v6p","slide":2,"name":"TextBox 244","text":"Skill: 특정 업무를 수행하는 방법\nHarness: Agent 전체 실행·통제 환경","textPreview":"Skill: 특정 업무를 수행하는 방법 | Harness: Agent 전체 실행·통제 환경","textChars":48,"textLines":2,"bbox":[855.84,239.63,372.1,109.44]}
+{"kind":"textbox","id":"sh/zuhcvqp4","slide":2,"name":"TextBox 245","text":"Tool: 실제 기능 실행\nMCP: Tool 발견·호출을 위한 연결 규약","textPreview":"Tool: 실제 기능 실행 | MCP: Tool 발견·호출을 위한 연결 규약","textChars":40,"textLines":2,"bbox":[855.84,537.48,357.32,59.52]}
+{"kind":"shape","id":"sh/5s3u9kne","slide":2,"name":"skill-role","bbox":[839.26,610.05,406.85,70.95]}
+{"kind":"textbox","id":"sh/krudgf6t","slide":2,"name":"TextBox 248","text":"Sub Agent는 선택 요소, Harness는 필수 실행환경","textPreview":"Sub Agent는 선택 요소, Harness는 필수 실행환경","textChars":34,"textLines":1,"bbox":[853.52,619.07,382.57,29.08]}
+{"kind":"textbox","id":"sh/i14jex0z","slide":2,"name":"TextBox 249","text":"업무 복잡도에 따라 필요한 구성만 선택","textPreview":"업무 복잡도에 따라 필요한 구성만 선택","textChars":21,"textLines":1,"bbox":[835.62,644.03,418.41,29.08]}
+{"kind":"textbox","id":"sh/5ovipszq","slide":2,"name":"TextBox 252","text":"각 구성요소는 판단·절차·실행·통제 역할이 다름","textPreview":"각 구성요소는 판단·절차·실행·통제 역할이 다름","textChars":26,"textLines":1,"bbox":[0,93.17,1280,42.01]}
+{"kind":"textbox","id":"sh/vyt0ji1o","slide":2,"name":"직사각형 254","text":"A1. AI Agent 구성요소 역할 구분","textPreview":"A1. AI Agent 구성요소 역할 구분","textChars":23,"textLines":1,"bbox":[20,20.5,1100,49]}
+{"kind":"notes","id":"nt/hwbqtkby","slide":2,"text":"구성요소의 역할을 판단, 절차, 실행, 연결, 통제로 구분해 설명하는 부록. Sub Agent는 모든 업무의 필수 계층이 아니며, Harness는 Agent 전체 실행환경임."}
+{"kind":"slide","id":"sl/ofy9wn61","slide":3,"title":"단위 기능 Tool","textShapes":23}
+{"kind":"shape","id":"sh/pcjqtg36","slide":3,"name":"사각형: 둥근 모서리 6","bbox":[41.01,188.63,756.04,503.94]}
+{"kind":"shape","id":"sh/sfix03y9","slide":3,"name":"skill","bbox":[62,300,340,160]}
+{"kind":"shape","id":"sh/tgry9ofu","slide":3,"name":"skill","bbox":[436,300,340,160]}
+{"kind":"shape","id":"sh/a9kfadwn","slide":3,"name":"skill","bbox":[62,492,714,150]}
+{"kind":"textbox","id":"sh/gfml8ve5","slide":3,"name":"TextBox 83","text":"단위 기능 Tool","textPreview":"단위 기능 Tool","textChars":10,"textLines":1,"bbox":[100,316,260,32.31]}
+{"kind":"textbox","id":"sh/hgvm1gvq","slide":3,"name":"TextBox 84","text":"완결된 복합 Tool","textPreview":"완결된 복합 Tool","textChars":11,"textLines":1,"bbox":[475,316,260,32.31]}
+{"kind":"textbox","id":"sh/uxkj2xgz","slide":3,"name":"TextBox 115","text":"순서·상태·예외·검증을 함께 책임\n매번 Agent가 재조합할 필요가 없는 경우\n\n예: 분석 Workflow · 보고서 생성 · 시스템 처리","textPreview":"순서·상태·예외·검증을 함께 책임 | 매번 Agent가 재조합할 필요가 없는 경우 |  | 예: 분석 Workflow · 보고서 생성 · 시스템 처리","textChars":77,"textLines":4,"bbox":[465,355,285,90]}
+{"kind":"textbox","id":"sh/dkrilsrq","slide":3,"name":"TextBox 119","text":"입력과 출력이 명확한 단순 기능\n독립 호출·재사용이 쉬운 경우\n\n예: 단건 조회 · 포맷 변환 · 파일 저장","textPreview":"입력과 출력이 명확한 단순 기능 | 독립 호출·재사용이 쉬운 경우 |  | 예: 단건 조회 · 포맷 변환 · 파일 저장","textChars":60,"textLines":4,"bbox":[90,355,285,90]}
+{"kind":"textbox","id":"sh/0ni1w7q1","slide":3,"name":"TextBox 124","text":"모든 기능을 작은 Tool로 나누면 Agent 부담이 증가","textPreview":"모든 기능을 작은 Tool로 나누면 Agent 부담이 증가","textChars":32,"textLines":1,"bbox":[92,507,650,32.31]}
+{"kind":"textbox","id":"sh/l8fmlgb6","slide":3,"name":"TextBox 150","text":"호출 횟수·Token·실패 경로·결과 검증이 늘어나 전체 안정성이 낮아질 수 있음\n반복되는 안정적 로직은 Tool 내부에 포함하고, Agent는 필요한 수준에서 조정","textPreview":"호출 횟수·Token·실패 경로·결과 검증이 늘어나 전체 안정성이 낮아질 수 있음 | 반복되는 안정적 로직은 Tool 내부에 포함하고, Agent는 필요한 수준에서 조정","textChars":92,"textLines":2,"bbox":[100,552,635,65]}
+{"kind":"shape","id":"sh/uh47ipov","slide":3,"name":"사각형: 둥근 모서리 184","bbox":[62.74,192.94,713.82,82]}
+{"kind":"textbox","id":"sh/gjmpkz61","slide":3,"name":"TextBox 186","text":"Tool 크기는 업무 책임 범위로 결정","textPreview":"Tool 크기는 업무 책임 범위로 결정","textChars":21,"textLines":1,"bbox":[145,199,550,35.54]}
+{"kind":"textbox","id":"sh/6tk7e5oj","slide":3,"name":"TextBox 188","text":"재사용성뿐 아니라 로직 복잡도·상태 관리·오류 처리·검증 책임을 함께 고려","textPreview":"재사용성뿐 아니라 로직 복잡도·상태 관리·오류 처리·검증 책임을 함께 고려","textChars":41,"textLines":1,"bbox":[105,235,630,27.47]}
+{"kind":"shape","id":"sh/c3mxovet","slide":3,"name":"vertical-divider","bbox":[818.29,192.8,1.89,489.74]}
+{"kind":"shape","id":"sh/tcby50za","slide":3,"name":"strategy-sep-1","bbox":[841.42,356.3,388,1]}
+{"kind":"shape","id":"sh/yxoja9kz","slide":3,"name":"strategy-sep-2","bbox":[835.62,492.49,388,1]}
+{"kind":"textbox","id":"sh/wval4nmd","slide":3,"name":"TextBox 234","text":"[ Tool 복잡도 선택 ]","textPreview":"[ Tool 복잡도 선택 ]","textChars":15,"textLines":1,"bbox":[51.69,157.21,300,32.31]}
+{"kind":"textbox","id":"sh/vu1kvils","slide":3,"name":"TextBox 235","text":"[ 개발 방식 선택 ]","textPreview":"[ 개발 방식 선택 ]","textChars":12,"textLines":1,"bbox":[841.34,157.21,300,32.31]}
+{"kind":"textbox","id":"sh/1s3m9c32","slide":3,"name":"TextBox 237","text":"01","textPreview":"01","textChars":2,"textLines":1,"bbox":[835.62,207.2,47.32,38.78]}
+{"kind":"textbox","id":"sh/grulg72h","slide":3,"name":"TextBox 238","text":"02","textPreview":"02","textChars":2,"textLines":1,"bbox":[835.62,357.74,47.32,38.78]}
+{"kind":"textbox","id":"sh/8vit07md","slide":3,"name":"TextBox 239","text":"03","textPreview":"03","textChars":2,"textLines":1,"bbox":[835.62,497.17,47.32,38.78]}
+{"kind":"textbox","id":"sh/9wru9c3i","slide":3,"name":"TextBox 240","text":"Agent Builder","textPreview":"Agent Builder","textChars":13,"textLines":1,"bbox":[881.31,208.82,340,35.54]}
+{"kind":"textbox","id":"sh/mt0byx47","slide":3,"name":"TextBox 241","text":"Custom Component","textPreview":"Custom Component","textChars":16,"textLines":1,"bbox":[881.31,359.36,340,35.54]}
+{"kind":"textbox","id":"sh/nu9c72ls","slide":3,"name":"TextBox 242","text":"Code / MCP Server","textPreview":"Code / MCP Server","textChars":17,"textLines":1,"bbox":[881.31,498.79,340,35.54]}
+{"kind":"textbox","id":"sh/wz2t4r29","slide":3,"name":"TextBox 243","text":"중급 개발자\n시각 흐름과 필요한 코드 로직 결합","textPreview":"중급 개발자 | 시각 흐름과 필요한 코드 로직 결합","textChars":26,"textLines":2,"bbox":[855.84,401.68,357.32,84.48]}
+{"kind":"textbox","id":"sh/x0budw3u","slide":3,"name":"TextBox 244","text":"초·중급 개발자\n화면 기반 조립·공유·검증에 유리","textPreview":"초·중급 개발자 | 화면 기반 조립·공유·검증에 유리","textChars":27,"textLines":2,"bbox":[855.84,239.63,372.1,109.44]}
+{"kind":"textbox","id":"sh/axkb2h43","slide":3,"name":"TextBox 245","text":"고급 개발자\n복잡한 상태·성능·테스트·운영에 적합","textPreview":"고급 개발자 | 복잡한 상태·성능·테스트·운영에 적합","textChars":27,"textLines":2,"bbox":[855.84,537.48,357.32,59.52]}
+{"kind":"shape","id":"sh/k32d8r25","slide":3,"name":"skill-role","bbox":[839.26,610.05,406.85,70.95]}
+{"kind":"textbox","id":"sh/54buhw3q","slide":3,"name":"TextBox 248","text":"개발 위치가 달라도 Main Agent 연결 형식은 동일","textPreview":"개발 위치가 달라도 Main Agent 연결 형식은 동일","textChars":31,"textLines":1,"bbox":[853.52,619.07,382.57,29.08]}
+{"kind":"textbox","id":"sh/fixw7q58","slide":3,"name":"TextBox 249","text":"업무 복잡도와 구현자 수준에 따라 개발 경로 선택","textPreview":"업무 복잡도와 구현자 수준에 따라 개발 경로 선택","textChars":27,"textLines":1,"bbox":[835.62,644.03,418.41,29.08]}
+{"kind":"textbox","id":"sh/gj6x0vmd","slide":3,"name":"TextBox 252","text":"Tool은 무조건 쪼개지 않고 업무 책임 범위에 맞춰 설계","textPreview":"Tool은 무조건 쪼개지 않고 업무 책임 범위에 맞춰 설계","textChars":32,"textLines":1,"bbox":[0,93.17,1280,42.01]}
+{"kind":"textbox","id":"sh/6t4fulob","slide":3,"name":"직사각형 254","text":"A2. Tool 설계 및 개발 방식","textPreview":"A2. Tool 설계 및 개발 방식","textChars":19,"textLines":1,"bbox":[20,20.5,1100,49]}
+{"kind":"notes","id":"nt/ofy9wn61","slide":3,"text":"Tool을 지나치게 작은 기능으로 분해하면 Agent의 호출 및 검증 부담이 커짐. 반복적이고 안정적인 로직은 완결된 복합 Tool로 구현할 수 있으며, 개발 경로는 Agent Builder, Custom Component, Code/MCP Server 중 선택함."}
+{"kind":"slide","id":"sl/jyx0ra1s","slide":4,"title":"Tool 설명 · 고유 ID","textShapes":28}
+{"kind":"shape","id":"sh/sna103ap","slide":4,"name":"사각형: 둥근 모서리 6","bbox":[41.01,188.63,756.04,503.94]}
+{"kind":"shape","id":"sh/fu9sn2p0","slide":4,"name":"skill","bbox":[62,420,340,100]}
+{"kind":"shape","id":"sh/et0reh8f","slide":4,"name":"skill","bbox":[436,420,340,100]}
+{"kind":"shape","id":"sh/knex8j21","slide":4,"name":"skill","bbox":[436,300,340,100]}
+{"kind":"shape","id":"sh/axcf29kj","slide":4,"name":"skill","bbox":[62,300,340,100]}
+{"kind":"shape","id":"sh/ilwf69kv","slide":4,"name":"skill","bbox":[62,545,714,105]}
+{"kind":"textbox","id":"sh/bmpozed4","slide":4,"name":"TextBox 61","text":"Tool 설명 · 고유 ID","textPreview":"Tool 설명 · 고유 ID","textChars":15,"textLines":1,"bbox":[105,314,250,32.31]}
+{"kind":"textbox","id":"sh/qlg769wj","slide":4,"name":"TextBox 62","text":"Input Schema","textPreview":"Input Schema","textChars":12,"textLines":1,"bbox":[485,314,240,32.31]}
+{"kind":"textbox","id":"sh/0bipc3el","slide":4,"name":"TextBox 64","text":"status · summary · data · artifacts · sources · warnings · error · trace_id","textPreview":"status · summary · data · artifacts · sources · warnings · error · trace_id","textChars":75,"textLines":1,"bbox":[88,585,662,35.54]}
+{"kind":"textbox","id":"sh/bylsf2t8","slide":4,"name":"TextBox 83","text":"공통 Output Envelope","textPreview":"공통 Output Envelope","textChars":18,"textLines":1,"bbox":[105,434,250,32.31]}
+{"kind":"textbox","id":"sh/axsrmxcn","slide":4,"name":"TextBox 84","text":"권한 · 위험 · 운영 Metadata","textPreview":"권한 · 위험 · 운영 Metadata","textChars":21,"textLines":1,"bbox":[465,434,282,32.31]}
+{"kind":"textbox","id":"sh/58fe9cn2","slide":4,"name":"TextBox 109","text":"Tool별 고유 결과는 data 내부에 유지하고, 공통 필드 위치만 맞춤","textPreview":"Tool별 고유 결과는 data 내부에 유지하고, 공통 필드 위치만 맞춤","textChars":40,"textLines":1,"bbox":[120,620,598,41.6]}
+{"kind":"textbox","id":"sh/36xw7m5c","slide":4,"name":"TextBox 111","text":"OUTPUT ENVELOPE","textPreview":"OUTPUT ENVELOPE","textChars":15,"textLines":1,"bbox":[115,556,610,25.85]}
+{"kind":"textbox","id":"sh/v2dw3250","slide":4,"name":"TextBox 115","text":"조회·변경·승인 필요 여부와 운영상태·검증상태를 함께 제공","textPreview":"조회·변경·승인 필요 여부와 운영상태·검증상태를 함께 제공","textChars":32,"textLines":1,"bbox":[465,474,282,38]}
+{"kind":"textbox","id":"sh/kfip0zyd","slide":4,"name":"TextBox 119","text":"성공·요약·결과·산출물·근거·경고·오류를 공통 위치에서 전달","textPreview":"성공·요약·결과·산출물·근거·경고·오류를 공통 위치에서 전달","textChars":33,"textLines":1,"bbox":[88,474,288,38.4]}
+{"kind":"textbox","id":"sh/ytg7ypg7","slide":4,"name":"TextBox 121","text":"Main Agent가 필요한 입력과 필수값을 이해할 수 있는 구조","textPreview":"Main Agent가 필요한 입력과 필수값을 이해할 수 있는 구조","textChars":36,"textLines":1,"bbox":[465,354,282,38.4]}
+{"kind":"textbox","id":"sh/je9oruhs","slide":4,"name":"TextBox 122","text":"동일 기능명 강제가 아니라 등록·발견을 위한 식별 정보","textPreview":"동일 기능명 강제가 아니라 등록·발견을 위한 식별 정보","textChars":30,"textLines":1,"bbox":[88,354,288,38]}
+{"kind":"shape","id":"sh/z6pwvm9k","slide":4,"name":"사각형: 둥근 모서리 184","bbox":[62.74,192.94,713.82,82]}
+{"kind":"textbox","id":"sh/l8rexwrq","slide":4,"name":"TextBox 186","text":"MCP Tool 또는 이에 준하는 공통 Endpoint","textPreview":"MCP Tool 또는 이에 준하는 공통 Endpoint","textChars":30,"textLines":1,"bbox":[120,199,600,35.54]}
+{"kind":"textbox","id":"sh/bipwr298","slide":4,"name":"TextBox 188","text":"개발 플랫폼과 내부 로직이 달라도 Main Agent가 발견·호출·해석할 수 있는 경계","textPreview":"개발 플랫폼과 내부 로직이 달라도 Main Agent가 발견·호출·해석할 수 있는 경계","textChars":48,"textLines":1,"bbox":[95,235,650,27.47]}
+{"kind":"shape","id":"sh/hgbmdgvi","slide":4,"name":"vertical-divider","bbox":[818.29,192.8,1.89,489.74]}
+{"kind":"shape","id":"sh/kjy1c7ap","slide":4,"name":"strategy-sep-1","bbox":[841.42,356.3,388,1]}
+{"kind":"shape","id":"sh/ri1onu5c","slide":4,"name":"strategy-sep-2","bbox":[835.62,492.49,388,1]}
+{"kind":"textbox","id":"sh/xsvmlw36","slide":4,"name":"TextBox 234","text":"[ 공통 연결 계약 ]","textPreview":"[ 공통 연결 계약 ]","textChars":12,"textLines":1,"bbox":[51.69,157.21,300,32.31]}
+{"kind":"textbox","id":"sh/apk3qh4f","slide":4,"name":"TextBox 235","text":"[ 공통 영역과 자율 영역 ]","textPreview":"[ 공통 영역과 자율 영역 ]","textChars":16,"textLines":1,"bbox":[841.34,157.21,300,32.31]}
+{"kind":"textbox","id":"sh/gn654v2p","slide":4,"name":"TextBox 237","text":"01","textPreview":"01","textChars":2,"textLines":1,"bbox":[835.62,207.2,47.32,38.78]}
+{"kind":"textbox","id":"sh/hofmxg3a","slide":4,"name":"TextBox 238","text":"02","textPreview":"02","textChars":2,"textLines":1,"bbox":[835.62,357.74,47.32,38.78]}
+{"kind":"textbox","id":"sh/d87ip8jm","slide":4,"name":"TextBox 239","text":"03","textPreview":"03","textChars":2,"textLines":1,"bbox":[835.62,497.17,47.32,38.78]}
+{"kind":"textbox","id":"sh/s7y1gn21","slide":4,"name":"TextBox 240","text":"공통화","textPreview":"공통화","textChars":3,"textLines":1,"bbox":[881.31,208.82,340,35.54]}
+{"kind":"textbox","id":"sh/r6p0ni1g","slide":4,"name":"TextBox 241","text":"조직 자율","textPreview":"조직 자율","textChars":5,"textLines":1,"bbox":[881.31,359.36,340,35.54]}
+{"kind":"textbox","id":"sh/q5gjedkb","slide":4,"name":"TextBox 242","text":"운영 등록","textPreview":"운영 등록","textChars":5,"textLines":1,"bbox":[881.31,498.79,340,35.54]}
+{"kind":"textbox","id":"sh/1wr2tsjy","slide":4,"name":"TextBox 243","text":"Tool 이름·업무 로직·Data Source\n내부 실행 순서·Flow·개발 플랫폼","textPreview":"Tool 이름·업무 로직·Data Source | 내부 실행 순서·Flow·개발 플랫폼","textChars":46,"textLines":2,"bbox":[855.84,401.68,357.32,84.48]}
+{"kind":"textbox","id":"sh/0vi1kn2d","slide":4,"name":"TextBox 244","text":"MCP 호출 또는 이에 준하는 방식\nInput Schema·Output Envelope·권한 Metadata","textPreview":"MCP 호출 또는 이에 준하는 방식 | Input Schema·Output Envelope·권한 Metadata","textChars":60,"textLines":2,"bbox":[855.84,239.63,372.1,109.44]}
+{"kind":"textbox","id":"sh/fu9kri1s","slide":4,"name":"TextBox 245","text":"Tool 설명·소유자·운영상태·검증상태\n실제 사용량과 재사용 수요 확인","textPreview":"Tool 설명·소유자·운영상태·검증상태 | 실제 사용량과 재사용 수요 확인","textChars":39,"textLines":2,"bbox":[855.84,537.48,357.32,59.52]}
+{"kind":"shape","id":"sh/90b2xcju","slide":4,"name":"skill-role","bbox":[839.26,610.05,406.85,70.95]}
+{"kind":"textbox","id":"sh/ozi1o7i9","slide":4,"name":"TextBox 248","text":"Tool별 data 내부 구조는 통일 대상 아님","textPreview":"Tool별 data 내부 구조는 통일 대상 아님","textChars":26,"textLines":1,"bbox":[853.52,619.07,382.57,29.08]}
+{"kind":"textbox","id":"sh/65cfip0r","slide":4,"name":"TextBox 249","text":"Main Agent가 이해할 연결 경계만 공통화","textPreview":"Main Agent가 이해할 연결 경계만 공통화","textChars":26,"textLines":1,"bbox":[835.62,644.03,418.41,29.08]}
+{"kind":"textbox","id":"sh/t83yt4zi","slide":4,"name":"TextBox 252","text":"Tool 내부는 자율, Main Agent와 만나는 연결 지점만 공통화","textPreview":"Tool 내부는 자율, Main Agent와 만나는 연결 지점만 공통화","textChars":39,"textLines":1,"bbox":[0,93.17,1280,42.01]}
+{"kind":"textbox","id":"sh/va5gveh8","slide":4,"name":"직사각형 254","text":"A3. 최소 공통 연결 기준","textPreview":"A3. 최소 공통 연결 기준","textChars":15,"textLines":1,"bbox":[20,20.5,1100,49]}
+{"kind":"notes","id":"nt/jyx0ra1s","slide":4,"text":"최소 공통 연결 기준은 MCP 호출 또는 동등한 호출 방식, Tool 설명과 고유 ID, Input Schema, 공통 Output Envelope, 권한·위험·운영 Metadata. Tool 내부 data 구조와 업무 로직은 조직 자율로 유지함."}

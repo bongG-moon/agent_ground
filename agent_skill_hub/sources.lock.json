@@ -113,6 +113,37 @@
       "package_sha256": "fb4c2ff4c8877fa5e8025c998be7222db77adf475096dfdd6da578120417a712",
       "license": "MIT",
       "imported_on": "2026-07-17"
+    },
+    {
+      "id": "project-design-context",
+      "source_url": "https://oh-my-design.kr/",
+      "resolved_url": "https://github.com/kwakseongjae/oh-my-design",
+      "source_path": "selected design-context sources",
+      "source_paths": [
+        "spec/omd-v0.1.md",
+        "skills/omd-init/SKILL.md",
+        "skills/omd-apply/SKILL.md",
+        "skills/omd-remember/SKILL.md",
+        "skills/omd-learn/SKILL.md",
+        "skills/omd-sync/SKILL.md",
+        "skills/omd-final-qa/SKILL.md",
+        "LICENSE",
+        "package.json",
+        "scripts/postinstall.cjs",
+        "skills/claude-design/SKILL.md",
+        "skills/omd-reference-capture/SKILL.md",
+        "skills/omd-asset-fetch/SKILL.md",
+        "skills/omd-codex-image/SKILL.md"
+      ],
+      "commit": "0a7f3a1e17814c8a1b000ce075b3b2620b70db9e",
+      "source_tree": "995017a7fa22e18929141a5fef01ab1b65c6653a",
+      "skill_sha256": "c3a963aace614d8d6e45afc3ab98a261af2d30caedd77a628946c0ed565eb992",
+      "package_sha256": "1222ff6f22a02ff756f4a88c332bcb848eeaff2c6d822d983fa51a90106b8919",
+      "license": "MIT",
+      "imported_on": "2026-07-26",
+      "source_skill_sha256": "f015cbac417091cfa5894e71e1760fb7c4ad75d304e7e796e5c8326f92592bf1",
+      "source_package_sha256": "1ae9c8b03f31cba5720a7b7697222bf62e6cb7af9fa1afbbf089220cfabb78fa",
+      "derivation": "internal-enterprise-sanitized-canonical"
     }
   ]
 }

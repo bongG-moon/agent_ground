@@ -21,10 +21,10 @@
 
 - 루트 Skill 9개: Karpathy, Flint Chart, Hallmark, animation vocabulary와 5개 motion/design specialist
 - `addy-agent-skills` 22개: 요구사항, 설계, 구현, 테스트, 리뷰, 보안, 운영 workflow
-- candidate: 현재 0개
-- routing eval suite: 현재 0개. 새 candidate를 들일 때 10~20개의 happy/negative case를 먼저 만듭니다.
+- candidate 1개: `project-design-context`; blind eval 전이므로 기본 설치에서 제외
+- routing eval suite 1개: `project-design-context-routing-v1`의 happy/negative case 15개
 
-31개 전체 ID·역할·호출 정책과 삭제된 14개 목록은 [SKILL_INVENTORY.md](./SKILL_INVENTORY.md)를 확인합니다.
+활성 31개와 candidate 1개의 ID·역할·호출 정책, 삭제된 14개 목록은 [SKILL_INVENTORY.md](./SKILL_INVENTORY.md)를 확인합니다.
 
 외부 출처, 고정 commit, hash, licence는 [sources.lock.json](./sources.lock.json)과 컬렉션별 `sources.lock.json`에서 관리합니다.
 
@@ -41,7 +41,7 @@ agent_skill_hub/
 ├── sources.lock.json            # 출처·commit·hash·licence
 ├── security-profile.json        # 설치기와 검증기가 읽는 보안 정책
 ├── SECURITY_PROFILE.md          # 사람이 읽는 필수 보안 경계
-├── SKILL_INVENTORY.md           # 현재 31개와 삭제 14개 목록
+├── SKILL_INVENTORY.md           # 활성 31개, candidate 1개, 삭제 14개 목록
 ├── EXCLUDED_SKILLS.md           # 삭제 사유와 재반입 조건
 └── install.ps1                  # 대상별 설치기
 ```

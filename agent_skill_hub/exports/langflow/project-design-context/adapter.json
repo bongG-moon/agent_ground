@@ -1,0 +1,41 @@
+{
+  "schema_version": 2,
+  "skill_id": "project-design-context",
+  "title": "Project Design Context",
+  "description": "Creates and governs a project-owned DESIGN.md from verified local evidence, records approved preferences, and audits consistency without replacing the primary UI workflow.",
+  "status": "candidate",
+  "recommended_mode": "run-flow",
+  "reason": "This is a stateful inspect-propose-approve-validate workflow; keep approved local writes in a separate component after a human gate.",
+  "canonical_skill_path": "skills/project-design-context/SKILL.md",
+  "prompt_file": "PROMPT_TEMPLATE.md",
+  "configuration": {
+    "fallback_mode": "prompt-template",
+    "network": "none",
+    "write_requires_human_approval": true,
+    "input_contract": [
+      "mode",
+      "project_brief",
+      "existing_design_tokens",
+      "verified_brand_facts",
+      "protected_behavior",
+      "user_preferences"
+    ],
+    "output_contract": [
+      "design_md",
+      "context",
+      "unresolved_fields",
+      "source_provenance",
+      "conflicts",
+      "validation",
+      "write_proposed"
+    ]
+  },
+  "source_sha256": "c3a963aace614d8d6e45afc3ab98a261af2d30caedd77a628946c0ed565eb992",
+  "security_profile": "internal-enterprise",
+  "security_policy_file": "SECURITY_PROFILE.md",
+  "evaluation": {
+    "required_for_active": true,
+    "suite": "project-design-context-routing-v1",
+    "status": "pending"
+  }
+}

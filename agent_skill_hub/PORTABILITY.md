@@ -2,7 +2,7 @@
 
 모든 환경은 `skills/<id>/SKILL.md`를 정본으로 사용합니다. 설치기가 복사한 `SECURITY_POLICY.md`와 `SKILL.md`의 enterprise preamble이 원본 workflow보다 우선합니다.
 
-현재 배포 가능한 Skill은 31개이며 candidate는 없습니다. 전체 목록은 [SKILL_INVENTORY.md](./SKILL_INVENTORY.md), 삭제 이력은 [EXCLUDED_SKILLS.md](./EXCLUDED_SKILLS.md)를 확인합니다.
+현재 기본 배포 가능한 Skill은 31개입니다. `project-design-context` 1개는 candidate라서 기본 설치에서 제외되며, 격리된 평가 경로에서 `-IncludeCandidates`를 명시한 경우에만 복사됩니다. 전체 목록은 [SKILL_INVENTORY.md](./SKILL_INVENTORY.md), 삭제 이력은 [EXCLUDED_SKILLS.md](./EXCLUDED_SKILLS.md)를 확인합니다.
 
 | 환경 | 배포 방식 | 허용 범위 |
 | --- | --- | --- |
@@ -22,6 +22,7 @@
 | Observability | 사내 collector·storage·dashboard | local structured log와 계측 계획까지만 작성 |
 | Shipping/Git | 사내 Git·CI·artifact·deploy target | 로컬 변경과 계획에서 멈추고 push/deploy하지 않음 |
 | Hallmark assets | 사용자 제공 또는 승인된 local/DAM asset | typography, CSS, SVG, 명시적 placeholder 사용 |
+| Project Design Context | 기존 `DESIGN.md`, repository evidence, 승인된 내부 brand 자료 | 확인되지 않은 값은 `[UNRESOLVED: ...]`로 남기고 쓰기 전에 승인 요청 |
 
 ## 충돌 우선순위
 
