@@ -1,0 +1,23 @@
+{
+  "schema_version": 2,
+  "skill_id": "mandela",
+  "title": "Mandela Eval Audit",
+  "description": "Audits evals, benchmarks, experiments, and metrics for circular confirmation and missing independent ground truth.",
+  "status": "candidate",
+  "recommended_mode": "prompt-template",
+  "reason": "This is a compact, read-only audit taxonomy with structured findings and no external action.",
+  "canonical_skill_path": "skills/mandela/SKILL.md",
+  "prompt_file": "PROMPT_TEMPLATE.md",
+  "configuration": {
+    "network": "none",
+    "read_only": true
+  },
+  "source_sha256": "007082d35e14cc00fef730e1b7bf718320ca34e2db0bb954d2c777d7c26449ff",
+  "security_profile": "internal-enterprise",
+  "security_policy_file": "SECURITY_PROFILE.md",
+  "evaluation": {
+    "required_for_active": true,
+    "suite": "paperthin-core-routing-v1",
+    "status": "pending"
+  }
+}

@@ -98,7 +98,7 @@ def test_package_contract_and_supported_formats() -> None:
     assert manifest["runtime_ready"] is True
     assert refs == {
         "flow_id": "drm_document_text_extraction_flow",
-        "components": [{"id": "drm_document_text_extractor", "version": "0.5.1"}],
+        "components": [{"id": "drm_document_text_extractor", "version": "0.6.0"}],
     }
     assert internal["nodes"] == []
     file_input = next(item for item in component_manifest["inputs"] if item["name"] == "document_files")

@@ -2,7 +2,7 @@
 
 모든 환경은 `skills/<id>/SKILL.md`를 정본으로 사용합니다. 설치기가 복사한 `SECURITY_POLICY.md`와 `SKILL.md`의 enterprise preamble이 원본 workflow보다 우선합니다.
 
-현재 기본 배포 가능한 Skill은 31개입니다. `project-design-context` 1개는 candidate라서 기본 설치에서 제외되며, 격리된 평가 경로에서 `-IncludeCandidates`를 명시한 경우에만 복사됩니다. 전체 목록은 [SKILL_INVENTORY.md](./SKILL_INVENTORY.md), 삭제 이력은 [EXCLUDED_SKILLS.md](./EXCLUDED_SKILLS.md)를 확인합니다.
+현재 기본 배포 가능한 Skill은 31개입니다. `project-design-context`, `langflow-1-9-2-development`, `re0`, `mandela`, `ssotize` 5개는 candidate라서 기본 설치에서 제외되며, 격리된 평가 경로에서 `-IncludeCandidates`를 명시한 경우에만 복사됩니다. 전체 목록은 [SKILL_INVENTORY.md](./SKILL_INVENTORY.md), 삭제 이력은 [EXCLUDED_SKILLS.md](./EXCLUDED_SKILLS.md)를 확인합니다.
 
 | 환경 | 배포 방식 | 허용 범위 |
 | --- | --- | --- |
@@ -23,6 +23,10 @@
 | Shipping/Git | 사내 Git·CI·artifact·deploy target | 로컬 변경과 계획에서 멈추고 push/deploy하지 않음 |
 | Hallmark assets | 사용자 제공 또는 승인된 local/DAM asset | typography, CSS, SVG, 명시적 placeholder 사용 |
 | Project Design Context | 기존 `DESIGN.md`, repository evidence, 승인된 내부 brand 자료 | 확인되지 않은 값은 `[UNRESOLVED: ...]`로 남기고 쓰기 전에 승인 요청 |
+| Langflow 1.9.2 Development | exact 1.9.2/0.9.2/0.4.2 환경과 격리된 사내 import target | 정적 source/export 감사와 재현 가능한 test plan까지만 수행하고 runtime 성공을 주장하지 않음 |
+| Re0 | 기존 artifact와 canonical sibling | 외부 자료 없이 현재 확인 가능한 truth만 남기고 unresolved conflict 보고 |
+| Mandela | eval design, rubric, dataset provenance, score artifact | 독립 ground truth를 확인할 수 없으면 `insufficient evidence` 반환 |
+| SSOTize | 승인된 local·internal artifact 검색 | 감사 결과와 mutation plan까지만 반환하고 승인 전에는 수정하지 않음 |
 
 ## 충돌 우선순위
 

@@ -10,7 +10,6 @@ ROOT = Path(__file__).resolve().parents[1]
 COMPONENT_IDS = {
     "drm_document_text_extractor",
     "multi_image_base64_encoder",
-    "cached_named_run_flow_tool",
     "oracle_table_query",
     "h_api_table_request",
     "datalake_table_query",
@@ -58,8 +57,8 @@ def main() -> None:
         assets.append(asset)
 
     flow_paths = sorted((ROOT / "flows").glob("*/manifest.json"))
-    if len(flow_paths) != 7:
-        raise ValueError(f"Registry에는 Flow manifest 7개가 필요합니다: {flow_paths}")
+    if len(flow_paths) != 8:
+        raise ValueError(f"Registry에는 Flow manifest 8개가 필요합니다: {flow_paths}")
     for manifest_path in flow_paths:
         asset = read_json(manifest_path)
         if asset.get("asset_type") != "flow":
@@ -72,7 +71,7 @@ def main() -> None:
     payload = {
         "schema_version": "1.0",
         "generated_at": datetime.now().astimezone().date().isoformat(),
-        "source_of_truth": "21 qualified Component manifests and 7 Flow manifests; internal nodes are excluded",
+        "source_of_truth": "20 qualified Component manifests and 8 Flow manifests; internal nodes are excluded",
         "publication_rule": "Only approved assets may be used by Business Agent Design recommendations.",
         "assets": assets,
     }

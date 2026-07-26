@@ -1,0 +1,4 @@
+interface:
+  display_name: "Re0 Artifact Reset"
+  short_description: "Rewrite drifted artifacts as a clean current v0"
+  default_prompt: "Use $re0 to rewrite this drifted artifact as a clean current v0."

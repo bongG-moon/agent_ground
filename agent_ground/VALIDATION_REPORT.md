@@ -10,16 +10,16 @@ Agent Ground의 Component, Flow, 생성기, 교육자료와 지침을 Langflow 1
 
 | 검사 | 결과 |
 | --- | --- |
-| 공개 기능 Component | 21개 |
-| Flow 내부 Standalone Node | 33개 |
+| 공개 기능 Component | 20개 |
+| Flow 내부 Standalone Node | 37개 |
 | Business Agent Design 전용 Standalone Node | 15개 |
-| 1.9.2 실제 loader로 평가한 Python 원본 | 총 69개, 모두 통과 |
+| 1.9.2 실제 loader로 평가한 Python 원본 | 총 72개, 모두 통과 |
 | Graph parser로 읽은 Flow JSON | 10개, 모두 통과 |
-| Flow 합계 | 132 nodes / 145 edges |
+| Flow 합계 | 140 nodes / 157 edges |
 | 전체 회귀 테스트 | 109개 통과 |
-| 프로젝트 구조 검사 | JSON 83개, Python 108개, Flow manifest 7개 |
-| 포털 검사 | HTML 128개, 로컬 링크 2,886개 통과 |
-| Registry | Component 21개 + 최상위 Flow 7개 = 28개 |
+| 프로젝트 구조 검사 | JSON 85개, Python 113개, Flow manifest 8개 |
+| 포털 검사 | HTML 135개, 로컬 링크 3,049개 통과 |
+| Registry | Component 20개 + 최상위 Flow 8개 = 28개 |
 | 전체 Import Bundle | 실행 가능 Flow 7개, BOM 없음, 안정된 순서 확인 |
 
 ## 1.9.2에서 확인한 핵심 계약
@@ -39,30 +39,30 @@ Agent Ground의 Component, Flow, 생성기, 교육자료와 지침을 Langflow 1
 | `reusable_data_flow.json` | 16 | 21 | `building` | 1.9.2 schema·Graph 해석은 통과했지만 내용이 문서의 데이터 조회 Flow와 달라 전체 Bundle에서 제외 |
 | `html_report_flow.json` | 18 | 22 | `user_testing` | 1.9.2 template·handle 이관 |
 | `enterprise_document_rag_flow.json` | 13 | 10 | `user_testing` | 기능 Component 6개 + 내부 Node 3개 |
-| `meeting_action_skill_flow.json` | 5 | 3 | `user_testing` | 회의 Skill 하위 Flow |
-| `skill_based_agent_flow.json` | 9 | 8 | `user_testing` | 직접 계산 Tool 2개 + 안전한 Run Flow Tool 1개 |
+| `skill_based_agent_flow.json` | 9 | 9 | `user_testing` | 경비·휴가·회의 직접 Component Tool 3개 |
 | `ppt_reference_html_flow.json` | 17 | 22 | `user_testing` | 참고 이미지·데이터 기반 HTML 프레젠테이션 |
 | `mail_attachment_summary_flow.json` | 14 | 12 | `user_testing` | EWS·DRM·Vision 운영 경로 |
 | `mail_attachment_summary_dummy_flow.json` | 14 | 12 | 테스트 전용 | 외부 메일함 없이 typed pipeline 검증 |
 | `drm_document_text_extraction_flow.json` | 2 | 1 | `user_testing` | 직접 업로드 문서 추출 최소 Flow |
+| `meeting_minutes_writer_flow.json` | 13 | 14 | `user_testing` | 과거 녹취·회의록 스타일 분석, 현재 녹취 초안·사실 검토 |
 | `business_agent_design_complete.json` | 24 | 34 | `user_testing` | BEFORE/AFTER 분기형 Flow Chart와 개선 설명 |
 
 ## 기능 회귀에서 확인한 내용
 
 ### Component와 데이터 타입
 
-- 21개 공개 Component는 Standalone 한 파일로 template 생성에 성공했습니다.
+- 20개 공개 Component는 Standalone 한 파일로 template 생성에 성공했습니다.
 - Oracle, H-API, Datalake, GooDocs, 일반 API 조회 Component는 `data_table` 한 개만 출력합니다.
 - 1.9.2 template에서는 표 출력이 `DataFrame`, `Table` alias를 함께 제공하는지 확인했습니다.
 - HTML 프레젠테이션 결과는 `Data`, `JSON` alias를 함께 제공하는지 확인했습니다.
 - 메일 파일 Reader의 Builder 표시 출력은 `Table`, Formatter 입력은 `DataFrame`, `Table` 호환 계약으로 확인했습니다.
 
-### Run Flow와 Skill Agent
+### 직접 Component Tool 기반 Skill Agent
 
-- 외부 Tool schema는 내부 Node ID를 노출하지 않고 `flow_tweak_data.question` 하나를 사용합니다.
-- 실행 시 현재 하위 Flow의 유일한 Chat Input ID를 찾아 내부 `~input_value` key로 변환합니다.
-- 경비·휴가 계산은 개별 Component Tool, 회의 액션아이템은 이름 기반 Run Flow Tool로 구성했습니다.
-- 상위 Skill Flow는 7 vertices / 8 edges, 회의 하위 Flow는 4 vertices / 3 edges로 실제 LFX Graph 해석을 통과했습니다.
+- 실제 환경에서 오류가 남아 있던 이름 기반 Run Flow Tool과 회의 하위 Flow를 제거했습니다.
+- 경비·휴가·회의 액션아이템 기능을 각각 개별 Standalone Component Tool로 직접 연결했습니다.
+- 상위 Skill Flow는 7 vertices / 9 edges로 실제 LFX Graph 해석을 통과했습니다.
+- Skill Bundle에는 상위 Flow 1개만, 전체 프로젝트 Bundle에는 실행 가능 Flow 7개만 포함됩니다.
 
 ### 문서·메일·프레젠테이션
 
@@ -71,6 +71,8 @@ Agent Ground의 Component, Flow, 생성기, 교육자료와 지침을 Langflow 1
 - 메일 운영 Flow와 dummy Flow 모두 14 nodes / 12 edges이며 `JSON`, `Table` typed pipeline을 확인했습니다.
 - PPT Flow는 특정 모델명을 고정하지 않고 승인된 멀티모달 모델을 사용하도록 수정했습니다.
 - 발표 데이터의 표·KPI·막대·선·산점도 선택, dataset·column 검증, HTML escaping과 외부 URL 차단을 확인했습니다.
+- 회의록 Flow는 과거 녹취·실제 회의록의 1:1 순서 결합, 사용자 스타일 분석, 현재 녹취만 사용하는 초안 작성, 추가 지시 우선 적용과 최종 사실 검토를 분리했습니다.
+- 실제 Word·DRM 회의록은 공용 DRM Component를 재사용하며, endpoint·token·사번은 Flow JSON에 저장하지 않습니다.
 
 ### 교육·포털·지침
 
@@ -93,10 +95,11 @@ python scripts/validate_langflow_1_9_2_runtime.py
 생성기 `--check`도 다음 자산에 대해 통과했습니다.
 
 - Enterprise Document RAG Flow
-- Skill 기반 Agent 상위·하위 Flow와 Project Bundle
+- Skill 기반 Agent 직접 Component Tool Flow와 Project Bundle
 - PPT 참고 이미지 HTML 프레젠테이션 Flow
 - EWS·DRM 메일 요약 운영·dummy Flow
 - DRM 문서 텍스트 추출 Flow
+- 사용자 스타일 기반 회의록 작성 Flow
 
 ## 경고와 검증 경계
 
@@ -108,12 +111,13 @@ python scripts/validate_langflow_1_9_2_runtime.py
 
 ## 사용자 환경에서 남은 확인
 
-- [ ] Langflow 1.9.2 Builder에 전체 7개 Flow Bundle을 Import하고 Canvas가 정상 표시되는지 확인
+- [ ] 실제 사내 Langflow 1.9.2 Builder에 전체 7개 Flow Bundle을 Import하고 Canvas가 정상 표시되는지 확인
 - [ ] 실제 사용할 공개 Component를 등록하고 한글 입력·출력 이름과 `JSON`·`Table` 포트 확인
 - [ ] 회사 승인 Tool Calling 모델로 Skill 선택, 비대상 질문과 복합 질문 확인
-- [ ] Cached Named Run Flow의 cold/warm 실행, session 상속과 하위 Flow 재import 후 질문 전달 확인
+- [ ] 경비·휴가·회의 직접 Component Tool의 입력 전달과 모델별 선택 정확도 확인
 - [ ] 승인된 Vision 모델로 PPT 참고 이미지와 EWS JPG/JPEG 분석 확인
 - [ ] 실제 사내 데이터·메일·DRM endpoint와 최소 권한 계정으로 연결 시험
+- [ ] 과거 녹취·실제 회의록 2쌍 이상과 현재 녹취로 회의록 스타일 재현, 사실 일치, 포함·제외 지시 반영을 사람이 확인
 - [ ] 포털을 데스크톱과 모바일에서 최종 시각 확인
 - [ ] 올바른 `reusable_data_flow` export 제공 또는 신규 재구축
 - [ ] 사용자 완료 승인 후 해당 자산만 `approved`로 전환

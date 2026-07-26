@@ -2,6 +2,8 @@
 
 사내 EWS와 NTLM 인증으로 받은 편지함의 최근 메일을 읽고, 일반 문서는 로컬 `Read File`, 보호 문서는 DRM API, JPG/JPEG는 연결된 vLLM Vision 모델로 처리합니다. ZIP 등 미지원 형식은 오류로 중단하지 않고 안내 텍스트로 바꾼 뒤 메일별·전체 업무 요약을 생성하는 Langflow `1.9.2` Flow입니다.
 
+DRM 처리만 따로 배우거나 다른 Flow에 재사용하려면 [`DRM 문서 텍스트 추출 초보자 교육`](../../components/drm_document_text_extractor/BEGINNER_GUIDE.md)과 [`Component 연결·운영 가이드`](../../components/drm_document_text_extractor/USAGE_GUIDE.md)를 먼저 확인하세요. 해당 Component는 DRM이 해제된 원본 파일을 반환하지 않고, 추출한 평문 텍스트 또는 후속 `Read File`용 임시 TXT를 반환합니다.
+
 ## 실제 환경 반영 범위
 
 - `requests + requests-ntlm + EWS SOAP` 방식으로 `FindItem → GetItem → GetAttachment`를 호출합니다.

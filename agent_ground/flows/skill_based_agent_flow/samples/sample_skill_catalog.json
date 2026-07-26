@@ -60,7 +60,7 @@
       "skill_id": "meeting_action",
       "tool_name": "meeting_action_skill",
       "name": "회의 후속 조치 Skill",
-      "description": "이름 기반 Run Flow Tool로 별도 meeting_action_skill_flow를 실행해 회의 후속 조치의 담당자, 할 일, 기한을 검토용 목록으로 정리합니다.",
+      "description": "회의 후속 조치 Component Tool로 담당자, 할 일, 기한을 검토용 목록으로 정리합니다.",
       "enabled": true,
       "triggers": [
         "회의 액션 아이템 정리",
@@ -68,7 +68,7 @@
         "회의 후속 조치 구조화"
       ],
       "instructions": [
-        "Agent가 전달한 question을 meeting_action_skill_flow의 현재 Chat Input으로 전달합니다.",
+        "Agent가 전달한 request를 회의 후속 조치 Component에서 직접 처리합니다.",
         "담당자 | 할 일 | YYYY-MM-DD 형식의 줄을 파싱합니다.",
         "형식이 맞지 않는 줄은 임의 보정하지 않고 invalid_lines에 남깁니다.",
         "추출 결과는 검토용 목록으로만 반환합니다.",

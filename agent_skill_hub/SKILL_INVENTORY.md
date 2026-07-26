@@ -8,10 +8,10 @@
 | 구분 | 수량 | 상태 |
 | --- | ---: | --- |
 | 활성 Skill | 31 | 설치·export 가능 |
-| candidate Skill | 1 | eval 전 격리; 기본 설치 제외 |
+| candidate Skill | 5 | eval 전 격리; 기본 설치 제외 |
 | 삭제 Skill | 14 | canonical 폴더와 파생 파일까지 제거 |
-| Langflow export 폴더 | 32 | 활성 31 + candidate 1 |
-| routing eval suite | 1 | candidate용 15개 case |
+| Langflow export 폴더 | 36 | 활성 31 + candidate 5 |
+| routing eval suite | 3 | candidate용 51개 case |
 
 삭제 Skill은 `EXCLUDED_SKILLS.md`의 이력에만 이름과 사유가 남아 있습니다. 실제 Skill 폴더, catalog entry, source lock entry, eval case, Langflow export, 전용 import script는 존재하지 않습니다.
 
@@ -73,11 +73,15 @@
 | `documentation-and-adrs` | 문서와 ADR 작성 |
 | `context-engineering` | Agent context와 project rule 관리 |
 
-## 평가 중인 candidate Skill 1개
+## 평가 중인 candidate Skill 5개
 
 | ID | 역할 | 상태 |
 | --- | --- | --- |
 | `project-design-context` | 검증된 프로젝트 근거로 `DESIGN.md`를 생성·적용·기록·통합·감사 | `project-design-context-routing-v1` pending; 기본 설치 제외 |
+| `langflow-1-9-2-development` | 1.9.2 custom component·builder·export·Router·Tool·session·import/runtime 계약을 구현하고 검증 | `langflow-1-9-2-development-routing-v1` pending; 1.9.2 보안 예외와 사내 격리 필요 |
+| `re0` | 누적된 단일 산출물을 현재 사실만 남긴 깨끗한 v0로 재작성 | `paperthin-core-routing-v1` pending; 기본 설치 제외 |
+| `mandela` | eval·metric·experiment의 독립 ground truth와 누수 감사 | `paperthin-core-routing-v1` pending; read-only |
+| `ssotize` | 여러 위치에 흩어진 한 사실을 감사하고 승인 후 정본으로 통합 | `paperthin-core-routing-v1` pending; 승인 전 read-only |
 
 ## 삭제된 Skill 14개
 

@@ -1,0 +1,18 @@
+{"id":"pt-happy-re0-readme","kind":"happy","prompt":"여러 번 덧붙이면서 old/new 설명과 중복 문단이 남은 이 README를 현재 사실만 담긴 깨끗한 v0로 다시 써줘. changelog처럼 만들지 말고 기존 링크와 사용 계약은 보존해줘.","expected_skills":["re0"],"forbidden_skills":["mandela","ssotize"]}
+{"id":"pt-happy-re0-prompt","kind":"happy","prompt":"패치를 반복해서 같은 규칙이 세 번 나오고 폐기된 예외가 남은 하나의 시스템 프롬프트를 끝까지 읽고, 지금 유효한 규칙만 자연스러운 한 문서로 재작성해줘.","expected_skills":["re0"],"forbidden_skills":["mandela","ssotize"]}
+{"id":"pt-happy-re0-spec","kind":"happy","prompt":"이 기존 구현 명세에는 완료된 TODO와 임시 scaffolding 설명이 섞여 있어. API와 테스트 계약은 보호하면서 처음부터 잘 정리된 문서처럼 갱신해줘.","expected_skills":["re0"],"forbidden_skills":["mandela","ssotize"]}
+{"id":"pt-happy-mandela-scorer","kind":"happy","prompt":"모델이 평가 rubric을 만들고 같은 모델이 결과를 채점한 실험이야. 이 점수가 독립적인 검증인지, scorer와 designer가 서로를 확인하는 구조인지 read-only로 감사해줘.","expected_skills":["mandela"],"forbidden_skills":["re0","ssotize"]}
+{"id":"pt-happy-mandela-holdout","kind":"happy","prompt":"학습셋과 holdout을 행 단위로 나눴지만 모두 같은 라벨러 그룹과 수집 절차에서 왔어. shared-pool bias나 leakage가 있는지 평가 설계를 감사해줘.","expected_skills":["mandela"],"forbidden_skills":["re0","ssotize"]}
+{"id":"pt-happy-mandela-ab","kind":"happy","prompt":"A/B 테스트 질문에 우리가 기대하는 개선 가설이 그대로 드러나고 참가자도 측정 목적을 알아. 이 validation에 frame injection이나 demand characteristics가 있는지 확인해줘.","expected_skills":["mandela"],"forbidden_skills":["re0","ssotize"]}
+{"id":"pt-happy-ssot-timeout","kind":"happy","prompt":"동일한 timeout 값이 config, README, 운영 runbook 세 곳에 있고 서로 달라. 먼저 read-only로 전부 찾고 어떤 곳이 정본이어야 하는지와 변경 계획을 제시한 뒤 승인 전에는 수정하지 마.","expected_skills":["ssotize"],"forbidden_skills":["re0","mandela"]}
+{"id":"pt-happy-ssot-status","kind":"happy","prompt":"프로젝트 상태 정의가 다섯 문서에 복사되어 자꾸 어긋나. 하나의 canonical source를 정하고 나머지는 링크로 바꾸는 통합안을 만들어줘. 실제 변경은 내 승인을 받은 뒤에 해줘.","expected_skills":["ssotize"],"forbidden_skills":["re0","mandela"]}
+{"id":"pt-happy-ssot-generated","kind":"happy","prompt":"source catalog와 생성된 manifest에 같은 capability 설명이 중복되고 생성물이 수동 수정돼 drift가 났어. generator를 정본으로 삼을 수 있는지 감사하고 per-location 통합 계획을 보여줘.","expected_skills":["ssotize"],"forbidden_skills":["re0","mandela"]}
+{"id":"pt-negative-new-artifact","kind":"negative","prompt":"새 프로젝트를 위한 API 설계 문서를 처음부터 작성해줘. 기존 문서는 없어.","expected_skills":[],"forbidden_skills":["re0","mandela","ssotize"]}
+{"id":"pt-negative-typo","kind":"negative","prompt":"이 문장에서 맞춤법 한 글자만 고쳐줘. 다른 내용과 구조는 바꾸지 마.","expected_skills":[],"forbidden_skills":["re0","mandela","ssotize"]}
+{"id":"pt-negative-code-refactor","kind":"negative","prompt":"동작은 유지하면서 이 Python 함수의 중첩 조건문을 단순화하고 테스트를 실행해줘.","expected_skills":[],"forbidden_skills":["re0","mandela","ssotize"]}
+{"id":"pt-negative-fact-check","kind":"negative","prompt":"보고서에 적힌 세계 인구 통계가 최신 공식 자료와 맞는지 출처를 찾아 검증해줘.","expected_skills":[],"forbidden_skills":["re0","mandela","ssotize"]}
+{"id":"pt-negative-test-implementation","kind":"negative","prompt":"새 API의 인증 실패와 rate limit 동작을 증명하는 단위 테스트를 구현해줘.","expected_skills":[],"forbidden_skills":["re0","mandela","ssotize"]}
+{"id":"pt-negative-release","kind":"negative","prompt":"현재 변경을 커밋하고 사내 Git remote에 push한 다음 릴리스 태그를 만들어줘.","expected_skills":[],"forbidden_skills":["re0","mandela","ssotize"]}
+{"id":"pt-negative-design-context","kind":"negative","prompt":"저장소의 UI 토큰과 사내 브랜드 가이드를 근거로 프로젝트 DESIGN.md 초안을 만들어줘.","expected_skills":[],"forbidden_skills":["re0","mandela","ssotize"]}
+{"id":"pt-negative-contextual-copy","kind":"negative","prompt":"개발자 문서와 고객 도움말에 같은 기능을 각 독자에 맞게 다르게 설명한 부분은 그대로 두고 문법만 검토해줘.","expected_skills":[],"forbidden_skills":["re0","mandela","ssotize"]}
+{"id":"pt-negative-data-dedupe","kind":"negative","prompt":"CSV에서 이메일이 같은 중복 고객 행을 병합하고 최신 레코드만 남겨줘.","expected_skills":[],"forbidden_skills":["re0","mandela","ssotize"]}

@@ -1,0 +1,373 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <base href="../../../../" />
+  <title>04 회의록 작성 요청 정리 Python 코드 · Agent Ground</title>
+  <meta name="description" content="사용자 스타일 기반 회의록 작성 Flow 내부 Node 04 회의록 작성 요청 정리 Python 코드 뷰어" />
+  <link rel="stylesheet" href="assets/css/site.css" />
+  
+</head>
+<body>
+  <a class="skip-link" href="#main">본문으로 바로가기</a>
+  <header class="site-header">
+    <div class="header-inner">
+      <a class="brand" href="index.html" aria-label="Agent Ground 홈">
+        <span class="brand-mark" aria-hidden="true">AG</span>
+        <span class="brand-copy"><strong>Agent Ground</strong><small>Learn · Build · Validate</small></span>
+      </a>
+      <button class="menu-button" type="button" data-menu-button aria-expanded="false" aria-controls="site-nav" aria-label="메뉴 열기"><span class="menu-lines"></span></button>
+      <nav class="site-nav" id="site-nav" data-site-nav data-open="false" aria-label="주요 메뉴"><a href="index.html">홈</a><a href="training/index.html">처음 배우기</a><a href="flows/index.html" aria-current="page">Flows</a><a href="components/index.html">Components</a><a href="troubleshooting/index.html">실패와 해결</a><a href="business-agent-design/index.html">업무 Agent 설계</a></nav>
+    </div>
+  </header>
+  <main class="page-wrap" id="main">
+    <nav class="breadcrumbs" aria-label="현재 위치"><a href="index.html">홈</a><span aria-hidden="true">/</span><a href="flows/index.html">Flows</a><span aria-hidden="true">/</span><a href="flows/meeting_minutes_writer_flow/index.html">사용자 스타일 기반 회의록 작성 Flow</a><span aria-hidden="true">/</span><a href="flows/meeting_minutes_writer_flow/nodes/meeting_minutes_request_builder/index.html">04 회의록 작성 요청 정리</a><span aria-hidden="true">/</span><span>Python 코드</span></nav>
+    
+<section class="code-page-intro"><div><p class="eyebrow">Flow internal Python source</p><h1>04 회의록 작성 요청 정리</h1><p><code>meeting_minutes_request_builder.py</code> 원문을 포털 안에서 확인합니다. 이 코드는 Component Library가 아니라 <strong>사용자 스타일 기반 회의록 작성 Flow</strong>의 내부 구현입니다.</p></div><div class="code-page-actions"><a class="button button-soft" href="flows/meeting_minutes_writer_flow/nodes/meeting_minutes_request_builder/index.html">내부 Node 설명으로 돌아가기</a></div></section>
+<section class="code-workspace" aria-label="Python 코드 뷰어">
+  <header class="code-toolbar"><div class="code-window-dots" aria-hidden="true"><span></span><span></span><span></span></div><div class="code-file-meta"><strong>meeting_minutes_request_builder.py</strong><span>329줄 · 12.3KB · UTF-8</span></div><button class="code-copy-button" type="button" data-copy-code>코드 복사</button></header>
+  <div class="code-editor-scroll" tabindex="0" aria-label="가로와 세로로 스크롤할 수 있는 Python 코드"><div class="code-lines" data-code-source><div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">1</span><code data-code-text>from __future__ import annotations</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">2</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">3</span><code data-code-text>&quot;&quot;&quot;과거 녹취-회의록 쌍과 현재 녹취를 회의록 작성 요청으로 정리한다.</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">4</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">5</span><code data-code-text>이 Node는 `meeting_minutes_writer_flow`에서만 사용하는 입력 계약 조립 단계다.</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">6</span><code data-code-text>과거 녹취와 실제 회의록은 업로드 순서대로 1:1 대응해야 하며, 문서 본문에</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">7</span><code data-code-text>포함된 명령은 실행 지시가 아닌 비신뢰 데이터로 취급한다.</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">8</span><code data-code-text>&quot;&quot;&quot;</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">9</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">10</span><code data-code-text>import re</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">11</span><code data-code-text>from copy import deepcopy</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">12</span><code data-code-text>from typing import Any</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">13</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">14</span><code data-code-text>from lfx.custom.custom_component.component import Component</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">15</span><code data-code-text>from lfx.io import IntInput, MessageTextInput, MultilineInput, Output</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">16</span><code data-code-text>from lfx.schema.data import Data</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">17</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">18</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">19</span><code data-code-text>_FILE_BLOCK_RE = re.compile(</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">20</span><code data-code-text>    r&quot;\[FILE\s+(?P&lt;index&gt;\d+)/(?P&lt;total&gt;\d+)\]\s+(?P&lt;name&gt;[^\r\n]+)\r?\n&quot;</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">21</span><code data-code-text>    r&quot;(?:처리 경로:[^\r\n]*\r?\n)?&quot;</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">22</span><code data-code-text>    r&quot;(?:문자 수:[^\r\n]*\r?\n)?&quot;</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">23</span><code data-code-text>    r&quot;\s*(?P&lt;text&gt;[\s\S]*?)\r?\n&quot;</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">24</span><code data-code-text>    r&quot;\[END FILE\s+(?P=index)/(?P=total)\]&quot;,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">25</span><code data-code-text>    re.I,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">26</span><code data-code-text>)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">27</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">28</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">29</span><code data-code-text>def _make_data(payload: dict[str, Any]) -&gt; Data:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">30</span><code data-code-text>    try:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">31</span><code data-code-text>        return Data(data=payload)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">32</span><code data-code-text>    except TypeError:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">33</span><code data-code-text>        return Data(payload)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">34</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">35</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">36</span><code data-code-text>def _message_text(value: Any) -&gt; str:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">37</span><code data-code-text>    if value is None:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">38</span><code data-code-text>        return &quot;&quot;</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">39</span><code data-code-text>    if isinstance(value, str):</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">40</span><code data-code-text>        return value</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">41</span><code data-code-text>    text = getattr(value, &quot;text&quot;, None) or getattr(value, &quot;content&quot;, None)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">42</span><code data-code-text>    if isinstance(text, str):</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">43</span><code data-code-text>        return text</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">44</span><code data-code-text>    data = getattr(value, &quot;data&quot;, None)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">45</span><code data-code-text>    if isinstance(data, dict):</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">46</span><code data-code-text>        for key in (&quot;text&quot;, &quot;content&quot;, &quot;message&quot;):</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">47</span><code data-code-text>            if isinstance(data.get(key), str):</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">48</span><code data-code-text>                return data[key]</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">49</span><code data-code-text>    return str(value)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">50</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">51</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">52</span><code data-code-text>def _bounded_int(value: Any, default: int, minimum: int, maximum: int) -&gt; int:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">53</span><code data-code-text>    try:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">54</span><code data-code-text>        parsed = int(value)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">55</span><code data-code-text>    except Exception:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">56</span><code data-code-text>        parsed = default</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">57</span><code data-code-text>    return max(minimum, min(maximum, parsed))</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">58</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">59</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">60</span><code data-code-text>def parse_extraction_blocks(value: Any, *, fallback_name: str) -&gt; list[dict[str, Any]]:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">61</span><code data-code-text>    &quot;&quot;&quot;DRM 문서 추출 Message를 파일별 텍스트 목록으로 복원한다.&quot;&quot;&quot;</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">62</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">63</span><code data-code-text>    text = _message_text(value).replace(&quot;\x00&quot;, &quot; &quot;).strip()</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">64</span><code data-code-text>    if not text:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">65</span><code data-code-text>        return []</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">66</span><code data-code-text>    matches = list(_FILE_BLOCK_RE.finditer(text))</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">67</span><code data-code-text>    if not matches:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">68</span><code data-code-text>        return [{&quot;file_name&quot;: fallback_name, &quot;text&quot;: text, &quot;source_index&quot;: 1}]</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">69</span><code data-code-text>    result: list[dict[str, Any]] = []</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">70</span><code data-code-text>    for match in matches:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">71</span><code data-code-text>        body = match.group(&quot;text&quot;).strip()</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">72</span><code data-code-text>        if not body:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">73</span><code data-code-text>            continue</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">74</span><code data-code-text>        result.append(</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">75</span><code data-code-text>            {</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">76</span><code data-code-text>                &quot;file_name&quot;: match.group(&quot;name&quot;).strip()[:255],</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">77</span><code data-code-text>                &quot;text&quot;: body,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">78</span><code data-code-text>                &quot;source_index&quot;: int(match.group(&quot;index&quot;)),</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">79</span><code data-code-text>            }</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">80</span><code data-code-text>        )</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">81</span><code data-code-text>    return result</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">82</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">83</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">84</span><code data-code-text>def _clip_documents(</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">85</span><code data-code-text>    documents: list[dict[str, Any]],</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">86</span><code data-code-text>    *,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">87</span><code data-code-text>    per_file_limit: int,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">88</span><code data-code-text>    total_limit: int,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">89</span><code data-code-text>    warnings: list[str],</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">90</span><code data-code-text>    label: str,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">91</span><code data-code-text>) -&gt; list[dict[str, Any]]:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">92</span><code data-code-text>    clipped: list[dict[str, Any]] = []</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">93</span><code data-code-text>    remaining = total_limit</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">94</span><code data-code-text>    for item in documents:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">95</span><code data-code-text>        text = str(item.get(&quot;text&quot;) or &quot;&quot;).strip()</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">96</span><code data-code-text>        allowed = min(per_file_limit, max(0, remaining))</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">97</span><code data-code-text>        if allowed &lt;= 0:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">98</span><code data-code-text>            warnings.append(f&quot;{label} 전체 문자 제한을 초과한 나머지 파일은 사용하지 않았습니다.&quot;)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">99</span><code data-code-text>            break</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">100</span><code data-code-text>        selected = text[:allowed]</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">101</span><code data-code-text>        if len(text) &gt; allowed:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">102</span><code data-code-text>            warnings.append(f&quot;{label} &#x27;{item.get(&#x27;file_name&#x27;)}&#x27; 내용이 문자 제한에 맞게 잘렸습니다.&quot;)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">103</span><code data-code-text>        clipped.append(</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">104</span><code data-code-text>            {</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">105</span><code data-code-text>                &quot;file_name&quot;: str(item.get(&quot;file_name&quot;) or &quot;unknown&quot;)[:255],</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">106</span><code data-code-text>                &quot;text&quot;: selected,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">107</span><code data-code-text>                &quot;source_index&quot;: int(item.get(&quot;source_index&quot;) or len(clipped) + 1),</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">108</span><code data-code-text>            }</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">109</span><code data-code-text>        )</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">110</span><code data-code-text>        remaining -= len(selected)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">111</span><code data-code-text>    return clipped</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">112</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">113</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">114</span><code data-code-text>def build_meeting_minutes_request(</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">115</span><code data-code-text>    historical_transcripts: Any,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">116</span><code data-code-text>    historical_minutes: Any,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">117</span><code data-code-text>    current_transcript: Any,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">118</span><code data-code-text>    *,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">119</span><code data-code-text>    additional_instructions: Any = &quot;&quot;,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">120</span><code data-code-text>    meeting_title: Any = &quot;&quot;,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">121</span><code data-code-text>    meeting_date: Any = &quot;&quot;,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">122</span><code data-code-text>    participants: Any = &quot;&quot;,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">123</span><code data-code-text>    output_language: Any = &quot;ko&quot;,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">124</span><code data-code-text>    max_example_chars_per_file: Any = 60_000,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">125</span><code data-code-text>    max_total_example_chars: Any = 300_000,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">126</span><code data-code-text>    max_current_transcript_chars: Any = 120_000,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">127</span><code data-code-text>) -&gt; dict[str, Any]:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">128</span><code data-code-text>    warnings: list[str] = []</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">129</span><code data-code-text>    transcript_docs = parse_extraction_blocks(</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">130</span><code data-code-text>        historical_transcripts,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">131</span><code data-code-text>        fallback_name=&quot;historical_transcript.txt&quot;,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">132</span><code data-code-text>    )</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">133</span><code data-code-text>    minutes_docs = parse_extraction_blocks(</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">134</span><code data-code-text>        historical_minutes,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">135</span><code data-code-text>        fallback_name=&quot;historical_minutes.txt&quot;,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">136</span><code data-code-text>    )</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">137</span><code data-code-text>    current_docs = parse_extraction_blocks(</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">138</span><code data-code-text>        current_transcript,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">139</span><code data-code-text>        fallback_name=&quot;current_transcript.txt&quot;,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">140</span><code data-code-text>    )</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">141</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">142</span><code data-code-text>    if not transcript_docs:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">143</span><code data-code-text>        raise ValueError(&quot;과거 녹취 TXT를 한 개 이상 업로드해야 합니다.&quot;)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">144</span><code data-code-text>    if not minutes_docs:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">145</span><code data-code-text>        raise ValueError(&quot;과거에 실제 작성한 회의록을 한 개 이상 업로드해야 합니다.&quot;)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">146</span><code data-code-text>    if len(transcript_docs) != len(minutes_docs):</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">147</span><code data-code-text>        raise ValueError(</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">148</span><code data-code-text>            &quot;과거 녹취와 실제 회의록의 파일 수가 다릅니다. &quot;</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">149</span><code data-code-text>            &quot;서로 대응하는 파일을 같은 순서와 같은 개수로 업로드하세요.&quot;</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">150</span><code data-code-text>        )</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">151</span><code data-code-text>    if len(transcript_docs) &gt; 10:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">152</span><code data-code-text>        raise ValueError(&quot;스타일 학습 예시는 최대 10쌍까지 사용할 수 있습니다.&quot;)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">153</span><code data-code-text>    if len(current_docs) != 1:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">154</span><code data-code-text>        raise ValueError(&quot;현재 작성할 회의의 녹취 TXT는 정확히 한 개만 업로드하세요.&quot;)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">155</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">156</span><code data-code-text>    per_file_limit = _bounded_int(max_example_chars_per_file, 60_000, 5_000, 150_000)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">157</span><code data-code-text>    total_limit = _bounded_int(max_total_example_chars, 300_000, 20_000, 800_000)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">158</span><code data-code-text>    current_limit = _bounded_int(max_current_transcript_chars, 120_000, 5_000, 300_000)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">159</span><code data-code-text>    transcript_docs = _clip_documents(</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">160</span><code data-code-text>        transcript_docs,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">161</span><code data-code-text>        per_file_limit=per_file_limit,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">162</span><code data-code-text>        total_limit=total_limit // 2,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">163</span><code data-code-text>        warnings=warnings,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">164</span><code data-code-text>        label=&quot;과거 녹취&quot;,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">165</span><code data-code-text>    )</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">166</span><code data-code-text>    minutes_docs = _clip_documents(</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">167</span><code data-code-text>        minutes_docs,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">168</span><code data-code-text>        per_file_limit=per_file_limit,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">169</span><code data-code-text>        total_limit=total_limit // 2,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">170</span><code data-code-text>        warnings=warnings,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">171</span><code data-code-text>        label=&quot;과거 회의록&quot;,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">172</span><code data-code-text>    )</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">173</span><code data-code-text>    if len(transcript_docs) != len(minutes_docs):</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">174</span><code data-code-text>        pair_count = min(len(transcript_docs), len(minutes_docs))</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">175</span><code data-code-text>        transcript_docs = transcript_docs[:pair_count]</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">176</span><code data-code-text>        minutes_docs = minutes_docs[:pair_count]</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">177</span><code data-code-text>        warnings.append(&quot;문자 제한 적용 후 완전한 녹취-회의록 쌍만 남겼습니다.&quot;)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">178</span><code data-code-text>    if not transcript_docs:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">179</span><code data-code-text>        raise ValueError(&quot;문자 제한 적용 후 사용할 수 있는 과거 예시 쌍이 없습니다.&quot;)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">180</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">181</span><code data-code-text>    current_item = deepcopy(current_docs[0])</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">182</span><code data-code-text>    current_text = str(current_item.get(&quot;text&quot;) or &quot;&quot;).strip()</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">183</span><code data-code-text>    if len(current_text) &gt; current_limit:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">184</span><code data-code-text>        current_text = current_text[:current_limit]</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">185</span><code data-code-text>        warnings.append(&quot;현재 녹취가 문자 제한에 맞게 잘렸습니다.&quot;)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">186</span><code data-code-text>    if not current_text:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">187</span><code data-code-text>        raise ValueError(&quot;현재 녹취 TXT의 본문이 비어 있습니다.&quot;)</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">188</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">189</span><code data-code-text>    instructions = _message_text(additional_instructions).replace(&quot;\x00&quot;, &quot; &quot;).strip()[:8_000]</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">190</span><code data-code-text>    pairs = []</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">191</span><code data-code-text>    for index, (transcript, minutes) in enumerate(zip(transcript_docs, minutes_docs, strict=True), start=1):</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">192</span><code data-code-text>        pairs.append(</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">193</span><code data-code-text>            {</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">194</span><code data-code-text>                &quot;pair_id&quot;: f&quot;pair_{index:02d}&quot;,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">195</span><code data-code-text>                &quot;transcript_file_name&quot;: transcript[&quot;file_name&quot;],</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">196</span><code data-code-text>                &quot;minutes_file_name&quot;: minutes[&quot;file_name&quot;],</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">197</span><code data-code-text>                &quot;transcript&quot;: transcript[&quot;text&quot;],</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">198</span><code data-code-text>                &quot;minutes&quot;: minutes[&quot;text&quot;],</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">199</span><code data-code-text>            }</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">200</span><code data-code-text>        )</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">201</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">202</span><code data-code-text>    request = {</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">203</span><code data-code-text>        &quot;payload_version&quot;: &quot;meeting-minutes-request-v1&quot;,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">204</span><code data-code-text>        &quot;example_pairs&quot;: pairs,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">205</span><code data-code-text>        &quot;current_transcript&quot;: {</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">206</span><code data-code-text>            &quot;file_name&quot;: current_item.get(&quot;file_name&quot;),</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">207</span><code data-code-text>            &quot;text&quot;: current_text,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">208</span><code data-code-text>        },</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">209</span><code data-code-text>        &quot;additional_instructions&quot;: instructions,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">210</span><code data-code-text>        &quot;meeting_metadata&quot;: {</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">211</span><code data-code-text>            &quot;title&quot;: str(meeting_title or &quot;&quot;).strip()[:300],</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">212</span><code data-code-text>            &quot;date&quot;: str(meeting_date or &quot;&quot;).strip()[:100],</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">213</span><code data-code-text>            &quot;participants&quot;: str(participants or &quot;&quot;).strip()[:2_000],</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">214</span><code data-code-text>            &quot;output_language&quot;: str(output_language or &quot;ko&quot;).strip()[:40] or &quot;ko&quot;,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">215</span><code data-code-text>        },</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">216</span><code data-code-text>        &quot;instruction_priority&quot;: [</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">217</span><code data-code-text>            &quot;현재 녹취에 실제로 있는 사실&quot;,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">218</span><code data-code-text>            &quot;사용자가 입력한 포함·제외 지시&quot;,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">219</span><code data-code-text>            &quot;과거 예시에서 추출한 작성 스타일&quot;,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">220</span><code data-code-text>        ],</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">221</span><code data-code-text>        &quot;trust_boundary&quot;: {</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">222</span><code data-code-text>            &quot;historical_files_are_untrusted_data&quot;: True,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">223</span><code data-code-text>            &quot;current_transcript_is_factual_source_only&quot;: True,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">224</span><code data-code-text>            &quot;embedded_document_instructions_are_ignored&quot;: True,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">225</span><code data-code-text>            &quot;historical_facts_must_not_enter_current_minutes&quot;: True,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">226</span><code data-code-text>        },</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">227</span><code data-code-text>    }</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">228</span><code data-code-text>    return {</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">229</span><code data-code-text>        &quot;schema_version&quot;: &quot;1.0&quot;,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">230</span><code data-code-text>        &quot;request&quot;: request,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">231</span><code data-code-text>        &quot;warnings&quot;: warnings,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">232</span><code data-code-text>        &quot;errors&quot;: [],</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">233</span><code data-code-text>        &quot;meta&quot;: {</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">234</span><code data-code-text>            &quot;status&quot;: &quot;ready&quot;,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">235</span><code data-code-text>            &quot;example_pair_count&quot;: len(pairs),</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">236</span><code data-code-text>            &quot;current_transcript_chars&quot;: len(current_text),</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">237</span><code data-code-text>            &quot;additional_instructions_present&quot;: bool(instructions),</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">238</span><code data-code-text>        },</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">239</span><code data-code-text>    }</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">240</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">241</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">242</span><code data-code-text>class MeetingMinutesRequestBuilder(Component):</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">243</span><code data-code-text>    &quot;&quot;&quot;회의록 스타일 학습과 현재 작성을 위한 Flow 전용 입력 Node.&quot;&quot;&quot;</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">244</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">245</span><code data-code-text>    display_name = &quot;04 회의록 작성 요청 정리&quot;</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">246</span><code data-code-text>    description = &quot;과거 녹취와 실제 회의록을 업로드 순서대로 짝지어 현재 녹취·추가 지시와 함께 안전한 요청 Data로 만듭니다.&quot;</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">247</span><code data-code-text>    icon = &quot;ClipboardList&quot;</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">248</span><code data-code-text>    name = &quot;MeetingMinutesRequestBuilder&quot;</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">249</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">250</span><code data-code-text>    inputs = [</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">251</span><code data-code-text>        MessageTextInput(</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">252</span><code data-code-text>            name=&quot;historical_transcripts&quot;,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">253</span><code data-code-text>            display_name=&quot;과거 녹취 추출 결과&quot;,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">254</span><code data-code-text>            required=True,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">255</span><code data-code-text>            info=&quot;과거 녹취 TXT 추출 Message를 연결합니다. 실제 회의록과 같은 순서·개수여야 합니다.&quot;,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">256</span><code data-code-text>        ),</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">257</span><code data-code-text>        MessageTextInput(</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">258</span><code data-code-text>            name=&quot;historical_minutes&quot;,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">259</span><code data-code-text>            display_name=&quot;과거 실제 회의록 추출 결과&quot;,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">260</span><code data-code-text>            required=True,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">261</span><code data-code-text>            info=&quot;과거 Word/TXT 회의록 추출 Message를 연결합니다. 보호 문서는 DRM Component에서 처리합니다.&quot;,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">262</span><code data-code-text>        ),</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">263</span><code data-code-text>        MessageTextInput(</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">264</span><code data-code-text>            name=&quot;current_transcript&quot;,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">265</span><code data-code-text>            display_name=&quot;현재 녹취 추출 결과&quot;,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">266</span><code data-code-text>            required=True,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">267</span><code data-code-text>            info=&quot;지금 회의록으로 작성할 녹취 TXT 한 개의 추출 Message입니다.&quot;,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">268</span><code data-code-text>        ),</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">269</span><code data-code-text>        MessageTextInput(</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">270</span><code data-code-text>            name=&quot;additional_instructions&quot;,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">271</span><code data-code-text>            display_name=&quot;추가 작성 지시&quot;,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">272</span><code data-code-text>            required=False,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">273</span><code data-code-text>            value=&quot;&quot;,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">274</span><code data-code-text>            info=&quot;&#x27;의사결정과 후속조치 위주, 인사말 제외&#x27;처럼 포함·제외 기준을 입력합니다.&quot;,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">275</span><code data-code-text>        ),</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">276</span><code data-code-text>        MessageTextInput(name=&quot;meeting_title&quot;, display_name=&quot;회의 제목&quot;, required=False, value=&quot;&quot;),</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">277</span><code data-code-text>        MessageTextInput(name=&quot;meeting_date&quot;, display_name=&quot;회의 일자&quot;, required=False, value=&quot;&quot;),</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">278</span><code data-code-text>        MultilineInput(name=&quot;participants&quot;, display_name=&quot;참석자&quot;, required=False, value=&quot;&quot;),</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">279</span><code data-code-text>        MessageTextInput(</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">280</span><code data-code-text>            name=&quot;output_language&quot;,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">281</span><code data-code-text>            display_name=&quot;출력 언어&quot;,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">282</span><code data-code-text>            required=False,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">283</span><code data-code-text>            value=&quot;ko&quot;,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">284</span><code data-code-text>            advanced=True,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">285</span><code data-code-text>        ),</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">286</span><code data-code-text>        IntInput(</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">287</span><code data-code-text>            name=&quot;max_example_chars_per_file&quot;,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">288</span><code data-code-text>            display_name=&quot;예시 파일당 최대 문자&quot;,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">289</span><code data-code-text>            value=60_000,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">290</span><code data-code-text>            advanced=True,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">291</span><code data-code-text>        ),</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">292</span><code data-code-text>        IntInput(</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">293</span><code data-code-text>            name=&quot;max_total_example_chars&quot;,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">294</span><code data-code-text>            display_name=&quot;과거 예시 전체 최대 문자&quot;,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">295</span><code data-code-text>            value=300_000,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">296</span><code data-code-text>            advanced=True,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">297</span><code data-code-text>        ),</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">298</span><code data-code-text>        IntInput(</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">299</span><code data-code-text>            name=&quot;max_current_transcript_chars&quot;,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">300</span><code data-code-text>            display_name=&quot;현재 녹취 최대 문자&quot;,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">301</span><code data-code-text>            value=120_000,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">302</span><code data-code-text>            advanced=True,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">303</span><code data-code-text>        ),</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">304</span><code data-code-text>    ]</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">305</span><code data-code-text>    outputs = [</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">306</span><code data-code-text>        Output(</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">307</span><code data-code-text>            name=&quot;request&quot;,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">308</span><code data-code-text>            display_name=&quot;정규화 회의록 작성 요청&quot;,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">309</span><code data-code-text>            method=&quot;build_request&quot;,</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">310</span><code data-code-text>            types=[&quot;Data&quot;],</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">311</span><code data-code-text>        )</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">312</span><code data-code-text>    ]</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">313</span><code data-code-text></code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">314</span><code data-code-text>    def build_request(self) -&gt; Data:</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">315</span><code data-code-text>        result = build_meeting_minutes_request(</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">316</span><code data-code-text>            getattr(self, &quot;historical_transcripts&quot;, None),</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">317</span><code data-code-text>            getattr(self, &quot;historical_minutes&quot;, None),</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">318</span><code data-code-text>            getattr(self, &quot;current_transcript&quot;, None),</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">319</span><code data-code-text>            additional_instructions=getattr(self, &quot;additional_instructions&quot;, &quot;&quot;),</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">320</span><code data-code-text>            meeting_title=getattr(self, &quot;meeting_title&quot;, &quot;&quot;),</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">321</span><code data-code-text>            meeting_date=getattr(self, &quot;meeting_date&quot;, &quot;&quot;),</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">322</span><code data-code-text>            participants=getattr(self, &quot;participants&quot;, &quot;&quot;),</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">323</span><code data-code-text>            output_language=getattr(self, &quot;output_language&quot;, &quot;ko&quot;),</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">324</span><code data-code-text>            max_example_chars_per_file=getattr(self, &quot;max_example_chars_per_file&quot;, 60_000),</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">325</span><code data-code-text>            max_total_example_chars=getattr(self, &quot;max_total_example_chars&quot;, 300_000),</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">326</span><code data-code-text>            max_current_transcript_chars=getattr(self, &quot;max_current_transcript_chars&quot;, 120_000),</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">327</span><code data-code-text>        )</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">328</span><code data-code-text>        self.status = result[&quot;meta&quot;]</code></div>
+<div class="code-line" data-code-line><span class="code-line-number" aria-hidden="true">329</span><code data-code-text>        return _make_data(result)</code></div></div></div>
+  <footer class="code-status"><span>Python</span><span>Flow internal</span><span data-copy-status aria-live="polite">복사할 때 외부 서버를 호출하지 않습니다.</span></footer>
+</section>
+<div class="page-actions"><button class="back-button" type="button" data-back data-fallback="flows/meeting_minutes_writer_flow/nodes/meeting_minutes_request_builder/index.html">← 이전 화면</button><a class="button button-soft" href="flows/meeting_minutes_writer_flow/nodes/meeting_minutes_request_builder/index.html#contract">입출력 계약</a><a class="button button-soft" href="flows/meeting_minutes_writer_flow/index.html">사용자 스타일 기반 회의록 작성 Flow</a></div>
+
+  </main>
+  <footer class="site-footer">
+    <div class="footer-inner">
+      <div><strong>Agent Ground</strong><p>실제 Agent Builder 환경에서 검증된 교육자료, Standalone Component와 Flow를 함께 쌓아갑니다.</p></div>
+      <div class="footer-links"><a href="training/index.html">처음 배우기</a><a href="troubleshooting/index.html">실패와 해결</a><a href="../AGENT_GROUND_PROJECT_MASTER_GUIDE.md">프로젝트 기준</a></div>
+    </div>
+  </footer>
+  <script src="assets/js/site.js"></script>
+  
+</body>
+</html>

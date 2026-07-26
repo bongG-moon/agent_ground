@@ -17,7 +17,6 @@ TARGET_LAST_VERIFIED_AT = "2026-07-26"
 GENERAL_COMPONENT_IDS = {
     "drm_document_text_extractor",
     "multi_image_base64_encoder",
-    "cached_named_run_flow_tool",
     "oracle_table_query",
     "h_api_table_request",
     "datalake_table_query",
@@ -90,13 +89,15 @@ INTERNAL_NODE_IDS = {
     "presentation_plan_normalizer",
     "presentation_quality_gate",
     "presentation_html_source_output",
+    "meeting_minutes_request_builder",
+    "meeting_minutes_style_analyzer",
+    "meeting_minutes_draft_writer",
+    "meeting_minutes_reviewer",
 }
 
 COMPONENT_VERSION_OVERRIDES = {
-    # 외부 Tool 입력 계약이 node-ID 기반에서 고정 question으로 변경된 호환성 수정입니다.
-    "cached_named_run_flow_tool": "0.2.0",
     # 미지원 형식 skip-safe 처리와 EWS JPG/JPEG Vision 모델 경로를 추가했습니다.
-    "drm_document_text_extractor": "0.5.1",
+    "drm_document_text_extractor": "0.6.0",
 }
 
 DIRECT_DATA_ACCESS_IDS = {
@@ -110,7 +111,6 @@ DIRECT_DATA_ACCESS_IDS = {
 ENTERPRISE_UTILITY_IDS = GENERAL_COMPONENT_IDS - DIRECT_DATA_ACCESS_IDS
 
 DEPENDENCY_OVERRIDES = {
-    "cached_named_run_flow_tool": ["langflow", "lfx"],
     "oracle_table_query": ["oracledb"],
     "datalake_table_query": ["mysql-connector-python"],
 }
@@ -130,7 +130,6 @@ SOURCE_FAMILY_USAGE_LABELS = {
 
 ADDITIONAL_GUIDES = {
     "drm_document_text_extractor": "USAGE_GUIDE.md",
-    "cached_named_run_flow_tool": "USAGE_GUIDE.md",
     "multi_image_base64_encoder": "USAGE_GUIDE.md",
     "oracle_table_query": "USAGE_GUIDE.md",
     "h_api_table_request": "USAGE_GUIDE.md",
@@ -140,7 +139,7 @@ ADDITIONAL_GUIDES = {
 }
 
 BEGINNER_GUIDES = {
-    "cached_named_run_flow_tool": "BEGINNER_GUIDE.md",
+    "drm_document_text_extractor": "BEGINNER_GUIDE.md",
 }
 
 RISK_TAGS = {
@@ -189,17 +188,6 @@ RISK_TAGS = {
         "payload_size",
         "svg_optional",
     ],
-    "cached_named_run_flow_tool": [
-        "subflow_execution",
-        "agent_tool",
-        "graph_cache",
-        "session_inheritance",
-        "exact_flow_name",
-        "version_coupled_internal_api",
-        "provider_tool_parameter_compatibility",
-        "stable_question_schema",
-        "runtime_chat_input_mapping",
-    ],
     "oracle_table_query": ["database_read", "credentials_required", "read_only_sql", "external_data_access"],
     "h_api_table_request": [
         "external_api_access",
@@ -243,15 +231,12 @@ def component_release(component_id: str) -> dict[str, Any]:
             "used_by_flows": ["enterprise_document_rag_flow"],
         }
     if component_id in SKILL_COMPONENT_IDS:
-        used_by = ["skill_based_agent_flow"]
-        if component_id == "meeting_action_skill_tool":
-            used_by = ["meeting_action_skill_flow"]
         return {
             "source_family": "skill_based_agent_flow",
             "version": "0.1.0",
             "verified_environment": TARGET_VERIFIED_ENVIRONMENT,
             "last_verified_at": TARGET_LAST_VERIFIED_AT,
-            "used_by_flows": used_by,
+            "used_by_flows": ["skill_based_agent_flow"],
         }
     if component_id in HTML_REPORT_COMPONENT_IDS:
         return {
@@ -270,10 +255,12 @@ def component_release(component_id: str) -> dict[str, Any]:
             "used_by_flows": ["ppt_reference_html_flow"],
         }
     if component_id in ENTERPRISE_UTILITY_IDS:
-        if component_id == "cached_named_run_flow_tool":
-            used_by = ["skill_based_agent_flow"]
-        elif component_id == "drm_document_text_extractor":
-            used_by = ["drm_document_text_extraction_flow", "mail_attachment_summary_flow"]
+        if component_id == "drm_document_text_extractor":
+            used_by = [
+                "drm_document_text_extraction_flow",
+                "mail_attachment_summary_flow",
+                "meeting_minutes_writer_flow",
+            ]
         else:
             used_by = []
         verified_environment = TARGET_VERIFIED_ENVIRONMENT
@@ -667,7 +654,7 @@ def main() -> None:
 
 ## 처음 보는 사용자를 위한 설명
 
-[`{manifest['beginner_guide_file']}`]({manifest['beginner_guide_file']})에서 기본 Run Flow를 그대로 사용하면서 별도 Component로 감싼 이유를 쉬운 예시로 확인합니다.
+[`{manifest['beginner_guide_file']}`]({manifest['beginner_guide_file']})에서 이 Component의 처리 범위, 연결 방법과 보안상 주의점을 쉬운 예시로 확인합니다.
 """
         readme = f"""# {manifest['name_ko']}
 

@@ -1,0 +1,47 @@
+{
+  "schema_version": 2,
+  "skill_id": "langflow-1-9-2-development",
+  "title": "Langflow 1.9.2 Development",
+  "description": "Builds and validates portable Langflow 1.9.2 custom components, deterministic flow exports, Router and Tool runtime contracts, sessions, and import-ready bundles.",
+  "status": "candidate",
+  "recommended_mode": "run-flow",
+  "reason": "This is a stateful inspect-edit-regenerate-parse-import-runtime-validation workflow over source, builders, exports, and an isolated Langflow instance.",
+  "canonical_skill_path": "skills/langflow-1-9-2-development/SKILL.md",
+  "prompt_file": "PROMPT_TEMPLATE.md",
+  "configuration": {
+    "fallback_mode": "prompt-template",
+    "network": "approved-internal-only",
+    "runtime_version_contract": {
+      "langflow": "1.9.2",
+      "langflow-base": "0.9.2",
+      "lfx": "0.4.2",
+      "python": ">=3.10,<3.14"
+    },
+    "write_scope": "user-requested-workspace-only",
+    "input_contract": [
+      "task",
+      "repository_context",
+      "canonical_component_sources",
+      "flow_builders",
+      "flow_exports",
+      "runtime_configuration",
+      "validation_targets"
+    ],
+    "output_contract": [
+      "changed_contracts",
+      "regenerated_artifacts",
+      "validation_evidence",
+      "runtime_rebindings",
+      "security_findings",
+      "unresolved_items"
+    ]
+  },
+  "source_sha256": "72b9d538b15722f7f7f889c069424c7ea494359092baa64f791dbb931ed59f53",
+  "security_profile": "internal-enterprise",
+  "security_policy_file": "SECURITY_PROFILE.md",
+  "evaluation": {
+    "required_for_active": true,
+    "suite": "langflow-1-9-2-development-routing-v1",
+    "status": "pending"
+  }
+}

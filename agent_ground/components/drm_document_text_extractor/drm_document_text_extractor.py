@@ -1135,10 +1135,10 @@ def format_extraction_message(result: dict[str, Any]) -> str:
 
 
 class DrmDocumentTextExtractor(Component):
-    display_name = "문서 텍스트 추출 (DRM 자동)"
+    display_name = "DRM 문서 텍스트 추출"
     description = (
-        "일반 문서는 로컬/DRM 경로로 처리하고 EWS JPG/JPEG는 연결된 Vision 모델로 해석하며 "
-        "미지원 형식은 오류 대신 안내 텍스트로 반환합니다."
+        "일반 문서는 로컬에서 읽고 보호 문서는 승인된 DRM text API로 평문을 추출합니다. "
+        "EWS JPG/JPEG는 연결된 Vision 모델로 해석하며 미지원 형식은 안내 결과로 반환합니다."
     )
     icon = "FileLock2"
     name = "DrmDocumentTextExtractor"

@@ -14,6 +14,8 @@
 | Component 배포 방식 | Standalone 단일 파일 | 프로젝트 필수 조건 |
 | Custom Component 실행 정책 | `LANGFLOW_ALLOW_CUSTOM_COMPONENTS` 기본 `true` | 운영 차단 시 승인된 `LANGFLOW_COMPONENTS_PATH` 배포 필요 |
 
+현재 개발 PC의 Langflow Desktop 버전이 더 높더라도 이 프로젝트의 호환 기준은 **실제 사내 구동 환경인 Langflow 1.9.2**입니다. 생성·검증은 Desktop의 현재 버전을 따라가지 않고, 위 버전을 고정한 별도 환경에서 수행합니다.
+
 ## 현재 검증 범위
 
 - 전체 Standalone Python 자산은 LFX 0.4.2 loader와 `create_component_template`로 평가한다.
@@ -31,7 +33,7 @@
 4. 운영 RAG용 identity, DLP, persistent vector-store adapter
 5. 전체 Bundle의 Langflow 1.9.2 UI 일괄 Import
 6. Skill 기반 Agent에서 승인된 Tool Calling 모델별 Skill 선택 정확도와 무관 요청 처리
-7. 동일 프로젝트의 `meeting_action_skill_flow` 이름 탐색, 질문 전달, cold/warm cache와 session 상속
+7. Skill 기반 Agent의 경비·휴가·회의 직접 Component Tool 선택과 입력 전달
 
 ## 비밀값 원칙
 

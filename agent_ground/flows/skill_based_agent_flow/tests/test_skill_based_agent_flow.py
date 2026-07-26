@@ -21,8 +21,7 @@ COMPONENT_IDS = [
     "leave_policy_skill_tool",
     "meeting_action_skill_tool",
 ]
-RUN_FLOW_COMPONENT_ID = "cached_named_run_flow_tool"
-ALL_COMPONENT_IDS = [*COMPONENT_IDS, RUN_FLOW_COMPONENT_ID]
+ALL_COMPONENT_IDS = COMPONENT_IDS
 TOOL_COMPONENT_IDS = COMPONENT_IDS[1:]
 EXPECTED_TOOL_NAMES = {
     "expense_precheck_skill_tool": "expense_precheck_skill",
@@ -254,20 +253,21 @@ def test_all_sources_compile_into_langflow_192_templates() -> None:
         assert config["field_order"] == [item.name for item in component_class.inputs]
 
 
-def test_generated_flow_mixes_direct_component_tools_and_run_flow_tool() -> None:
+def test_generated_flow_connects_three_direct_component_tools() -> None:
     flow_path = ROOT / "flows" / "skill_based_agent_flow" / "skill_based_agent_flow.json"
     raw = flow_path.read_bytes()
     assert not raw.startswith(b"\xef\xbb\xbf")
     flow = json.loads(raw.decode("utf-8"))
     assert flow["name"] == "skill_based_agent_flow"
     assert len(flow["data"]["nodes"]) == 9
-    assert len(flow["data"]["edges"]) == 8
+    assert len(flow["data"]["edges"]) == 9
 
     nodes = {node["id"]: node for node in flow["data"]["nodes"]}
     direct_tool_nodes = [node for node in nodes.values() if node["data"]["node"].get("tool_mode") is True]
     assert {node["data"]["type"] for node in direct_tool_nodes} == {
         "ExpensePrecheckSkillTool",
         "LeavePolicySkillTool",
+        "MeetingActionSkillTool",
     }
     for node in direct_tool_nodes:
         output = node["data"]["node"]["outputs"]
@@ -277,18 +277,11 @@ def test_generated_flow_mixes_direct_component_tools_and_run_flow_tool() -> None
         assert output[0]["types"] == ["Tool"]
         metadata = node["data"]["node"]["template"]["tools_metadata"]["value"]
         assert len(metadata) == 1
-        assert metadata[0]["name"] in {"expense_precheck_skill", "leave_policy_skill"}
-
-    run_flow = nodes["CachedNamedRunFlowTool-meetingSkill"]["data"]["node"]
-    assert run_flow["tool_mode"] is False
-    assert [(item["name"], item["method"], item["types"]) for item in run_flow["outputs"]] == [
-        ("component_as_tool", "to_toolkit", ["Tool"])
-    ]
-    assert run_flow["template"]["flow_name_selected"]["value"] == "meeting_action_skill_flow"
-    assert run_flow["template"]["tool_name"]["value"] == "meeting_action_skill"
-    assert run_flow["template"]["cache_flow"]["value"] is True
-    assert run_flow["template"]["allow_cross_folder"]["value"] is False
-    assert run_flow["template"]["return_direct"]["value"] is True
+        assert metadata[0]["name"] in {
+            "expense_precheck_skill",
+            "leave_policy_skill",
+            "meeting_action_skill",
+        }
 
     agent = nodes["Agent-skillSupervisor"]["data"]["node"]
     assert agent["template"]["model"]["value"] == ""
@@ -312,7 +305,7 @@ def test_generated_flow_mixes_direct_component_tools_and_run_flow_tool() -> None
         "demo_skill_catalog_builder",
         "expense_precheck_skill_tool",
         "leave_policy_skill_tool",
-        RUN_FLOW_COMPONENT_ID,
+        "meeting_action_skill_tool",
     ]
     custom_by_type = {
         node["data"]["type"]: node["data"]["node"]["template"]["code"]["value"]
@@ -334,49 +327,20 @@ def test_parent_flow_parses_into_real_lfx_graph_with_three_agent_tool_vertices()
         flow_name=flow["name"],
     )
     assert len(graph.vertices) == 7
-    assert len(graph.edges) == 8
+    assert len(graph.edges) == 9
     agent = next(vertex for vertex in graph.vertices if vertex.id == "Agent-skillSupervisor")
     assert isinstance(agent.raw_params["tools"], list)
     assert len(agent.raw_params["tools"]) == 3
     assert getattr(agent.raw_params["system_prompt"], "id", "") == "DemoSkillCatalogBuilder-skillAgent"
 
 
-def test_meeting_subflow_has_single_input_output_and_embedded_sources() -> None:
-    path = ROOT / "flows" / "skill_based_agent_flow" / "meeting_action_skill_flow.json"
-    raw = path.read_bytes()
-    assert not raw.startswith(b"\xef\xbb\xbf")
-    flow = json.loads(raw.decode("utf-8"))
-    assert flow["name"] == "meeting_action_skill_flow"
-    assert len(flow["data"]["nodes"]) == 5
-    assert len(flow["data"]["edges"]) == 3
-    assert sum(node["data"]["type"] == "ChatInput" for node in flow["data"]["nodes"]) == 1
-    assert sum(node["data"]["type"] == "ChatOutput" for node in flow["data"]["nodes"]) == 1
-    assert all(node["data"]["type"] != "Agent" for node in flow["data"]["nodes"])
-    meeting = next(node for node in flow["data"]["nodes"] if node["data"]["type"] == "MeetingActionSkillTool")
-    assert meeting["data"]["node"]["tool_mode"] is False
-    assert any(item["name"] == "skill_message" and item["types"] == ["Message"] for item in meeting["data"]["node"]["outputs"])
-    source = (ROOT / "components" / "meeting_action_skill_tool" / "meeting_action_skill_tool.py").read_text(encoding="utf-8")
-    assert meeting["data"]["node"]["template"]["code"]["value"] == source
-
-    graph = Graph.from_payload(
-        flow["data"],
-        flow_id=flow["id"],
-        flow_name=flow["name"],
-    )
-    assert len(graph.vertices) == 4
-    assert len(graph.edges) == 3
-
-
-def test_skill_bundle_imports_child_before_parent() -> None:
+def test_skill_bundle_contains_only_current_direct_tool_flow() -> None:
     path = ROOT / "flows" / "skill_based_agent_flow" / "00_SKILL_BASED_AGENT_ALL_FLOWS.json"
     raw = path.read_bytes()
     assert raw.startswith(b'{"flows":[')
     assert not raw.startswith(b"\xef\xbb\xbf")
     bundle = json.loads(raw.decode("utf-8"))
-    assert [item["name"] for item in bundle["flows"]] == [
-        "meeting_action_skill_flow",
-        "skill_based_agent_flow",
-    ]
+    assert [item["name"] for item in bundle["flows"]] == ["skill_based_agent_flow"]
 
 
 def test_project_bundle_contains_seven_runnable_flows_in_stable_order() -> None:
@@ -388,10 +352,10 @@ def test_project_bundle_contains_seven_runnable_flows_in_stable_order() -> None:
     assert [item["name"] for item in bundle["flows"]] == [
         "html_flow_0624",
         "enterprise_document_rag_flow",
-        "meeting_action_skill_flow",
         "skill_based_agent_flow",
         "ppt_reference_html_flow",
         "drm_document_text_extraction_flow",
+        "meeting_minutes_writer_flow",
         "business_agent_design_complete",
     ]
     assert "업무분석flow" not in {item["name"] for item in bundle["flows"]}

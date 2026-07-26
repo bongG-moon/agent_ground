@@ -1,0 +1,4 @@
+interface:
+  display_name: "SSOTize"
+  short_description: "Consolidate scattered facts behind an approval gate"
+  default_prompt: "Use $ssotize to map duplicate facts and propose one canonical source."

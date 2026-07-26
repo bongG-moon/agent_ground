@@ -22,7 +22,7 @@
 | --- | --- |
 | [`flow/business_agent_design_complete.json`](flow/business_agent_design_complete.json) | Business Agent 메인 Flow와 카탈로그 운영 Flow를 한 Canvas에서 보는 개별 Import 파일 |
 | [`flow/00_business_agent_design_ALL_FLOWS.json`](flow/00_business_agent_design_ALL_FLOWS.json) | Langflow 전체 Flow Import 화면용 Business Bundle |
-| [`../flows/00_AGENT_GROUND_ALL_FLOWS.json`](../flows/00_AGENT_GROUND_ALL_FLOWS.json) | HTML 리포트, 문서 RAG, Skill Agent 상위·회의 하위 Flow, PPT 참조 이미지 HTML 프레젠테이션, DRM 문서 추출, Business Agent Design까지 실행 가능 7개를 한 번에 넣는 프로젝트 Bundle. 재사용 데이터 Flow는 export 복구 전까지 제외 |
+| [`../flows/00_AGENT_GROUND_ALL_FLOWS.json`](../flows/00_AGENT_GROUND_ALL_FLOWS.json) | HTML 리포트, 문서 RAG, 직접 Component Tool 기반 Skill Agent, PPT 참조 이미지 HTML 프레젠테이션, DRM 문서 추출, 사용자 스타일 기반 회의록 작성, Business Agent Design까지 실행 가능 7개를 한 번에 넣는 프로젝트 Bundle. 재사용 데이터 Flow는 export 복구 전까지 제외 |
 
 개별 파일은 최상위가 `{ "data": ... }`인 Langflow Flow입니다. Bundle은 반드시 `{"flows":[`로 시작하며, 세 Import 파일 모두 UTF-8 BOM 없이 생성됩니다.
 

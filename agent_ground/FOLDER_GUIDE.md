@@ -21,7 +21,6 @@
 | `skills/` | 다른 PC의 Codex가 같은 규칙으로 개발하도록 하는 이식 가능한 `SKILL.md` 묶음 | Agent Ground 작업 규칙을 바꾸면 Master Guide와 함께 수정합니다. |
 | `environment/` | 기준 버전, 선택 의존성, 사내 환경에서 필요한 설정 설명 | 기본 기준은 Langflow 1.9.2, langflow-base 0.9.2, LFX 0.4.2, Python 3.12입니다. |
 | `tests/` | 여러 Component에 공통으로 적용되는 회귀 테스트 | 개별 자산 테스트는 해당 Component나 Flow의 `tests/`에 둡니다. |
-| `archive/` | 이관 중 임시 snapshot을 둘 자리 | 현재 운영 자산을 넣지 않으며 비어 있는 구조만 유지합니다. |
 
 ## 루트 문서
 

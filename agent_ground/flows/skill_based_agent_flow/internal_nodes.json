@@ -13,7 +13,7 @@
       "version": "0.1.0",
       "source_path": "nodes/demo_skill_catalog_builder.py",
       "summary_ko": "검증된 세 가지 업무 Skill 카탈로그와 Supervisor Agent용 지시사항을 생성합니다.",
-      "embedded_in": ["skill_based_agent_flow.json", "meeting_action_skill_flow.json"]
+      "embedded_in": ["skill_based_agent_flow.json"]
     }
   ]
 }

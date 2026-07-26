@@ -32,6 +32,26 @@
       ],
       "cases_path": "evals/project-design-context-routing-v1.jsonl",
       "status": "pending"
+    },
+    {
+      "id": "paperthin-core-routing-v1",
+      "description": "Separates single-artifact reset, validation-independence audit, and cross-location SSOT consolidation from adjacent work.",
+      "skills": [
+        "re0",
+        "mandela",
+        "ssotize"
+      ],
+      "cases_path": "evals/paperthin-core-routing-v1.jsonl",
+      "status": "pending"
+    },
+    {
+      "id": "langflow-1-9-2-development-routing-v1",
+      "description": "Routes Langflow 1.9.2 source, export, session, Tool, import, and runtime-validation work while rejecting generic automation and other Langflow versions.",
+      "skills": [
+        "langflow-1-9-2-development"
+      ],
+      "cases_path": "evals/langflow-1-9-2-development-routing-v1.jsonl",
+      "status": "pending"
     }
   ]
 }

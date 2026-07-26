@@ -53,7 +53,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File "$HubRoot\install.ps1" `
   -SecurityProfile InternalEnterprise
 ```
 
-현재 31개의 `active` Skill이 설치됩니다. `project-design-context`는 평가 중인 candidate라서 기본 설치에서는 빠집니다. 정확한 ID와 역할은 [SKILL_INVENTORY.md](./SKILL_INVENTORY.md)를 확인합니다. 일부만 설치하려면:
+현재 31개의 `active` Skill이 설치됩니다. `project-design-context`, `langflow-1-9-2-development`, `re0`, `mandela`, `ssotize`는 평가 중인 candidate라서 기본 설치에서는 빠집니다. 정확한 ID와 역할은 [SKILL_INVENTORY.md](./SKILL_INVENTORY.md)를 확인합니다. 일부만 설치하려면:
 
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File "$HubRoot\install.ps1" `
@@ -83,12 +83,14 @@ $EvalTarget = Join-Path $ProjectRoot '.skill-eval'
 powershell -NoProfile -ExecutionPolicy Bypass -File "$HubRoot\install.ps1" `
   -Target Custom `
   -Destination $EvalTarget `
-  -Skill project-design-context `
+  -Skill project-design-context,langflow-1-9-2-development,re0,mandela,ssotize `
   -IncludeCandidates `
   -SecurityProfile InternalEnterprise
 ```
 
 blind routing eval과 보안 검토를 통과해 `active`로 승격되기 전에는 사용자 범위나 운영 프로젝트에 candidate를 설치하지 않습니다.
+
+Langflow 1.9.2 개발 Skill만 격리 시험하려면 `-Skill langflow-1-9-2-development`를 사용합니다. 이 Skill은 `langflow==1.9.2`, `langflow-base==0.9.2`, `lfx==0.4.2`를 하나의 호환 묶음으로 검증하며, 공개 배포나 외부 endpoint 연결을 허용하지 않습니다.
 
 ## 5. 사용자 범위 설치
 

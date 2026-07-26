@@ -24,7 +24,7 @@
     "owner": "skill_based_agent_flow",
     "usage": "Skill 기반 Agent에서 Tool로 사용하는 완결 기능",
     "used_by_flows": [
-      "meeting_action_skill_flow"
+      "skill_based_agent_flow"
     ]
   },
   "source_family": "skill_based_agent_flow",
@@ -77,7 +77,7 @@
     "lfx"
   ],
   "used_by_flows": [
-    "meeting_action_skill_flow"
+    "skill_based_agent_flow"
   ],
   "risk_tags": [
     "agent_tool",

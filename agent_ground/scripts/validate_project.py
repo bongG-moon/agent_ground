@@ -28,7 +28,6 @@ RUNTIME_HTML_OUTPUT_DIRS = {
 GENERAL_COMPONENT_IDS = {
     "drm_document_text_extractor",
     "multi_image_base64_encoder",
-    "cached_named_run_flow_tool",
     "oracle_table_query",
     "h_api_table_request",
     "datalake_table_query",
@@ -95,6 +94,12 @@ INTERNAL_NODE_IDS_BY_FLOW = {
         "presentation_plan_normalizer",
         "presentation_quality_gate",
         "presentation_html_source_output",
+    },
+    "meeting_minutes_writer_flow": {
+        "meeting_minutes_request_builder",
+        "meeting_minutes_style_analyzer",
+        "meeting_minutes_draft_writer",
+        "meeting_minutes_reviewer",
     },
 }
 INTERNAL_NODE_IDS = set().union(*INTERNAL_NODE_IDS_BY_FLOW.values())
@@ -405,7 +410,7 @@ def validate_registry() -> int:
         )
     expected_flow_ids = set(INTERNAL_NODE_IDS_BY_FLOW)
     if {item.get("id") for item in flow_assets} != expected_flow_ids:
-        raise AssertionError("Registry Flow set must match the exact 7 Flow manifests")
+        raise AssertionError("Registry Flow set must match the exact 8 Flow manifests")
     if len(assets) != 28:
         raise AssertionError(f"Registry count {len(assets)} != 28")
     if any(item.get("id") in INTERNAL_NODE_IDS for item in assets):

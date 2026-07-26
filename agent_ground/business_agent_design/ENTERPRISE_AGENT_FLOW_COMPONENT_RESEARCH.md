@@ -351,7 +351,7 @@ Flow JSON의 이름도 `업무분석flow`다. 따라서 현재 프로젝트 전�
 
 ### 8.3 `approved` 자산이 0개
 
-현재 registry의 Flow 2개와 Component 21개는 모두 `user_testing`이다. Business Agent Design은 `approved` 항목만 추천하므로 현재 로컬 핵심 자산을 추천할 수 없다.
+현재 registry의 최상위 Flow 7개와 Component 20개는 모두 `user_testing` 또는 `building`이다. Business Agent Design은 `approved` 항목만 추천하므로 현재 로컬 핵심 자산을 추천할 수 없다.
 
 조치 기준:
 

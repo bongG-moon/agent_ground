@@ -39,10 +39,10 @@ PROJECT_FLOW_SOURCES = (
     # reusable_data_flow는 export 불일치가 해결되기 전까지 전체 Bundle에서 제외합니다.
     ROOT / "flows" / "html_report_flow" / "html_report_flow.json",
     ROOT / "flows" / "enterprise_document_rag_flow" / "enterprise_document_rag_flow.json",
-    ROOT / "flows" / "skill_based_agent_flow" / "meeting_action_skill_flow.json",
     ROOT / "flows" / "skill_based_agent_flow" / "skill_based_agent_flow.json",
     ROOT / "flows" / "ppt_reference_html_flow" / "ppt_reference_html_flow.json",
     FLOW_TARGET,
+    ROOT / "flows" / "meeting_minutes_writer_flow" / "meeting_minutes_writer_flow.json",
     ROOT / "business_agent_design" / "flow" / "business_agent_design_complete.json",
 )
 
@@ -334,10 +334,10 @@ def _validate_written_files() -> None:
     expected = [
         "html_flow_0624",
         "enterprise_document_rag_flow",
-        "meeting_action_skill_flow",
         "skill_based_agent_flow",
         "ppt_reference_html_flow",
         "drm_document_text_extraction_flow",
+        "meeting_minutes_writer_flow",
         "business_agent_design_complete",
     ]
     if names != expected:

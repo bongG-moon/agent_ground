@@ -5,7 +5,7 @@
 ## 가장 짧은 연결
 
 ```text
-문서 텍스트 추출 (DRM 자동).extracted_text (Message)
+DRM 문서 텍스트 추출.extracted_text (Message)
   -> Chat Output.input_value (Message)
 ```
 
@@ -13,11 +13,11 @@ EWS 첨부 처리에서는 다음 별도 포트를 사용합니다.
 
 ```text
 EWS 파일 항목.file_record (Data)
-  -> 문서 텍스트 추출 (DRM 자동).processed_file (Data)
+  -> DRM 문서 텍스트 추출.processed_file (Data)
   -> Read File.file_path
 
 JPG 이미지 해석 Language Model.model_output (LanguageModel)
-  -> 문서 텍스트 추출 (DRM 자동).vision_model (LanguageModel)
+  -> DRM 문서 텍스트 추출.vision_model (LanguageModel)
 ```
 
 ## 설정 순서

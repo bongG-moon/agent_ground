@@ -1,0 +1,24 @@
+{
+  "schema_version": 2,
+  "skill_id": "re0",
+  "title": "Re0 Artifact Reset",
+  "description": "Rewrites a drifted existing artifact as a clean current v0 while preserving protected behavior, evidence, and intentional history.",
+  "status": "candidate",
+  "recommended_mode": "run-flow",
+  "reason": "The workflow reads the complete artifact, resolves authority, rewrites one approved target, and validates the result.",
+  "canonical_skill_path": "skills/re0/SKILL.md",
+  "prompt_file": "PROMPT_TEMPLATE.md",
+  "configuration": {
+    "fallback_mode": "prompt-template",
+    "network": "none",
+    "write_scope": "user-requested-artifact-only"
+  },
+  "source_sha256": "453a08f0aec1406cbc01a509eb53f1cadc819f52bc7efb09e8eadf031b17235d",
+  "security_profile": "internal-enterprise",
+  "security_policy_file": "SECURITY_PROFILE.md",
+  "evaluation": {
+    "required_for_active": true,
+    "suite": "paperthin-core-routing-v1",
+    "status": "pending"
+  }
+}

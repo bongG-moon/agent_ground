@@ -24,6 +24,86 @@
       }
     },
     {
+      "id": "re0",
+      "title": "Re0 Artifact Reset",
+      "description": "Rewrites a drifted existing artifact as a clean current v0 while preserving protected behavior, evidence, and intentional history.",
+      "status": "candidate",
+      "categories": ["documentation", "cleanup", "refactoring", "quality"],
+      "canonical_path": "skills/re0/SKILL.md",
+      "targets": ["codex", "chatgpt-desktop", "claude-code", "generic-cli", "chatgpt", "langflow"],
+      "activation": {
+        "native_agents": "implicit-or-explicit",
+        "chatgpt": "native-skill",
+        "generic_cli": "native-agent-skill-or-file-path",
+        "langflow": "run-flow"
+      },
+      "langflow": {
+        "recommended_mode": "run-flow",
+        "reason": "The workflow reads the complete artifact, resolves authority, rewrites one approved target, and validates the result.",
+        "fallback_mode": "prompt-template",
+        "network": "none",
+        "write_scope": "user-requested-artifact-only"
+      },
+      "evaluation": {
+        "required_for_active": true,
+        "suite": "paperthin-core-routing-v1",
+        "status": "pending"
+      }
+    },
+    {
+      "id": "mandela",
+      "title": "Mandela Eval Audit",
+      "description": "Audits evals, benchmarks, experiments, and metrics for circular confirmation and missing independent ground truth.",
+      "status": "candidate",
+      "categories": ["evaluation", "audit", "testing", "research"],
+      "canonical_path": "skills/mandela/SKILL.md",
+      "targets": ["codex", "chatgpt-desktop", "claude-code", "generic-cli", "chatgpt", "langflow"],
+      "activation": {
+        "native_agents": "implicit-or-explicit",
+        "chatgpt": "native-skill",
+        "generic_cli": "native-agent-skill-or-file-path",
+        "langflow": "prompt-template"
+      },
+      "langflow": {
+        "recommended_mode": "prompt-template",
+        "reason": "This is a compact, read-only audit taxonomy with structured findings and no external action.",
+        "network": "none",
+        "read_only": true
+      },
+      "evaluation": {
+        "required_for_active": true,
+        "suite": "paperthin-core-routing-v1",
+        "status": "pending"
+      }
+    },
+    {
+      "id": "ssotize",
+      "title": "SSOTize",
+      "description": "Maps one fact scattered across locations, proposes a canonical home, and consolidates only after explicit approval.",
+      "status": "candidate",
+      "categories": ["documentation", "governance", "consistency", "migration"],
+      "canonical_path": "skills/ssotize/SKILL.md",
+      "targets": ["codex", "chatgpt-desktop", "claude-code", "generic-cli", "chatgpt", "langflow"],
+      "activation": {
+        "native_agents": "implicit-or-explicit",
+        "chatgpt": "native-skill",
+        "generic_cli": "native-agent-skill-or-file-path",
+        "langflow": "run-flow"
+      },
+      "langflow": {
+        "recommended_mode": "run-flow",
+        "reason": "The workflow separates read-only discovery, a human approval gate, per-location mutation, and verification.",
+        "fallback_mode": "prompt-template",
+        "network": "none",
+        "write_requires_human_approval": true
+      },
+      "evaluation": {
+        "required_for_active": true,
+        "suite": "paperthin-core-routing-v1",
+        "status": "pending"
+      }
+    },
+    {
       "id": "flint-chart-author",
       "title": "Flint Chart Author",
       "description": "Authors semantic Flint chart specifications and guides agents through validation, rendering, and JS/TS integration.",
@@ -105,6 +185,56 @@
       "evaluation": {
         "required_for_active": true,
         "suite": "project-design-context-routing-v1",
+        "status": "pending"
+      }
+    },
+    {
+      "id": "langflow-1-9-2-development",
+      "title": "Langflow 1.9.2 Development",
+      "description": "Builds and validates portable Langflow 1.9.2 custom components, deterministic flow exports, Router and Tool runtime contracts, sessions, and import-ready bundles.",
+      "status": "candidate",
+      "categories": ["langflow", "agent-development", "workflow", "testing"],
+      "canonical_path": "skills/langflow-1-9-2-development/SKILL.md",
+      "targets": ["codex", "chatgpt-desktop", "claude-code", "generic-cli", "chatgpt", "langflow"],
+      "activation": {
+        "native_agents": "implicit-or-explicit",
+        "chatgpt": "native-skill",
+        "generic_cli": "native-agent-skill-or-file-path",
+        "langflow": "run-flow"
+      },
+      "langflow": {
+        "recommended_mode": "run-flow",
+        "reason": "This is a stateful inspect-edit-regenerate-parse-import-runtime-validation workflow over source, builders, exports, and an isolated Langflow instance.",
+        "fallback_mode": "prompt-template",
+        "network": "approved-internal-only",
+        "runtime_version_contract": {
+          "langflow": "1.9.2",
+          "langflow-base": "0.9.2",
+          "lfx": "0.4.2",
+          "python": ">=3.10,<3.14"
+        },
+        "write_scope": "user-requested-workspace-only",
+        "input_contract": [
+          "task",
+          "repository_context",
+          "canonical_component_sources",
+          "flow_builders",
+          "flow_exports",
+          "runtime_configuration",
+          "validation_targets"
+        ],
+        "output_contract": [
+          "changed_contracts",
+          "regenerated_artifacts",
+          "validation_evidence",
+          "runtime_rebindings",
+          "security_findings",
+          "unresolved_items"
+        ]
+      },
+      "evaluation": {
+        "required_for_active": true,
+        "suite": "langflow-1-9-2-development-routing-v1",
         "status": "pending"
       }
     },

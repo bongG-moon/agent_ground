@@ -30,20 +30,17 @@ except ModuleNotFoundError:  # 테스트가 파일 경로로 모듈을 읽는 �
 ROOT = Path(__file__).resolve().parents[1]
 FLOW_ROOT = ROOT / "flows" / "skill_based_agent_flow"
 FLOW_TARGET = FLOW_ROOT / "skill_based_agent_flow.json"
-MEETING_SUBFLOW_TARGET = FLOW_ROOT / "meeting_action_skill_flow.json"
 SKILL_BUNDLE_TARGET = FLOW_ROOT / "00_SKILL_BASED_AGENT_ALL_FLOWS.json"
 PROJECT_BUNDLE_TARGET = ROOT / "flows" / "00_AGENT_GROUND_ALL_FLOWS.json"
-
-MEETING_SUBFLOW_NAME = "meeting_action_skill_flow"
 
 PROJECT_FLOW_SOURCES = (
     # reusable_data_flow export는 12개 데이터 내부 Node가 아닌 과거 업무분석flow로 확인되어 격리합니다.
     ROOT / "flows" / "html_report_flow" / "html_report_flow.json",
     ROOT / "flows" / "enterprise_document_rag_flow" / "enterprise_document_rag_flow.json",
-    MEETING_SUBFLOW_TARGET,
     FLOW_TARGET,
     ROOT / "flows" / "ppt_reference_html_flow" / "ppt_reference_html_flow.json",
     ROOT / "flows" / "drm_document_text_extraction_flow" / "drm_document_text_extraction_flow.json",
+    ROOT / "flows" / "meeting_minutes_writer_flow" / "meeting_minutes_writer_flow.json",
     ROOT / "business_agent_design" / "flow" / "business_agent_design_complete.json",
 )
 
@@ -91,32 +88,17 @@ PARENT_COMPONENT_SPECS = (
         ),
     ),
     ComponentSpec(
-        "meeting_run_flow",
-        "components/cached_named_run_flow_tool/cached_named_run_flow_tool.py",
-        "CachedNamedRunFlowTool-meetingSkill",
-        (440.0, 420.0),
-        "run_flow_tool",
-        "meeting_action_skill",
-        (
-            "`담당자 | 할 일 | YYYY-MM-DD` 형식의 회의 내용을 별도 회의 후속 조치 Skill Flow로 보내 "
-            "액션아이템을 구조화할 때 사용합니다. 경비나 휴가 요청에는 사용하지 않으며, "
-            "메일·알림·캘린더 등록은 수행하지 않습니다."
-        ),
-    ),
-)
-
-CHILD_COMPONENT_SPECS = (
-    ComponentSpec(
-        "catalog",
-        "flows/skill_based_agent_flow/nodes/demo_skill_catalog_builder.py",
-        "DemoSkillCatalogBuilder-meetingSubflow",
-        (-40.0, -220.0),
-    ),
-    ComponentSpec(
         "meeting",
         "components/meeting_action_skill_tool/meeting_action_skill_tool.py",
-        "MeetingActionSkillTool-meetingSubflow",
-        (420.0, 80.0),
+        "MeetingActionSkillTool-skillAgent",
+        (440.0, 420.0),
+        "direct_tool",
+        "meeting_action_skill",
+        (
+            "`담당자 | 할 일 | YYYY-MM-DD` 형식의 회의 내용을 액션아이템으로 구조화할 때 사용합니다. "
+            "경비나 휴가 요청에는 사용하지 않으며, "
+            "메일·알림·캘린더 등록은 수행하지 않습니다."
+        ),
     ),
 )
 
@@ -124,17 +106,12 @@ PARENT_EDGE_SPECS = (
     ("catalog", "agent_instructions", "agent", "system_prompt"),
     ("catalog", "skill_catalog", "expense", "skill_catalog"),
     ("catalog", "skill_catalog", "leave", "skill_catalog"),
+    ("catalog", "skill_catalog", "meeting", "skill_catalog"),
     ("chat_input", "message", "agent", "input_value"),
     ("expense", "component_as_tool", "agent", "tools"),
     ("leave", "component_as_tool", "agent", "tools"),
-    ("meeting_run_flow", "component_as_tool", "agent", "tools"),
+    ("meeting", "component_as_tool", "agent", "tools"),
     ("agent", "response", "chat_output", "input_value"),
-)
-
-CHILD_EDGE_SPECS = (
-    ("chat_input", "message", "meeting", "request"),
-    ("catalog", "skill_catalog", "meeting", "skill_catalog"),
-    ("meeting", "skill_message", "chat_output", "input_value"),
 )
 
 
@@ -371,15 +348,6 @@ def build_parent_flow() -> tuple[dict[str, Any], dict[str, str]]:
     custom_nodes: list[dict[str, Any]] = []
     for spec in PARENT_COMPONENT_SPECS:
         node = _build_custom_node(chat_input_donor, spec, sources)
-        if spec.mode == "run_flow_tool":
-            _set_template_value(node, "flow_name_selected", MEETING_SUBFLOW_NAME)
-            _set_template_value(node, "flow_id_selected", "")
-            _set_template_value(node, "session_id", "")
-            _set_template_value(node, "cache_flow", True)
-            _set_template_value(node, "allow_cross_folder", False)
-            _set_template_value(node, "tool_name", spec.tool_name)
-            _set_template_value(node, "tool_description", spec.tool_description)
-            _set_template_value(node, "return_direct", True)
         nodes_by_key[spec.key] = node
         custom_nodes.append(node)
 
@@ -388,11 +356,11 @@ def build_parent_flow() -> tuple[dict[str, Any], dict[str, str]]:
         "note-skillAgent-firstRun",
         (-380.0, 20.0),
         (
-            "## 먼저 일괄 Bundle을 가져오세요\n\n"
-            "1. `00_SKILL_BASED_AGENT_ALL_FLOWS.json`을 같은 프로젝트에 가져옵니다.\n"
-            "2. **Hybrid Skill Supervisor Agent**에서 승인된 Tool Calling 모델을 선택합니다.\n"
+            "## 먼저 Flow를 가져오세요\n\n"
+            "1. `skill_based_agent_flow.json`을 프로젝트에 가져옵니다.\n"
+            "2. **Skill Supervisor Agent**에서 승인된 Tool Calling 모델을 선택합니다.\n"
             "3. 경비·휴가·회의 예시를 각각 실행합니다.\n\n"
-            "회의 Tool은 같은 폴더의 `meeting_action_skill_flow`를 이름으로 찾습니다."
+            "세 업무는 모두 독립 Standalone Component Tool로 직접 실행됩니다."
         ),
         "blue",
     )
@@ -401,10 +369,10 @@ def build_parent_flow() -> tuple[dict[str, Any], dict[str, str]]:
         "note-skillAgent-governance",
         (900.0, 560.0),
         (
-            "## 한 Flow에서 두 Tool 패턴 비교\n\n"
-            "- 경비·휴가: 작은 계산 Component를 직접 Tool Mode로 연결\n"
-            "- 회의 후속 조치: 별도 Skill Flow를 Run Flow Tool로 호출\n"
-            "- Run Flow 외부 인자: provider-safe `question` 하나\n"
+            "## 한 Flow에서 세 업무 Tool 비교\n\n"
+            "- 경비: 금액 합산과 데모 기준 점검\n"
+            "- 휴가: 평일과 지정 휴일 계산\n"
+            "- 회의: 담당자·할 일·기한 구조화\n"
             "- 구조적 금지: 승인, 저장, 발송 Tool은 연결하지 않음\n\n"
             "MCP는 사내 공용 Tool 서버가 있을 때 같은 Agent Tools 포트에 교체 연결합니다."
         ),
@@ -418,76 +386,18 @@ def build_parent_flow() -> tuple[dict[str, Any], dict[str, str]]:
             "viewport": {"x": 65.0, "y": 80.0, "zoom": 0.46},
         },
         "description": (
-            "작은 경비·휴가 계산은 Standalone Component Tool로 직접 실행하고, 회의 후속 조치는 "
-            "개선된 이름 기반 Run Flow Tool로 별도 Skill Flow를 호출하는 Langflow 1.9.2 하이브리드 예시입니다."
+            "경비·휴가·회의 후속 조치를 각각 독립 Standalone Component Tool로 직접 연결하고, "
+            "Agent가 요청에 맞는 Tool을 선택하는 Langflow 1.9.2 업무 Skill 예시입니다."
         ),
-        "endpoint_name": "skill-based-agent-hybrid-demo",
-        "id": str(uuid.uuid5(uuid.NAMESPACE_URL, "agent-ground/skill-based-agent-flow/0.2.0")),
+        "endpoint_name": "skill-based-agent-direct-tools-demo",
+        "id": str(uuid.uuid5(uuid.NAMESPACE_URL, "agent-ground/skill-based-agent-flow/0.3.0")),
         "is_component": False,
         "last_tested_version": TARGET_LANGFLOW_VERSION,
         "locked": False,
         "name": "skill_based_agent_flow",
-        "tags": ["agent", "skill", "tool", "run-flow", "hybrid", "standalone", "demo"],
+        "tags": ["agent", "skill", "tool", "direct-component", "standalone", "demo"],
     }
     for source_key, source_name, target_key, target_name in PARENT_EDGE_SPECS:
-        _add_edge(flow, nodes_by_key[source_key], source_name, nodes_by_key[target_key], target_name)
-    return flow, sources
-
-
-def build_meeting_subflow() -> tuple[dict[str, Any], dict[str, str]]:
-    chat_input_donor, chat_output_donor, _, note_donor = _starter_parts()
-    chat_input = _clone_node(chat_input_donor, "ChatInput-meetingSkill", (-40.0, 120.0))
-    chat_output = _clone_node(chat_output_donor, "ChatOutput-meetingSkill", (900.0, 80.0))
-    _set_template_value(
-        chat_input,
-        "input_value",
-        "김민수 | 비용안 작성 | 2026-07-15\n이서연 | 비용안 검토 | 2026-07-16",
-    )
-    _set_template_value(chat_input, "should_store_message", False)
-    _set_template_value(chat_output, "sender_name", "Meeting Skill Flow")
-    _set_template_value(chat_output, "should_store_message", False)
-
-    sources: dict[str, str] = {}
-    nodes_by_key: dict[str, dict[str, Any]] = {"chat_input": chat_input, "chat_output": chat_output}
-    custom_nodes: list[dict[str, Any]] = []
-    for spec in CHILD_COMPONENT_SPECS:
-        node = _build_custom_node(chat_input_donor, spec, sources)
-        nodes_by_key[spec.key] = node
-        custom_nodes.append(node)
-
-    note = _build_note(
-        note_donor,
-        "note-meetingSkill-contract",
-        (400.0, -260.0),
-        (
-            "## 회의 후속 조치 Skill Flow\n\n"
-            "입력은 Chat Input 하나, 출력은 Chat Output 하나입니다.\n"
-            "부모 Run Flow Tool은 `question`을 현재 Chat Input ID에 내부 매핑합니다.\n\n"
-            "현재는 결정론적 구조화 단계 하나지만, 이후 검토·담당자 조회·초안 생성 단계를 이 Flow 안에 추가할 수 있습니다."
-        ),
-        "green",
-        size=(360, 250),
-    )
-
-    flow: dict[str, Any] = {
-        "data": {
-            "edges": [],
-            "nodes": [note, *custom_nodes, chat_input, chat_output],
-            "viewport": {"x": 150.0, "y": 180.0, "zoom": 0.62},
-        },
-        "description": (
-            "회의 후속 조치 문장을 구조화하는 독립 Skill Flow입니다. 상위 Agent에서는 "
-            "Cached Named Run Flow Tool을 통해 provider-safe question 인자로 호출합니다."
-        ),
-        "endpoint_name": "meeting-action-skill-flow",
-        "id": str(uuid.uuid5(uuid.NAMESPACE_URL, "agent-ground/meeting-action-skill-flow/0.2.0")),
-        "is_component": False,
-        "last_tested_version": TARGET_LANGFLOW_VERSION,
-        "locked": False,
-        "name": MEETING_SUBFLOW_NAME,
-        "tags": ["skill", "subflow", "meeting", "run-flow", "standalone", "demo"],
-    }
-    for source_key, source_name, target_key, target_name in CHILD_EDGE_SPECS:
         _add_edge(flow, nodes_by_key[source_key], source_name, nodes_by_key[target_key], target_name)
     return flow, sources
 
@@ -554,13 +464,11 @@ def _validate_custom_nodes(
 def validate_flows(
     parent: dict[str, Any],
     parent_sources: dict[str, str],
-    child: dict[str, Any],
-    child_sources: dict[str, str],
 ) -> None:
     assert_target_runtime()
 
-    if len(parent["data"]["nodes"]) != 9 or len(parent["data"]["edges"]) != 8:
-        raise ValueError("상위 Hybrid Skill Agent Flow는 9 nodes / 8 edges여야 합니다.")
+    if len(parent["data"]["nodes"]) != 9 or len(parent["data"]["edges"]) != 9:
+        raise ValueError("Skill Agent Flow는 9 nodes / 9 edges여야 합니다.")
     _validate_custom_nodes(parent, PARENT_COMPONENT_SPECS, parent_sources)
     parent_ids = {
         "chat_input": "ChatInput-skillAgent",
@@ -576,53 +484,18 @@ def validate_flows(
     if agent["template"]["add_current_date_tool"].get("value") is not False:
         raise ValueError("예제 범위 밖 Current Date Tool은 비활성화해야 합니다.")
 
-    for key in ("expense", "leave"):
+    for key in ("expense", "leave", "meeting"):
         spec = next(item for item in PARENT_COMPONENT_SPECS if item.key == key)
         config = parent_nodes[spec.node_id]["data"]["node"]
         if config.get("tool_mode") is not True:
-            raise ValueError(f"직접 계산 Component가 Tool Mode가 아닙니다: {key}")
+            raise ValueError(f"직접 업무 Component가 Tool Mode가 아닙니다: {key}")
         outputs = config.get("outputs", [])
         if len(outputs) != 1 or outputs[0].get("name") != "component_as_tool" or outputs[0].get("types") != ["Tool"]:
-            raise ValueError(f"직접 계산 Tool 출력 계약이 잘못되었습니다: {key}")
-
-    run_spec = next(item for item in PARENT_COMPONENT_SPECS if item.key == "meeting_run_flow")
-    run_config = parent_nodes[run_spec.node_id]["data"]["node"]
-    run_template = run_config["template"]
-    if run_config.get("tool_mode") is not False:
-        raise ValueError("Cached Named Run Flow Tool은 자체 Tool 출력을 사용하므로 Tool Mode 변환을 다시 하면 안 됩니다.")
-    run_outputs = run_config.get("outputs", [])
-    if len(run_outputs) != 1 or run_outputs[0].get("name") != "component_as_tool" or run_outputs[0].get("types") != ["Tool"]:
-        raise ValueError("Cached Named Run Flow Tool 출력 계약이 잘못되었습니다.")
-    expected_run_values = {
-        "flow_name_selected": MEETING_SUBFLOW_NAME,
-        "flow_id_selected": "",
-        "cache_flow": True,
-        "allow_cross_folder": False,
-        "tool_name": "meeting_action_skill",
-        "return_direct": True,
-    }
-    for field, expected in expected_run_values.items():
-        if run_template[field].get("value") != expected:
-            raise ValueError(f"Run Flow Tool 설정이 잘못되었습니다: {field}")
-
-    if child.get("name") != MEETING_SUBFLOW_NAME:
-        raise ValueError("회의 하위 Flow 이름 계약이 다릅니다.")
-    if len(child["data"]["nodes"]) != 5 or len(child["data"]["edges"]) != 3:
-        raise ValueError("회의 하위 Flow는 5 nodes / 3 edges여야 합니다.")
-    _validate_custom_nodes(child, CHILD_COMPONENT_SPECS, child_sources)
-    child_ids = {
-        "chat_input": "ChatInput-meetingSkill",
-        "chat_output": "ChatOutput-meetingSkill",
-        **{spec.key: spec.node_id for spec in CHILD_COMPONENT_SPECS},
-    }
-    _validate_edges(child, CHILD_EDGE_SPECS, child_ids)
-    child_types = [node["data"].get("type") for node in child["data"]["nodes"]]
-    if child_types.count("ChatInput") != 1 or child_types.count("ChatOutput") != 1 or "Agent" in child_types:
-        raise ValueError("회의 하위 Flow는 Chat Input/Output이 각각 하나이고 Agent가 없어야 합니다.")
+            raise ValueError(f"직접 업무 Tool 출력 계약이 잘못되었습니다: {key}")
 
 
-def build_skill_bundle(child: dict[str, Any], parent: dict[str, Any]) -> dict[str, Any]:
-    return {"flows": [child, parent]}
+def build_skill_bundle(parent: dict[str, Any]) -> dict[str, Any]:
+    return {"flows": [parent]}
 
 
 def build_project_bundle() -> dict[str, Any]:
@@ -640,7 +513,7 @@ def build_project_bundle() -> dict[str, Any]:
 
 
 def _validate_written_files() -> None:
-    for path in (FLOW_TARGET, MEETING_SUBFLOW_TARGET, SKILL_BUNDLE_TARGET, PROJECT_BUNDLE_TARGET):
+    for path in (FLOW_TARGET, SKILL_BUNDLE_TARGET, PROJECT_BUNDLE_TARGET):
         raw = path.read_bytes()
         if raw.startswith(b"\xef\xbb\xbf"):
             raise ValueError(f"Langflow JSON에는 UTF-8 BOM을 사용할 수 없습니다: {path}")
@@ -654,16 +527,16 @@ def _validate_written_files() -> None:
         flow.get("name")
         for flow in json.loads(SKILL_BUNDLE_TARGET.read_text(encoding="utf-8")).get("flows", [])
     ]
-    if skill_names != [MEETING_SUBFLOW_NAME, "skill_based_agent_flow"]:
+    if skill_names != ["skill_based_agent_flow"]:
         raise ValueError(f"Skill Bundle 순서가 다릅니다: {skill_names}")
 
     expected_names = [
         "html_flow_0624",
         "enterprise_document_rag_flow",
-        MEETING_SUBFLOW_NAME,
         "skill_based_agent_flow",
         "ppt_reference_html_flow",
         "drm_document_text_extraction_flow",
+        "meeting_minutes_writer_flow",
         "business_agent_design_complete",
     ]
     actual_names = [
@@ -675,20 +548,17 @@ def _validate_written_files() -> None:
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="Langflow 1.9.2 하이브리드 Skill 기반 Agent 예시 Flow를 생성합니다.")
+    parser = argparse.ArgumentParser(description="Langflow 1.9.2 직접 Component Tool 기반 Agent 예시 Flow를 생성합니다.")
     parser.add_argument("--check", action="store_true", help="파일을 수정하지 않고 생성 결과와 현재 파일을 비교합니다.")
     args = parser.parse_args()
 
     parent, parent_sources = build_parent_flow()
-    child, child_sources = build_meeting_subflow()
-    validate_flows(parent, parent_sources, child, child_sources)
-    skill_bundle = build_skill_bundle(child, parent)
+    validate_flows(parent, parent_sources)
+    skill_bundle = build_skill_bundle(parent)
 
     if args.check:
         if not FLOW_TARGET.is_file() or _read_json(FLOW_TARGET) != parent:
             raise ValueError(f"생성된 상위 Skill Flow가 현재 원본과 다릅니다: {FLOW_TARGET}")
-        if not MEETING_SUBFLOW_TARGET.is_file() or _read_json(MEETING_SUBFLOW_TARGET) != child:
-            raise ValueError(f"생성된 회의 하위 Flow가 현재 원본과 다릅니다: {MEETING_SUBFLOW_TARGET}")
         if not SKILL_BUNDLE_TARGET.is_file() or _read_json(SKILL_BUNDLE_TARGET) != skill_bundle:
             raise ValueError(f"생성된 Skill Bundle이 현재 원본과 다릅니다: {SKILL_BUNDLE_TARGET}")
         project_bundle = build_project_bundle()
@@ -696,7 +566,6 @@ def main() -> int:
             raise ValueError(f"전체 Bundle이 현재 Flow 집합과 다릅니다: {PROJECT_BUNDLE_TARGET}")
     else:
         _write_json(FLOW_TARGET, parent, compact=False)
-        _write_json(MEETING_SUBFLOW_TARGET, child, compact=False)
         _write_json(SKILL_BUNDLE_TARGET, skill_bundle, compact=True)
         project_bundle = build_project_bundle()
         _write_json(PROJECT_BUNDLE_TARGET, project_bundle, compact=True)
@@ -708,13 +577,12 @@ def main() -> int:
                 "langflow_version": importlib.metadata.version("langflow"),
                 "lfx_version": importlib.metadata.version("lfx"),
                 "parent_flow": str(FLOW_TARGET),
-                "meeting_subflow": str(MEETING_SUBFLOW_TARGET),
                 "skill_bundle": str(SKILL_BUNDLE_TARGET),
                 "project_bundle": str(PROJECT_BUNDLE_TARGET),
                 "parent_nodes": len(parent["data"]["nodes"]),
                 "parent_edges": len(parent["data"]["edges"]),
-                "direct_component_tools": 2,
-                "run_flow_tools": 1,
+                "direct_component_tools": 3,
+                "run_flow_tools": 0,
                 "skill_bundle_flows": len(skill_bundle["flows"]),
                 "project_bundle_flows": len(project_bundle["flows"]),
                 "status": "ok",

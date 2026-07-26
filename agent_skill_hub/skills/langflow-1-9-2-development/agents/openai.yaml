@@ -1,0 +1,4 @@
+interface:
+  display_name: "Langflow 1.9.2 Development"
+  short_description: "Build and validate portable Langflow 1.9.2 flows"
+  default_prompt: "Use $langflow-1-9-2-development to build or repair this Langflow 1.9.2 flow with source, export, runtime, and security validation."

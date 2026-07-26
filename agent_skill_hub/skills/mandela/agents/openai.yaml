@@ -1,0 +1,4 @@
+interface:
+  display_name: "Mandela Eval Audit"
+  short_description: "Audit evals for circular or leaked validation"
+  default_prompt: "Use $mandela to audit this evaluation for circular or leaked validation."

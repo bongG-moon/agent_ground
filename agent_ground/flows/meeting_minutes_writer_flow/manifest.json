@@ -1,0 +1,27 @@
+{
+  "id": "meeting_minutes_writer_flow",
+  "name_ko": "사용자 스타일 기반 회의록 작성 Flow",
+  "asset_type": "flow",
+  "status": "user_testing",
+  "version": "0.1.0",
+  "source_export_version": "1.9.2",
+  "summary_ko": "과거 녹취 TXT와 실제 Word/TXT 회의록의 대응 관계에서 사용자의 선택·생략·구성·문장 스타일을 추출하고, 현재 녹취와 추가 지시를 바탕으로 같은 스타일의 회의록을 작성·검토합니다.",
+  "categories": ["meeting", "minutes", "document", "style", "llm"],
+  "trigger_signals": ["회의록 작성", "녹취 TXT", "사용자 스타일", "회의 내용 정리", "액션아이템", "Word 회의록"],
+  "flow_file": "meeting_minutes_writer_flow.json",
+  "component_refs_file": "component_refs.json",
+  "internal_nodes_file": "internal_nodes.json",
+  "documentation_path": "html/flows/meeting_minutes_writer_flow/index.html",
+  "runtime_ready": true,
+  "verified_environment": "langflow-1.9.2-lfx-0.4.2-template-loader-paired-example-and-project-tests",
+  "last_verified_at": "2026-07-26",
+  "approved_by_user_at": null,
+  "risk_tags": [
+    "sensitive_transcript",
+    "drm_plaintext",
+    "prompt_injection",
+    "hallucination",
+    "model_context_limit",
+    "human_review_required"
+  ]
+}

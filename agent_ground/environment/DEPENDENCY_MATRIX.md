@@ -16,6 +16,7 @@
 | PPT 참조 이미지 HTML 프레젠테이션 | `multi_image_base64_encoder`, Flow 내부 Node 6개, `html_presentation_renderer` | 기본 렌더링·데이터 바인딩은 Python stdlib + `lfx`만 사용합니다. 실제 참고 이미지 분석에는 Data URL 이미지를 지원하는 승인된 멀티모달 LanguageModel과 API Key가 필요합니다. |
 | 프레젠테이션 데이터 파일 | `presentation_request_builder` | JSON·UTF-8 CSV는 기본 지원합니다. XLSX는 0.1.0 입력 계약에 포함하지 않으며 먼저 JSON/CSV로 변환합니다. |
 | DRM 문서 로컬 추출 | `drm_document_text_extractor` | PDF·DOCX·PPTX·XLSX 검증에는 각각 `pypdf`, `python-docx`, `python-pptx`, `openpyxl`이 필요합니다. 검증용 고정 버전은 `langflow-1.9.2-validation-requirements.txt`에 기록합니다. |
+| 사용자 스타일 기반 회의록 작성 | `meeting_minutes_writer_flow`, `drm_document_text_extractor`, Flow 내부 Node 4개 | TXT는 기본 경로에서 읽고 Word·DRM 회의록은 공용 DRM Component의 의존성을 사용합니다. 스타일 분석·초안·최종 검토에는 조직이 승인한 LanguageModel이 필요하며 모델·API Key는 Flow JSON에 고정하지 않습니다. |
 | EWS 메일 조회 | `mail_attachment_summary_flow`의 EWS 내부 Node | 실제 NTLM 인증 조회에는 `requests-ntlm`과 사내 EWS 접근 권한이 필요합니다. 테스트에서는 외부 메일함을 호출하지 않고 dummy/fake 계약을 사용합니다. |
 
 외부 패키지는 Python 원본에 import 구문이 있다는 이유만으로 설치되어 있다고 가정하지 않습니다. `user_testing` 단계에서 실제 Agent Builder 서버의 사용 가능 여부를 확인합니다.

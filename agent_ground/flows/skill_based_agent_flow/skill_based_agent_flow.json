@@ -94,6 +94,36 @@
         "className": "",
         "data": {
           "sourceHandle": {
+            "dataType": "DemoSkillCatalogBuilder",
+            "id": "DemoSkillCatalogBuilder-skillAgent",
+            "name": "skill_catalog",
+            "output_types": [
+              "Data",
+              "JSON"
+            ]
+          },
+          "targetHandle": {
+            "fieldName": "skill_catalog",
+            "id": "MeetingActionSkillTool-skillAgent",
+            "inputTypes": [
+              "Data",
+              "JSON"
+            ],
+            "type": "other"
+          }
+        },
+        "id": "xy-edge__DemoSkillCatalogBuilder-skillAgent{œdataTypeœ:œDemoSkillCatalogBuilderœ,œidœ:œDemoSkillCatalogBuilder-skillAgentœ,œnameœ:œskill_catalogœ,œoutput_typesœ:[œDataœ,œJSONœ]}-MeetingActionSkillTool-skillAgent{œfieldNameœ:œskill_catalogœ,œidœ:œMeetingActionSkillTool-skillAgentœ,œinputTypesœ:[œDataœ,œJSONœ],œtypeœ:œotherœ}",
+        "selected": false,
+        "source": "DemoSkillCatalogBuilder-skillAgent",
+        "sourceHandle": "{œdataTypeœ:œDemoSkillCatalogBuilderœ,œidœ:œDemoSkillCatalogBuilder-skillAgentœ,œnameœ:œskill_catalogœ,œoutput_typesœ:[œDataœ,œJSONœ]}",
+        "target": "MeetingActionSkillTool-skillAgent",
+        "targetHandle": "{œfieldNameœ:œskill_catalogœ,œidœ:œMeetingActionSkillTool-skillAgentœ,œinputTypesœ:[œDataœ,œJSONœ],œtypeœ:œotherœ}"
+      },
+      {
+        "animated": false,
+        "className": "",
+        "data": {
+          "sourceHandle": {
             "dataType": "ChatInput",
             "id": "ChatInput-skillAgent",
             "name": "message",
@@ -178,8 +208,8 @@
         "className": "",
         "data": {
           "sourceHandle": {
-            "dataType": "CachedNamedRunFlowTool",
-            "id": "CachedNamedRunFlowTool-meetingSkill",
+            "dataType": "MeetingActionSkillTool",
+            "id": "MeetingActionSkillTool-skillAgent",
             "name": "component_as_tool",
             "output_types": [
               "Tool"
@@ -194,10 +224,10 @@
             "type": "other"
           }
         },
-        "id": "xy-edge__CachedNamedRunFlowTool-meetingSkill{œdataTypeœ:œCachedNamedRunFlowToolœ,œidœ:œCachedNamedRunFlowTool-meetingSkillœ,œnameœ:œcomponent_as_toolœ,œoutput_typesœ:[œToolœ]}-Agent-skillSupervisor{œfieldNameœ:œtoolsœ,œidœ:œAgent-skillSupervisorœ,œinputTypesœ:[œToolœ],œtypeœ:œotherœ}",
+        "id": "xy-edge__MeetingActionSkillTool-skillAgent{œdataTypeœ:œMeetingActionSkillToolœ,œidœ:œMeetingActionSkillTool-skillAgentœ,œnameœ:œcomponent_as_toolœ,œoutput_typesœ:[œToolœ]}-Agent-skillSupervisor{œfieldNameœ:œtoolsœ,œidœ:œAgent-skillSupervisorœ,œinputTypesœ:[œToolœ],œtypeœ:œotherœ}",
         "selected": false,
-        "source": "CachedNamedRunFlowTool-meetingSkill",
-        "sourceHandle": "{œdataTypeœ:œCachedNamedRunFlowToolœ,œidœ:œCachedNamedRunFlowTool-meetingSkillœ,œnameœ:œcomponent_as_toolœ,œoutput_typesœ:[œToolœ]}",
+        "source": "MeetingActionSkillTool-skillAgent",
+        "sourceHandle": "{œdataTypeœ:œMeetingActionSkillToolœ,œidœ:œMeetingActionSkillTool-skillAgentœ,œnameœ:œcomponent_as_toolœ,œoutput_typesœ:[œToolœ]}",
         "target": "Agent-skillSupervisor",
         "targetHandle": "{œfieldNameœ:œtoolsœ,œidœ:œAgent-skillSupervisorœ,œinputTypesœ:[œToolœ],œtypeœ:œotherœ}"
       },
@@ -239,7 +269,7 @@
         "data": {
           "id": "note-skillAgent-firstRun",
           "node": {
-            "description": "## 먼저 일괄 Bundle을 가져오세요\n\n1. `00_SKILL_BASED_AGENT_ALL_FLOWS.json`을 같은 프로젝트에 가져옵니다.\n2. **Hybrid Skill Supervisor Agent**에서 승인된 Tool Calling 모델을 선택합니다.\n3. 경비·휴가·회의 예시를 각각 실행합니다.\n\n회의 Tool은 같은 폴더의 `meeting_action_skill_flow`를 이름으로 찾습니다.",
+            "description": "## 먼저 Flow를 가져오세요\n\n1. `skill_based_agent_flow.json`을 프로젝트에 가져옵니다.\n2. **Skill Supervisor Agent**에서 승인된 Tool Calling 모델을 선택합니다.\n3. 경비·휴가·회의 예시를 각각 실행합니다.\n\n세 업무는 모두 독립 Standalone Component Tool로 직접 실행됩니다.",
             "display_name": "",
             "documentation": "",
             "template": {
@@ -810,49 +840,34 @@
       },
       {
         "data": {
-          "id": "CachedNamedRunFlowTool-meetingSkill",
+          "id": "MeetingActionSkillTool-skillAgent",
           "node": {
             "template": {
               "_type": "Component",
-              "allow_cross_folder": {
+              "skill_catalog": {
                 "tool_mode": false,
                 "trace_as_metadata": true,
                 "list": false,
                 "list_add_label": "Add More",
+                "trace_as_input": true,
                 "override_skip": false,
-                "required": false,
+                "required": true,
                 "placeholder": "",
                 "show": true,
-                "name": "allow_cross_folder",
-                "value": false,
-                "display_name": "다른 폴더 Flow 허용",
-                "advanced": true,
+                "name": "skill_catalog",
+                "value": "",
+                "display_name": "Skill 카탈로그",
+                "advanced": false,
+                "input_types": [
+                  "Data",
+                  "JSON"
+                ],
                 "dynamic": false,
-                "info": "기본값은 꺼짐이며 부모 Router와 같은 폴더에서만 이름을 찾습니다. 켜면 현재 사용자의 모든 폴더에서 고유한 동일 이름을 찾습니다.",
+                "info": "데모 Skill 카탈로그 빌더의 Skill 카탈로그 출력을 연결합니다. Agent Tool 인자로 노출되지 않습니다.",
                 "title_case": false,
-                "track_in_telemetry": true,
-                "type": "bool",
-                "_input_type": "BoolInput"
-              },
-              "cache_flow": {
-                "tool_mode": false,
-                "trace_as_metadata": true,
-                "list": false,
-                "list_add_label": "Add More",
-                "override_skip": false,
-                "required": false,
-                "placeholder": "",
-                "show": true,
-                "name": "cache_flow",
-                "value": true,
-                "display_name": "Flow 그래프 캐시",
-                "advanced": true,
-                "dynamic": false,
-                "info": "현재 사용자와 실제 Flow ID를 기준으로 파싱한 그래프만 캐시합니다. 데이터, 도구 결과와 최종 답변은 캐시하지 않습니다.",
-                "title_case": false,
-                "track_in_telemetry": true,
-                "type": "bool",
-                "_input_type": "BoolInput"
+                "track_in_telemetry": false,
+                "type": "other",
+                "_input_type": "JSONInput"
               },
               "code": {
                 "type": "code",
@@ -861,7 +876,7 @@
                 "list": false,
                 "show": true,
                 "multiline": true,
-                "value": "from __future__ import annotations\n\nimport re\nfrom datetime import datetime, timezone\nfrom typing import Any\n\nfrom langflow.helpers.flow import list_flows, list_flows_by_flow_folder\nfrom lfx.base.tools.run_flow import RunFlowBaseComponent\nfrom lfx.io import BoolInput, MessageTextInput, MultilineInput, Output, StrInput\n\n\n_MAX_FLOW_NAME_CHARS = 255\n_MAX_TOOL_NAME_CHARS = 64\n_MAX_TOOL_DESCRIPTION_CHARS = 2000\n_MAX_SESSION_ID_CHARS = 255\n_TOOL_NAME_PATTERN = re.compile(r\"[A-Za-z0-9][A-Za-z0-9_-]*\")\n\n\ndef _as_iso_text(value: Any) -> str | None:\n    if value in (None, \"\"):\n        return None\n    return value.isoformat() if hasattr(value, \"isoformat\") else str(value)\n\n\ndef _validated_tool_name(value: Any) -> str:\n    name = str(value or \"\").strip()\n    if not name:\n        raise ValueError(\"도구 이름이 필요합니다.\")\n    if len(name) > _MAX_TOOL_NAME_CHARS:\n        raise ValueError(f\"도구 이름은 {_MAX_TOOL_NAME_CHARS}자 이하여야 합니다.\")\n    if _TOOL_NAME_PATTERN.fullmatch(name) is None:\n        raise ValueError(\n            \"도구 이름의 첫 글자는 영문 또는 숫자여야 하며, \"\n            \"이후에는 영문, 숫자, 밑줄과 하이픈만 사용할 수 있습니다.\"\n        )\n    return name\n\n\ndef _validated_tool_description(value: Any) -> str:\n    description = str(value or \"\").strip()\n    if not description:\n        raise ValueError(\"도구 설명이 필요합니다.\")\n    if len(description) > _MAX_TOOL_DESCRIPTION_CHARS:\n        raise ValueError(f\"도구 설명은 {_MAX_TOOL_DESCRIPTION_CHARS}자 이하여야 합니다.\")\n    return description\n\n\ndef _validated_session_id(value: Any) -> str:\n    session_id = str(value or \"\").strip()\n    if not session_id:\n        return \"\"\n    if len(session_id) > _MAX_SESSION_ID_CHARS:\n        raise ValueError(f\"세션 ID는 {_MAX_SESSION_ID_CHARS}자 이하여야 합니다.\")\n    if re.search(r\"[\\x00-\\x1f\\x7f]\", session_id):\n        raise ValueError(\"세션 ID에는 제어 문자를 사용할 수 없습니다.\")\n    return session_id\n\n\ndef _single_chat_input_id(vertices: Any) -> str:\n    \"\"\"현재 하위 Flow에서 사용자 질문을 받을 Chat Input ID를 정확히 하나만 찾습니다.\n\n    하위 Flow를 다시 import하면 node ID가 바뀔 수 있으므로 export 시점 ID를\n    저장하지 않고, 실행에 사용할 현재 그래프에서 매번 확인합니다.\n    \"\"\"\n\n    chat_input_ids = [\n        str(vertex.id)\n        for vertex in list(vertices or [])\n        if (getattr(vertex, \"data\", {}) or {}).get(\"type\") == \"ChatInput\"\n        or getattr(vertex, \"display_name\", \"\") == \"Chat Input\"\n    ]\n    if len(chat_input_ids) != 1:\n        raise ValueError(\"대상 Flow에는 사용자 입력용 Chat Input이 정확히 하나 있어야 합니다.\")\n    return chat_input_ids[0]\n\n\ndef _question_tweaks(chat_input_id: Any, flow_tweak_data: Any) -> dict[str, dict[str, str]]:\n    \"\"\"고정 `question` Tool 인자를 현재 Chat Input용 내부 tweak로 변환합니다.\n\n    `ChatInput-...~input_value` 같은 내부 키를 LLM Tool schema 밖에서만 만들기\n    때문에 provider가 하이픈과 물결표를 밑줄로 바꾸더라도 질문이 유실되지 않습니다.\n    \"\"\"\n\n    node_id = str(chat_input_id or \"\").strip()\n    if not node_id:\n        raise ValueError(\"현재 하위 Flow의 Chat Input ID를 확인할 수 없습니다.\")\n\n    tool_values = flow_tweak_data.model_dump() if hasattr(flow_tweak_data, \"model_dump\") else flow_tweak_data\n    if not isinstance(tool_values, dict):\n        tool_values = {}\n    question = str(tool_values.get(\"question\") or \"\").strip()\n    if not question:\n        raise ValueError(\"하위 Flow에 전달할 사용자 질문이 비어 있습니다.\")\n    return {node_id: {\"input_value\": question}}\n\n\nclass CachedNamedRunFlowTool(RunFlowBaseComponent):\n    display_name = \"캐시된 이름 기반 Run Flow 도구\"\n    description = (\n        \"하위 Flow를 정확한 이름으로 다시 조회하고 실제 ID 기준으로 그래프만 캐시하며, \"\n        \"고정 question 인자를 현재 Chat Input으로 변환해 실행합니다.\"\n    )\n    name = \"CachedNamedRunFlowTool\"\n    icon = \"Workflow\"\n\n    inputs = [\n        StrInput(\n            name=\"flow_name_selected\",\n            display_name=\"대상 Flow 이름\",\n            info=(\n                \"현재 Router와 같은 폴더에 있고 이름이 고유한 하위 Flow의 정확한 이름입니다. \"\n                \"실행할 때 현재 DB ID를 다시 조회합니다.\"\n            ),\n            required=True,\n        ),\n        StrInput(\n            name=\"flow_id_selected\",\n            display_name=\"해석된 Flow ID\",\n            info=\"대상 Flow 이름에서 실행 시 해석하는 숨김 ID입니다. export 시점 ID를 고정하지 않습니다.\",\n            value=\"\",\n            show=False,\n            override_skip=True,\n        ),\n        MessageTextInput(\n            name=\"session_id\",\n            display_name=\"세션 ID\",\n            info=\"직접 지정할 때만 입력합니다. 비우면 부모 Flow 그래프의 세션을 자동 상속합니다.\",\n            value=\"\",\n            advanced=True,\n        ),\n        BoolInput(\n            name=\"cache_flow\",\n            display_name=\"Flow 그래프 캐시\",\n            info=(\n                \"현재 사용자와 실제 Flow ID를 기준으로 파싱한 그래프만 캐시합니다. \"\n                \"데이터, 도구 결과와 최종 답변은 캐시하지 않습니다.\"\n            ),\n            value=True,\n            advanced=True,\n        ),\n        BoolInput(\n            name=\"allow_cross_folder\",\n            display_name=\"다른 폴더 Flow 허용\",\n            info=(\n                \"기본값은 꺼짐이며 부모 Router와 같은 폴더에서만 이름을 찾습니다. \"\n                \"켜면 현재 사용자의 모든 폴더에서 고유한 동일 이름을 찾습니다.\"\n            ),\n            value=False,\n            advanced=True,\n        ),\n        StrInput(\n            name=\"tool_name\",\n            display_name=\"도구 이름\",\n            info=(\n                \"Agent에 노출할 64자 이하 이름입니다. 첫 글자는 영문 또는 숫자로 시작하고, \"\n                \"이후에는 영문, 숫자, 밑줄과 하이픈만 사용합니다.\"\n            ),\n            required=True,\n        ),\n        MultilineInput(\n            name=\"tool_description\",\n            display_name=\"도구 설명\",\n            info=\"Agent가 이 하위 Flow를 선택할 조건과 선택하지 않을 조건을 함께 설명합니다.\",\n            required=True,\n        ),\n        BoolInput(\n            name=\"return_direct\",\n            display_name=\"하위 결과 직접 반환\",\n            info=\"부모 Agent의 추가 재작성 단계를 거치지 않고 하위 Flow 결과를 그대로 반환합니다.\",\n            value=True,\n            advanced=True,\n        ),\n    ]\n\n    outputs = [\n        Output(\n            name=\"component_as_tool\",\n            display_name=\"Flow 도구\",\n            method=\"to_toolkit\",\n            types=[\"Tool\"],\n            tool_mode=True,\n        )\n    ]\n\n    async def get_graph(\n        self,\n        flow_name_selected: str | None = None,\n        flow_id_selected: str | None = None,\n        updated_at: str | None = None,\n    ):\n        del flow_id_selected, updated_at\n        flow_name = str(flow_name_selected or getattr(self, \"flow_name_selected\", \"\") or \"\").strip()\n        if not flow_name:\n            raise ValueError(\"대상 Flow 이름이 필요합니다.\")\n        if len(flow_name) > _MAX_FLOW_NAME_CHARS:\n            raise ValueError(f\"대상 Flow 이름은 {_MAX_FLOW_NAME_CHARS}자 이하여야 합니다.\")\n        if not getattr(self, \"user_id\", None):\n            raise ValueError(\"현재 Langflow 사용자 ID를 확인할 수 없습니다.\")\n\n        parent_graph = getattr(self, \"graph\", None)\n        parent_flow_id = str(getattr(parent_graph, \"flow_id\", \"\") or \"\").strip()\n        allow_cross_folder = bool(getattr(self, \"allow_cross_folder\", False))\n        if allow_cross_folder:\n            candidates = await list_flows(user_id=self.user_id)\n            scope_label = \"현재 사용자의 전체 폴더\"\n        else:\n            if not parent_flow_id:\n                raise ValueError(\"같은 폴더를 확인할 부모 Flow ID가 없습니다.\")\n            candidates = await list_flows_by_flow_folder(user_id=self.user_id, flow_id=parent_flow_id)\n            scope_label = \"부모 Router와 같은 폴더\"\n\n        matches: list[dict[str, Any]] = []\n        for candidate in candidates:\n            candidate_data = getattr(candidate, \"data\", None) or {}\n            if isinstance(candidate_data, dict) and str(candidate_data.get(\"name\") or \"\") == flow_name:\n                matches.append(candidate_data)\n        if not matches:\n            raise ValueError(f\"{scope_label}에서 이름이 정확히 일치하는 Flow를 찾지 못했습니다: {flow_name}\")\n        if len(matches) > 1:\n            raise ValueError(f\"{scope_label}에 같은 이름의 Flow가 여러 개 있습니다: {flow_name}\")\n\n        actual_id = str(matches[0].get(\"id\") or \"\").strip()\n        actual_updated_at = _as_iso_text(matches[0].get(\"updated_at\"))\n        if not actual_id:\n            raise ValueError(f\"대상 Flow의 실제 DB ID를 확인할 수 없습니다: {flow_name}\")\n        if parent_flow_id and actual_id == parent_flow_id:\n            raise ValueError(\"현재 부모 Flow 자신을 하위 Run Flow 도구로 실행할 수 없습니다.\")\n\n        self.flow_name_selected = flow_name\n        self.flow_id_selected = actual_id\n        self._attributes[\"flow_name_selected\"] = flow_name\n        self._attributes[\"flow_id_selected\"] = actual_id\n        self._attributes[\"flow_name_selected_updated_at\"] = actual_updated_at\n        self._cached_flow_updated_at = actual_updated_at\n        graph = await super().get_graph(\n            flow_name_selected=flow_name,\n            flow_id_selected=actual_id,\n            updated_at=actual_updated_at,\n        )\n        self._resolved_chat_input_id = _single_chat_input_id(getattr(graph, \"vertices\", []))\n        return graph\n\n    def _is_cached_flow_up_to_date(self, cached_flow, updated_at: str | None) -> bool:\n        \"\"\"microsecond를 보존해 같은 초 안의 Flow 수정도 캐시 무효화에 반영합니다.\"\"\"\n        cached_timestamp = self._parse_timestamp(getattr(cached_flow, \"updated_at\", None))\n        current_timestamp = self._parse_timestamp(updated_at)\n        return bool(cached_timestamp and current_timestamp and cached_timestamp >= current_timestamp)\n\n    @staticmethod\n    def _parse_timestamp(value: str | None) -> datetime | None:\n        \"\"\"ISO timestamp를 UTC 기준으로 변환하되 microsecond를 제거하지 않습니다.\"\"\"\n        if not value:\n            return None\n        try:\n            parsed = datetime.fromisoformat(str(value).replace(\"Z\", \"+00:00\"))\n        except ValueError:\n            return None\n        if parsed.tzinfo is None:\n            return parsed.replace(tzinfo=timezone.utc)\n        return parsed.astimezone(timezone.utc)\n\n    def get_new_fields(self, inputs_vertex):\n        chat_input_id = _single_chat_input_id(inputs_vertex)\n        self._resolved_chat_input_id = chat_input_id\n        fields = super().get_new_fields(inputs_vertex)\n        internal_name = f\"{chat_input_id}{self.IOPUT_SEP}input_value\"\n        compact_fields = [field for field in fields if field.get(\"name\") == internal_name]\n        if len(compact_fields) != 1:\n            raise ValueError(\"대상 Flow의 Chat Input 입력 필드를 확인할 수 없습니다.\")\n\n        # LFX 0.4.2 Tool schema 생성기는 dotdict의 `.type`, `.required` 속성을 읽습니다.\n        # 일반 dict로 복사하지 않고 기반 Component가 만든 field 객체를 그대로 유지합니다.\n        question_field = compact_fields[0]\n        question_field.update(\n            {\n                \"name\": \"question\",\n                \"display_name\": \"사용자 질문\",\n                \"info\": \"현재 사용자 질문 원문입니다. 하위 Flow의 Chat Input에 그대로 전달합니다.\",\n                \"required\": True,\n                \"value\": \"\",\n                \"tool_mode\": True,\n            }\n        )\n        return [question_field]\n\n    async def get_required_data(self):\n        graph = await self.get_graph(self.flow_name_selected, None, None)\n        self._sync_flow_outputs(self._format_flow_outputs(graph))\n        fields = self.update_input_types(self.get_new_fields_from_graph(graph))\n        description = graph.description or _validated_tool_description(getattr(self, \"tool_description\", \"\"))\n        return description, [field for field in fields if field.get(\"tool_mode\", False)]\n\n    def _build_flow_tweak_data(self) -> dict[str, dict[str, str]]:\n        \"\"\"Agent의 `question`을 현재 그래프의 실제 Chat Input ID에 적용합니다.\"\"\"\n\n        return _question_tweaks(\n            getattr(self, \"_resolved_chat_input_id\", \"\"),\n            self._attributes.get(\"flow_tweak_data\"),\n        )\n\n    async def _get_tools(self):\n        tools = await super()._get_tools()\n        if len(tools) != 1:\n            raise ValueError(\"대상 Flow에는 Agent 도구로 사용할 최종 출력이 정확히 하나 있어야 합니다.\")\n\n        tool = tools[0]\n        tool_name = _validated_tool_name(getattr(self, \"tool_name\", \"\"))\n        tool_description = _validated_tool_description(getattr(self, \"tool_description\", \"\"))\n        tool.name = tool_name\n        tool.description = tool_description\n        tool.tags = [tool_name]\n        tool.return_direct = bool(getattr(self, \"return_direct\", True))\n        self.status = {\n            \"status\": \"도구 준비 완료\",\n            \"flow_name\": str(getattr(self, \"flow_name_selected\", \"\") or \"\")[:_MAX_FLOW_NAME_CHARS],\n            \"tool_name\": tool_name,\n            \"cache_flow\": bool(getattr(self, \"cache_flow\", True)),\n            \"return_direct\": tool.return_direct,\n        }\n        return [tool]\n\n    def _pre_run_setup(self) -> None:\n        super()._pre_run_setup()\n        explicit = _validated_session_id(getattr(self, \"session_id\", \"\"))\n        parent_session = _validated_session_id(getattr(getattr(self, \"graph\", None), \"session_id\", \"\"))\n        inherited = explicit or parent_session\n        if inherited:\n            self.session_id = inherited\n            self._attributes[\"session_id\"] = inherited\n",
+                "value": "from __future__ import annotations\n\n\"\"\"회의 후속 조치 줄을 구조화하는 읽기 전용 Standalone Skill Tool.\"\"\"\n\nimport hashlib\nimport json\nfrom datetime import date\nfrom typing import Any\n\nfrom lfx.custom.custom_component.component import Component\nfrom lfx.io import DataInput, MessageTextInput, Output\nfrom lfx.schema.data import Data\nfrom lfx.schema.message import Message\n\n\nCATALOG_CONTRACT = \"agent_ground.demo_skill_catalog.v1\"\nTOOL_NAME = \"meeting_action_skill\"\nREQUIRED_ACTION = \"meeting_action_extract\"\nDISCLAIMER = \"교육용 구조화 결과입니다. 실제 메일 발송, 캘린더 등록, 업무 생성 또는 외부 시스템 저장을 수행하지 않습니다.\"\n\n\ndef _text(value: Any) -> str:\n    if value is None:\n        return \"\"\n    if isinstance(value, str):\n        return value.strip()\n    for attribute in (\"text\", \"content\"):\n        candidate = getattr(value, attribute, None)\n        if isinstance(candidate, str):\n            return candidate.strip()\n    return str(value).strip()\n\n\ndef _payload(value: Any) -> dict[str, Any]:\n    if isinstance(value, dict):\n        return value\n    data = getattr(value, \"data\", None)\n    if isinstance(data, dict):\n        return data\n    text = _text(value)\n    if not text:\n        return {}\n    try:\n        parsed = json.loads(text)\n    except json.JSONDecodeError:\n        return {}\n    return parsed if isinstance(parsed, dict) else {}\n\n\ndef _request_trace(request: str) -> dict[str, Any]:\n    encoded = request.encode(\"utf-8\")\n    return {\n        \"request_sha256\": hashlib.sha256(encoded).hexdigest(),\n        \"request_length\": len(request),\n        \"parser_version\": \"meeting_action.v1\",\n    }\n\n\ndef _catalog_entry(skill_catalog: Any) -> tuple[dict[str, Any] | None, str]:\n    catalog = _payload(skill_catalog)\n    if catalog.get(\"contract\") != CATALOG_CONTRACT:\n        return None, \"검증된 데모 Skill 카탈로그가 연결되지 않았습니다.\"\n    skills = catalog.get(\"skills\")\n    if not isinstance(skills, list):\n        return None, \"Skill 카탈로그의 skills 목록을 확인할 수 없습니다.\"\n    matches = [entry for entry in skills if isinstance(entry, dict) and entry.get(\"tool_name\") == TOOL_NAME]\n    if len(matches) != 1:\n        return None, f\"카탈로그에서 {TOOL_NAME} 항목을 정확히 하나 확인해야 합니다.\"\n    entry = matches[0]\n    if entry.get(\"enabled\") is not True:\n        return None, \"회의 후속 조치 Skill이 카탈로그에서 사용 중지되어 있습니다.\"\n    allowed = entry.get(\"allowed_actions\")\n    forbidden = entry.get(\"forbidden_actions\")\n    if not isinstance(allowed, list) or REQUIRED_ACTION not in allowed:\n        return None, f\"카탈로그에 필수 허용 action '{REQUIRED_ACTION}'이 없습니다.\"\n    if not isinstance(forbidden, list) or set(allowed) & set(forbidden):\n        return None, \"카탈로그의 허용 action과 금지 action 정책이 올바르지 않습니다.\"\n    rules = entry.get(\"rules\")\n    if not isinstance(rules, dict) or str(rules.get(\"line_format\") or \"\").strip() != \"담당자 | 할 일 | YYYY-MM-DD\":\n        return None, \"회의 후속 조치 Skill의 입력 형식 규칙이 올바르지 않습니다.\"\n    return entry, \"\"\n\n\ndef _blocked_result(request: str, reason: str) -> dict[str, Any]:\n    return {\n        \"status\": \"blocked\",\n        \"skill\": {\"skill_id\": \"meeting_action\", \"tool_name\": TOOL_NAME, \"name\": \"회의 후속 조치 정리\"},\n        \"result\": {\"executed\": False, \"reason\": reason},\n        \"governance\": {\n            \"authorized\": False,\n            \"required_action\": REQUIRED_ACTION,\n            \"external_write_performed\": False,\n            \"external_send_performed\": False,\n        },\n        \"trace\": _request_trace(request),\n        \"disclaimer\": DISCLAIMER,\n    }\n\n\ndef _valid_due_date(value: str) -> bool:\n    try:\n        parsed = date.fromisoformat(value)\n    except ValueError:\n        return False\n    return parsed.isoformat() == value\n\n\ndef _is_optional_command_header(line: str, line_number: int) -> bool:\n    \"\"\"첫 줄의 짧은 자연어 실행 요청만 허용하고 중간의 비정형 줄은 숨기지 않습니다.\"\"\"\n\n    if line_number != 1 or \"|\" in line or len(line) > 100:\n        return False\n    return \"회의\" in line and any(keyword in line for keyword in (\"후속\", \"액션\", \"할 일\", \"정리\"))\n\n\ndef run_meeting_action(request: Any, skill_catalog: Any) -> dict[str, Any]:\n    \"\"\"`담당자 | 할 일 | YYYY-MM-DD` 줄을 순서대로 구조화합니다.\"\"\"\n\n    request_text = _text(request)\n    entry, catalog_error = _catalog_entry(skill_catalog)\n    if entry is None:\n        return _blocked_result(request_text, catalog_error)\n\n    skill = {\n        \"skill_id\": str(entry.get(\"skill_id\") or \"meeting_action\"),\n        \"tool_name\": TOOL_NAME,\n        \"name\": str(entry.get(\"name\") or \"회의 후속 조치 정리\"),\n    }\n    governance = {\n        \"authorized\": True,\n        \"required_action\": REQUIRED_ACTION,\n        \"catalog_enabled\": True,\n        \"external_write_performed\": False,\n        \"external_send_performed\": False,\n        \"decision_effect\": \"advisory_only\",\n    }\n    if not request_text:\n        return {\n            \"status\": \"needs_input\",\n            \"skill\": skill,\n            \"result\": {\n                \"executed\": False,\n                \"reason\": \"'담당자 | 할 일 | YYYY-MM-DD' 형식으로 한 줄 이상 입력해 주세요.\",\n                \"action_items\": [],\n                \"count\": 0,\n                \"invalid_lines\": [],\n                \"ignored_header_line_count\": 0,\n            },\n            \"governance\": governance,\n            \"trace\": _request_trace(request_text),\n            \"disclaimer\": DISCLAIMER,\n        }\n\n    action_items: list[dict[str, Any]] = []\n    invalid_lines: list[dict[str, Any]] = []\n    ignored_header_line_count = 0\n    for line_number, raw_line in enumerate(request_text.splitlines(), start=1):\n        line = raw_line.strip()\n        if not line:\n            continue\n        if _is_optional_command_header(line, line_number):\n            ignored_header_line_count += 1\n            continue\n        fields = [field.strip() for field in line.split(\"|\")]\n        if len(fields) != 3:\n            invalid_lines.append({\"line_number\": line_number, \"reason\": \"구분자 | 로 나눈 필드가 세 개가 아닙니다.\"})\n            continue\n        assignee, action, due_date = fields\n        if not assignee:\n            invalid_lines.append({\"line_number\": line_number, \"reason\": \"담당자가 비어 있습니다.\"})\n            continue\n        if not action:\n            invalid_lines.append({\"line_number\": line_number, \"reason\": \"할 일이 비어 있습니다.\"})\n            continue\n        if len(assignee) > 100:\n            invalid_lines.append({\"line_number\": line_number, \"reason\": \"담당자는 100자 이하여야 합니다.\"})\n            continue\n        if len(action) > 500:\n            invalid_lines.append({\"line_number\": line_number, \"reason\": \"할 일은 500자 이하여야 합니다.\"})\n            continue\n        if not _valid_due_date(due_date):\n            invalid_lines.append({\"line_number\": line_number, \"reason\": \"기한은 유효한 YYYY-MM-DD 날짜여야 합니다.\"})\n            continue\n        action_items.append(\n            {\n                \"sequence\": len(action_items) + 1,\n                \"assignee\": assignee,\n                \"action\": action,\n                \"due_date\": due_date,\n                \"source_line_number\": line_number,\n            }\n        )\n\n    ready = bool(action_items) and not invalid_lines\n    if not action_items and not invalid_lines:\n        invalid_lines.append({\"line_number\": 0, \"reason\": \"처리할 수 있는 내용이 없습니다.\"})\n    return {\n        \"status\": \"completed\" if ready else \"needs_input\",\n        \"skill\": skill,\n        \"result\": {\n            \"executed\": ready,\n            \"format\": \"담당자 | 할 일 | YYYY-MM-DD\",\n            \"action_items\": action_items,\n            \"count\": len(action_items),\n            \"invalid_lines\": invalid_lines,\n            \"invalid_line_count\": len(invalid_lines),\n            \"ignored_header_line_count\": ignored_header_line_count,\n            \"ready_for_human_review\": ready,\n            \"reason\": \"\" if ready else \"형식이 맞지 않는 줄을 수정한 뒤 다시 요청해 주세요.\",\n        },\n        \"governance\": governance,\n        \"trace\": _request_trace(request_text),\n        \"disclaimer\": DISCLAIMER,\n    }\n\n\nclass MeetingActionSkillTool(Component):\n    display_name = \"회의 후속 조치 Skill\"\n    description = \"담당자·할 일·ISO 기한 형식의 여러 줄을 구조화하며 실제 발송이나 시스템 등록은 하지 않습니다.\"\n    name = \"MeetingActionSkillTool\"\n    icon = \"ListChecks\"\n\n    inputs = [\n        DataInput(\n            name=\"skill_catalog\",\n            display_name=\"Skill 카탈로그\",\n            info=\"데모 Skill 카탈로그 빌더의 Skill 카탈로그 출력을 연결합니다. Agent Tool 인자로 노출되지 않습니다.\",\n            input_types=[\"Data\", \"JSON\"],\n            required=True,\n        ),\n        MessageTextInput(\n            name=\"request\",\n            display_name=\"회의 후속 조치 요청\",\n            info=\"각 줄을 '담당자 | 할 일 | YYYY-MM-DD' 형식으로 입력합니다.\",\n            required=True,\n            tool_mode=True,\n        ),\n    ]\n    outputs = [\n        Output(\n            name=\"skill_result\",\n            display_name=\"Skill 실행 결과\",\n            method=\"run_skill\",\n            types=[\"Data\"],\n            tool_mode=True,\n        ),\n        Output(\n            name=\"skill_message\",\n            display_name=\"하위 Flow 응답\",\n            method=\"run_skill_message\",\n            types=[\"Message\"],\n            tool_mode=False,\n        ),\n    ]\n\n    def run_skill(self) -> Data:\n        result = run_meeting_action(\n            request=getattr(self, \"request\", \"\"),\n            skill_catalog=getattr(self, \"skill_catalog\", None),\n        )\n        self.status = f\"회의 후속 조치 정리: {result['status']}\"\n        return Data(data=result)\n\n    def run_skill_message(self) -> Message:\n        \"\"\"Run Flow/MCP로 공개하기 쉬운 한글 JSON 메시지를 반환합니다.\"\"\"\n\n        result = run_meeting_action(\n            request=getattr(self, \"request\", \"\"),\n            skill_catalog=getattr(self, \"skill_catalog\", None),\n        )\n        self.status = f\"회의 후속 조치 정리: {result['status']}\"\n        return Message(text=json.dumps(result, ensure_ascii=False, indent=2))\n\n    async def _get_tools(self):\n        tools = await super()._get_tools()\n        if len(tools) != 1:\n            raise ValueError(\"회의 후속 조치 Skill은 Agent Tool 출력을 정확히 하나 제공해야 합니다.\")\n        tool = tools[0]\n        tool.name = TOOL_NAME\n        tool.description = (\n            \"'담당자 | 할 일 | YYYY-MM-DD' 형식의 회의 후속 조치를 구조화할 때 사용합니다. \"\n            \"메일 발송, 캘린더 등록, 업무 생성 또는 외부 시스템 저장에는 사용하지 않습니다.\"\n        )\n        tool.tags = [TOOL_NAME]\n        tool.return_direct = True\n        return [tool]\n",
                 "fileTypes": [],
                 "file_path": "",
                 "password": false,
@@ -872,29 +887,9 @@
                 "load_from_db": false,
                 "title_case": false
               },
-              "flow_id_selected": {
-                "tool_mode": false,
-                "trace_as_metadata": true,
-                "load_from_db": false,
-                "list": false,
-                "list_add_label": "Add More",
-                "override_skip": true,
-                "required": false,
-                "placeholder": "",
-                "show": false,
-                "name": "flow_id_selected",
-                "value": "",
-                "display_name": "해석된 Flow ID",
-                "advanced": false,
-                "dynamic": false,
-                "info": "대상 Flow 이름에서 실행 시 해석하는 숨김 ID입니다. export 시점 ID를 고정하지 않습니다.",
-                "title_case": false,
-                "track_in_telemetry": false,
-                "type": "str",
-                "_input_type": "StrInput"
-              },
-              "flow_name_selected": {
-                "tool_mode": false,
+              "request": {
+                "tool_mode": true,
+                "trace_as_input": true,
                 "trace_as_metadata": true,
                 "load_from_db": false,
                 "list": false,
@@ -903,119 +898,69 @@
                 "required": true,
                 "placeholder": "",
                 "show": true,
-                "name": "flow_name_selected",
-                "value": "meeting_action_skill_flow",
-                "display_name": "대상 Flow 이름",
-                "advanced": false,
-                "dynamic": false,
-                "info": "현재 Router와 같은 폴더에 있고 이름이 고유한 하위 Flow의 정확한 이름입니다. 실행할 때 현재 DB ID를 다시 조회합니다.",
-                "title_case": false,
-                "track_in_telemetry": false,
-                "type": "str",
-                "_input_type": "StrInput"
-              },
-              "return_direct": {
-                "tool_mode": false,
-                "trace_as_metadata": true,
-                "list": false,
-                "list_add_label": "Add More",
-                "override_skip": false,
-                "required": false,
-                "placeholder": "",
-                "show": true,
-                "name": "return_direct",
-                "value": true,
-                "display_name": "하위 결과 직접 반환",
-                "advanced": true,
-                "dynamic": false,
-                "info": "부모 Agent의 추가 재작성 단계를 거치지 않고 하위 Flow 결과를 그대로 반환합니다.",
-                "title_case": false,
-                "track_in_telemetry": true,
-                "type": "bool",
-                "_input_type": "BoolInput"
-              },
-              "session_id": {
-                "tool_mode": false,
-                "trace_as_input": true,
-                "trace_as_metadata": true,
-                "load_from_db": false,
-                "list": false,
-                "list_add_label": "Add More",
-                "override_skip": false,
-                "required": false,
-                "placeholder": "",
-                "show": true,
-                "name": "session_id",
+                "name": "request",
                 "value": "",
-                "display_name": "세션 ID",
-                "advanced": true,
+                "display_name": "회의 후속 조치 요청",
+                "advanced": false,
                 "input_types": [
                   "Message"
                 ],
                 "dynamic": false,
-                "info": "직접 지정할 때만 입력합니다. 비우면 부모 Flow 그래프의 세션을 자동 상속합니다.",
+                "info": "각 줄을 '담당자 | 할 일 | YYYY-MM-DD' 형식으로 입력합니다.",
                 "title_case": false,
                 "track_in_telemetry": false,
                 "type": "str",
                 "_input_type": "MessageTextInput"
               },
-              "tool_description": {
+              "tools_metadata": {
                 "tool_mode": false,
-                "trace_as_input": true,
-                "multiline": true,
-                "ai_enabled": false,
                 "trace_as_metadata": true,
-                "load_from_db": false,
-                "list": false,
+                "is_list": true,
                 "list_add_label": "Add More",
                 "override_skip": false,
-                "required": true,
+                "required": false,
                 "placeholder": "",
                 "show": true,
-                "name": "tool_description",
-                "value": "`담당자 | 할 일 | YYYY-MM-DD` 형식의 회의 내용을 별도 회의 후속 조치 Skill Flow로 보내 액션아이템을 구조화할 때 사용합니다. 경비나 휴가 요청에는 사용하지 않으며, 메일·알림·캘린더 등록은 수행하지 않습니다.",
-                "display_name": "도구 설명",
-                "advanced": false,
-                "input_types": [
-                  "Message"
+                "name": "tools_metadata",
+                "value": [
+                  {
+                    "name": "meeting_action_skill",
+                    "description": "`담당자 | 할 일 | YYYY-MM-DD` 형식의 회의 내용을 액션아이템으로 구조화할 때 사용합니다. 경비나 휴가 요청에는 사용하지 않으며, 메일·알림·캘린더 등록은 수행하지 않습니다.",
+                    "tags": [
+                      "meeting_action_skill"
+                    ],
+                    "status": true,
+                    "display_name": "meeting_action_skill",
+                    "display_description": "`담당자 | 할 일 | YYYY-MM-DD` 형식의 회의 내용을 액션아이템으로 구조화할 때 사용합니다. 경비나 휴가 요청에는 사용하지 않으며, 메일·알림·캘린더 등록은 수행하지 않습니다.",
+                    "readonly": false,
+                    "args": {
+                      "request": {
+                        "description": "각 줄을 '담당자 | 할 일 | YYYY-MM-DD' 형식으로 입력합니다.",
+                        "title": "Request",
+                        "type": "string"
+                      }
+                    }
+                  }
                 ],
-                "dynamic": false,
-                "info": "Agent가 이 하위 Flow를 선택할 조건과 선택하지 않을 조건을 함께 설명합니다.",
-                "title_case": false,
-                "track_in_telemetry": false,
-                "copy_field": false,
-                "password": false,
-                "type": "str",
-                "_input_type": "MultilineInput"
-              },
-              "tool_name": {
-                "tool_mode": false,
-                "trace_as_metadata": true,
-                "load_from_db": false,
-                "list": false,
-                "list_add_label": "Add More",
-                "override_skip": false,
-                "required": true,
-                "placeholder": "",
-                "show": true,
-                "name": "tool_name",
-                "value": "meeting_action_skill",
-                "display_name": "도구 이름",
+                "display_name": "Actions",
                 "advanced": false,
                 "dynamic": false,
-                "info": "Agent에 노출할 64자 이하 이름입니다. 첫 글자는 영문 또는 숫자로 시작하고, 이후에는 영문, 숫자, 밑줄과 하이픈만 사용합니다.",
+                "info": "Modify tool names and descriptions to help agents understand when to use each tool.",
+                "real_time_refresh": true,
                 "title_case": false,
                 "track_in_telemetry": false,
-                "type": "str",
-                "_input_type": "StrInput"
+                "type": "tools",
+                "_input_type": "ToolsInput"
               }
             },
-            "description": "하위 Flow를 정확한 이름으로 다시 조회하고 실제 ID 기준으로 그래프만 캐시하며, 고정 question 인자를 현재 Chat Input으로 변환해 실행합니다.",
-            "icon": "Workflow",
+            "description": "담당자·할 일·ISO 기한 형식의 여러 줄을 구조화하며 실제 발송이나 시스템 등록은 하지 않습니다.",
+            "icon": "ListChecks",
             "base_classes": [
-              "Tool"
+              "Data",
+              "JSON",
+              "Message"
             ],
-            "display_name": "캐시된 이름 기반 Run Flow 도구",
+            "display_name": "회의 후속 조치 Skill",
             "documentation": "",
             "minimized": false,
             "custom_fields": {},
@@ -1030,38 +975,32 @@
                 ],
                 "selected": "Tool",
                 "name": "component_as_tool",
-                "display_name": "Flow 도구",
+                "hidden": null,
+                "display_name": "Toolset",
                 "method": "to_toolkit",
                 "value": "__UNDEFINED__",
                 "cache": true,
+                "required_inputs": null,
                 "allows_loop": false,
+                "loop_types": null,
                 "group_outputs": false,
+                "options": null,
                 "tool_mode": true
               }
             ],
             "field_order": [
-              "flow_name_selected",
-              "flow_id_selected",
-              "session_id",
-              "cache_flow",
-              "allow_cross_folder",
-              "tool_name",
-              "tool_description",
-              "return_direct"
+              "skill_catalog",
+              "request"
             ],
             "beta": false,
             "legacy": false,
             "edited": false,
             "metadata": {
-              "module": "agent_ground.skill_based_agent.CachedNamedRunFlowTool_meetingSkill",
-              "code_hash": "3bb59f05a94b",
+              "module": "agent_ground.skill_based_agent.MeetingActionSkillTool_skillAgent",
+              "code_hash": "b7add4369488",
               "dependencies": {
-                "total_dependencies": 2,
+                "total_dependencies": 1,
                 "dependencies": [
-                  {
-                    "name": "langflow",
-                    "version": "1.9.2"
-                  },
                   {
                     "name": "lfx",
                     "version": "0.4.2"
@@ -1069,17 +1008,17 @@
                 ]
               }
             },
-            "tool_mode": false,
+            "tool_mode": true,
             "lf_version": "1.9.2"
           },
           "selected_output": "component_as_tool",
           "showNode": true,
-          "type": "CachedNamedRunFlowTool",
-          "display_name": "캐시된 이름 기반 Run Flow 도구",
-          "description": "하위 Flow를 정확한 이름으로 다시 조회하고 실제 ID 기준으로 그래프만 캐시하며, 고정 question 인자를 현재 Chat Input으로 변환해 실행합니다."
+          "type": "MeetingActionSkillTool",
+          "display_name": "회의 후속 조치 Skill",
+          "description": "담당자·할 일·ISO 기한 형식의 여러 줄을 구조화하며 실제 발송이나 시스템 등록은 하지 않습니다."
         },
         "dragging": false,
-        "id": "CachedNamedRunFlowTool-meetingSkill",
+        "id": "MeetingActionSkillTool-skillAgent",
         "position": {
           "x": 440.0,
           "y": 420.0
@@ -1675,7 +1614,7 @@
         "data": {
           "id": "note-skillAgent-governance",
           "node": {
-            "description": "## 한 Flow에서 두 Tool 패턴 비교\n\n- 경비·휴가: 작은 계산 Component를 직접 Tool Mode로 연결\n- 회의 후속 조치: 별도 Skill Flow를 Run Flow Tool로 호출\n- Run Flow 외부 인자: provider-safe `question` 하나\n- 구조적 금지: 승인, 저장, 발송 Tool은 연결하지 않음\n\nMCP는 사내 공용 Tool 서버가 있을 때 같은 Agent Tools 포트에 교체 연결합니다.",
+            "description": "## 한 Flow에서 세 업무 Tool 비교\n\n- 경비: 금액 합산과 데모 기준 점검\n- 휴가: 평일과 지정 휴일 계산\n- 회의: 담당자·할 일·기한 구조화\n- 구조적 금지: 승인, 저장, 발송 Tool은 연결하지 않음\n\nMCP는 사내 공용 Tool 서버가 있을 때 같은 Agent Tools 포트에 교체 연결합니다.",
             "display_name": "",
             "documentation": "",
             "template": {
@@ -2268,9 +2207,9 @@
       "zoom": 0.46
     }
   },
-  "description": "작은 경비·휴가 계산은 Standalone Component Tool로 직접 실행하고, 회의 후속 조치는 개선된 이름 기반 Run Flow Tool로 별도 Skill Flow를 호출하는 Langflow 1.9.2 하이브리드 예시입니다.",
-  "endpoint_name": "skill-based-agent-hybrid-demo",
-  "id": "6ac45c83-9e27-5c5c-89d1-247707f87ba2",
+  "description": "경비·휴가·회의 후속 조치를 각각 독립 Standalone Component Tool로 직접 연결하고, Agent가 요청에 맞는 Tool을 선택하는 Langflow 1.9.2 업무 Skill 예시입니다.",
+  "endpoint_name": "skill-based-agent-direct-tools-demo",
+  "id": "7a5e600e-932c-5920-9a48-b00dd68f028e",
   "is_component": false,
   "last_tested_version": "1.9.2",
   "locked": false,
@@ -2279,8 +2218,7 @@
     "agent",
     "skill",
     "tool",
-    "run-flow",
-    "hybrid",
+    "direct-component",
     "standalone",
     "demo"
   ]

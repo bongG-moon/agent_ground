@@ -1,11 +1,11 @@
-# 문서 텍스트 추출 (DRM 자동)
+# DRM 문서 텍스트 추출
 
-일반 문서는 로컬/DRM 경로로 처리하고 EWS JPG/JPEG는 연결된 Vision 모델로 해석하며 미지원 형식은 오류 대신 안내 텍스트로 반환합니다.
+일반 문서는 로컬에서 읽고 보호 문서는 승인된 DRM text API로 평문을 추출합니다. EWS JPG/JPEG는 연결된 Vision 모델로 해석하며 미지원 형식은 안내 결과로 반환합니다.
 
 ## 상태
 
 - ID: `drm_document_text_extractor`
-- 버전: `0.5.1`
+- 버전: `0.6.0`
 - 상태: `user_testing`
 - 패키징: `standalone`
 - Component 범위: `general`
@@ -42,6 +42,11 @@
 ## 상세 사용 가이드
 
 [`USAGE_GUIDE.md`](USAGE_GUIDE.md)에서 연결 방법, 운영 조건과 사용자 확인 항목을 확인합니다.
+
+
+## 처음 보는 사용자를 위한 설명
+
+[`BEGINNER_GUIDE.md`](BEGINNER_GUIDE.md)에서 이 Component의 처리 범위, 연결 방법과 보안상 주의점을 쉬운 예시로 확인합니다.
 
 
 ## 등록

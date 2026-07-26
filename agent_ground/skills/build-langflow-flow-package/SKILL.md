@@ -1,6 +1,6 @@
 ---
 name: build-langflow-flow-package
-description: Agent Ground에서 가져오기 가능한 Langflow Flow JSON, 재사용 Component 참조, Flow 내부 Standalone 노드, 연결 가이드, 샘플, 통합 bundle과 검증 자료를 일관되게 만든다. 새 Flow를 구현하거나 기존 Flow를 수정하거나, Run Flow Tool, 하위 Flow, Flow JSON import 오류와 Component·내부 노드 연결 계약을 다룰 때 사용한다.
+description: Agent Ground에서 가져오기 가능한 Langflow Flow JSON, 재사용 Component 참조, Flow 내부 Standalone 노드, 연결 가이드, 샘플, 통합 bundle과 검증 자료를 일관되게 만든다. 새 Flow를 구현하거나 기존 Flow를 수정하거나, Agent Tool, 하위 Flow, Flow JSON import 오류와 Component·내부 노드 연결 계약을 다룰 때 사용한다.
 ---
 
 # Langflow Flow 패키지 구현
@@ -13,7 +13,7 @@ description: Agent Ground에서 가져오기 가능한 Langflow Flow JSON, 재�
 4. 커스텀 로직은 기능 경계에 따라 공용 `components/` 또는 `flows/<flow_id>/nodes/`로 분리하고 Flow JSON 안의 코드와 원본을 동기화한다.
 5. 가져오기 가능한 개별 JSON과 필요한 경우 여러 Flow 통합 bundle을 생성한다.
 
-필수 파일과 계약은 [references/package-layout.md](references/package-layout.md)를 읽는다. Run Flow 또는 Agent Tool을 사용하면 [references/run-flow-contract.md](references/run-flow-contract.md)도 읽는다.
+필수 파일과 계약은 [references/package-layout.md](references/package-layout.md)를 읽는다. Agent Tool 또는 하위 Flow를 사용하면 [references/run-flow-contract.md](references/run-flow-contract.md)도 읽는다.
 
 ## 설계 원칙
 
@@ -30,15 +30,14 @@ description: Agent Ground에서 가져오기 가능한 Langflow Flow JSON, 재�
 - 1.9.2 프런트엔드와 같은 정렬 JSON + `œ` quote 방식으로 edge handle을 만들고 `edge.data`와 재해석 결과를 비교한다.
 - MCP Tool은 Agent의 예전 목록에 직접 끼워 넣는다고 가정하지 않고 Settings의 MCP Servers 등록과 MCP sidebar 경로를 문서화한다.
 
-## Run Flow Tool 안전 계약
+## Agent Tool과 하위 Flow 선택 기준
 
-- LLM에 `question`처럼 provider-safe한 고정 인자만 노출한다.
-- `ChatInput-xVKPV~input_value` 같은 내부 노드 ID를 Tool parameter 이름으로 노출하지 않는다.
-- 실행 직전에 현재 하위 Flow graph에서 Chat Input을 찾고 내부 tweak key를 만든다.
-- Chat Input이 없거나 여러 개면 추측하지 말고 명확히 실패한다.
-- 세션 상속과 질문 전달을 별개 계약으로 검증한다.
-- Flow 이름 조회 결과가 없거나 중복이면 ID를 임의 선택하지 않는다.
-- graph만 캐시하고 질문, 결과, 사용자 데이터와 인증값은 캐시하지 않는다.
+- 독립 기능 단위로 구현할 수 있으면 Standalone Component를 Tool Mode로 Agent에 직접 연결한다.
+- 현재 프로젝트에서는 실제 환경 오류가 확인된 커스텀 이름 기반 Run Flow Tool을 새로 구현하거나 추천 자산으로 등록하지 않는다.
+- 순서가 중요한 복합 업무는 하나의 검증된 Workflow로 묶거나, 조직이 승인한 MCP Tool 경계로 노출한다.
+- 하위 Flow 실행이 꼭 필요하면 Langflow 1.9.2 기본 기능과 실제 Builder에서 Flow 재import, 질문 전달, 세션 상속을 끝까지 확인한 뒤 `user_testing`으로 추가한다.
+- LLM Tool schema에는 `question`, `request`처럼 provider-safe한 고정 인자만 노출하고 `ChatInput-xVKPV~input_value` 같은 내부 노드 ID를 노출하지 않는다.
+- 이름 조회 결과가 없거나 중복일 때 임의의 Flow ID를 선택하거나 세션 이력에서 질문을 추측하지 않는다.
 
 ## 패키지 반영
 

@@ -137,8 +137,7 @@ Agent_ground/
    ├─ html/
    ├─ scripts/
    ├─ skills/
-   ├─ tests/
-   └─ archive/
+   └─ tests/
 ```
 
 ### 4.1 구조 해석
@@ -151,7 +150,6 @@ Agent_ground/
 - `html/`은 사용자가 브라우저로 보는 모든 HTML 결과물을 모으는 곳이다. HTML 파일은 다른 폴더에 흩어 두지 않는다.
 - `scripts/`는 registry를 읽어 HTML 목록, 배포 묶음, 업무 Agent 카탈로그를 만드는 자동화 도구를 보관한다.
 - `skills/`는 이 프로젝트의 구현·검증·병합 규칙을 다른 개발 환경에서도 그대로 적용할 수 있는 이동식 Agent Skill 묶음이다.
-- `archive/`는 이관 전 스냅샷이나 폐기된 버전을 보관하되 포털에는 노출하지 않는다.
 
 ---
 
@@ -761,20 +759,21 @@ Git commit, push, 배포는 사용자가 명시적으로 요청했을 때만 수
 
 - `Agent_ground` 통합 폴더, 공통 manifest/registry, 반응형 HTML 포털과 자동 검증 도구를 구현했다.
 - 기존 전체 교육 포털의 본문·제목·링크·예제·샘플을 새 디자인에 이관했고, 별도 학습 안내와 문제 해결 동선을 연결했다.
-- `html_report_flow`, `enterprise_document_rag_flow`, `skill_based_agent_flow`, `ppt_reference_html_flow`, `drm_document_text_extraction_flow`와 회의 전용 하위 Flow인 `meeting_action_skill_flow`를 실행 자산으로 관리한다. 독립 기능 원본은 `components/`, Flow 종속 원본은 각 Flow의 `nodes/`로 분리했다.
+- `html_report_flow`, `enterprise_document_rag_flow`, `skill_based_agent_flow`, `ppt_reference_html_flow`, `drm_document_text_extraction_flow`, `meeting_minutes_writer_flow`를 실행 자산으로 관리한다. 독립 기능 원본은 `components/`, Flow 종속 원본은 각 Flow의 `nodes/`로 분리했다.
 - `reusable_data_flow`는 12개 Flow 내부 Python 원본과 연결 설계를 보존하지만 실제 JSON이 과거 `업무분석flow`로 확인되어 `building`으로 격리했다. 올바른 export 제공 또는 신규 재구축 전까지 import와 전체 Bundle에서 제외한다.
 - `business_agent_design_complete`는 별도 상위 서비스로 구현했고, BEFORE/AFTER 분기형 Flow Chart와 개선 설명 HTML을 생성한다.
 - 신규 `enterprise_document_rag_flow`는 과거 Langflow 1.8.2 Builder에서 실제 Upload·실행 node 11/11 valid·인용 포함 Chat Output을 확인했다. 현재 export는 Langflow `1.9.2` / LFX `0.4.2` template으로 13 nodes / 10 edges를 다시 생성하고 loader·Graph parse를 통과했으며, 1.9.2 사용자 Builder의 모델·외부 연결 실행은 별도 확인이 남아 있다.
 - 문서 RAG의 첫 검증 backend는 외부 key가 필요 없는 `payload_lexical_v1`이며, 운영 persistent vector store·SSO·DLP는 별도 adapter와 통합 테스트가 필요한 명시적 확장 경계다.
-- 신규 `skill_based_agent_flow`는 공식 Simple Agent의 Tool 연결 계약을 사용한 하이브리드 예시다. LLM은 경비·휴가·회의 Skill Tool 중 하나를 선택하며, 경비·휴가는 개별 계산 Component를 직접 실행하고 회의는 개선형 이름 기반 Run Flow Tool이 `meeting_action_skill_flow`를 호출한다.
-- Skill Agent 예시는 `SKILL.md` 자동 탐색 구현이 아니다. 상위 Agent와 회의 하위 Flow는 2개 Flow Bundle로 함께 제공되고, 현재 전체 프로젝트 Bundle에는 격리된 재사용 데이터 Flow를 제외한 실행 가능 7개 Flow가 들어간다. 특정 모델·API Key를 JSON에 저장하지 않았으므로 실제 Agent Tool 선택과 같은 프로젝트 하위 Flow 호출 E2E는 사용자 환경의 승인 모델을 연결한 뒤 확인해야 한다.
+- 신규 `skill_based_agent_flow`는 공식 Simple Agent의 Tool 연결 계약을 사용한 예시다. LLM은 경비·휴가·회의 Skill Tool 중 하나를 선택하며, 세 기능 모두 개별 Standalone Component를 직접 실행한다.
+- Skill Agent 예시는 `SKILL.md` 자동 탐색 구현이 아니다. 현재 전체 프로젝트 Bundle에는 격리된 재사용 데이터 Flow를 제외한 실행 가능 7개 Flow가 들어간다. 특정 모델·API Key를 JSON에 저장하지 않았으므로 실제 Agent Tool 선택은 사용자 환경의 승인 모델을 연결한 뒤 확인해야 한다.
 - `drm_document_text_extraction_flow`는 `자동(로컬 우선)`·`항상 DRM API`·`DRM 미사용` 처리 모드를 제공한다. 자동 모드에서는 PDF·DOCX·PPTX·XLSX·TXT·CSV를 로컬에서 먼저 읽고, 로컬 추출 실패 파일과 HWP·구형 Office·이미지 등은 허용된 DRM text API로 전달해 LLM 없이 평문을 출력한다. 같은 공용 Component를 `mail_attachment_summary_flow`도 재사용해 일반 EWS 첨부는 원본 경로로 통과시키고 보호 파일만 평문 TXT로 변환한다. endpoint·Bearer token·사번·업로드 경로는 Flow JSON 기본값에 저장하지 않으며 실제 사내 DRM API 호출 전까지 `user_testing`이다.
+- `meeting_minutes_writer_flow`는 과거 녹취 TXT와 실제 작성 회의록을 업로드 순서대로 1:1 대응해 사용자의 선택·생략·구성·문장 스타일을 분석한다. 과거 회의의 사실은 초안 작성 단계에 전달하지 않고 현재 녹취만 사실 근거로 사용한다. Chat Input의 추가 포함·제외 지시는 학습 스타일보다 우선하며, 실제 회의록이 Word·DRM 문서이면 공용 `drm_document_text_extractor`를 재사용한다. 스타일 분석·초안·최종 사실 검토를 분리하지만 LLM 결과이므로 사람이 승인하기 전에는 공식 회의록으로 배포하지 않는다.
 - `ppt_reference_html_flow`는 표지·본문 이미지의 문구나 수치를 사실로 사용하지 않고 색상·여백·타이포 위계·그리드만 디자인 근거로 관찰한다. 발표 내용과 모든 표·차트 값은 사용자 brief와 dataset만 근거로 하며, LLM은 HTML/CSS/JavaScript가 아닌 디자인 분석 JSON과 슬라이드 계획 JSON만 제안한다.
 - 프레젠테이션 계획은 Flow 내부 Normalizer가 실제 dataset·column에 다시 연결하고 미지원 시각화는 명시적으로 안전한 표현으로 낮춘다. 독립 `html_presentation_renderer`는 허용된 계획만 16:9 자체 포함 HTML로 렌더링하며 외부 URL·CDN과 사용자 제공 실행 코드를 허용하지 않는다.
-- 2026-07-12에는 사내에서 반복 활용할 공용 Standalone Component 추천 후보 30종을 P0/P1/P2로 조사했고, 사용자가 선택한 `multi_image_base64_encoder`와 외부 참조 기반 `cached_named_run_flow_tool` 두 종을 실제 구현했다.
-- `cached_named_run_flow_tool`은 외부 Agent Tool schema의 `flow_tweak_data` 안에 필수 `question` 하나만 노출하고, 실행 시점의 현재 하위 Flow 그래프에서 유일한 Chat Input ID를 찾아 내부 입력으로 변환한다. provider의 특수문자 정규화와 Flow 재import로 node ID가 바뀌어도 외부 계약은 유지한다.
+- 2026-07-12에는 사내에서 반복 활용할 공용 Standalone Component 추천 후보 30종을 P0/P1/P2로 조사했고, 사용자가 선택한 `multi_image_base64_encoder`를 실제 구현했다.
+- 과거에 구현한 이름 기반 Run Flow Tool은 실제 환경 오류가 남아 있어 2026-07-26에 공개 Component, Skill 예시, 프로젝트 Bundle과 교육 포털에서 제거했다. 하위 업무가 독립 기능이면 이름 조회 대신 직접 Component Tool로 연결하는 것을 현재 기준으로 삼는다.
 - 추천 근거, 선택 구현 상태와 공통 계약은 [`components/ENTERPRISE_UTILITY_COMPONENT_ITEM_LIST.md`](components/ENTERPRISE_UTILITY_COMPONENT_ITEM_LIST.md)를 기준으로 하며, 각 Component 폴더의 `USAGE_GUIDE.md`에 연결·운영 조건을 상세히 기록한다.
-- 두 Component는 파일 하나로 등록 가능한 Standalone 원본, manifest, 테스트와 HTML 설명서를 가진다. 별도 Utility 전용 Flow는 만들지 않았지만 `cached_named_run_flow_tool`은 이후 하이브리드 Skill Agent에서 회의 하위 Flow 호출에 재사용했다. 나머지 추천 ITEM은 사용자가 선택하기 전까지 코드가 없는 `추천·미구현` 상태를 유지한다.
+- 메일 첨부 처리에 사용하던 `drm_document_text_extractor`는 독립 사용 사례와 계약이 있으므로 공용 Component로 유지하고 별도 초보자 교육자료를 제공한다. 이 Component의 출력은 해제된 원본 파일이 아니라 평문 텍스트 또는 임시 TXT다. 나머지 추천 ITEM은 사용자가 선택하기 전까지 코드가 없는 `추천·미구현` 상태를 유지한다.
 - 같은 날 기존 `reusable_data_flow`의 유연 조회 구조와 별개로 Oracle, H-API, Datalake, GooDocs, 일반 JSON API를 각각 한 번 호출하는 최소 단위 Standalone Component 5종을 새 ID로 구현했다.
 - 직접 조회 5종은 입력을 화면에 명시적으로 노출하고 출력 포트를 모두 `data_table: Table` 하나로 통일한다. Python 내부 호환 클래스는 `DataFrame`이다. Source Catalog, 소스 라우팅, 다중 요청 병합, 결과 envelope와 dummy row는 포함하지 않는다.
 - 인증정보를 보내는 HTTP는 기본 차단한다. Datalake는 API가 반환한 DB host의 허용목록과 CA 기반 인증서·hostname 검증을 통과한 뒤에만 JWT를 DB 연결에 사용한다.

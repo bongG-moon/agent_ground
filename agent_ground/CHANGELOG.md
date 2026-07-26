@@ -1,5 +1,27 @@
 # Changelog
 
+## 2026-07-26 — 사용자 스타일 기반 회의록 작성 Flow
+
+- 과거 녹취 TXT와 실제 작성 회의록 1~10쌍을 업로드 순서대로 비교해 선택·생략 기준, 섹션 구성, 문장 종결과 액션아이템 형식을 분석하는 `meeting_minutes_writer_flow` 추가
+- 현재 녹취 TXT 한 개만 새 회의록의 사실 근거로 사용하고 과거 회의 사실은 초안 작성 단계에 전달하지 않도록 스타일 분석과 작성을 분리
+- “결정사항과 일정 위주”, “잡담 제외” 같은 사용자 추가 지시를 현재 회의 사실 다음, 학습 스타일보다 높은 우선순위로 적용
+- 기존 `drm_document_text_extractor`를 과거 실제 회의록의 TXT·DOCX·DRM 문서 텍스트 추출에 재사용
+- 스타일 분석 → 초안 작성 → 현재 녹취 기반 최종 검토의 3단계 Language Model 경로와 최종 사람 검토 Gate 구성
+- Langflow `1.9.2` / langflow-base `0.9.2` / LFX `0.4.2`에서 13 nodes / 14 edges Flow 생성, 내부 Node 4개 template 평가와 전체 Graph parse 완료
+- 개별 Import, 샘플 2쌍, 추가 지시 예시, 기대 결과, 연결 가이드, 전용 교육 HTML과 프로젝트 전체 7개 Flow Bundle 제공
+- Langflow 실행 시 `analyze_meeting_minutes_style`가 보이지 않던 최상위 비동기 함수 범위 문제를 수정하고, 스타일 분석·초안 작성·최종 검토를 Standalone 파일 내부 코루틴 팩토리 구조로 통일
+- 검토 모델이 JSON 문자열뿐 아니라 JSON 객체·중첩 객체·이중 인코딩 문자열을 반환해도 `final_minutes`만 Message로 분리하여 최종 화면에 바로 복사 가능한 Markdown 회의록만 표시하도록 보강
+- 네 내부 Node에 상대 import와 프로젝트 내부 import가 없음을 검사하고, LFX loader로 `05 → 06 → 07` 메서드를 실제 실행하는 회귀 테스트 추가
+- 전체 회귀 테스트 109개, Python 원본 72개, Flow JSON 10개(140 nodes / 157 edges), HTML 135개와 로컬 링크 3,049개 검증 통과
+
+## 2026-07-26 — DRM 교육 분리와 이름 기반 Run Flow Tool 제거
+
+- 이메일 첨부 처리에서 사용하던 `drm_document_text_extractor`를 독립 재사용 Component로 명확히 구분하고 초보자용 교육자료와 포털 페이지 추가
+- DRM Component가 해제된 원본 문서를 반환하는 기능이 아니라 평문 텍스트 또는 후속 처리용 임시 TXT를 반환한다는 범위와 보안 주의사항 명시
+- 실제 환경에서 오류가 남아 있던 `cached_named_run_flow_tool` 공개 Component와 회의 전용 하위 Flow를 코드·registry·포털·Bundle에서 제거
+- `skill_based_agent_flow`의 경비·휴가·회의 기능을 모두 개별 Standalone Component Tool 직접 연결 방식으로 통일
+- 프로젝트 전체 Import Bundle을 당시 실행 가능 Flow 6개로 정리했으며, 이후 회의록 작성 Flow 추가로 현재는 7개
+
 ## 2026-07-26 — Langflow 1.9.2 전환과 저장소 구조 정리
 
 - 기본 구현 기준을 Langflow `1.9.2`, langflow-base `0.9.2`, LFX `0.4.2`, Python `3.12`로 변경

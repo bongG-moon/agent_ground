@@ -35,7 +35,7 @@
 - LLM 출력이 없거나 graph 계약을 위반하면 deterministic fallback graph 사용
 - 실제 Langflow 1.9.2 사용자 실행과 결과 확인 후에만 서비스 상태를 `approved`로 전환
 
-Import 파일은 `business_agent_design/flow/business_agent_design_complete.json`과 `business_agent_design/flow/00_business_agent_design_ALL_FLOWS.json`으로 제공한다. Skill Agent 상위·회의 하위 Flow, PPT 참조 이미지 HTML 프레젠테이션과 DRM 문서 추출 Flow를 포함한 실행 가능 7개 Flow를 한꺼번에 넣는 파일은 `flows/00_AGENT_GROUND_ALL_FLOWS.json`이다. JSON 불일치가 확인된 재사용 데이터 Flow는 복구 전까지 제외한다.
+Import 파일은 `business_agent_design/flow/business_agent_design_complete.json`과 `business_agent_design/flow/00_business_agent_design_ALL_FLOWS.json`으로 제공한다. HTML 리포트, 문서 RAG, 직접 Component Tool 기반 Skill Agent, PPT 참조 이미지 HTML 프레젠테이션, DRM 문서 추출, 사용자 스타일 기반 회의록 작성과 Business Agent Design까지 실행 가능 7개 Flow를 한꺼번에 넣는 파일은 `flows/00_AGENT_GROUND_ALL_FLOWS.json`이다. JSON 불일치가 확인된 재사용 데이터 Flow는 복구 전까지 제외한다.
 
 ---
 

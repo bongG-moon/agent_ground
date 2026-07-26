@@ -13,23 +13,22 @@ Agent Ground는 다음 다섯 기준을 모두 만족하는 기능 단위만 `co
 
 이 감사 기준에 따라 기존 자산을 Component와 Flow 내부 node로 재분류했다. 이후 PPT 참고 이미지 프레젠테이션, 메일 첨부 처리와 DRM 문서 텍스트 추출 자산을 같은 기준으로 추가했다.
 
-- **Component 21개**: `components/<component_id>/`에 유지
-- **Flow 내부 node 30개**: `flows/<flow_id>/nodes/`로 이동
+- **Component 20개**: `components/<component_id>/`에 유지
+- **Flow 내부 node 33개**: `flows/<flow_id>/nodes/`로 이동
 
-## Component 21개
+## Component 20개
 
-### General Component 8개
+### General Component 7개
 
 특정 업무 Flow에 종속되지 않고 여러 Flow에서 직접 조합하는 공용 최소 기능이다.
 
 1. `drm_document_text_extractor`
 2. `multi_image_base64_encoder`
-3. `cached_named_run_flow_tool`
-4. `oracle_table_query`
-5. `h_api_table_request`
-6. `datalake_table_query`
-7. `goodocs_table_reader`
-8. `simple_api_table_request`
+3. `oracle_table_query`
+4. `h_api_table_request`
+5. `datalake_table_query`
+6. `goodocs_table_reader`
+7. `simple_api_table_request`
 
 manifest에는 다음 값이 기록된다.
 
@@ -72,7 +71,7 @@ manifest에는 다음 값이 기록된다.
 
 Domain Component manifest의 `component_scope`은 `domain`이다. `owner_usage`에는 관리 책임 Flow와 실제 사용 Flow를 함께 기록한다.
 
-## Flow 내부 node 30개
+## Flow 내부 node 33개
 
 내부 node도 Langflow에 import할 때는 Standalone Python일 수 있다. 그러나 특정 Flow의 payload 전달, prompt 변수 준비, 종단 출력처럼 Flow 구현에 종속되므로 Component Library 자산으로 발행하지 않는다.
 
@@ -82,7 +81,7 @@ Domain Component manifest의 `component_scope`은 `domain`이다. `owner_usage`�
 | `html_report_flow` | 6 | `flows/html_report_flow/nodes/` |
 | `enterprise_document_rag_flow` | 3 | `flows/enterprise_document_rag_flow/nodes/` |
 | `skill_based_agent_flow` | 1 | `flows/skill_based_agent_flow/nodes/` |
-| `mail_attachment_summary_flow` | 1 | `flows/mail_attachment_summary_flow/nodes/` |
+| `mail_attachment_summary_flow` | 4 | `flows/mail_attachment_summary_flow/nodes/` |
 | `ppt_reference_html_flow` | 7 | `flows/ppt_reference_html_flow/nodes/` |
 | `drm_document_text_extraction_flow` | 0 | 공용 Component만 사용 |
 
@@ -121,10 +120,10 @@ Domain Component manifest의 `component_scope`은 `domain`이다. `owner_usage`�
 
 Registry에는 다음 28개 자산만 들어간다.
 
-- 자격을 통과한 Component 21개
-- 최상위 Flow manifest 7개
+- 자격을 통과한 Component 20개
+- 최상위 Flow manifest 8개
 
-Flow 내부 node 30개는 Registry 추천 자산이 아니다. Business Agent Design은 Registry에 있으면서 사용자 승인까지 끝난 `approved` 자산만 추천 대상으로 사용해야 한다.
+Flow 내부 node 37개는 Registry 추천 자산이 아니다. Business Agent Design은 Registry에 있으면서 사용자 승인까지 끝난 `approved` 자산만 추천 대상으로 사용해야 한다.
 
 ## 변경 절차
 

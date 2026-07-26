@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <base href="../../" />
+  <title>DRM 문서 텍스트 추출 초보자 설명 · Agent Ground</title>
+  <meta name="description" content="이메일 Flow에서 분리한 DRM 문서 텍스트 추출 Standalone Component" />
+  <link rel="stylesheet" href="assets/css/site.css" />
+  
+</head>
+<body>
+  <a class="skip-link" href="#main">본문으로 바로가기</a>
+  <header class="site-header">
+    <div class="header-inner">
+      <a class="brand" href="index.html" aria-label="Agent Ground 홈">
+        <span class="brand-mark" aria-hidden="true">AG</span>
+        <span class="brand-copy"><strong>Agent Ground</strong><small>Learn · Build · Validate</small></span>
+      </a>
+      <button class="menu-button" type="button" data-menu-button aria-expanded="false" aria-controls="site-nav" aria-label="메뉴 열기"><span class="menu-lines"></span></button>
+      <nav class="site-nav" id="site-nav" data-site-nav data-open="false" aria-label="주요 메뉴"><a href="index.html">홈</a><a href="training/index.html">처음 배우기</a><a href="flows/index.html">Flows</a><a href="components/index.html" aria-current="page">Components</a><a href="troubleshooting/index.html">실패와 해결</a><a href="business-agent-design/index.html">업무 Agent 설계</a></nav>
+    </div>
+  </header>
+  <main class="page-wrap" id="main">
+    <nav class="breadcrumbs" aria-label="현재 위치"><a href="index.html">홈</a><span aria-hidden="true">/</span><a href="components/index.html">Components</a><span aria-hidden="true">/</span><a href="components/drm_document_text_extractor/index.html">DRM 문서 텍스트 추출</a><span aria-hidden="true">/</span><span>초보자 설명</span></nav>
+    
+<section class="hero"><div class="meta-row"><span class="badge badge-testing">초보자 설명</span><span class="tag">Langflow 1.9.2 · LFX 0.4.2</span><span class="tag">Standalone Component</span></div><div class="hero-kicker">Email flow reusable component</div><h1>이메일 안에 묶지 않고<br />DRM 문서 처리를 따로 재사용합니다</h1><p>일반 문서는 로컬에서 읽고, 보호 문서는 승인된 DRM text API에서 평문 텍스트를 받아 요약·검색 단계로 넘깁니다.</p><div class="hero-actions"><a class="button button-primary" href="components/drm_document_text_extractor/index.html">Component 상세 보기</a><a class="button button-secondary" href="../components/drm_document_text_extractor/BEGINNER_GUIDE.md">전체 초보자 문서</a><a class="button button-secondary" href="../components/drm_document_text_extractor/USAGE_GUIDE.md">기술 사용 가이드</a></div></section>
+
+<section class="section"><div class="notice notice-info"><strong>정확한 범위</strong>복호화된 원본 PDF·PPT·Excel을 배포하는 기능이 아닙니다. 승인된 경로에서 평문 텍스트 또는 임시 TXT를 만들어 다음 Component가 읽도록 하는 기능입니다.</div></section>
+
+<section class="section"><div class="section-heading"><p class="eyebrow">Two inputs</p><h2>직접 업로드와 이메일 첨부를 모두 처리합니다</h2></div><div class="grid grid-2"><div class="card"><h3>직접 파일 업로드</h3><p><code>document_files</code>에 문서를 넣고 <code>extracted_text</code> Message를 Chat Output·요약 모델에 연결합니다.</p></div><div class="card"><h3>EWS 이메일 첨부</h3><p><code>file_record</code>에 첨부 Data를 넣고 <code>processed_file</code>을 Read File에 연결합니다.</p></div></div></section>
+
+<section class="section"><div class="section-heading"><p class="eyebrow">Processing modes</p><h2>세 가지 처리 모드</h2></div><div class="table-wrap"><table><thead><tr><th>모드</th><th>처리</th><th>사용 상황</th></tr></thead><tbody><tr><td>자동(로컬 우선)</td><td>일반 문서는 로컬, 실패 파일만 DRM API</td><td>일반·보호 문서가 섞인 경우</td></tr><tr><td>항상 DRM API</td><td>지원 문서를 승인 API로 전달</td><td>보호 여부를 확실히 판별하기 어려운 경우</td></tr><tr><td>DRM 미사용</td><td>네트워크 호출 없이 로컬 추출만 사용</td><td>샘플·비보호·오프라인 테스트</td></tr></tbody></table></div></section>
+
+<section class="section"><div class="section-heading"><p class="eyebrow">Execution path</p><h2>문서가 텍스트가 되는 순서</h2></div><div class="pipeline"><div class="pipeline-step"><small>01</small><strong>파일 입력</strong></div><div class="pipeline-step"><small>02</small><strong>확장자·크기 검사</strong></div><div class="pipeline-step"><small>03</small><strong>로컬 추출 시도</strong></div><div class="pipeline-step"><small>04</small><strong>필요 시 DRM API</strong></div><div class="pipeline-step"><small>05</small><strong>평문 결과</strong></div><div class="pipeline-step"><small>06</small><strong>요약·검색 연결</strong></div></div></section>
+
+<section class="section"><div class="section-heading"><p class="eyebrow">Security check</p><h2>처음 등록한 뒤 확인할 것</h2></div><div class="card"><ul class="check-list"><li>승인된 사내 DRM endpoint만 사용합니다.</li><li>토큰과 사번은 Secret 입력에 넣고 JSON에 저장하지 않습니다.</li><li>운영 환경은 HTTPS와 TLS 인증서 검증을 유지합니다.</li><li>평문 작업 파일의 저장 위치와 삭제 정책을 확인합니다.</li><li>오류·상태·로그에 토큰, 사번과 문서 본문이 남지 않습니다.</li><li>실제 사내 DRM API 확인 전까지 <code>user_testing</code>을 유지합니다.</li></ul></div></section>
+
+<div class="page-actions"><button class="back-button" type="button" data-back data-fallback="components/drm_document_text_extractor/index.html">← 이전 화면</button><a class="button button-soft" href="components/drm_document_text_extractor/index.html">Component 상세</a><a class="button button-soft" href="flows/mail_attachment_summary_flow/index.html">이메일 Flow</a><a class="button button-soft" href="training/overview.html">처음 배우기</a></div>
+
+  </main>
+  <footer class="site-footer">
+    <div class="footer-inner">
+      <div><strong>Agent Ground</strong><p>실제 Agent Builder 환경에서 검증된 교육자료, Standalone Component와 Flow를 함께 쌓아갑니다.</p></div>
+      <div class="footer-links"><a href="training/index.html">처음 배우기</a><a href="troubleshooting/index.html">실패와 해결</a><a href="../AGENT_GROUND_PROJECT_MASTER_GUIDE.md">프로젝트 기준</a></div>
+    </div>
+  </footer>
+  <script src="assets/js/site.js"></script>
+  
+</body>
+</html>

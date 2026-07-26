@@ -2,7 +2,7 @@
 
 Langflow 전용 Skill 사본을 만들지 않습니다. `skills/<id>/SKILL.md`를 정본으로 두고 `scripts/build_exports.py`가 `exports/langflow/<id>/`를 생성합니다.
 
-현재 Langflow export 폴더는 활성 Skill 31개와 격리된 candidate 1개를 합친 32개입니다. candidate adapter는 평가용으로만 생성되며 운영 Registry에는 노출하지 않습니다. 삭제된 14개는 adapter와 Prompt도 제거되어 있습니다. 전체 목록은 [SKILL_INVENTORY.md](./SKILL_INVENTORY.md)를 확인합니다.
+현재 Langflow export 폴더는 활성 Skill 31개와 격리된 candidate 5개를 합친 36개입니다. candidate adapter는 평가용으로만 생성되며 운영 Registry에는 노출하지 않습니다. 삭제된 14개는 adapter와 Prompt도 제거되어 있습니다. 전체 목록은 [SKILL_INVENTORY.md](./SKILL_INVENTORY.md)를 확인합니다.
 
 ## 필수 보안 경계
 
@@ -28,6 +28,10 @@ Flint는 승인된 local `flint-chart-mcp`가 있을 때만 `mcp-tool`로 실행
 `addy-agent-skills`의 22개 Skill은 대부분 `run-flow`가 적합하지만 한 요청에 여러 lifecycle workflow를 동시에 시작하지 않습니다. 가장 구체적인 primary workflow 하나를 선택하고 security, review, test checklist를 필요한 단계에서만 참조합니다.
 
 `project-design-context`는 `run-flow` candidate입니다. `DESIGN.md` 로드와 context 추출, 충돌 탐지는 read-only 단계로 두고, 파일 쓰기는 사람의 승인 뒤 별도 local component에서만 수행합니다. `status == active`와 eval 통과 전에는 운영 Registry에 등록하지 않습니다.
+
+PAPERTHIN 파생 candidate 가운데 `re0`는 단일 산출물 rewrite flow, `mandela`는 read-only Prompt audit, `ssotize`는 audit → 사람 승인 → per-location write flow로 분리합니다. 세 adapter 모두 network를 사용하지 않으며, `ssotize`의 write component는 승인 gate 뒤에만 연결합니다.
+
+`langflow-1-9-2-development`는 source·builder·export·격리 import·runtime trace를 이어서 검증하는 `run-flow` candidate입니다. 정확한 호환 묶음은 `langflow 1.9.2 / langflow-base 0.9.2 / lfx 0.4.2`이며, network는 승인된 사내 Langflow·model·database endpoint로만 제한합니다. 공식 1.9.3이 보안 즉시 업그레이드를 권고하므로 1.9.2는 호환성 기준선으로만 사용하고 운영 Registry 승격 전 별도 보안 예외를 확인합니다.
 
 ## Registry loader 조건
 

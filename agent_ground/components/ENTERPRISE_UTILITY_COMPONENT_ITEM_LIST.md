@@ -3,7 +3,7 @@
 > 조사 기준일: 2026-07-12  
 > 대상 환경: Langflow `1.9.2`, LFX `0.4.2`  
 > 구현 원칙: 실제 구현 시 Custom Component 하나가 Python 파일 하나로 동작하는 Standalone 방식  
-> 현재 상태: **추천 후보 30종 중 1종 구현, 외부 참조 1종 추가 구현 — 모두 `user_testing`**
+> 현재 상태: **추천 후보 30종 중 1종 구현, 이메일·문서 처리용 DRM Component 별도 구현 — 모두 `user_testing`**
 
 ## 1. 문서 목적
 
@@ -11,8 +11,8 @@
 
 - `추천·미구현`은 코드가 없는 후보이며 구현 완료나 동작 검증을 의미하지 않습니다.
 - 사용자가 선택한 `multi_image_base64_encoder`는 실제 Langflow `1.9.2` Standalone Component로 구현했습니다.
-- 다른 프로젝트에서 검증한 설계를 일반화한 `cached_named_run_flow_tool`도 공용 Component로 추가했습니다.
-- 이번 범위에는 두 Component를 사용하는 별도 Flow JSON을 만들지 않습니다.
+- 이메일 Flow에서 재사용하는 `drm_document_text_extractor`는 별도 Standalone Component와 초보자 교육자료로 제공합니다.
+- 실제 환경 오류가 확인된 이름 기반 Run Flow Tool은 현재 자산에서 제거했습니다.
 - 구현 후 사용자 실제 Builder 확인 전까지는 `user_testing`, 사용자가 완료를 승인한 뒤에만 `approved`로 전환합니다.
 
 ## 2. 선정 기준
@@ -33,7 +33,7 @@
 | Component ID | 선정 경로 | 핵심 역할 | 현재 상태 | 상세 문서 |
 | --- | --- | --- | --- | --- |
 | `multi_image_base64_encoder` | 추천 목록 P0에서 사용자 선택 | 여러 이미지를 입력 순서대로 Base64/Data URL 목록으로 변환 | `user_testing` | [`USAGE_GUIDE.md`](multi_image_base64_encoder/USAGE_GUIDE.md) |
-| `cached_named_run_flow_tool` | `metadata_driven_v5/route_flow_v2` 참조 구현을 사용자 선택 | 정확한 이름으로 하위 Flow를 해석하고 graph cache와 compact Agent Tool schema 제공 | `user_testing` | [초보자 설명](cached_named_run_flow_tool/BEGINNER_GUIDE.md) · [사용 가이드](cached_named_run_flow_tool/USAGE_GUIDE.md) |
+| `drm_document_text_extractor` | 이메일·문서 처리 요구에서 공용 기능으로 분리 | 일반 문서는 로컬에서 읽고 보호 문서는 승인된 DRM text API에서 평문 추출 | `user_testing` | [초보자 설명](drm_document_text_extractor/BEGINNER_GUIDE.md) · [사용 가이드](drm_document_text_extractor/USAGE_GUIDE.md) |
 
 두 항목은 특정 Flow에 종속되지 않는 공용 Component입니다. Python 식별자는 Langflow 계약을 위해 영문으로 유지하고, Builder UI·안내·오류·주석·가이드는 한글로 작성했습니다.
 
@@ -142,31 +142,18 @@
 - Base64 본문, 전체 로컬 경로와 파일 내용을 status·error·log에 넣지 않습니다.
 - `Data(data={"items": [...]})` 형태로 반환해 다음 Component가 안정적으로 연결하게 합니다.
 
-## 6. 캐시된 이름 기반 Run Flow 도구 구현 계약
+## 6. DRM 문서 텍스트 추출 Component
 
-구현 파일은 [`cached_named_run_flow_tool.py`](cached_named_run_flow_tool/cached_named_run_flow_tool.py)입니다. 참고한 외부 원본과 설명을 그대로 복사하지 않고 다음 문제를 보완했습니다.
+[`drm_document_text_extractor.py`](drm_document_text_extractor/drm_document_text_extractor.py)는 이메일 Flow 내부에 종속되지 않는 공용 Standalone Component입니다.
 
-- Import 환경마다 달라지는 Flow ID를 export에 고정하지 않고 정확한 이름으로 다시 조회
-- 기본 조회 범위를 부모 Router와 같은 Langflow 폴더로 제한
-- 같은 범위의 동명 Flow가 0개 또는 2개 이상이면 실행 거절
-- 현재 부모 Flow 자신을 하위 Flow로 직접 실행하는 재귀 차단
-- 다른 폴더 조회는 고급 toggle을 켠 경우에만 현재 사용자 전체에서 고유 이름 확인
-- 실제 `user_id + flow_id` 기준 graph cache와 `updated_at` 무효화
-- 같은 초 안의 수정도 감지하도록 microsecond를 보존한 timestamp 비교
-- Agent Tool schema의 `flow_tweak_data` 안에는 node ID가 없는 필수 `question` 하나만 노출
-- 실행 직전에 현재 그래프의 유일한 Chat Input ID를 찾아 내부 `input_value` tweak로 변환
-- provider가 `-`·`~`를 `_`로 바꾸는 Tool 인자 정규화 문제 차단
-- 명시적 세션이 없으면 부모 graph session 상속
-- Tool 이름·설명·세션 ID의 길이와 문자 검증
-- `return_direct=true`일 때 하위 Flow 결과를 추가 Agent 재작성 없이 반환
+- 직접 업로드한 문서는 `extracted_text: Message`로 반환
+- EWS 첨부 Data는 `processed_file: Data`로 반환
+- `자동(로컬 우선)`, `항상 DRM API`, `DRM 미사용` 모드 제공
+- 토큰과 사번은 Secret 입력으로 분리
+- HTTPS와 TLS 검증 기본 적용
+- 미지원 압축 형식은 실행 중단 대신 안내 결과 반환
 
-이 Component는 기본 `RunFlowBaseComponent`의 실행 기능을 대체하지 않고 그대로 상속합니다. 별도로 만든 이유는 다른 환경에서 바뀌는 Flow ID 재해석, Agent Tool 입력 축소, 세션 상속과 결과 직접 반환 같은 Router·Standalone 배포 경계를 보완하기 위해서입니다. 초보자용 배경 설명은 [`cached_named_run_flow_tool/BEGINNER_GUIDE.md`](cached_named_run_flow_tool/BEGINNER_GUIDE.md)를 확인합니다.
-
-질문이 없을 때 세션 이력이나 이전 분석 상태에서 복구하지 않습니다. 필수 `question`이 비어 있거나 대상 하위 Flow의 Chat Input이 정확히 하나가 아니면 하위 Flow 실행 전에 오류로 중단합니다. standalone 재import나 Chat Input 교체로 node ID가 바뀌면 현재 그래프에서 새 ID를 다시 확인합니다.
-
-이 Component가 캐시하는 것은 Flow graph 구성뿐입니다. 데이터 조회, 코드 실행, LLM 응답과 최종 답변은 요청마다 다시 실행합니다. Langflow `1.9.2`의 process-local shared cache에 의존하므로 서버 재시작과 다중 worker 사이에서는 cache가 유지·공유되지 않습니다.
-
-대상 하위 Flow에는 사용자 입력용 Chat Input과 Agent Tool용 최종 출력이 각각 정확히 하나 있어야 합니다. 자세한 연결·운영 조건은 [`cached_named_run_flow_tool/USAGE_GUIDE.md`](cached_named_run_flow_tool/USAGE_GUIDE.md)를 확인합니다.
+이 Component는 복호화된 원본 문서를 배포하지 않고 평문 텍스트를 다음 요약·검색 단계에 전달합니다. 초보자 교육은 [`BEGINNER_GUIDE.md`](drm_document_text_extractor/BEGINNER_GUIDE.md)를 확인합니다.
 
 ## 7. 기능군별 선택 가이드
 

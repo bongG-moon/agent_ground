@@ -115,7 +115,7 @@ def test_package_contract_reuses_drm_component_and_registers_internal_nodes() ->
     assert manifest["test_flow_file"] == "mail_attachment_summary_dummy_flow.json"
     assert refs == {
         "flow_id": "mail_attachment_summary_flow",
-        "components": [{"id": "drm_document_text_extractor", "version": "0.5.1"}],
+        "components": [{"id": "drm_document_text_extractor", "version": "0.6.0"}],
     }
     assert internal["flow_id"] == "mail_attachment_summary_flow"
     assert {item["id"] for item in internal["nodes"]} == {

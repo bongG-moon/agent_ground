@@ -1,0 +1,52 @@
+{
+  "schema_version": "1.0",
+  "asset_type": "flow_node",
+  "owner_flow": "meeting_minutes_writer_flow",
+  "flow_id": "meeting_minutes_writer_flow",
+  "nodes": [
+    {
+      "id": "meeting_minutes_request_builder",
+      "asset_type": "flow_node",
+      "owner_flow": "meeting_minutes_writer_flow",
+      "class_name": "MeetingMinutesRequestBuilder",
+      "name_ko": "04 회의록 작성 요청 정리",
+      "version": "0.1.0",
+      "source_path": "nodes/meeting_minutes_request_builder.py",
+      "summary_ko": "과거 녹취와 실제 회의록을 업로드 순서대로 짝지어 현재 녹취·추가 지시와 함께 안전한 요청 Data로 만듭니다.",
+      "embedded_in": ["meeting_minutes_writer_flow.json"]
+    },
+    {
+      "id": "meeting_minutes_style_analyzer",
+      "asset_type": "flow_node",
+      "owner_flow": "meeting_minutes_writer_flow",
+      "class_name": "MeetingMinutesStyleAnalyzer",
+      "name_ko": "05 사용자 회의록 스타일 분석",
+      "version": "0.1.0",
+      "source_path": "nodes/meeting_minutes_style_analyzer.py",
+      "summary_ko": "녹취와 실제 회의록의 차이를 비교해 선택·생략 기준, 구성과 문장 스타일만 JSON으로 추출합니다.",
+      "embedded_in": ["meeting_minutes_writer_flow.json"]
+    },
+    {
+      "id": "meeting_minutes_draft_writer",
+      "asset_type": "flow_node",
+      "owner_flow": "meeting_minutes_writer_flow",
+      "class_name": "MeetingMinutesDraftWriter",
+      "name_ko": "06 현재 회의록 초안 작성",
+      "version": "0.1.0",
+      "source_path": "nodes/meeting_minutes_draft_writer.py",
+      "summary_ko": "현재 녹취 사실, 추가 포함·제외 지시와 일반화된 사용자 스타일을 적용해 Markdown 회의록 초안을 작성합니다.",
+      "embedded_in": ["meeting_minutes_writer_flow.json"]
+    },
+    {
+      "id": "meeting_minutes_reviewer",
+      "asset_type": "flow_node",
+      "owner_flow": "meeting_minutes_writer_flow",
+      "class_name": "MeetingMinutesReviewer",
+      "name_ko": "07 사실·지시·스타일 최종 검토",
+      "version": "0.1.0",
+      "source_path": "nodes/meeting_minutes_reviewer.py",
+      "summary_ko": "초안을 현재 녹취와 다시 비교해 환각·누락·제외 지시 위반을 수정하고 최종 회의록과 검토 보고서를 반환합니다.",
+      "embedded_in": ["meeting_minutes_writer_flow.json"]
+    }
+  ]
+}
