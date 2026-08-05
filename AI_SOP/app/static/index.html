@@ -1,0 +1,189 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="자연어 업무 설명을 BoI OKF 기반 SOP로 전환하고 승인된 문서만 Wiki에 등록합니다.">
+  <title>AI SOP Studio</title>
+  <link rel="stylesheet" href="/static/css/tokens.css">
+  <link rel="stylesheet" href="/static/css/app.css?v=20260805-10">
+</head>
+<body>
+  <a class="skip-link" href="#main-content">본문으로 이동</a>
+  <div class="shell">
+    <header class="topbar">
+      <a class="brand" href="#write" aria-label="AI SOP Studio 홈">
+        <span class="brand-mark" aria-hidden="true">S</span>
+        <span><strong>AI SOP</strong><small>BoI Wiki Studio</small></span>
+      </a>
+      <div class="top-status">
+        <span class="status-dot" aria-hidden="true"></span>
+        <span id="system-status">연결 확인 중</span>
+        <span id="user-id" class="user-chip">임시 사용자</span>
+      </div>
+    </header>
+
+    <aside class="sidebar" aria-label="주요 메뉴">
+      <nav class="nav-list">
+        <a class="nav-item active" href="#write" data-view="write"><span aria-hidden="true">✦</span> SOP 만들기</a>
+        <a class="nav-item" href="#drafts" data-view="drafts"><span aria-hidden="true">◫</span> 내 초안</a>
+        <a class="nav-item" href="#wiki" data-view="wiki"><span aria-hidden="true">⌂</span> 승인 Wiki</a>
+      </nav>
+      <div class="sidebar-note">
+        <p class="eyebrow">저장 원칙</p>
+        <strong>승인 전에는 나만</strong>
+        <p>작성 중인 설명과 파일은 개인 초안입니다. 확인한 문서만 공용 Wiki에 등록됩니다.</p>
+      </div>
+    </aside>
+
+    <main id="main-content" class="main" tabindex="-1">
+      <section id="write-view" class="view active" aria-labelledby="write-title">
+        <div class="hero-grid">
+          <div>
+            <p class="eyebrow">NATURAL LANGUAGE → OKF</p>
+            <h1 id="write-title">하던 일을 말해 주세요.<br><span>문서는 함께 완성할게요.</span></h1>
+            <p class="hero-copy">정리되지 않은 메모도 괜찮습니다. AI가 빠진 기준을 질문하고, BoI 규칙에 맞는 SOP와 흐름도로 바꿉니다.</p>
+          </div>
+          <div class="principle-card" aria-label="문서 처리 3단계">
+            <span>01</span><p><strong>자유롭게 입력</strong>설명과 자료를 개인 초안에 저장</p>
+            <span>02</span><p><strong>함께 보완</strong>AI 질문과 근거 표시로 검토</p>
+            <span>03</span><p><strong>직접 승인</strong>확인한 버전만 Wiki에 등록</p>
+          </div>
+        </div>
+
+        <div class="workspace-grid">
+          <aside class="progress-card card" aria-labelledby="progress-title">
+            <p class="step-label">DOCUMENT PATH</p>
+            <h2 id="progress-title">이 문서가 가는 길</h2>
+            <ol class="progress-list">
+              <li class="current"><span>1</span><div><strong>업무 수집</strong><small>설명과 근거 자료</small></div></li>
+              <li><span>2</span><div><strong>질문 보완</strong><small>누락된 판단 기준</small></div></li>
+              <li><span>3</span><div><strong>SOP 검토</strong><small>OKF와 Mermaid</small></div></li>
+              <li><span>4</span><div><strong>승인 등록</strong><small>공용 Wiki 스냅샷</small></div></li>
+            </ol>
+            <div class="template-info"><span aria-hidden="true">◇</span><div><strong>BoI 원본 규칙 적용</strong><small id="template-version">템플릿 확인 중</small></div></div>
+          </aside>
+
+          <section class="composer card" aria-labelledby="composer-title">
+            <div class="card-heading">
+              <div><p class="step-label">STEP 1 · 업무 설명</p><h2 id="composer-title">평소 처리하는 방식을 적어주세요</h2></div>
+              <span class="private-badge">개인 초안</span>
+            </div>
+            <label class="sr-only" for="description">업무 설명</label>
+            <textarea id="description" rows="9" placeholder="예: 매주 월요일 설비 이상 현황을 확인합니다. 전주 데이터와 비교해 기준을 넘은 설비가 있으면 담당자에게 확인하고, 조치 내용까지 보고서에 정리합니다."></textarea>
+            <div class="example-heading">
+              <strong>업무 설명 예시</strong>
+              <span>선택하면 입력창에 전체 예시를 불러옵니다.</span>
+            </div>
+            <div class="prompt-chips" aria-label="설명 예시">
+              <button type="button" data-example="반복 보고 업무">반복 보고 업무</button>
+              <button type="button" data-example="장애 초동 대응">장애 초동 대응</button>
+              <button type="button" data-example="신규자 인수인계">신규자 인수인계</button>
+            </div>
+            <div class="upload-zone" id="drop-zone">
+              <input id="file-input" type="file" multiple accept=".txt,.md,.csv,.png,.jpg,.jpeg,.pdf,.docx,.xlsx,.pptx">
+              <label for="file-input"><span aria-hidden="true">＋</span><strong>관련 자료 추가</strong><small>PDF, Office, 이미지, 텍스트 · 파일당 최대 50MB</small></label>
+            </div>
+            <ul id="file-list" class="file-list" aria-label="선택한 파일"></ul>
+            <div class="composer-footer">
+              <p>완벽하게 쓰지 않아도 됩니다. 모르는 내용은 AI가 묻습니다.</p>
+              <button id="start-button" class="button primary" type="button">초안 시작 <span aria-hidden="true">→</span></button>
+            </div>
+          </section>
+        </div>
+
+        <section id="interview-panel" class="card stage-panel hidden" aria-labelledby="interview-title">
+          <div class="card-heading"><div><p class="step-label">STEP 2 · 빠진 내용 확인</p><h2 id="interview-title">AI가 업무 기준을 확인합니다</h2></div><span class="ai-badge">AI 질문</span></div>
+          <form id="question-form"><div id="question-list" class="question-list"></div><button class="button primary" type="submit">답변 반영하고 SOP 생성</button></form>
+        </section>
+
+        <section id="review-panel" class="card stage-panel hidden" aria-labelledby="review-title">
+          <div class="card-heading review-heading">
+            <div><p class="step-label">STEP 3 · 생성 결과 검토</p><h2 id="review-title">SOP 초안이 준비되었습니다</h2><p id="validation-summary" class="validation-summary"></p></div>
+            <button id="approve-open" class="button primary" type="button">Wiki 등록 검토</button>
+          </div>
+          <div class="tabs" role="tablist" aria-label="SOP 결과 보기">
+            <button id="tab-structured" role="tab" aria-selected="true" aria-controls="structured-panel">읽기 화면</button>
+            <button id="tab-diagram" role="tab" aria-selected="false" aria-controls="diagram-panel">흐름도</button>
+            <button id="tab-markdown" role="tab" aria-selected="false" aria-controls="markdown-panel">OKF Markdown</button>
+            <button id="tab-mermaid" role="tab" aria-selected="false" aria-controls="mermaid-panel">Mermaid 원문</button>
+          </div>
+          <div id="structured-panel" class="tab-panel" role="tabpanel" aria-labelledby="tab-structured"></div>
+          <div id="diagram-panel" class="tab-panel diagram-panel hidden" role="tabpanel" aria-labelledby="tab-diagram">
+            <div class="diagram-heading">
+              <div><strong>업무 흐름도</strong><small>오른쪽으로 따라가며 판단 분기와 다음 단계를 확인하세요.</small></div>
+              <div class="diagram-legend" aria-label="흐름도 범례">
+                <span class="legend-stage">업무 단계</span>
+                <span class="legend-decision">판단</span>
+                <span class="legend-terminal">시작·완료</span>
+              </div>
+            </div>
+            <div id="diagram-canvas" class="diagram-canvas" aria-live="polite"></div>
+            <p id="diagram-error" class="diagram-error hidden" role="alert"></p>
+          </div>
+          <pre id="markdown-panel" class="tab-panel code-panel hidden" role="tabpanel" aria-labelledby="tab-markdown"><code></code></pre>
+          <pre id="mermaid-panel" class="tab-panel code-panel hidden" role="tabpanel" aria-labelledby="tab-mermaid"><code></code></pre>
+        </section>
+      </section>
+
+      <section id="drafts-view" class="view" aria-labelledby="drafts-title">
+        <div class="page-heading"><p class="eyebrow">PRIVATE WORKSPACE</p><h1 id="drafts-title">내 초안</h1><p>이 브라우저 세션에서 작성한 문서만 보입니다.</p></div>
+        <div id="draft-list" class="document-grid"></div>
+      </section>
+
+      <section id="wiki-view" class="view" aria-labelledby="wiki-title">
+        <div class="page-heading"><p class="eyebrow">APPROVED KNOWLEDGE</p><h1 id="wiki-title">승인 Wiki</h1><p>사용자가 최종 확인한 문서 스냅샷입니다.</p></div>
+        <div id="wiki-list" class="document-grid"></div>
+      </section>
+    </main>
+  </div>
+
+  <dialog id="approval-dialog" aria-labelledby="approval-title">
+    <form id="approval-form" method="dialog">
+      <button class="dialog-close" value="cancel" aria-label="닫기">×</button>
+      <p class="step-label">FINAL APPROVAL</p><h2 id="approval-title">공용 Wiki에 등록할까요?</h2>
+      <p>현재 화면의 Markdown과 흐름도가 변경 불가능한 승인 스냅샷으로 저장됩니다.</p>
+      <fieldset><legend>공개 범위</legend>
+        <label><input type="radio" name="visibility" value="TEAM" checked> 팀 공개</label>
+        <label><input type="radio" name="visibility" value="PUBLIC"> 전체 공개</label>
+      </fieldset>
+      <label class="confirm-check"><input id="confirm-approval" type="checkbox"> 내용을 검토했으며 이 버전의 등록을 승인합니다.</label>
+      <label class="confirm-check"><input id="confirm-sensitive" type="checkbox"> 사번, 담당자 정보, 설비·LOT·Wafer 식별자와 시스템명이 선택한 공개 범위에 적합한지 확인했습니다.</label>
+      <p id="approval-error" class="form-error" role="alert"></p>
+      <div class="dialog-actions"><button class="button ghost" value="cancel">취소</button><button id="approve-button" class="button primary" value="default">승인하고 등록</button></div>
+    </form>
+  </dialog>
+
+  <dialog id="document-detail-dialog" class="document-detail-dialog" aria-labelledby="detail-title">
+    <div class="detail-dialog-shell">
+      <button id="detail-close" class="dialog-close" type="button" aria-label="닫기">×</button>
+      <p id="detail-eyebrow" class="step-label">DOCUMENT DETAIL</p>
+      <h2 id="detail-title">문서 상세</h2>
+      <p id="detail-description" class="detail-description"></p>
+      <div id="detail-meta" class="detail-meta"></div>
+      <div class="tabs detail-tabs" role="tablist" aria-label="문서 상세 결과 보기">
+        <button id="detail-tab-structured" role="tab" aria-selected="true" aria-controls="detail-structured-panel">읽기 화면</button>
+        <button id="detail-tab-diagram" role="tab" aria-selected="false" aria-controls="detail-diagram-panel">흐름도</button>
+        <button id="detail-tab-markdown" role="tab" aria-selected="false" aria-controls="detail-markdown-panel">OKF Markdown</button>
+        <button id="detail-tab-mermaid" role="tab" aria-selected="false" aria-controls="detail-mermaid-panel">Mermaid 원문</button>
+      </div>
+      <div id="detail-structured-panel" class="tab-panel detail-panel" role="tabpanel" aria-labelledby="detail-tab-structured"></div>
+      <div id="detail-diagram-panel" class="tab-panel detail-panel diagram-panel hidden" role="tabpanel" aria-labelledby="detail-tab-diagram">
+        <div class="diagram-heading">
+          <div><strong>업무 흐름도</strong><small>단계와 판단 분기를 한눈에 확인하세요.</small></div>
+          <div class="diagram-legend" aria-label="흐름도 범례">
+            <span class="legend-stage">업무 단계</span><span class="legend-decision">판단</span><span class="legend-terminal">시작·완료</span>
+          </div>
+        </div>
+        <div id="detail-diagram-canvas" class="diagram-canvas" aria-live="polite"></div>
+        <p id="detail-diagram-error" class="diagram-error hidden" role="alert"></p>
+      </div>
+      <pre id="detail-markdown-panel" class="tab-panel detail-panel code-panel hidden" role="tabpanel" aria-labelledby="detail-tab-markdown"><code></code></pre>
+      <pre id="detail-mermaid-panel" class="tab-panel detail-panel code-panel hidden" role="tabpanel" aria-labelledby="detail-tab-mermaid"><code></code></pre>
+    </div>
+  </dialog>
+
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+  <script type="module" src="/static/js/app.js?v=20260805-7"></script>
+</body>
+</html>
