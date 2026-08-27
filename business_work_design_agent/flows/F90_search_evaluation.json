@@ -1,0 +1,2097 @@
+{
+  "data": {
+    "edges": [
+      {
+        "animated": false,
+        "className": "",
+        "data": {
+          "sourceHandle": {
+            "dataType": "SearchQueryPlanner",
+            "id": "CustomComponent-c745a48",
+            "name": "query_plan",
+            "output_types": [
+              "Data",
+              "JSON"
+            ]
+          },
+          "targetHandle": {
+            "fieldName": "query_plan",
+            "id": "CustomComponent-5b0478e",
+            "inputTypes": [
+              "Data",
+              "JSON"
+            ],
+            "type": "other"
+          }
+        },
+        "id": "xy-edge__CustomComponent-c745a48{œdataTypeœ:œSearchQueryPlannerœ,œidœ:œCustomComponent-c745a48œ,œnameœ:œquery_planœ,œoutput_typesœ:[œDataœ,œJSONœ]}-CustomComponent-5b0478e{œfieldNameœ:œquery_planœ,œidœ:œCustomComponent-5b0478eœ,œinputTypesœ:[œDataœ,œJSONœ],œtypeœ:œotherœ}",
+        "selected": false,
+        "source": "CustomComponent-c745a48",
+        "sourceHandle": "{œdataTypeœ:œSearchQueryPlannerœ,œidœ:œCustomComponent-c745a48œ,œnameœ:œquery_planœ,œoutput_typesœ:[œDataœ,œJSONœ]}",
+        "target": "CustomComponent-5b0478e",
+        "targetHandle": "{œfieldNameœ:œquery_planœ,œidœ:œCustomComponent-5b0478eœ,œinputTypesœ:[œDataœ,œJSONœ],œtypeœ:œotherœ}"
+      },
+      {
+        "animated": false,
+        "className": "",
+        "data": {
+          "sourceHandle": {
+            "dataType": "SearchQueryPlanner",
+            "id": "CustomComponent-c745a48",
+            "name": "query_plan",
+            "output_types": [
+              "Data",
+              "JSON"
+            ]
+          },
+          "targetHandle": {
+            "fieldName": "query_plan",
+            "id": "CustomComponent-57b81d3",
+            "inputTypes": [
+              "Data",
+              "JSON"
+            ],
+            "type": "other"
+          }
+        },
+        "id": "xy-edge__CustomComponent-c745a48{œdataTypeœ:œSearchQueryPlannerœ,œidœ:œCustomComponent-c745a48œ,œnameœ:œquery_planœ,œoutput_typesœ:[œDataœ,œJSONœ]}-CustomComponent-57b81d3{œfieldNameœ:œquery_planœ,œidœ:œCustomComponent-57b81d3œ,œinputTypesœ:[œDataœ,œJSONœ],œtypeœ:œotherœ}",
+        "selected": false,
+        "source": "CustomComponent-c745a48",
+        "sourceHandle": "{œdataTypeœ:œSearchQueryPlannerœ,œidœ:œCustomComponent-c745a48œ,œnameœ:œquery_planœ,œoutput_typesœ:[œDataœ,œJSONœ]}",
+        "target": "CustomComponent-57b81d3",
+        "targetHandle": "{œfieldNameœ:œquery_planœ,œidœ:œCustomComponent-57b81d3œ,œinputTypesœ:[œDataœ,œJSONœ],œtypeœ:œotherœ}"
+      },
+      {
+        "animated": false,
+        "className": "",
+        "data": {
+          "sourceHandle": {
+            "dataType": "SearchQueryEmbeddingBatcher",
+            "id": "CustomComponent-5b0478e",
+            "name": "query_vectors",
+            "output_types": [
+              "Data",
+              "JSON"
+            ]
+          },
+          "targetHandle": {
+            "fieldName": "query_vectors",
+            "id": "CustomComponent-57b81d3",
+            "inputTypes": [
+              "Data",
+              "JSON"
+            ],
+            "type": "other"
+          }
+        },
+        "id": "xy-edge__CustomComponent-5b0478e{œdataTypeœ:œSearchQueryEmbeddingBatcherœ,œidœ:œCustomComponent-5b0478eœ,œnameœ:œquery_vectorsœ,œoutput_typesœ:[œDataœ,œJSONœ]}-CustomComponent-57b81d3{œfieldNameœ:œquery_vectorsœ,œidœ:œCustomComponent-57b81d3œ,œinputTypesœ:[œDataœ,œJSONœ],œtypeœ:œotherœ}",
+        "selected": false,
+        "source": "CustomComponent-5b0478e",
+        "sourceHandle": "{œdataTypeœ:œSearchQueryEmbeddingBatcherœ,œidœ:œCustomComponent-5b0478eœ,œnameœ:œquery_vectorsœ,œoutput_typesœ:[œDataœ,œJSONœ]}",
+        "target": "CustomComponent-57b81d3",
+        "targetHandle": "{œfieldNameœ:œquery_vectorsœ,œidœ:œCustomComponent-57b81d3œ,œinputTypesœ:[œDataœ,œJSONœ],œtypeœ:œotherœ}"
+      },
+      {
+        "animated": false,
+        "className": "",
+        "data": {
+          "sourceHandle": {
+            "dataType": "CatalogHybridRetriever",
+            "id": "CustomComponent-57b81d3",
+            "name": "retrieval_result",
+            "output_types": [
+              "Data",
+              "JSON"
+            ]
+          },
+          "targetHandle": {
+            "fieldName": "retrieval_result",
+            "id": "CustomComponent-080d9de",
+            "inputTypes": [
+              "Data",
+              "JSON"
+            ],
+            "type": "other"
+          }
+        },
+        "id": "xy-edge__CustomComponent-57b81d3{œdataTypeœ:œCatalogHybridRetrieverœ,œidœ:œCustomComponent-57b81d3œ,œnameœ:œretrieval_resultœ,œoutput_typesœ:[œDataœ,œJSONœ]}-CustomComponent-080d9de{œfieldNameœ:œretrieval_resultœ,œidœ:œCustomComponent-080d9deœ,œinputTypesœ:[œDataœ,œJSONœ],œtypeœ:œotherœ}",
+        "selected": false,
+        "source": "CustomComponent-57b81d3",
+        "sourceHandle": "{œdataTypeœ:œCatalogHybridRetrieverœ,œidœ:œCustomComponent-57b81d3œ,œnameœ:œretrieval_resultœ,œoutput_typesœ:[œDataœ,œJSONœ]}",
+        "target": "CustomComponent-080d9de",
+        "targetHandle": "{œfieldNameœ:œretrieval_resultœ,œidœ:œCustomComponent-080d9deœ,œinputTypesœ:[œDataœ,œJSONœ],œtypeœ:œotherœ}"
+      },
+      {
+        "animated": false,
+        "className": "",
+        "data": {
+          "sourceHandle": {
+            "dataType": "CandidateContextBuilder",
+            "id": "CustomComponent-080d9de",
+            "name": "candidate_context",
+            "output_types": [
+              "Data",
+              "JSON"
+            ]
+          },
+          "targetHandle": {
+            "fieldName": "data",
+            "id": "ParseData-b93f6fe",
+            "inputTypes": [
+              "Data",
+              "JSON"
+            ],
+            "type": "other"
+          }
+        },
+        "id": "xy-edge__CustomComponent-080d9de{œdataTypeœ:œCandidateContextBuilderœ,œidœ:œCustomComponent-080d9deœ,œnameœ:œcandidate_contextœ,œoutput_typesœ:[œDataœ,œJSONœ]}-ParseData-b93f6fe{œfieldNameœ:œdataœ,œidœ:œParseData-b93f6feœ,œinputTypesœ:[œDataœ,œJSONœ],œtypeœ:œotherœ}",
+        "selected": false,
+        "source": "CustomComponent-080d9de",
+        "sourceHandle": "{œdataTypeœ:œCandidateContextBuilderœ,œidœ:œCustomComponent-080d9deœ,œnameœ:œcandidate_contextœ,œoutput_typesœ:[œDataœ,œJSONœ]}",
+        "target": "ParseData-b93f6fe",
+        "targetHandle": "{œfieldNameœ:œdataœ,œidœ:œParseData-b93f6feœ,œinputTypesœ:[œDataœ,œJSONœ],œtypeœ:œotherœ}"
+      },
+      {
+        "animated": false,
+        "className": "",
+        "data": {
+          "sourceHandle": {
+            "dataType": "ParseData",
+            "id": "ParseData-b93f6fe",
+            "name": "text",
+            "output_types": [
+              "Message"
+            ]
+          },
+          "targetHandle": {
+            "fieldName": "input_value",
+            "id": "ChatOutput-128293e",
+            "inputTypes": [
+              "Data",
+              "JSON",
+              "DataFrame",
+              "Table",
+              "Message"
+            ],
+            "type": "other"
+          }
+        },
+        "id": "xy-edge__ParseData-b93f6fe{œdataTypeœ:œParseDataœ,œidœ:œParseData-b93f6feœ,œnameœ:œtextœ,œoutput_typesœ:[œMessageœ]}-ChatOutput-128293e{œfieldNameœ:œinput_valueœ,œidœ:œChatOutput-128293eœ,œinputTypesœ:[œDataœ,œJSONœ,œDataFrameœ,œTableœ,œMessageœ],œtypeœ:œotherœ}",
+        "selected": false,
+        "source": "ParseData-b93f6fe",
+        "sourceHandle": "{œdataTypeœ:œParseDataœ,œidœ:œParseData-b93f6feœ,œnameœ:œtextœ,œoutput_typesœ:[œMessageœ]}",
+        "target": "ChatOutput-128293e",
+        "targetHandle": "{œfieldNameœ:œinput_valueœ,œidœ:œChatOutput-128293eœ,œinputTypesœ:[œDataœ,œJSONœ,œDataFrameœ,œTableœ,œMessageœ],œtypeœ:œotherœ}"
+      }
+    ],
+    "nodes": [
+      {
+        "data": {
+          "id": "CustomComponent-c745a48",
+          "node": {
+            "template": {
+              "_type": "Component",
+              "acl_context": {
+                "tool_mode": false,
+                "trace_as_metadata": true,
+                "list": false,
+                "list_add_label": "Add More",
+                "trace_as_input": true,
+                "override_skip": false,
+                "required": true,
+                "placeholder": "",
+                "show": true,
+                "name": "acl_context",
+                "value": "",
+                "display_name": "ACL Context",
+                "advanced": false,
+                "api_editable": false,
+                "input_types": [
+                  "Data",
+                  "JSON"
+                ],
+                "dynamic": false,
+                "info": "",
+                "title_case": false,
+                "track_in_telemetry": false,
+                "type": "other",
+                "_input_type": "JSONInput"
+              },
+              "work_definition": {
+                "tool_mode": false,
+                "trace_as_metadata": true,
+                "list": false,
+                "list_add_label": "Add More",
+                "trace_as_input": true,
+                "override_skip": false,
+                "required": true,
+                "placeholder": "",
+                "show": true,
+                "name": "work_definition",
+                "value": "",
+                "display_name": "Approved Work Definition",
+                "advanced": false,
+                "api_editable": false,
+                "input_types": [
+                  "Data",
+                  "JSON"
+                ],
+                "dynamic": false,
+                "info": "",
+                "title_case": false,
+                "track_in_telemetry": false,
+                "type": "other",
+                "_input_type": "JSONInput"
+              },
+              "catalog_snapshot_id": {
+                "tool_mode": false,
+                "trace_as_input": true,
+                "trace_as_metadata": true,
+                "load_from_db": false,
+                "list": false,
+                "list_add_label": "Add More",
+                "override_skip": false,
+                "required": true,
+                "placeholder": "",
+                "show": true,
+                "name": "catalog_snapshot_id",
+                "value": "",
+                "display_name": "Active Catalog Snapshot ID",
+                "advanced": false,
+                "api_editable": false,
+                "input_types": [
+                  "Message"
+                ],
+                "dynamic": false,
+                "info": "",
+                "title_case": false,
+                "track_in_telemetry": false,
+                "type": "str",
+                "_input_type": "MessageTextInput"
+              },
+              "code": {
+                "type": "code",
+                "required": true,
+                "placeholder": "",
+                "list": false,
+                "show": true,
+                "multiline": true,
+                "value": "from __future__ import annotations\n\nimport copy\nimport hashlib\nimport hmac\nimport json\nimport re\nimport uuid\nfrom typing import Any\n\nfrom lfx.custom import Component\nfrom lfx.io import DataInput, IntInput, MessageTextInput, Output\nfrom lfx.schema import Data\n\n\nALLOWED_ASSET_TYPES = {\"component\", \"flow\"}\nSECRET_VALUE_PATTERNS = (\n    re.compile(r\"(?i)\\b(?:api[_-]?key|password|passwd|secret|access[_-]?token|client[_-]?secret|authorization|cookie|session)\\s*[:=]\\s*[\\\"']?[^\\s,;]{8,}\"),\n    re.compile(r\"(?i)\\b(?:bearer|basic)\\s+\\S{8,}\"),\n    re.compile(r\"\\bsk-[A-Za-z0-9_-]{16,}\\b\"),\n    re.compile(r\"\\b[A-Za-z0-9_-]{16,}\\.[A-Za-z0-9_-]{16,}\\.[A-Za-z0-9_-]{16,}\\b\"),\n    re.compile(r\"[a-zA-Z][a-zA-Z0-9+.-]*://[^/@\\s]+:[^/@\\s]+@\"),\n    re.compile(r\"-----BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY-----\"),\n)\nSECRET_KEY_TOKENS = {\n    \"apikey\", \"authorization\", \"clientsecret\", \"cookie\", \"credential\", \"password\", \"passwd\",\n    \"privatekey\", \"pwd\", \"session\", \"smsession\", \"secret\", \"token\",\n}\nALLOWED_QUERY_KINDS = {\"purpose\", \"capability\", \"exact\", \"risk\", \"reporting\"}\nWORK_DEFINITION_SCHEMA_VERSION = \"work-definition/v1\"\nIDENTITY_PATTERN = re.compile(r\"^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$\")\nSEMANTIC_FIELDS = (\n    \"goal\",\n    \"trigger\",\n    \"scope_in\",\n    \"scope_out\",\n    \"actors\",\n    \"systems\",\n    \"inputs\",\n    \"outputs\",\n    \"steps\",\n    \"decisions\",\n    \"exceptions\",\n    \"frequency_volume\",\n    \"sla\",\n    \"pains\",\n    \"risks_controls\",\n    \"constraints\",\n    \"success_criteria\",\n    \"automation_intent\",\n    \"assumptions\",\n    \"unresolved\",\n    \"as_is_graph\",\n)\nUNORDERED_LIST_KEYS = {\n    \"scope_in\", \"scope_out\", \"actors\", \"systems\", \"inputs\", \"outputs\", \"pains\", \"risks_controls\",\n    \"constraints\", \"success_criteria\", \"assumptions\", \"unresolved\", \"nodes\", \"edges\", \"evidence_turn_ids\",\n    \"conflicting_values\",\n}\nNON_SEMANTIC_KEYS = {\n    \"x\", \"y\", \"position\", \"position_absolute\", \"style\", \"selected\", \"expanded\", \"display_order\",\n    \"created_at\", \"updated_at\", \"submitted_at\", \"expires_at\", \"trace_id\", \"run_id\", \"job_id\",\n    \"last_updated_revision\", \"confidence\", \"evidence_turn_ids\", \"processed_answer_batches\",\n}\n\n\ndef _payload(value: Any) -> dict[str, Any]:\n    if isinstance(value, dict):\n        return value\n    data = getattr(value, \"data\", None)\n    if isinstance(data, dict):\n        return data\n    if isinstance(value, str) and value.strip():\n        try:\n            parsed = json.loads(value)\n        except json.JSONDecodeError:\n            return {}\n        return parsed if isinstance(parsed, dict) else {}\n    return {}\n\n\ndef _text_field(value: Any) -> tuple[str, str]:\n    if isinstance(value, str):\n        return value.strip(), \"unknown\"\n    if isinstance(value, dict):\n        return str(value.get(\"value\") or value.get(\"text\") or \"\").strip(), str(value.get(\"status\") or \"unknown\")\n    return \"\", \"unknown\"\n\n\ndef _safe_text(value: Any, maximum: int = 2000) -> str:\n    return re.sub(r\"\\s+\", \" \", str(value or \"\")).strip()[:maximum]\n\n\ndef _is_identity(value: Any) -> bool:\n    return type(value) is str and IDENTITY_PATTERN.fullmatch(value) is not None\n\n\ndef _secret_key(value: Any) -> bool:\n    text = str(value or \"\").casefold()\n    compact = re.sub(r\"[^a-z0-9]\", \"\", text)\n    parts = {item for item in re.split(r\"[^a-z0-9]+\", text) if item}\n    if (\"token\" in parts and parts & {\"max\", \"limit\", \"budget\", \"count\"}) or (\n        \"session\" in parts and parts & {\"timeout\", \"ttl\"}\n    ):\n        return False\n    if \"token\" in compact and any(marker in compact for marker in {\"maxtoken\", \"tokenlimit\", \"tokenbudget\", \"tokencount\"}):\n        return False\n    if \"session\" in compact and any(marker in compact for marker in {\"sessiontimeout\", \"sessionttl\"}):\n        return False\n    return compact in SECRET_KEY_TOKENS or bool(parts & {\"token\", \"session\", \"pwd\"}) or any(\n        marker in compact for marker in SECRET_KEY_TOKENS\n    )\n\n\ndef _secret_material_kind(value: Any) -> str | None:\n    if isinstance(value, dict):\n        for key, item in value.items():\n            if any(pattern.search(str(key).strip()) for pattern in SECRET_VALUE_PATTERNS):\n                return \"object_key\"\n            if _secret_key(key):\n                return \"secret_field\"\n            found = _secret_material_kind(item)\n            if found:\n                return found\n    elif isinstance(value, list):\n        for item in value:\n            found = _secret_material_kind(item)\n            if found:\n                return found\n    elif isinstance(value, str) and value != \"[REDACTED]\" and any(\n        pattern.search(value.strip()) for pattern in SECRET_VALUE_PATTERNS\n    ):\n        return \"string_value\"\n    return None\n\n\ndef _canonical_hash(value: Any) -> str:\n    text = json.dumps(value, ensure_ascii=False, sort_keys=True, separators=(\",\", \":\"))\n    return \"sha256:\" + hashlib.sha256(text.encode(\"utf-8\")).hexdigest()\n\n\ndef _canonicalize(value: Any, parent_key: str = \"\") -> Any:\n    if isinstance(value, dict):\n        return {\n            key: _canonicalize(value[key], key)\n            for key in sorted(value)\n            if key not in NON_SEMANTIC_KEYS and not key.startswith(\"ui_\") and not key.startswith(\"render_\")\n        }\n    if isinstance(value, list):\n        items = [_canonicalize(item, parent_key) for item in value]\n        if parent_key in UNORDERED_LIST_KEYS:\n            items.sort(key=lambda item: json.dumps(item, ensure_ascii=False, sort_keys=True, separators=(\",\", \":\"), default=str))\n        return items\n    if isinstance(value, float):\n        return float(format(value, \".15g\"))\n    return value\n\n\ndef _approved_work_projection(work: dict[str, Any]) -> tuple[dict[str, Any], str]:\n    semantic = {field: copy.deepcopy(work.get(field)) for field in SEMANTIC_FIELDS}\n    canonical_semantic = _canonicalize(semantic)\n    canonical_text = json.dumps(\n        canonical_semantic,\n        ensure_ascii=False,\n        sort_keys=True,\n        separators=(\",\", \":\"),\n        allow_nan=False,\n    )\n    actual_hash = \"sha256:\" + hashlib.sha256(canonical_text.encode(\"utf-8\")).hexdigest()\n    projection = {\n        \"schema_version\": str(work.get(\"schema_version\") or \"work-definition/v1\"),\n        \"work_definition_id\": str(work.get(\"work_definition_id\") or \"\"),\n        \"tenant_id\": str(work.get(\"tenant_id\") or \"\"),\n        \"owner_id\": str(work.get(\"owner_id\") or \"\"),\n        \"session_id\": str(work.get(\"session_id\") or \"\"),\n        \"channel_mode\": str(work.get(\"channel_mode\") or \"\"),\n        \"revision\": work.get(\"revision\"),\n        \"status\": \"APPROVED\",\n        \"approved_hash\": actual_hash,\n        \"preview_hash\": actual_hash,\n        **canonical_semantic,\n    }\n    return projection, actual_hash\n\n\ndef _confirmed_terms(value: Any, maximum: int = 30) -> list[str]:\n    source = value if isinstance(value, list) else []\n    result: list[str] = []\n    for item in source[:maximum]:\n        if isinstance(item, dict):\n            provenance = item.get(\"provenance\") if isinstance(item.get(\"provenance\"), dict) else {}\n            status = str(item.get(\"status\") or item.get(\"provenance_status\") or provenance.get(\"status\") or \"unknown\").lower()\n            if status not in {\"confirmed\", \"approved\"}:\n                continue\n            text = _safe_text(item.get(\"name\") or item.get(\"title\") or item.get(\"value\"), 200)\n        else:\n            continue\n        if text and text not in result:\n            result.append(text)\n    return result\n\n\ndef build_design_scope(\n    work_definition: Any,\n    *,\n    tenant_id: str,\n    catalog_snapshot_id: str,\n    acl_context: Any,\n    design_prompt: str = \"\",\n) -> dict[str, Any]:\n    \"\"\"Validate and seal every approved design input into one typed scope.\n\n    F20 exposes these values only on this component. Downstream components\n    receive this immutable identity tuple instead of independent node tweaks.\n    \"\"\"\n    trace_id = str(uuid.uuid4())\n    work = _payload(work_definition)\n    acl = _payload(acl_context)\n    tenant = _safe_text(tenant_id, 200)\n    snapshot = _safe_text(catalog_snapshot_id, 200)\n    bounded_design_prompt = _safe_text(design_prompt, 4000)\n    if not _is_identity(tenant_id):\n        return _error(trace_id, \"TENANT_REQUIRED\", \"tenant_id가 필요합니다.\")\n    if not _is_identity(catalog_snapshot_id):\n        return _error(trace_id, \"CATALOG_SNAPSHOT_ID_INVALID\", \"활성 catalog snapshot ID 형식이 유효하지 않습니다.\")\n    if set(acl) - {\"subject_id\", \"groups\"}:\n        return _error(trace_id, \"ACL_CONTEXT_FIELDS_INVALID\", \"ACL context에 허용되지 않은 필드가 있습니다.\")\n    raw_groups = acl.get(\"groups\", [])\n    if (\n        not _is_identity(acl.get(\"subject_id\"))\n        or not isinstance(raw_groups, list)\n        or len(raw_groups) > 100\n        or any(not _is_identity(item) for item in raw_groups)\n    ):\n        return _error(trace_id, \"ACL_CONTEXT_IDENTITY_INVALID\", \"ACL subject와 group identity 형식이 유효하지 않습니다.\")\n    if _secret_material_kind(acl):\n        return _error(trace_id, \"ACL_CONTEXT_SECRET_MATERIAL_DETECTED\", \"ACL context에 secret 원문을 넣을 수 없습니다.\")\n    canonical_acl = {\n        \"subject_id\": str(acl[\"subject_id\"]),\n        \"groups\": sorted({str(item).lower() for item in raw_groups}),\n    }\n    if not work:\n        return _error(trace_id, \"INVALID_WORK_DEFINITION\", \"승인 업무 정의가 필요합니다.\")\n    if any(pattern.search(bounded_design_prompt) for pattern in SECRET_VALUE_PATTERNS):\n        return _error(\n            trace_id,\n            \"DESIGN_PROMPT_SECRET_MATERIAL_DETECTED\",\n            \"추가 설계 프롬프트에는 secret 원문을 넣을 수 없습니다.\",\n        )\n    if type(work.get(\"schema_version\")) is not str or work.get(\"schema_version\") != WORK_DEFINITION_SCHEMA_VERSION:\n        return _error(\n            trace_id,\n            \"WORK_DEFINITION_SCHEMA_INVALID\",\n            f\"승인 업무 정의 schema_version은 {WORK_DEFINITION_SCHEMA_VERSION}이어야 합니다.\",\n        )\n    for field in (\"tenant_id\", \"owner_id\", \"session_id\", \"work_definition_id\"):\n        if not _is_identity(work.get(field)):\n            return _error(\n                trace_id,\n                \"WORK_DEFINITION_IDENTITY_INVALID\",\n                f\"승인 업무 정의 {field}가 canonical identity 형식이 아닙니다.\",\n            )\n    if work.get(\"channel_mode\") not in {\"native_hitl\", \"playground\"}:\n        return _error(trace_id, \"WORK_DEFINITION_CHANNEL_INVALID\", \"승인 업무 정의 channel_mode가 유효하지 않습니다.\")\n    state = work.get(\"status\")\n    approved_hash = work.get(\"approved_hash\")\n    work_id = work.get(\"work_definition_id\")\n    raw_revision = work.get(\"revision\")\n    if type(raw_revision) is not int:\n        return _error(trace_id, \"WORK_DEFINITION_REVISION_INVALID\", \"승인 업무 정의 revision이 필요합니다.\")\n    work_revision = raw_revision\n    if work_revision < 0:\n        return _error(trace_id, \"WORK_DEFINITION_REVISION_INVALID\", \"승인 업무 정의 revision이 필요합니다.\")\n    if state != \"APPROVED\" or type(approved_hash) is not str or not re.fullmatch(r\"sha256:[0-9a-f]{64}\", approved_hash):\n        return _error(trace_id, \"WORK_DEFINITION_NOT_APPROVED\", \"approved 상태와 유효한 approved_hash가 필요합니다.\")\n    if work.get(\"tenant_id\") != tenant:\n        return _error(trace_id, \"WORK_DEFINITION_TENANT_MISMATCH\", \"승인 업무 정의 tenant가 설계 tenant와 다릅니다.\")\n    try:\n        approved_work, actual_approved_hash = _approved_work_projection(work)\n    except (TypeError, ValueError):\n        return _error(trace_id, \"WORK_DEFINITION_CANONICALIZATION_FAILED\", \"승인 업무 정의의 의미 필드를 canonicalize할 수 없습니다.\")\n    if not hmac.compare_digest(approved_hash.lower(), actual_approved_hash.lower()):\n        return _error(trace_id, \"WORK_DEFINITION_APPROVAL_HASH_MISMATCH\", \"승인 이후 업무 의미가 변경되었거나 승인 hash가 유효하지 않습니다.\")\n    semantic_secret_kind = _secret_material_kind(\n        {field: approved_work.get(field) for field in SEMANTIC_FIELDS}\n    )\n    if semantic_secret_kind:\n        return _error(\n            trace_id,\n            \"WORK_DEFINITION_SECRET_MATERIAL_DETECTED\",\n            \"승인 업무 정의의 의미 필드에 secret 원문이 포함되어 설계를 중단했습니다.\",\n        )\n    scope_core = {\n        \"schema_version\": \"agent-design-scope/v1\",\n        \"tenant_id\": tenant,\n        \"catalog_snapshot_id\": snapshot,\n        \"work_definition_id\": work_id,\n        \"work_definition_revision\": work_revision,\n        \"approved_hash\": approved_hash,\n        \"work_definition\": approved_work,\n        \"acl_context\": canonical_acl,\n        \"design_prompt\": bounded_design_prompt,\n    }\n    return {\n        \"ok\": True,\n        \"status\": \"COMPLETED\",\n        **scope_core,\n        \"design_scope_sha256\": _canonical_hash(scope_core),\n        \"trace_id\": trace_id,\n    }\n\n\ndef _step_items(value: Any, maximum: int = 100) -> list[dict[str, str]]:\n    source = value if isinstance(value, list) else []\n    result: list[dict[str, str]] = []\n    for index, item in enumerate(source[:maximum], start=1):\n        if not isinstance(item, dict):\n            continue\n        step_id = _safe_text(item.get(\"step_id\") or item.get(\"id\") or f\"step-{index}\", 100)\n        title = _safe_text(item.get(\"title\") or item.get(\"name\"), 300)\n        capability = _safe_text(item.get(\"capability\") or item.get(\"description\") or item.get(\"action\"), 1000)\n        if title or capability:\n            result.append({\"step_id\": step_id, \"title\": title, \"capability\": capability})\n    return result\n\n\ndef build_search_query_plan(\n    work_definition: Any,\n    *,\n    tenant_id: str,\n    catalog_snapshot_id: str,\n    acl_context: Any,\n    design_prompt: str = \"\",\n    max_queries: int = 30,\n) -> dict[str, Any]:\n    trace_id = str(uuid.uuid4())\n    scope = build_design_scope(\n        work_definition,\n        tenant_id=tenant_id,\n        catalog_snapshot_id=catalog_snapshot_id,\n        acl_context=acl_context,\n        design_prompt=design_prompt,\n    )\n    if not scope.get(\"ok\"):\n        return scope\n    work = scope[\"work_definition\"]\n    acl = scope[\"acl_context\"]\n    tenant = scope[\"tenant_id\"]\n    snapshot = scope[\"catalog_snapshot_id\"]\n    approved_hash = scope[\"approved_hash\"]\n\n    max_queries = max(1, min(50, int(max_queries or 30)))\n    goal, _ = _text_field(work.get(\"goal\") or work.get(\"purpose\"))\n    title, _ = _text_field(work.get(\"title\"))\n    steps = _step_items(work.get(\"steps\") or (work.get(\"as_is_graph\") or {}).get(\"nodes\"))\n    systems = _confirmed_terms(work.get(\"systems\"))\n    inputs = _confirmed_terms(work.get(\"inputs\"))\n    outputs = _confirmed_terms(work.get(\"outputs\"))\n    risks = _confirmed_terms(work.get(\"risks_controls\"))\n    prompt = scope[\"design_prompt\"]\n    queries: list[dict[str, Any]] = []\n\n    def add(kind: str, text: str, expected: list[str], purpose: str, step_ids: list[str] | None = None) -> None:\n        clean = _safe_text(text, 2000)\n        if not clean or kind not in ALLOWED_QUERY_KINDS or len(queries) >= max_queries:\n            return\n        identity = {\"kind\": kind, \"text\": clean, \"expected\": expected, \"step_ids\": step_ids or []}\n        query_id = \"q-\" + hashlib.sha256(json.dumps(identity, sort_keys=True, ensure_ascii=False).encode(\"utf-8\")).hexdigest()[:16]\n        if any(item[\"query_id\"] == query_id for item in queries):\n            return\n        queries.append(\n            {\n                \"query_id\": query_id,\n                \"kind\": kind,\n                \"text\": clean,\n                \"purpose\": _safe_text(purpose, 500),\n                \"expected_asset_types\": [item for item in expected if item in ALLOWED_ASSET_TYPES],\n                \"matched_work_steps\": step_ids or [],\n                \"required_filters\": {\n                    \"tenant_id\": tenant,\n                    \"snapshot_id\": snapshot,\n                    \"acl_required\": True,\n                },\n            }\n        )\n\n    add(\"purpose\", \" \".join(item for item in (title, goal, prompt) if item), [\"component\", \"flow\"], \"전체 업무 목적과 유사한 자산 탐색\")\n    for step in steps:\n        add(\n            \"capability\",\n            \" \".join(item for item in (step[\"title\"], step[\"capability\"]) if item),\n            [\"component\", \"flow\"],\n            \"업무 단계 capability 충족 자산 탐색\",\n            [step[\"step_id\"]],\n        )\n    for system in systems:\n        add(\"exact\", system, [\"component\", \"flow\"], \"사용자가 확인한 시스템/API/제품명 exact 또는 alias 탐색\")\n    for risk in risks:\n        add(\"risk\", risk, [\"component\", \"flow\"], \"승인·보안·예외 처리 capability 탐색\")\n    if outputs:\n        add(\"reporting\", \" \".join(outputs), [\"component\", \"flow\"], \"업무 출력과 보고 capability 탐색\")\n    if not queries:\n        return _error(trace_id, \"NO_SEARCHABLE_REQUIREMENT\", \"검색 query를 만들 확인된 업무 정보가 없습니다.\")\n\n    plan_core = {\n        \"schema_version\": \"search-query-plan.v1\",\n        \"tenant_id\": tenant,\n        \"catalog_snapshot_id\": snapshot,\n        \"work_definition_id\": str(work.get(\"work_definition_id\") or \"\"),\n        \"work_definition_revision\": scope[\"work_definition_revision\"],\n        \"approved_hash\": approved_hash,\n        \"design_scope_sha256\": scope[\"design_scope_sha256\"],\n        \"acl\": {\n            \"subject_id\": str(acl.get(\"subject_id\")),\n            \"groups\": sorted(_confirmed_acl_groups(acl.get(\"groups\"))),\n        },\n        \"queries\": queries,\n        \"confirmed_exact_terms\": systems,\n        \"confirmed_inputs\": inputs,\n        \"confirmed_outputs\": outputs,\n    }\n    return {\n        \"ok\": True,\n        \"status\": \"COMPLETED\",\n        **plan_core,\n        \"query_plan_sha256\": _canonical_hash(plan_core),\n        \"trace_id\": trace_id,\n    }\n\n\ndef _confirmed_acl_groups(value: Any) -> set[str]:\n    source = value if isinstance(value, list) else []\n    return {str(item).strip().lower() for item in source[:100] if str(item).strip()}\n\n\ndef _error(trace_id: str, code: str, message: str) -> dict[str, Any]:\n    return {\n        \"ok\": False,\n        \"status\": \"BLOCKED\",\n        \"artifact_refs\": [],\n        \"error\": {\"code\": code, \"message\": message, \"retryable\": False, \"details\": {}},\n        \"resume\": None,\n        \"trace_id\": trace_id,\n    }\n\n\nclass SearchQueryPlannerComponent(Component):\n    display_name = \"20 Search Query Planner\"\n    description = \"승인 업무 정의를 purpose, capability, exact, risk, reporting 검색 query plan으로 변환합니다.\"\n    icon = \"ListFilter\"\n    name = \"SearchQueryPlanner\"\n\n    inputs = [\n        DataInput(name=\"work_definition\", display_name=\"Approved Work Definition\", required=True),\n        DataInput(name=\"acl_context\", display_name=\"ACL Context\", required=True),\n        MessageTextInput(name=\"tenant_id\", display_name=\"Tenant ID\", required=True),\n        MessageTextInput(name=\"catalog_snapshot_id\", display_name=\"Active Catalog Snapshot ID\", required=True),\n        MessageTextInput(name=\"design_prompt\", display_name=\"Additional Design Prompt\", required=False),\n        IntInput(name=\"max_queries\", display_name=\"Maximum Queries\", value=30, advanced=True),\n    ]\n    outputs = [\n        Output(name=\"design_scope\", display_name=\"Sealed Design Scope\", method=\"build_scope\", types=[\"Data\"]),\n        Output(name=\"query_plan\", display_name=\"Search Query Plan\", method=\"build_query_plan\", types=[\"Data\"]),\n    ]\n\n    def build_scope(self) -> Data:\n        result = build_design_scope(\n            self.work_definition,\n            tenant_id=self.tenant_id,\n            catalog_snapshot_id=self.catalog_snapshot_id,\n            acl_context=self.acl_context,\n            design_prompt=getattr(self, \"design_prompt\", \"\"),\n        )\n        self.status = f\"Design scope: {result.get('status')}\"\n        return Data(data=result)\n\n    def build_query_plan(self) -> Data:\n        result = build_search_query_plan(\n            self.work_definition,\n            tenant_id=self.tenant_id,\n            catalog_snapshot_id=self.catalog_snapshot_id,\n            acl_context=self.acl_context,\n            design_prompt=getattr(self, \"design_prompt\", \"\"),\n            max_queries=getattr(self, \"max_queries\", 30),\n        )\n        self.status = f\"Query plan: {result.get('status')} / queries={len(result.get('queries', []))}\"\n        return Data(data=result)\n",
+                "fileTypes": [],
+                "file_path": "",
+                "password": false,
+                "name": "code",
+                "advanced": true,
+                "api_editable": false,
+                "dynamic": true,
+                "info": "",
+                "load_from_db": false,
+                "title_case": false
+              },
+              "design_prompt": {
+                "tool_mode": false,
+                "trace_as_input": true,
+                "trace_as_metadata": true,
+                "load_from_db": false,
+                "list": false,
+                "list_add_label": "Add More",
+                "override_skip": false,
+                "required": false,
+                "placeholder": "",
+                "show": true,
+                "name": "design_prompt",
+                "value": "",
+                "display_name": "Additional Design Prompt",
+                "advanced": false,
+                "api_editable": false,
+                "input_types": [
+                  "Message"
+                ],
+                "dynamic": false,
+                "info": "",
+                "title_case": false,
+                "track_in_telemetry": false,
+                "type": "str",
+                "_input_type": "MessageTextInput"
+              },
+              "max_queries": {
+                "tool_mode": false,
+                "trace_as_metadata": true,
+                "list": false,
+                "list_add_label": "Add More",
+                "override_skip": false,
+                "required": false,
+                "placeholder": "",
+                "show": true,
+                "name": "max_queries",
+                "value": 30,
+                "display_name": "Maximum Queries",
+                "advanced": true,
+                "api_editable": false,
+                "dynamic": false,
+                "info": "",
+                "title_case": false,
+                "track_in_telemetry": true,
+                "type": "int",
+                "_input_type": "IntInput"
+              },
+              "tenant_id": {
+                "tool_mode": false,
+                "trace_as_input": true,
+                "trace_as_metadata": true,
+                "load_from_db": false,
+                "list": false,
+                "list_add_label": "Add More",
+                "override_skip": false,
+                "required": true,
+                "placeholder": "",
+                "show": true,
+                "name": "tenant_id",
+                "value": "",
+                "display_name": "Tenant ID",
+                "advanced": false,
+                "api_editable": false,
+                "input_types": [
+                  "Message"
+                ],
+                "dynamic": false,
+                "info": "",
+                "title_case": false,
+                "track_in_telemetry": false,
+                "type": "str",
+                "_input_type": "MessageTextInput"
+              }
+            },
+            "description": "승인 업무 정의를 purpose, capability, exact, risk, reporting 검색 query plan으로 변환합니다.",
+            "icon": "ListFilter",
+            "base_classes": [
+              "Data",
+              "JSON"
+            ],
+            "display_name": "20 Search Query Planner",
+            "documentation": "",
+            "minimized": false,
+            "custom_fields": {},
+            "output_types": [],
+            "pinned": false,
+            "conditional_paths": [],
+            "frozen": false,
+            "outputs": [
+              {
+                "types": [
+                  "Data",
+                  "JSON"
+                ],
+                "selected": "Data",
+                "name": "design_scope",
+                "display_name": "Sealed Design Scope",
+                "method": "build_scope",
+                "value": "__UNDEFINED__",
+                "cache": true,
+                "allows_loop": false,
+                "group_outputs": false,
+                "tool_mode": true
+              },
+              {
+                "types": [
+                  "Data",
+                  "JSON"
+                ],
+                "selected": "Data",
+                "name": "query_plan",
+                "display_name": "Search Query Plan",
+                "method": "build_query_plan",
+                "value": "__UNDEFINED__",
+                "cache": true,
+                "allows_loop": false,
+                "group_outputs": false,
+                "tool_mode": true
+              }
+            ],
+            "field_order": [
+              "work_definition",
+              "acl_context",
+              "tenant_id",
+              "catalog_snapshot_id",
+              "design_prompt",
+              "max_queries"
+            ],
+            "beta": false,
+            "legacy": false,
+            "edited": false,
+            "metadata": {
+              "module": "custom_components.20_search_query_planner",
+              "code_hash": "33f86a407dfd",
+              "dependencies": {
+                "total_dependencies": 1,
+                "dependencies": [
+                  {
+                    "name": "lfx",
+                    "version": "1.11.5"
+                  }
+                ]
+              },
+              "flow_build_target": "1.11.1",
+              "flow_node_key": "query_plan",
+              "standalone": true,
+              "standalone_source_path": "components/hybrid_retrieval/20_search_query_planner.py",
+              "standalone_source_sha256": "33f86a407dfdf2def257ac9c6cdeb96a4043f4e3f07b5378ea80f004b1aff0c8"
+            },
+            "tool_mode": false,
+            "lf_version": "1.11.1"
+          },
+          "showNode": true,
+          "type": "SearchQueryPlanner",
+          "description": "승인 업무 정의를 purpose, capability, exact, risk, reporting 검색 query plan으로 변환합니다.",
+          "display_name": "20 Search Query Planner",
+          "selected_output": "design_scope"
+        },
+        "dragging": false,
+        "id": "CustomComponent-c745a48",
+        "measured": {
+          "height": 260,
+          "width": 320
+        },
+        "position": {
+          "x": 0,
+          "y": 0
+        },
+        "selected": false,
+        "type": "genericNode"
+      },
+      {
+        "data": {
+          "id": "CustomComponent-5b0478e",
+          "node": {
+            "template": {
+              "_type": "Component",
+              "precomputed_vectors": {
+                "tool_mode": false,
+                "trace_as_metadata": true,
+                "list": false,
+                "list_add_label": "Add More",
+                "trace_as_input": true,
+                "override_skip": false,
+                "required": false,
+                "placeholder": "",
+                "show": true,
+                "name": "precomputed_vectors",
+                "value": "",
+                "display_name": "Precomputed Vectors",
+                "advanced": true,
+                "api_editable": false,
+                "input_types": [
+                  "Data",
+                  "JSON"
+                ],
+                "dynamic": false,
+                "info": "",
+                "title_case": false,
+                "track_in_telemetry": false,
+                "type": "other",
+                "_input_type": "JSONInput"
+              },
+              "query_plan": {
+                "tool_mode": false,
+                "trace_as_metadata": true,
+                "list": false,
+                "list_add_label": "Add More",
+                "trace_as_input": true,
+                "override_skip": false,
+                "required": true,
+                "placeholder": "",
+                "show": true,
+                "name": "query_plan",
+                "value": "",
+                "display_name": "Search Query Plan",
+                "advanced": false,
+                "api_editable": false,
+                "input_types": [
+                  "Data",
+                  "JSON"
+                ],
+                "dynamic": false,
+                "info": "",
+                "title_case": false,
+                "track_in_telemetry": false,
+                "type": "other",
+                "_input_type": "JSONInput"
+              },
+              "allow_insecure_loopback": {
+                "tool_mode": false,
+                "trace_as_metadata": true,
+                "list": false,
+                "list_add_label": "Add More",
+                "override_skip": false,
+                "required": false,
+                "placeholder": "",
+                "show": true,
+                "name": "allow_insecure_loopback",
+                "value": false,
+                "display_name": "Allow HTTP Loopback",
+                "advanced": true,
+                "api_editable": false,
+                "dynamic": false,
+                "info": "",
+                "title_case": false,
+                "track_in_telemetry": true,
+                "type": "bool",
+                "_input_type": "BoolInput"
+              },
+              "allowed_host": {
+                "tool_mode": false,
+                "trace_as_metadata": true,
+                "load_from_db": false,
+                "list": false,
+                "list_add_label": "Add More",
+                "override_skip": false,
+                "required": false,
+                "placeholder": "",
+                "show": true,
+                "name": "allowed_host",
+                "value": "",
+                "display_name": "Exact Allowed Host",
+                "advanced": true,
+                "api_editable": false,
+                "dynamic": false,
+                "info": "",
+                "title_case": false,
+                "track_in_telemetry": false,
+                "type": "str",
+                "_input_type": "StrInput"
+              },
+              "api_token": {
+                "load_from_db": true,
+                "override_skip": false,
+                "required": false,
+                "placeholder": "",
+                "show": true,
+                "name": "api_token",
+                "value": "",
+                "display_name": "Embedding API Token",
+                "advanced": false,
+                "api_editable": false,
+                "input_types": [],
+                "dynamic": false,
+                "info": "",
+                "title_case": false,
+                "track_in_telemetry": false,
+                "password": true,
+                "type": "str",
+                "_input_type": "SecretStrInput"
+              },
+              "batch_size": {
+                "tool_mode": false,
+                "trace_as_metadata": true,
+                "list": false,
+                "list_add_label": "Add More",
+                "override_skip": false,
+                "required": false,
+                "placeholder": "",
+                "show": true,
+                "name": "batch_size",
+                "value": 16,
+                "display_name": "Batch Size",
+                "advanced": true,
+                "api_editable": false,
+                "dynamic": false,
+                "info": "",
+                "title_case": false,
+                "track_in_telemetry": true,
+                "type": "int",
+                "_input_type": "IntInput"
+              },
+              "code": {
+                "type": "code",
+                "required": true,
+                "placeholder": "",
+                "list": false,
+                "show": true,
+                "multiline": true,
+                "value": "from __future__ import annotations\n\n\"\"\"Create ID-preserving query vectors for hybrid retrieval without local imports.\"\"\"\n\nimport hashlib\nimport hmac\nimport json\nimport math\nimport re\nimport socket\nimport urllib.error\nimport urllib.parse\nimport urllib.request\nfrom typing import Any\n\nfrom lfx.custom import Component\nfrom lfx.io import BoolInput, DataInput, DropdownInput, IntInput, Output, SecretStrInput, StrInput\nfrom lfx.schema import Data\n\n\nclass _NoRedirect(urllib.request.HTTPRedirectHandler):\n    def redirect_request(self, req, fp, code, msg, headers, newurl):  # noqa: ANN001, ANN201, ARG002\n        return None\n\n\ndef _payload(value: Any, field: str) -> dict[str, Any]:\n    data = getattr(value, \"data\", None)\n    value = data if isinstance(data, dict) else value\n    if isinstance(value, str):\n        try:\n            value = json.loads(value)\n        except json.JSONDecodeError as exc:\n            raise ValueError(f\"{field} must be JSON\") from exc\n    if not isinstance(value, dict):\n        raise ValueError(f\"{field} must be an object\")\n    if field == \"query_plan\" and isinstance(value.get(\"query_plan\"), dict):\n        value = value[\"query_plan\"]\n    return value\n\n\ndef _secret(value: Any) -> str:\n    getter = getattr(value, \"get_secret_value\", None)\n    return str(getter() if callable(getter) else value or \"\").strip()\n\n\ndef _canonical_hash(value: Any) -> str:\n    material = json.dumps(value, ensure_ascii=False, sort_keys=True, separators=(\",\", \":\"))\n    return \"sha256:\" + hashlib.sha256(material.encode(\"utf-8\")).hexdigest()\n\n\ndef _verified_plan_locks(plan: dict[str, Any]) -> dict[str, str]:\n    lock_fields = (\"design_scope_sha256\", \"query_plan_sha256\")\n    locks = {field: str(plan.get(field) or \"\") for field in lock_fields}\n    if any(not re.fullmatch(r\"sha256:[0-9a-fA-F]{64}\", value) for value in locks.values()):\n        raise ValueError(\"query plan scope/hash lock is missing or invalid\")\n    plan_core = {\n        key: value\n        for key, value in plan.items()\n        if key not in {\"ok\", \"status\", \"query_plan_sha256\", \"trace_id\"}\n    }\n    if not hmac.compare_digest(locks[\"query_plan_sha256\"].lower(), _canonical_hash(plan_core).lower()):\n        raise ValueError(\"query_plan_sha256 does not match query plan\")\n    return locks\n\n\ndef _vector(value: Any, dimension: int, query_id: str) -> list[float]:\n    if not isinstance(value, list) or len(value) != dimension:\n        raise ValueError(f\"vector dimension mismatch for query_id={query_id}\")\n    result: list[float] = []\n    for item in value:\n        if isinstance(item, bool):\n            raise ValueError(f\"boolean vector value for query_id={query_id}\")\n        try:\n            number = float(item)\n        except (TypeError, ValueError) as exc:\n            raise ValueError(f\"non-numeric vector value for query_id={query_id}\") from exc\n        if not math.isfinite(number):\n            raise ValueError(f\"non-finite vector value for query_id={query_id}\")\n        result.append(number)\n    return result\n\n\ndef _queries(plan: dict[str, Any], maximum: int) -> list[dict[str, str]]:\n    raw = plan.get(\"queries\")\n    if not isinstance(raw, list) or not raw:\n        raise ValueError(\"query_plan.queries is required\")\n    if len(raw) > maximum:\n        raise ValueError(\"query count exceeds max_queries\")\n    result: list[dict[str, str]] = []\n    ids: set[str] = set()\n    for index, item in enumerate(raw):\n        if not isinstance(item, dict):\n            raise ValueError(\"each query must be an object\")\n        query_id = str(item.get(\"query_id\") or item.get(\"id\") or f\"query-{index + 1}\").strip()[:200]\n        text = str(item.get(\"text\") or item.get(\"query\") or \"\").strip()[:20_000]\n        if not query_id or query_id in ids or not text:\n            raise ValueError(\"query IDs must be unique and query text must be present\")\n        ids.add(query_id)\n        result.append({\"id\": query_id, \"text\": text})\n    return result\n\n\ndef _endpoint(value: str, allow_loopback: bool, allowed_host: str) -> str:\n    parsed = urllib.parse.urlsplit(value.strip())\n    hostname = (parsed.hostname or \"\").lower().rstrip(\".\")\n    loopback = hostname in {\"localhost\", \"127.0.0.1\", \"::1\"}\n    if not hostname or parsed.username or parsed.password or parsed.fragment:\n        raise ValueError(\"embedding_endpoint must be an absolute URL without credentials or fragment\")\n    if parsed.scheme != \"https\" and not (allow_loopback and loopback and parsed.scheme == \"http\"):\n        raise ValueError(\"HTTPS is required; HTTP is allowed only for explicit loopback development\")\n    expected_host = allowed_host.strip().lower().rstrip(\".\")\n    if not expected_host:\n        raise ValueError(\"allowed_host is required for the embedding endpoint\")\n    if hostname != expected_host:\n        raise ValueError(\"embedding endpoint hostname does not match allowed_host\")\n    return urllib.parse.urlunsplit((parsed.scheme, parsed.netloc, parsed.path, parsed.query, \"\"))\n\n\ndef _response_vectors(payload: dict[str, Any]) -> dict[str, Any]:\n    if isinstance(payload.get(\"vectors\"), dict):\n        return dict(payload[\"vectors\"])\n    data = payload.get(\"data\")\n    if isinstance(data, list):\n        result: dict[str, Any] = {}\n        for item in data:\n            if isinstance(item, dict) and item.get(\"id\") is not None:\n                result[str(item[\"id\"])] = item.get(\"embedding\") or item.get(\"vector\")\n        return result\n    raise ValueError(\"embedding response must contain vectors or data\")\n\n\nclass SearchQueryEmbeddingBatcherComponent(Component):\n    display_name = \"29 검색 Query Embedding Batcher\"\n    description = \"Vectorizes every planned query with stable IDs using an approved endpoint or explicit precomputed vectors.\"\n    icon = \"Binary\"\n    name = \"SearchQueryEmbeddingBatcher\"\n\n    inputs = [\n        DataInput(name=\"query_plan\", display_name=\"Search Query Plan\", required=True),\n        DropdownInput(name=\"provider_mode\", display_name=\"Provider Mode\", options=[\"http_json\", \"precomputed\"], value=\"http_json\"),\n        DataInput(name=\"precomputed_vectors\", display_name=\"Precomputed Vectors\", required=False, advanced=True),\n        StrInput(name=\"embedding_endpoint\", display_name=\"Embedding Endpoint\", value=\"\", required=False),\n        SecretStrInput(name=\"api_token\", display_name=\"Embedding API Token\", required=False),\n        StrInput(name=\"model\", display_name=\"Embedding Model\", required=True),\n        StrInput(name=\"model_version\", display_name=\"Embedding Model Version\", required=True),\n        IntInput(name=\"dimension\", display_name=\"Vector Dimension\", value=1024, required=True),\n        IntInput(name=\"batch_size\", display_name=\"Batch Size\", value=16, advanced=True),\n        IntInput(name=\"max_queries\", display_name=\"Maximum Queries\", value=30, advanced=True),\n        IntInput(name=\"timeout_seconds\", display_name=\"Timeout (seconds)\", value=30, advanced=True),\n        IntInput(name=\"max_response_bytes\", display_name=\"Maximum Response Bytes\", value=5000000, advanced=True),\n        StrInput(name=\"allowed_host\", display_name=\"Exact Allowed Host\", value=\"\", advanced=True),\n        BoolInput(name=\"allow_insecure_loopback\", display_name=\"Allow HTTP Loopback\", value=False, advanced=True),\n    ]\n    outputs = [Output(name=\"query_vectors\", display_name=\"ID-preserving Query Vectors\", method=\"build_query_vectors\", types=[\"Data\"])]\n\n    def build_query_vectors(self) -> Data:\n        plan = _payload(self.query_plan, \"query_plan\")\n        locks = _verified_plan_locks(plan)\n        maximum = max(1, min(int(getattr(self, \"max_queries\", 30) or 30), 100))\n        queries = _queries(plan, maximum)\n        dimension = max(1, min(int(getattr(self, \"dimension\", 1024) or 1024), 65536))\n        model = str(getattr(self, \"model\", \"\") or \"\").strip()\n        model_version = str(getattr(self, \"model_version\", \"\") or \"\").strip()\n        if not model or not model_version:\n            raise ValueError(\"model and model_version are required\")\n        mode = str(getattr(self, \"provider_mode\", \"http_json\") or \"\")\n        raw_vectors: dict[str, Any] = {}\n        provider_receipts: list[dict[str, Any]] = []\n        if mode == \"precomputed\":\n            supplied = _payload(getattr(self, \"precomputed_vectors\", None), \"precomputed_vectors\")\n            raw_vectors = supplied.get(\"vectors\") if isinstance(supplied.get(\"vectors\"), dict) else supplied\n        elif mode == \"http_json\":\n            endpoint = _endpoint(\n                str(getattr(self, \"embedding_endpoint\", \"\") or \"\"),\n                bool(getattr(self, \"allow_insecure_loopback\", False)),\n                str(getattr(self, \"allowed_host\", \"\") or \"\"),\n            )\n            token = _secret(getattr(self, \"api_token\", \"\"))\n            hostname = (urllib.parse.urlsplit(endpoint).hostname or \"\").lower()\n            if hostname not in {\"localhost\", \"127.0.0.1\", \"::1\"} and not token:\n                raise ValueError(\"api_token is required outside loopback development\")\n            batch_size = max(1, min(int(getattr(self, \"batch_size\", 16) or 16), 64))\n            timeout = max(1, min(int(getattr(self, \"timeout_seconds\", 30) or 30), 120))\n            response_limit = max(1024, min(int(getattr(self, \"max_response_bytes\", 5_000_000) or 5_000_000), 25_000_000))\n            opener = urllib.request.build_opener(_NoRedirect())\n            for start in range(0, len(queries), batch_size):\n                batch = queries[start : start + batch_size]\n                request_payload = {\"model\": model, \"version\": model_version, \"dimension\": dimension, \"inputs\": batch}\n                body = json.dumps(request_payload, ensure_ascii=False, separators=(\",\", \":\")).encode(\"utf-8\")\n                headers = {\"Content-Type\": \"application/json\", \"Accept\": \"application/json\", \"User-Agent\": \"business-work-design-agent/1.0\"}\n                if token:\n                    headers[\"Authorization\"] = \"Bearer \" + token\n                request = urllib.request.Request(endpoint, data=body, headers=headers, method=\"POST\")\n                try:\n                    with opener.open(request, timeout=timeout) as response:\n                        response_body = response.read(response_limit + 1)\n                        status_code = int(response.status)\n                except urllib.error.HTTPError as exc:\n                    raise ValueError(f\"embedding provider rejected batch with HTTP {exc.code}\") from exc\n                except (urllib.error.URLError, socket.timeout, TimeoutError) as exc:\n                    raise ValueError(\"embedding provider is unavailable\") from exc\n                if status_code not in {200, 201} or len(response_body) > response_limit:\n                    raise ValueError(\"embedding provider returned an invalid or oversized response\")\n                try:\n                    response_payload = json.loads(response_body.decode(\"utf-8\"))\n                except (UnicodeDecodeError, json.JSONDecodeError) as exc:\n                    raise ValueError(\"embedding provider response must be UTF-8 JSON\") from exc\n                if not isinstance(response_payload, dict):\n                    raise ValueError(\"embedding provider response must be an object\")\n                raw_vectors.update(_response_vectors(response_payload))\n                provider_receipts.append({\"start\": start, \"count\": len(batch), \"response_sha256\": hashlib.sha256(response_body).hexdigest()})\n        else:\n            raise ValueError(\"unsupported provider_mode\")\n        expected_ids = {item[\"id\"] for item in queries}\n        if set(raw_vectors) != expected_ids:\n            raise ValueError(\"embedding response query IDs do not exactly match the query plan\")\n        vectors = {item[\"id\"]: _vector(raw_vectors[item[\"id\"]], dimension, item[\"id\"]) for item in queries}\n        result = {\n            \"ok\": True,\n            \"status\": \"VECTORIZED\",\n            \"schema_version\": \"query-vectors/v1\",\n            \"vectors\": vectors,\n            \"query_order\": [item[\"id\"] for item in queries],\n            \"embedding_contract\": {\"provider_mode\": mode, \"model\": model, \"version\": model_version, \"dimension\": dimension},\n            \"provider_receipts\": provider_receipts,\n            **locks,\n        }\n        self.status = f\"Vectorized {len(vectors)} queries with {model}@{model_version}\"\n        return Data(data=result)\n",
+                "fileTypes": [],
+                "file_path": "",
+                "password": false,
+                "name": "code",
+                "advanced": true,
+                "api_editable": false,
+                "dynamic": true,
+                "info": "",
+                "load_from_db": false,
+                "title_case": false
+              },
+              "dimension": {
+                "tool_mode": false,
+                "trace_as_metadata": true,
+                "list": false,
+                "list_add_label": "Add More",
+                "override_skip": false,
+                "required": true,
+                "placeholder": "",
+                "show": true,
+                "name": "dimension",
+                "value": 1024,
+                "display_name": "Vector Dimension",
+                "advanced": false,
+                "api_editable": false,
+                "dynamic": false,
+                "info": "",
+                "title_case": false,
+                "track_in_telemetry": true,
+                "type": "int",
+                "_input_type": "IntInput"
+              },
+              "embedding_endpoint": {
+                "tool_mode": false,
+                "trace_as_metadata": true,
+                "load_from_db": false,
+                "list": false,
+                "list_add_label": "Add More",
+                "override_skip": false,
+                "required": false,
+                "placeholder": "",
+                "show": true,
+                "name": "embedding_endpoint",
+                "value": "",
+                "display_name": "Embedding Endpoint",
+                "advanced": false,
+                "api_editable": false,
+                "dynamic": false,
+                "info": "",
+                "title_case": false,
+                "track_in_telemetry": false,
+                "type": "str",
+                "_input_type": "StrInput"
+              },
+              "max_queries": {
+                "tool_mode": false,
+                "trace_as_metadata": true,
+                "list": false,
+                "list_add_label": "Add More",
+                "override_skip": false,
+                "required": false,
+                "placeholder": "",
+                "show": true,
+                "name": "max_queries",
+                "value": 30,
+                "display_name": "Maximum Queries",
+                "advanced": true,
+                "api_editable": false,
+                "dynamic": false,
+                "info": "",
+                "title_case": false,
+                "track_in_telemetry": true,
+                "type": "int",
+                "_input_type": "IntInput"
+              },
+              "max_response_bytes": {
+                "tool_mode": false,
+                "trace_as_metadata": true,
+                "list": false,
+                "list_add_label": "Add More",
+                "override_skip": false,
+                "required": false,
+                "placeholder": "",
+                "show": true,
+                "name": "max_response_bytes",
+                "value": 5000000,
+                "display_name": "Maximum Response Bytes",
+                "advanced": true,
+                "api_editable": false,
+                "dynamic": false,
+                "info": "",
+                "title_case": false,
+                "track_in_telemetry": true,
+                "type": "int",
+                "_input_type": "IntInput"
+              },
+              "model": {
+                "tool_mode": false,
+                "trace_as_metadata": true,
+                "load_from_db": false,
+                "list": false,
+                "list_add_label": "Add More",
+                "override_skip": false,
+                "required": true,
+                "placeholder": "",
+                "show": true,
+                "name": "model",
+                "value": "",
+                "display_name": "Embedding Model",
+                "advanced": false,
+                "api_editable": false,
+                "dynamic": false,
+                "info": "",
+                "title_case": false,
+                "track_in_telemetry": false,
+                "type": "str",
+                "_input_type": "StrInput"
+              },
+              "model_version": {
+                "tool_mode": false,
+                "trace_as_metadata": true,
+                "load_from_db": false,
+                "list": false,
+                "list_add_label": "Add More",
+                "override_skip": false,
+                "required": true,
+                "placeholder": "",
+                "show": true,
+                "name": "model_version",
+                "value": "",
+                "display_name": "Embedding Model Version",
+                "advanced": false,
+                "api_editable": false,
+                "dynamic": false,
+                "info": "",
+                "title_case": false,
+                "track_in_telemetry": false,
+                "type": "str",
+                "_input_type": "StrInput"
+              },
+              "provider_mode": {
+                "tool_mode": false,
+                "trace_as_metadata": true,
+                "options": [
+                  "http_json",
+                  "precomputed"
+                ],
+                "options_metadata": [],
+                "combobox": false,
+                "dialog_inputs": {},
+                "toggle": false,
+                "override_skip": false,
+                "required": false,
+                "placeholder": "",
+                "show": true,
+                "name": "provider_mode",
+                "value": "http_json",
+                "display_name": "Provider Mode",
+                "advanced": false,
+                "api_editable": false,
+                "dynamic": false,
+                "info": "",
+                "title_case": false,
+                "track_in_telemetry": true,
+                "external_options": {},
+                "type": "str",
+                "_input_type": "DropdownInput"
+              },
+              "timeout_seconds": {
+                "tool_mode": false,
+                "trace_as_metadata": true,
+                "list": false,
+                "list_add_label": "Add More",
+                "override_skip": false,
+                "required": false,
+                "placeholder": "",
+                "show": true,
+                "name": "timeout_seconds",
+                "value": 30,
+                "display_name": "Timeout (seconds)",
+                "advanced": true,
+                "api_editable": false,
+                "dynamic": false,
+                "info": "",
+                "title_case": false,
+                "track_in_telemetry": true,
+                "type": "int",
+                "_input_type": "IntInput"
+              }
+            },
+            "description": "Vectorizes every planned query with stable IDs using an approved endpoint or explicit precomputed vectors.",
+            "icon": "Binary",
+            "base_classes": [
+              "Data",
+              "JSON"
+            ],
+            "display_name": "29 검색 Query Embedding Batcher",
+            "documentation": "",
+            "minimized": false,
+            "custom_fields": {},
+            "output_types": [],
+            "pinned": false,
+            "conditional_paths": [],
+            "frozen": false,
+            "outputs": [
+              {
+                "types": [
+                  "Data",
+                  "JSON"
+                ],
+                "selected": "Data",
+                "name": "query_vectors",
+                "display_name": "ID-preserving Query Vectors",
+                "method": "build_query_vectors",
+                "value": "__UNDEFINED__",
+                "cache": true,
+                "allows_loop": false,
+                "group_outputs": false,
+                "tool_mode": true
+              }
+            ],
+            "field_order": [
+              "query_plan",
+              "provider_mode",
+              "precomputed_vectors",
+              "embedding_endpoint",
+              "api_token",
+              "model",
+              "model_version",
+              "dimension",
+              "batch_size",
+              "max_queries",
+              "timeout_seconds",
+              "max_response_bytes",
+              "allowed_host",
+              "allow_insecure_loopback"
+            ],
+            "beta": false,
+            "legacy": false,
+            "edited": false,
+            "metadata": {
+              "module": "custom_components.29__query_embedding_batcher",
+              "code_hash": "ca2d8404c10d",
+              "dependencies": {
+                "total_dependencies": 1,
+                "dependencies": [
+                  {
+                    "name": "lfx",
+                    "version": "1.11.5"
+                  }
+                ]
+              },
+              "flow_build_target": "1.11.1",
+              "flow_node_key": "query_embedding",
+              "standalone": true,
+              "standalone_source_path": "components/hybrid_retrieval/29_search_query_embedding_batcher.py",
+              "standalone_source_sha256": "ca2d8404c10defde406dcaee1587c5efd220b122dd2bc6710cdfec2aeccae43f"
+            },
+            "tool_mode": false,
+            "lf_version": "1.11.1"
+          },
+          "showNode": true,
+          "type": "SearchQueryEmbeddingBatcher",
+          "description": "Vectorizes every planned query with stable IDs using an approved endpoint or explicit precomputed vectors.",
+          "display_name": "29 검색 Query Embedding Batcher",
+          "selected_output": "query_vectors"
+        },
+        "dragging": false,
+        "id": "CustomComponent-5b0478e",
+        "measured": {
+          "height": 260,
+          "width": 320
+        },
+        "position": {
+          "x": 380,
+          "y": 0
+        },
+        "selected": false,
+        "type": "genericNode"
+      },
+      {
+        "data": {
+          "id": "CustomComponent-57b81d3",
+          "node": {
+            "template": {
+              "_type": "Component",
+              "query_plan": {
+                "tool_mode": false,
+                "trace_as_metadata": true,
+                "list": false,
+                "list_add_label": "Add More",
+                "trace_as_input": true,
+                "override_skip": false,
+                "required": true,
+                "placeholder": "",
+                "show": true,
+                "name": "query_plan",
+                "value": "",
+                "display_name": "Search Query Plan",
+                "advanced": false,
+                "api_editable": false,
+                "input_types": [
+                  "Data",
+                  "JSON"
+                ],
+                "dynamic": false,
+                "info": "",
+                "title_case": false,
+                "track_in_telemetry": false,
+                "type": "other",
+                "_input_type": "JSONInput"
+              },
+              "query_vectors": {
+                "tool_mode": false,
+                "trace_as_metadata": true,
+                "list": false,
+                "list_add_label": "Add More",
+                "trace_as_input": true,
+                "override_skip": false,
+                "required": true,
+                "placeholder": "",
+                "show": true,
+                "name": "query_vectors",
+                "value": "",
+                "display_name": "Query Vectors",
+                "advanced": false,
+                "api_editable": false,
+                "input_types": [
+                  "Data",
+                  "JSON"
+                ],
+                "dynamic": false,
+                "info": "",
+                "title_case": false,
+                "track_in_telemetry": false,
+                "type": "other",
+                "_input_type": "JSONInput"
+              },
+              "assets_collection": {
+                "tool_mode": false,
+                "trace_as_input": true,
+                "trace_as_metadata": true,
+                "load_from_db": false,
+                "list": false,
+                "list_add_label": "Add More",
+                "override_skip": false,
+                "required": false,
+                "placeholder": "",
+                "show": true,
+                "name": "assets_collection",
+                "value": "catalog_assets",
+                "display_name": "Assets Collection",
+                "advanced": true,
+                "api_editable": false,
+                "input_types": [
+                  "Message"
+                ],
+                "dynamic": false,
+                "info": "",
+                "title_case": false,
+                "track_in_telemetry": false,
+                "type": "str",
+                "_input_type": "MessageTextInput"
+              },
+              "chunks_collection": {
+                "tool_mode": false,
+                "trace_as_input": true,
+                "trace_as_metadata": true,
+                "load_from_db": false,
+                "list": false,
+                "list_add_label": "Add More",
+                "override_skip": false,
+                "required": false,
+                "placeholder": "",
+                "show": true,
+                "name": "chunks_collection",
+                "value": "catalog_asset_chunks",
+                "display_name": "Chunks Collection",
+                "advanced": true,
+                "api_editable": false,
+                "input_types": [
+                  "Message"
+                ],
+                "dynamic": false,
+                "info": "",
+                "title_case": false,
+                "track_in_telemetry": false,
+                "type": "str",
+                "_input_type": "MessageTextInput"
+              },
+              "code": {
+                "type": "code",
+                "required": true,
+                "placeholder": "",
+                "list": false,
+                "show": true,
+                "multiline": true,
+                "value": "from __future__ import annotations\n\nimport json\nimport hashlib\nimport hmac\nimport math\nimport re\nimport unicodedata\nimport uuid\nfrom datetime import datetime\nfrom typing import Any\n\nfrom lfx.custom import Component\nfrom lfx.io import DataInput, DropdownInput, IntInput, MessageTextInput, Output, SecretStrInput\nfrom lfx.schema import Data\nfrom pymongo import MongoClient\nfrom pymongo.errors import ConfigurationError, ConnectionFailure, OperationFailure, PyMongoError, ServerSelectionTimeoutError\n\n\nPROVIDER_MODES = {\"native_rank_fusion\", \"native_score_fusion\", \"application_rrf\"}\nTECHNICAL_STATUSES = {\"metadata_only\", \"ports_extracted\", \"flow_graph_extracted\", \"verified_runtime\"}\nMAX_QUERY_COUNT = 30\nMAX_NATIVE_QUERY_COUNT = 12\nMAX_SOURCE_CANDIDATES = 100\nQUERY_KIND_WEIGHTS = {\n    \"purpose\": 1.20,\n    \"capability\": 1.25,\n    \"exact\": 1.50,\n    \"risk\": 1.15,\n    \"reporting\": 1.00,\n}\n\n\ndef _safe_identifier(value: Any, default: str) -> str:\n    text = str(value or default).strip()\n    if not re.fullmatch(r\"[A-Za-z0-9][A-Za-z0-9_.-]{0,127}\", text):\n        raise ValueError(\"INVALID_PROVIDER_IDENTIFIER\")\n    return text\n\n\ndef _payload(value: Any) -> Any:\n    if isinstance(value, (dict, list)):\n        return value\n    data = getattr(value, \"data\", None)\n    if isinstance(data, (dict, list)):\n        return data\n    if isinstance(value, str) and value.strip():\n        try:\n            return json.loads(value)\n        except json.JSONDecodeError:\n            return {}\n    return {}\n\n\ndef _secret(value: Any) -> str:\n    getter = getattr(value, \"get_secret_value\", None)\n    if callable(getter):\n        return str(getter())\n    return str(value or \"\")\n\n\ndef _canonical_hash(value: Any) -> str:\n    material = json.dumps(value, ensure_ascii=False, sort_keys=True, separators=(\",\", \":\"))\n    return \"sha256:\" + hashlib.sha256(material.encode(\"utf-8\")).hexdigest()\n\n\ndef _string_list(value: Any, maximum: int = 100) -> list[str]:\n    if isinstance(value, str):\n        source = re.split(r\"[,;\\n]\", value)\n    elif isinstance(value, (list, tuple, set)):\n        source = list(value)\n    else:\n        source = []\n    result: list[str] = []\n    for item in source[:maximum]:\n        text = str(item or \"\").strip()\n        if text and text not in result:\n            result.append(text)\n    return result\n\n\ndef _normalize_exact_key(value: Any) -> str:\n    text = unicodedata.normalize(\"NFKC\", str(value or \"\")).casefold().strip()\n    return re.sub(r\"\\s+\", \" \", text)[:500]\n\n\ndef _acl_filter(tenant_id: str, acl: dict[str, Any]) -> dict[str, Any]:\n    groups = [item.lower() for item in _string_list(acl.get(\"groups\"))]\n    subject_id = str(acl.get(\"subject_id\") or \"\")\n    choices: list[dict[str, Any]] = [{\"acl.visibility\": \"tenant\"}]\n    if groups:\n        choices.append({\"acl.visibility\": \"group\", \"acl.groups\": {\"$in\": groups}})\n    if subject_id:\n        choices.append({\"acl.visibility\": \"private\", \"acl.subjects\": subject_id})\n    return {\"tenant_id\": tenant_id, \"$or\": choices}\n\n\ndef _acl_allows(document: dict[str, Any], tenant_id: str, snapshot_id: str, acl: dict[str, Any]) -> bool:\n    if str(document.get(\"tenant_id\") or \"\") != tenant_id:\n        return False\n    if str(document.get(\"snapshot_id\") or \"\") != snapshot_id:\n        return False\n    document_acl = document.get(\"acl\") if isinstance(document.get(\"acl\"), dict) else None\n    if document_acl is None:\n        return False\n    visibility = str(document_acl.get(\"visibility\") or \"\").lower()\n    groups = {item.lower() for item in _string_list(acl.get(\"groups\"))}\n    allowed_groups = {item.lower() for item in _string_list(document_acl.get(\"groups\"))}\n    subjects = set(_string_list(document_acl.get(\"subjects\")))\n    subject_id = str(acl.get(\"subject_id\") or \"\")\n    if visibility == \"tenant\":\n        return True\n    if visibility == \"group\":\n        return bool(groups & allowed_groups)\n    return visibility == \"private\" and bool(subject_id) and subject_id in subjects\n\n\ndef _query_vectors(value: Any) -> tuple[dict[str, list[float]], dict[str, Any]]:\n    payload = _payload(value)\n    contract = payload.get(\"embedding_contract\") if isinstance(payload.get(\"embedding_contract\"), dict) else {}\n    declared_dimension = contract.get(\"dimension\")\n    if isinstance(declared_dimension, bool) or not isinstance(declared_dimension, int) or not 1 <= declared_dimension <= 8192:\n        raise ValueError(\"VECTOR_CONTRACT_DIMENSION_INVALID\")\n    raw = payload.get(\"vectors\") if isinstance(payload, dict) else None\n    result: dict[str, list[float]] = {}\n    if isinstance(raw, dict):\n        pairs = raw.items()\n    elif isinstance(raw, list):\n        pairs = ((item.get(\"query_id\"), item.get(\"vector\")) for item in raw if isinstance(item, dict))\n    else:\n        pairs = []\n    dimension: int | None = None\n    for query_id, vector in pairs:\n        if not query_id or not isinstance(vector, list) or not vector or len(vector) > 8192:\n            raise ValueError(\"VECTOR_PAYLOAD_INVALID\")\n        if any(isinstance(item, bool) or not isinstance(item, (int, float)) for item in vector):\n            raise ValueError(\"VECTOR_NUMERIC_INVALID\")\n        values = [float(item) for item in vector]\n        if not all(math.isfinite(item) for item in values):\n            raise ValueError(\"VECTOR_NUMERIC_INVALID\")\n        if dimension is None:\n            dimension = len(values)\n        if len(values) != dimension or len(values) != declared_dimension:\n            raise ValueError(\"VECTOR_DIMENSION_MISMATCH\")\n        result[str(query_id)] = values\n    return result, contract\n\n\ndef _mongo_base_filter(tenant_id: str, snapshot_id: str, acl: dict[str, Any], asset_types: list[str]) -> dict[str, Any]:\n    base = _acl_filter(tenant_id, acl)\n    base[\"snapshot_id\"] = snapshot_id\n    if asset_types:\n        base[\"asset_type\"] = {\"$in\": asset_types}\n    return base\n\n\ndef _search_filter_clauses(tenant_id: str, snapshot_id: str, acl: dict[str, Any], asset_types: list[str]) -> list[dict[str, Any]]:\n    clauses: list[dict[str, Any]] = [\n        {\"equals\": {\"path\": \"tenant_id\", \"value\": tenant_id}},\n        {\"equals\": {\"path\": \"snapshot_id\", \"value\": snapshot_id}},\n    ]\n    if asset_types:\n        clauses.append({\"in\": {\"path\": \"asset_type\", \"value\": asset_types}})\n    # Atlas Search must apply authorization before producing candidates.  This\n    # compound clause mirrors the post-query fail-closed ACL verification.\n    should: list[dict[str, Any]] = [\n        {\n            \"compound\": {\n                \"must\": [{\"equals\": {\"path\": \"acl.visibility\", \"value\": \"tenant\"}}]\n            }\n        }\n    ]\n    groups = [item.lower() for item in _string_list(acl.get(\"groups\"))]\n    if groups:\n        should.append(\n            {\n                \"compound\": {\n                    \"must\": [\n                        {\"equals\": {\"path\": \"acl.visibility\", \"value\": \"group\"}},\n                        {\"in\": {\"path\": \"acl.groups\", \"value\": groups}},\n                    ]\n                }\n            }\n        )\n    subject_id = str(acl.get(\"subject_id\") or \"\")\n    if subject_id:\n        should.append(\n            {\n                \"compound\": {\n                    \"must\": [\n                        {\"equals\": {\"path\": \"acl.visibility\", \"value\": \"private\"}},\n                        {\"equals\": {\"path\": \"acl.subjects\", \"value\": subject_id}},\n                    ]\n                }\n            }\n        )\n    clauses.append({\"compound\": {\"should\": should, \"minimumShouldMatch\": 1}})\n    return clauses\n\n\ndef _clean_document(document: dict[str, Any], source: str, rank: int, query_ids: list[str]) -> dict[str, Any]:\n    technical = document.get(\"technical_contract\") if isinstance(document.get(\"technical_contract\"), dict) else {}\n    technical_status = str(document.get(\"technical_contract_status\") or technical.get(\"status\") or \"metadata_only\")\n    if technical_status not in TECHNICAL_STATUSES:\n        technical_status = \"metadata_only\"\n    ports = document.get(\"ports\") if isinstance(document.get(\"ports\"), dict) else {\n        \"inputs\": technical.get(\"inputs\") if isinstance(technical.get(\"inputs\"), list) else [],\n        \"outputs\": technical.get(\"outputs\") if isinstance(technical.get(\"outputs\"), list) else [],\n    }\n    popularity = document.get(\"popularity\") if isinstance(document.get(\"popularity\"), dict) else {}\n    return {\n        \"asset_id\": str(document.get(\"asset_id\") or document.get(\"id\") or \"\")[:200],\n        \"version\": str(document.get(\"version\") or \"\")[:100],\n        \"asset_type\": str(document.get(\"asset_type\") or document.get(\"type\") or \"\")[:50],\n        \"title\": str(document.get(\"title\") or \"\")[:500],\n        \"description\": str(document.get(\"description\") or \"\")[:2000],\n        \"category\": str(document.get(\"category\") or \"\")[:200],\n        \"readme\": str(document.get(\"readme\") or document.get(\"lexical_text_redacted\") or \"\")[:8000],\n        \"technical_contract_status\": technical_status,\n        \"ports\": ports,\n        \"relations\": document.get(\"relations\") if isinstance(document.get(\"relations\"), list) else [],\n        \"tenant_id\": str(document.get(\"tenant_id\") or \"\"),\n        \"snapshot_id\": str(document.get(\"snapshot_id\") or \"\"),\n        \"acl\": document.get(\"acl\") if isinstance(document.get(\"acl\"), dict) else {},\n        \"stars_count\": int(document.get(\"stars_count\") or popularity.get(\"stars\") or 0),\n        \"downloads_count\": int(document.get(\"downloads_count\") or popularity.get(\"downloads\") or 0),\n        \"updated_at\": str(document.get(\"updated_at\") or \"\"),\n        \"matched_chunk_id\": str(document.get(\"chunk_id\") or \"\")[:200],\n        \"source\": source,\n        \"source_rank\": rank,\n        \"query_ids\": query_ids,\n    }\n\n\ndef _enrich_source_results(\n    source_results: dict[str, list[dict[str, Any]]],\n    parent_documents: list[dict[str, Any]],\n    source_limit: int,\n) -> tuple[dict[str, list[dict[str, Any]]], int]:\n    parents = {\n        (str(item.get(\"asset_id\") or item.get(\"id\") or \"\"), str(item.get(\"version\") or \"\")): item\n        for item in parent_documents\n        if isinstance(item, dict)\n    }\n    enriched: dict[str, list[dict[str, Any]]] = {}\n    missing = 0\n    for source, items in source_results.items():\n        output: list[dict[str, Any]] = []\n        for item in items[:source_limit]:\n            if not isinstance(item, dict):\n                continue\n            identity = (str(item.get(\"asset_id\") or item.get(\"id\") or \"\"), str(item.get(\"version\") or \"\"))\n            parent = parents.get(identity)\n            if parent is None:\n                missing += 1\n                continue\n            merged = dict(parent)\n            for key, value in item.items():\n                if key.startswith(\"_\") or key in {\"score\", \"chunk_id\", \"chunk_ordinal\", \"lexical_text_redacted\"}:\n                    merged[key] = value\n            output.append(merged)\n        enriched[source] = output\n    return enriched, missing\n\n\ndef _updated_timestamp(document: dict[str, Any]) -> float:\n    text = str(document.get(\"updated_at\") or \"\").strip()\n    if not text:\n        return 0.0\n    try:\n        return datetime.fromisoformat(text.replace(\"Z\", \"+00:00\")).timestamp()\n    except (ValueError, OSError):\n        return 0.0\n\n\ndef _popularity(document: dict[str, Any], key: str) -> int:\n    nested = document.get(\"popularity\") if isinstance(document.get(\"popularity\"), dict) else {}\n    try:\n        return max(0, int(document.get(f\"{key}_count\") or nested.get(key) or 0))\n    except (TypeError, ValueError):\n        return 0\n\n\ndef _find_exact_parents(\n    collection: Any,\n    base_filter: dict[str, Any],\n    exact_keys: list[str],\n    exact_terms: list[str],\n    source_limit: int,\n    query_timeout_ms: int,\n) -> list[dict[str, Any]]:\n    lanes = (\n        {\"title_normalized\": {\"$in\": exact_keys}},\n        {\"aliases_normalized\": {\"$in\": exact_keys}},\n        {\"asset_id\": {\"$in\": exact_terms}},\n    )\n    result: list[dict[str, Any]] = []\n    seen: set[tuple[str, str]] = set()\n    for lane in lanes:\n        if not next(iter(lane.values()))[\"$in\"]:\n            continue\n        cursor = collection.find({\"$and\": [base_filter, lane]}, {\"_id\": 0}, max_time_ms=query_timeout_ms)\n        cursor = cursor.sort([(\"asset_id\", 1), (\"version\", 1)]).limit(source_limit)\n        for document in cursor:\n            identity = (str(document.get(\"asset_id\") or document.get(\"id\") or \"\"), str(document.get(\"version\") or \"\"))\n            if all(identity) and identity not in seen:\n                seen.add(identity)\n                result.append(document)\n            if len(result) >= source_limit:\n                return result\n    return result\n\n\ndef _retrieve_from_mongodb(\n    *,\n    mongodb_uri: str,\n    database_name: str,\n    chunks_collection: str,\n    pointer_collection: str,\n    assets_collection: str = \"catalog_assets\",\n    tenant_id: str,\n    snapshot_id: str,\n    acl: dict[str, Any],\n    query_plan: dict[str, Any],\n    vectors: dict[str, list[float]],\n    query_embedding_contract: dict[str, Any],\n    provider_mode: str,\n    lexical_index_name: str,\n    vector_index_name: str,\n    source_limit: int,\n    server_selection_timeout_ms: int,\n    query_timeout_ms: int,\n) -> dict[str, Any]:\n    client = MongoClient(\n        mongodb_uri,\n        serverSelectionTimeoutMS=server_selection_timeout_ms,\n        connectTimeoutMS=server_selection_timeout_ms,\n        socketTimeoutMS=query_timeout_ms,\n        appname=\"business-work-design-agent-retriever\",\n    )\n    try:\n        database = client[database_name]\n        pointer = database[pointer_collection].find_one(\n            {\"tenant_id\": tenant_id},\n            {\"_id\": 0, \"snapshot_id\": 1, \"active_snapshot_id\": 1, \"embedding_contract\": 1},\n            max_time_ms=query_timeout_ms,\n        )\n        active_snapshot_id = str((pointer or {}).get(\"snapshot_id\") or (pointer or {}).get(\"active_snapshot_id\") or \"\")\n        if not active_snapshot_id:\n            return {\"active_snapshot_id\": \"\", \"source_results\": {}}\n        if active_snapshot_id != snapshot_id:\n            return {\"active_snapshot_id\": active_snapshot_id, \"source_results\": {}}\n        active_contract = (pointer or {}).get(\"embedding_contract\") if isinstance((pointer or {}).get(\"embedding_contract\"), dict) else {}\n        contract_fields = (\"model\", \"version\", \"dimension\")\n        if any(active_contract.get(field) in (None, \"\") for field in contract_fields):\n            return {\"active_snapshot_id\": active_snapshot_id, \"contract_error\": \"CATALOG_EMBEDDING_CONTRACT_MISSING\", \"source_results\": {}}\n        if any(str(active_contract.get(field)) != str(query_embedding_contract.get(field)) for field in contract_fields):\n            return {\"active_snapshot_id\": active_snapshot_id, \"contract_error\": \"QUERY_EMBEDDING_CONTRACT_MISMATCH\", \"source_results\": {}}\n\n        collection = database[chunks_collection]\n        parents_collection = database[assets_collection]\n        queries = [item for item in query_plan.get(\"queries\", []) if isinstance(item, dict)]\n        search_text = \" \".join(str(item.get(\"text\") or \"\") for item in queries if item.get(\"kind\") != \"exact\")[:4000]\n        exact_terms = [str(item.get(\"text\") or \"\")[:500] for item in queries if item.get(\"kind\") == \"exact\"]\n        exact_keys = [key for key in (_normalize_exact_key(term) for term in exact_terms) if key]\n        asset_types = sorted(\n            {\n                str(asset_type)\n                for item in queries\n                for asset_type in item.get(\"expected_asset_types\", [])\n                if asset_type in {\"component\", \"flow\"}\n            }\n        )\n        query_ids = [str(item.get(\"query_id\")) for item in queries if item.get(\"query_id\")]\n        base_filter = _mongo_base_filter(tenant_id, snapshot_id, acl, asset_types)\n        search_filters = _search_filter_clauses(tenant_id, snapshot_id, acl, asset_types)\n        exact_docs: list[dict[str, Any]] = []\n        if exact_keys or exact_terms:\n            exact_docs = _find_exact_parents(\n                parents_collection,\n                base_filter,\n                exact_keys,\n                exact_terms,\n                source_limit,\n                query_timeout_ms,\n            )\n\n        if provider_mode == \"application_rrf\":\n            lexical_docs = list(\n                collection.aggregate(\n                    [\n                        {\n                            \"$search\": {\n                                \"index\": lexical_index_name,\n                                \"compound\": {\n                                    \"must\": [{\"text\": {\"query\": search_text, \"path\": [\"title\", \"description\", \"lexical_text_redacted\", \"category\"]}}],\n                                    \"filter\": search_filters,\n                                },\n                            }\n                        },\n                        {\"$limit\": source_limit},\n                        {\"$project\": {\"_id\": 0, \"score\": {\"$meta\": \"searchScore\"}, \"asset_id\": 1, \"version\": 1, \"asset_type\": 1, \"title\": 1, \"description\": 1, \"category\": 1, \"readme\": 1, \"lexical_text_redacted\": 1, \"technical_contract_status\": 1, \"ports\": 1, \"relations\": 1, \"tenant_id\": 1, \"snapshot_id\": 1, \"acl\": 1, \"stars_count\": 1, \"downloads_count\": 1, \"updated_at\": 1, \"chunk_id\": 1}},\n                    ],\n                    maxTimeMS=query_timeout_ms,\n                )\n            )\n            source_results = {\"exact\": exact_docs, \"lexical\": lexical_docs}\n            for query_id in query_ids:\n                vector_docs = list(\n                    collection.aggregate(\n                        [\n                            {\n                                \"$vectorSearch\": {\n                                    \"index\": vector_index_name,\n                                    \"path\": \"embedding.vector\",\n                                    \"queryVector\": vectors[query_id],\n                                    \"numCandidates\": min(1000, source_limit * 10),\n                                    \"limit\": source_limit,\n                                    \"filter\": base_filter,\n                                }\n                            },\n                            {\"$project\": {\"_id\": 0, \"score\": {\"$meta\": \"vectorSearchScore\"}, \"asset_id\": 1, \"version\": 1, \"asset_type\": 1, \"title\": 1, \"description\": 1, \"category\": 1, \"readme\": 1, \"lexical_text_redacted\": 1, \"technical_contract_status\": 1, \"ports\": 1, \"relations\": 1, \"tenant_id\": 1, \"snapshot_id\": 1, \"acl\": 1, \"stars_count\": 1, \"downloads_count\": 1, \"updated_at\": 1, \"chunk_id\": 1}},\n                        ],\n                        maxTimeMS=query_timeout_ms,\n                    )\n                )\n                source_results[f\"vector:{query_id}\"] = vector_docs\n        else:\n            fusion_operator = \"$rankFusion\" if provider_mode == \"native_rank_fusion\" else \"$scoreFusion\"\n            fusion_pipelines: dict[str, list[dict[str, Any]]] = {\n                \"lexical\": [\n                    {\n                        \"$search\": {\n                            \"index\": lexical_index_name,\n                            \"compound\": {\n                                \"must\": [{\"text\": {\"query\": search_text, \"path\": [\"title\", \"description\", \"lexical_text_redacted\", \"category\"]}}],\n                                \"filter\": search_filters,\n                            },\n                        }\n                    },\n                    {\"$limit\": source_limit},\n                ]\n            }\n            native_pipeline_query_ids: dict[str, str] = {}\n            native_weights: dict[str, float] = {\"lexical\": 1.0}\n            query_kind_by_id = {\n                str(item.get(\"query_id\")): str(item.get(\"kind\") or \"\")\n                for item in queries\n                if item.get(\"query_id\")\n            }\n            for index, query_id in enumerate(query_ids):\n                pipeline_name = f\"vector_{index:02d}\"\n                native_pipeline_query_ids[pipeline_name] = query_id\n                native_weights[pipeline_name] = QUERY_KIND_WEIGHTS.get(query_kind_by_id.get(query_id, \"\"), 1.0)\n                fusion_pipelines[pipeline_name] = [\n                    {\n                        \"$vectorSearch\": {\n                            \"index\": vector_index_name,\n                            \"path\": \"embedding.vector\",\n                            \"queryVector\": vectors[query_id],\n                            \"numCandidates\": min(1000, source_limit * 10),\n                            \"limit\": source_limit,\n                            \"filter\": base_filter,\n                        }\n                    }\n                ]\n            fusion_spec: dict[str, Any] = {\n                \"input\": {\"pipelines\": fusion_pipelines},\n                \"combination\": {\"weights\": native_weights},\n                \"scoreDetails\": True,\n            }\n            if provider_mode == \"native_score_fusion\":\n                fusion_spec[\"input\"][\"normalization\"] = \"none\"\n                fusion_spec[\"combination\"][\"method\"] = \"avg\"\n            score_details_meta = \"searchScoreDetails\" if provider_mode == \"native_rank_fusion\" else \"scoreDetails\"\n            fused_docs = list(\n                collection.aggregate(\n                    [\n                        {fusion_operator: fusion_spec},\n                        {\"$addFields\": {\"_fusion_score_details\": {\"$meta\": score_details_meta}}},\n                        {\"$limit\": source_limit},\n                    ],\n                    maxTimeMS=query_timeout_ms,\n                )\n            )\n            source_results = {\"exact\": exact_docs, \"native_fused\": fused_docs}\n\n        # Search chunks only establish candidate identity and ranking evidence.\n        # Re-fetch authoritative parent metadata under the same tenant/snapshot/\n        # ACL filter so ports, relations, README, and popularity cannot be lost\n        # or forged by a stale/orphan chunk.\n        identities = sorted(\n            {\n                (str(item.get(\"asset_id\") or item.get(\"id\") or \"\"), str(item.get(\"version\") or \"\"))\n                for items in source_results.values()\n                for item in items[:source_limit]\n                if isinstance(item, dict)\n                and str(item.get(\"asset_id\") or item.get(\"id\") or \"\")\n                and str(item.get(\"version\") or \"\")\n            }\n        )\n        parent_documents: list[dict[str, Any]] = []\n        if identities:\n            for offset in range(0, len(identities), 250):\n                batch = identities[offset : offset + 250]\n                identity_filter = {\"$or\": [{\"asset_id\": asset_id, \"version\": version} for asset_id, version in batch]}\n                parent_documents.extend(\n                    list(\n                        parents_collection.find(\n                            {\"$and\": [base_filter, identity_filter]},\n                            {\"_id\": 0},\n                            max_time_ms=query_timeout_ms,\n                        )\n                    )\n                )\n        source_results, missing_parent_count = _enrich_source_results(source_results, parent_documents, source_limit)\n\n        # Relation payloads are never trusted as documents. Only parent relation\n        # IDs are re-queried from the authoritative asset collection.\n        relation_refs: list[tuple[str, str]] = []\n        for source_items in source_results.values():\n            for document in source_items[:source_limit]:\n                for relation in document.get(\"relations\", []) if isinstance(document.get(\"relations\"), list) else []:\n                    if not isinstance(relation, dict):\n                        continue\n                    ref = (str(relation.get(\"asset_id\") or \"\"), str(relation.get(\"version\") or \"\"))\n                    if all(ref) and ref not in relation_refs:\n                        relation_refs.append(ref)\n                    if len(relation_refs) >= source_limit:\n                        break\n        if relation_refs:\n            relation_identity = {\n                \"$or\": [{\"asset_id\": asset_id, \"version\": version} for asset_id, version in relation_refs]\n            }\n            source_results[\"relation\"] = list(\n                parents_collection.find(\n                    {\"$and\": [base_filter, relation_identity]},\n                    {\"_id\": 0},\n                    limit=source_limit,\n                    max_time_ms=query_timeout_ms,\n                )\n            )\n        return {\n            \"active_snapshot_id\": active_snapshot_id,\n            \"source_results\": source_results,\n            \"native_pipeline_query_ids\": native_pipeline_query_ids if provider_mode != \"application_rrf\" else {},\n            \"missing_parent_count\": missing_parent_count,\n        }\n    finally:\n        client.close()\n\n\ndef _rrf(\n    source_results: dict[str, list[dict[str, Any]]],\n    k: int = 60,\n    source_weights: dict[str, float] | None = None,\n) -> list[dict[str, Any]]:\n    scores: dict[tuple[str, str], float] = {}\n    documents: dict[tuple[str, str], dict[str, Any]] = {}\n    ranks: dict[tuple[str, str], dict[str, int]] = {}\n    for source, items in source_results.items():\n        seen_in_source: set[tuple[str, str]] = set()\n        for rank, item in enumerate(items[:MAX_SOURCE_CANDIDATES], start=1):\n            if not isinstance(item, dict):\n                continue\n            key = (str(item.get(\"asset_id\") or item.get(\"id\") or \"\"), str(item.get(\"version\") or \"\"))\n            if not all(key) or key in seen_in_source:\n                continue\n            seen_in_source.add(key)\n            default_weight = 2.0 if source == \"exact\" else 0.25 if source == \"relation\" else 1.0\n            weight = float((source_weights or {}).get(source, default_weight))\n            scores[key] = scores.get(key, 0.0) + weight / (k + rank)\n            ranks.setdefault(key, {})[source] = rank\n            if key not in documents:\n                documents[key] = dict(item)\n            elif source == \"native_fused\" and isinstance(item.get(\"_fusion_score_details\"), dict):\n                # exact results are inserted first, but native score details are\n                # the authoritative evidence for per-query contribution trace.\n                documents[key][\"_fusion_score_details\"] = dict(item[\"_fusion_score_details\"])\n    ordered = sorted(\n        scores,\n        key=lambda key: (\n            -scores[key],\n            -_popularity(documents[key], \"stars\"),\n            -_popularity(documents[key], \"downloads\"),\n            -_updated_timestamp(documents[key]),\n            key[0],\n            key[1],\n        ),\n    )\n    result: list[dict[str, Any]] = []\n    for fused_rank, key in enumerate(ordered, start=1):\n        item = dict(documents[key])\n        item[\"_fused_score\"] = scores[key]\n        item[\"_source_ranks\"] = ranks[key]\n        item[\"_fused_rank\"] = fused_rank\n        result.append(item)\n    return result\n\n\ndef _native_vector_contributions(\n    document: dict[str, Any], pipeline_query_ids: dict[str, str]\n) -> tuple[list[str], dict[str, int | float | str]]:\n    score_details = document.get(\"_fusion_score_details\")\n    details = score_details.get(\"details\") if isinstance(score_details, dict) else None\n    if not isinstance(details, list):\n        return [], {}\n    matched: list[str] = []\n    ranks: dict[str, int | float | str] = {}\n    for detail in details:\n        if not isinstance(detail, dict):\n            continue\n        query_id = pipeline_query_ids.get(str(detail.get(\"inputPipelineName\") or \"\"))\n        if not query_id:\n            continue\n        if query_id not in matched:\n            matched.append(query_id)\n        rank_or_score = detail.get(\"rank\")\n        if rank_or_score in (None, \"N/A\"):\n            rank_or_score = detail.get(\"inputPipelineRawScore\", detail.get(\"value\"))\n        if rank_or_score is not None:\n            ranks[query_id] = rank_or_score\n    return sorted(matched), ranks\n\n\ndef retrieve_catalog_candidates(\n    query_plan: Any,\n    query_vectors: Any,\n    *,\n    tenant_id: str = \"\",\n    catalog_snapshot_id: str = \"\",\n    acl_context: Any = None,\n    provider_mode: str,\n    mongodb_uri: Any,\n    database_name: str = \"business_work_design\",\n    chunks_collection: str = \"catalog_asset_chunks\",\n    assets_collection: str = \"catalog_assets\",\n    pointer_collection: str = \"catalog_active_pointers\",\n    lexical_index_name: str = \"catalog_lexical\",\n    vector_index_name: str = \"catalog_vector\",\n    top_n: int = 20,\n    source_limit: int = 50,\n    server_selection_timeout_ms: int = 5000,\n    query_timeout_ms: int = 10000,\n) -> dict[str, Any]:\n    trace_id = str(uuid.uuid4())\n    plan = _payload(query_plan)\n    mode = str(provider_mode or \"\").strip()\n    if mode not in PROVIDER_MODES:\n        return _error(trace_id, \"UNSUPPORTED_PROVIDER_MODE\", \"지원되지 않는 provider_mode입니다.\")\n    if not plan.get(\"ok\"):\n        return _error(trace_id, \"INVALID_QUERY_PLAN\", \"성공한 query plan이 필요합니다.\")\n    tenant = str(plan.get(\"tenant_id\") or \"\").strip()\n    snapshot = str(plan.get(\"catalog_snapshot_id\") or \"\").strip()\n    supplied_tenant = str(tenant_id or \"\").strip()\n    supplied_snapshot = str(catalog_snapshot_id or \"\").strip()\n    if not tenant or not snapshot:\n        return _error(trace_id, \"CATALOG_SCOPE_MISSING\", \"query plan에 tenant_id와 catalog_snapshot_id가 필요합니다.\")\n    if (supplied_tenant and supplied_tenant != tenant) or (supplied_snapshot and supplied_snapshot != snapshot):\n        return _error(trace_id, \"QUERY_PLAN_SCOPE_MISMATCH\", \"query plan의 tenant 또는 snapshot 계약이 일치하지 않습니다.\")\n    plan_acl = plan.get(\"acl\") if isinstance(plan.get(\"acl\"), dict) else {}\n    acl = _payload(acl_context) if acl_context is not None else plan_acl\n    if not plan_acl.get(\"subject_id\"):\n        return _error(trace_id, \"ACL_CONTEXT_MISSING\", \"query plan에 검증 가능한 ACL context가 필요합니다.\")\n    if str(plan_acl.get(\"subject_id\") or \"\") != str(acl.get(\"subject_id\") or \"\") or {\n        item.lower() for item in _string_list(plan_acl.get(\"groups\"))\n    } != {item.lower() for item in _string_list(acl.get(\"groups\"))}:\n        return _error(trace_id, \"ACL_CONTEXT_MISMATCH\", \"query plan을 만든 ACL context와 현재 ACL context가 다릅니다.\")\n    lock_fields = (\"work_definition_id\", \"work_definition_revision\", \"approved_hash\", \"design_scope_sha256\")\n    if any(plan.get(field) in (None, \"\") for field in lock_fields) or not str(plan.get(\"approved_hash\")).startswith(\"sha256:\"):\n        return _error(trace_id, \"QUERY_PLAN_LOCK_MISSING\", \"query plan에 승인 업무와 design scope lock이 필요합니다.\")\n    query_plan_hash = str(plan.get(\"query_plan_sha256\") or \"\")\n    plan_core = {\n        key: value\n        for key, value in plan.items()\n        if key not in {\"ok\", \"status\", \"query_plan_sha256\", \"trace_id\"}\n    }\n    if (\n        not re.fullmatch(r\"sha256:[0-9a-fA-F]{64}\", query_plan_hash)\n        or not hmac.compare_digest(query_plan_hash.lower(), _canonical_hash(plan_core).lower())\n    ):\n        return _error(trace_id, \"QUERY_PLAN_HASH_MISMATCH\", \"query plan hash가 canonical payload와 일치하지 않습니다.\")\n    if not isinstance(plan.get(\"queries\"), list) or not plan[\"queries\"]:\n        return _error(trace_id, \"INVALID_QUERY_PLAN\", \"검색 query가 없습니다.\")\n    provider_query_limit = MAX_NATIVE_QUERY_COUNT if mode.startswith(\"native_\") else MAX_QUERY_COUNT\n    if len(plan[\"queries\"]) > provider_query_limit:\n        return _error(\n            trace_id,\n            \"SEARCH_QUERY_LIMIT_EXCEEDED\",\n            \"선택한 검색 provider가 한 번에 처리할 수 있는 query 수를 초과했습니다.\",\n            details={\"provider_mode\": mode, \"query_count\": len(plan[\"queries\"]), \"maximum\": provider_query_limit},\n        )\n    uri = _secret(mongodb_uri)\n    if not uri:\n        return _error(trace_id, \"CATALOG_CONFIGURATION_MISSING\", \"MongoDB 연결 설정이 필요합니다.\")\n    vector_payload = _payload(query_vectors)\n    if any(str(vector_payload.get(field) or \"\") != str(plan.get(field) or \"\") for field in (\"design_scope_sha256\", \"query_plan_sha256\")):\n        return _error(trace_id, \"QUERY_VECTOR_PLAN_MISMATCH\", \"query vectors가 현재 query plan의 scope/hash lock과 일치하지 않습니다.\")\n    try:\n        vectors, query_embedding_contract = _query_vectors(query_vectors)\n    except ValueError as exc:\n        code = str(exc)\n        messages = {\n            \"VECTOR_CONTRACT_DIMENSION_INVALID\": \"query embedding 계약의 dimension이 유효하지 않습니다.\",\n            \"VECTOR_PAYLOAD_INVALID\": \"query vector payload가 유효하지 않습니다.\",\n            \"VECTOR_NUMERIC_INVALID\": \"query vector는 bool이 아닌 유한 숫자로만 구성되어야 합니다.\",\n            \"VECTOR_DIMENSION_MISMATCH\": \"query vector dimension이 계약 또는 다른 vector와 다릅니다.\",\n        }\n        return _error(trace_id, code if code in messages else \"VECTOR_PAYLOAD_INVALID\", messages.get(code, \"query vector가 유효하지 않습니다.\"))\n    query_ids = {str(item.get(\"query_id\")) for item in plan[\"queries\"] if isinstance(item, dict) and item.get(\"query_id\")}\n    if len(query_ids) != len(plan[\"queries\"]):\n        return _error(trace_id, \"INVALID_QUERY_PLAN\", \"모든 query에는 중복되지 않는 query_id가 필요합니다.\")\n    if not query_ids or set(vectors) != query_ids:\n        return _error(trace_id, \"VECTOR_QUERY_MISSING\", \"모든 query plan ID에 정확히 대응하는 vector가 필요합니다.\")\n    if any(query_embedding_contract.get(field) in (None, \"\") for field in (\"model\", \"version\", \"dimension\")):\n        return _error(trace_id, \"QUERY_EMBEDDING_CONTRACT_MISSING\", \"query vector의 model, version, dimension 계약이 필요합니다.\")\n\n    top_n = max(1, min(50, int(top_n or 20)))\n    source_limit = max(top_n, min(MAX_SOURCE_CANDIDATES, int(source_limit or 50)))\n    try:\n        safe_database_name = _safe_identifier(database_name, \"business_work_design\")\n        safe_chunks_collection = _safe_identifier(chunks_collection, \"catalog_asset_chunks\")\n        safe_assets_collection = _safe_identifier(assets_collection, \"catalog_assets\")\n        safe_pointer_collection = _safe_identifier(pointer_collection, \"catalog_active_pointers\")\n        safe_lexical_index_name = _safe_identifier(lexical_index_name, \"catalog_lexical\")\n        safe_vector_index_name = _safe_identifier(vector_index_name, \"catalog_vector\")\n    except ValueError:\n        return _error(trace_id, \"INVALID_SEARCH_CONFIGURATION\", \"database, collection 또는 index 이름 형식이 잘못되었습니다.\")\n    try:\n        backend_result = _retrieve_from_mongodb(\n            mongodb_uri=uri,\n            database_name=safe_database_name,\n            chunks_collection=safe_chunks_collection,\n            assets_collection=safe_assets_collection,\n            pointer_collection=safe_pointer_collection,\n            tenant_id=tenant,\n            snapshot_id=snapshot,\n            acl=acl,\n            query_plan=plan,\n            vectors=vectors,\n            query_embedding_contract=query_embedding_contract,\n            provider_mode=mode,\n            lexical_index_name=safe_lexical_index_name,\n            vector_index_name=safe_vector_index_name,\n            source_limit=source_limit,\n            server_selection_timeout_ms=max(1000, min(30000, int(server_selection_timeout_ms or 5000))),\n            query_timeout_ms=max(1000, min(60000, int(query_timeout_ms or 10000))),\n        )\n    except OperationFailure as exc:\n        if exc.code == 50:\n            return _error(trace_id, \"SEARCH_TIMEOUT\", \"MongoDB 검색 실행 시간이 초과되었습니다.\", retryable=True, details={\"mongo_code\": exc.code})\n        return _error(trace_id, \"SEARCH_OPERATOR_UNAVAILABLE\", \"선택한 검색 provider mode를 MongoDB가 실행하지 못했습니다.\", retryable=False, details={\"provider_mode\": mode, \"mongo_code\": exc.code})\n    except (ServerSelectionTimeoutError, ConnectionFailure) as exc:\n        return _error(trace_id, \"SEARCH_TIMEOUT\", \"MongoDB 검색 연결 시간이 초과되었습니다.\", retryable=True, details={\"exception_type\": type(exc).__name__})\n    except (ConfigurationError, PyMongoError) as exc:\n        return _error(trace_id, \"SEARCH_PROVIDER_ERROR\", \"MongoDB 검색 provider 오류가 발생했습니다.\", retryable=False, details={\"exception_type\": type(exc).__name__})\n\n    active_snapshot = str(backend_result.get(\"active_snapshot_id\") or \"\")\n    if not active_snapshot:\n        return _error(trace_id, \"CATALOG_NOT_READY\", \"활성 catalog snapshot이 없습니다.\")\n    if active_snapshot != snapshot:\n        return _error(trace_id, \"ACTIVE_SNAPSHOT_MISMATCH\", \"요청 snapshot이 현재 활성 snapshot과 일치하지 않습니다.\", details={\"requested_snapshot_id\": snapshot})\n    contract_error = str(backend_result.get(\"contract_error\") or \"\")\n    if contract_error:\n        messages = {\n            \"CATALOG_EMBEDDING_CONTRACT_MISSING\": \"활성 catalog pointer에 embedding 계약이 없습니다. snapshot을 재검증·재활성화해야 합니다.\",\n            \"QUERY_EMBEDDING_CONTRACT_MISMATCH\": \"query embedding model/version/dimension이 활성 catalog와 일치하지 않습니다.\",\n        }\n        return _error(trace_id, contract_error, messages.get(contract_error, \"embedding 계약이 일치하지 않습니다.\"))\n    source_results = backend_result.get(\"source_results\") if isinstance(backend_result.get(\"source_results\"), dict) else {}\n    query_kind_by_id = {\n        str(item.get(\"query_id\")): str(item.get(\"kind\") or \"\")\n        for item in plan[\"queries\"]\n        if isinstance(item, dict) and item.get(\"query_id\")\n    }\n    source_weights = {\n        f\"vector:{query_id}\": QUERY_KIND_WEIGHTS.get(kind, 1.0)\n        for query_id, kind in query_kind_by_id.items()\n    }\n    fused = _rrf(\n        {key: value for key, value in source_results.items() if isinstance(value, list)},\n        source_weights=source_weights,\n    )\n    if not fused:\n        return _error(trace_id, \"NO_CANDIDATES\", \"권한과 검색 조건을 만족하는 catalog 후보가 없습니다.\")\n\n    candidates: list[dict[str, Any]] = []\n    rejected_counts = {\"scope_or_acl\": 0, \"invalid_identity\": 0}\n    native_pipeline_query_ids = (\n        backend_result.get(\"native_pipeline_query_ids\")\n        if isinstance(backend_result.get(\"native_pipeline_query_ids\"), dict)\n        else {}\n    )\n    for item in fused:\n        if not _acl_allows(item, tenant, snapshot, acl):\n            rejected_counts[\"scope_or_acl\"] += 1\n            continue\n        ranks = item.get(\"_source_ranks\") if isinstance(item.get(\"_source_ranks\"), dict) else {}\n        vector_ranks = {\n            source.split(\":\", 1)[1]: rank\n            for source, rank in ranks.items()\n            if source.startswith(\"vector:\")\n        }\n        matched_query_ids = sorted(vector_ranks)\n        native_query_ids, native_vector_evidence = _native_vector_contributions(item, native_pipeline_query_ids)\n        if native_query_ids:\n            matched_query_ids = native_query_ids\n        combined_match_sources = [\n            source\n            for source in (\"exact\", \"lexical\", \"native_fused\", \"relation\")\n            if ranks.get(source) is not None\n        ]\n        cleaned = _clean_document(item, \"fusion\", int(item.get(\"_fused_rank\") or 0), matched_query_ids)\n        if not cleaned[\"asset_id\"] or not cleaned[\"version\"] or cleaned[\"asset_type\"] not in {\"component\", \"flow\"}:\n            rejected_counts[\"invalid_identity\"] += 1\n            continue\n        cleaned[\"recommendation_status\"] = \"candidate\"\n        cleaned[\"retrieval_trace\"] = {\n            \"exact_rank\": ranks.get(\"exact\"),\n            \"lexical_rank\": ranks.get(\"lexical\"),\n            \"vector_rank\": ranks.get(\"vector\") or (min(vector_ranks.values()) if vector_ranks else None),\n            \"vector_ranks_by_query_id\": vector_ranks,\n            \"native_vector_evidence_by_query_id\": native_vector_evidence,\n            \"native_fused_rank\": ranks.get(\"native_fused\"),\n            \"relation_rank\": ranks.get(\"relation\"),\n            \"combined_match_sources\": combined_match_sources,\n            \"fused_rank\": int(item.get(\"_fused_rank\") or 0),\n            \"fused_score\": round(float(item.get(\"_fused_score\") or 0.0), 12),\n            \"snapshot_id\": snapshot,\n            \"query_ids\": matched_query_ids,\n        }\n        candidates.append(cleaned)\n        if len(candidates) >= top_n:\n            break\n    if not candidates:\n        return _error(trace_id, \"NO_AUTHORIZED_CANDIDATES\", \"후보 재검증 후 권한이 확인된 자산이 없습니다.\")\n    return {\n        \"ok\": True,\n        \"status\": \"COMPLETED\",\n        \"tenant_id\": tenant,\n        \"snapshot_id\": snapshot,\n        \"work_definition_id\": str(plan[\"work_definition_id\"]),\n        \"work_definition_revision\": plan[\"work_definition_revision\"],\n        \"approved_hash\": str(plan[\"approved_hash\"]),\n        \"design_scope_sha256\": str(plan[\"design_scope_sha256\"]),\n        \"query_plan_sha256\": str(plan.get(\"query_plan_sha256\") or \"\"),\n        \"provider_mode\": mode,\n        \"candidates\": candidates,\n        \"retrieval_trace\": {\n            \"tenant_id\": tenant,\n            \"snapshot_id\": snapshot,\n            \"work_definition_id\": str(plan[\"work_definition_id\"]),\n            \"work_definition_revision\": plan[\"work_definition_revision\"],\n            \"approved_hash\": str(plan[\"approved_hash\"]),\n            \"design_scope_sha256\": str(plan[\"design_scope_sha256\"]),\n            \"query_plan_sha256\": str(plan.get(\"query_plan_sha256\") or \"\"),\n            \"source_counts\": {key: len(value) for key, value in source_results.items() if isinstance(value, list)},\n            \"post_filter_rejected\": rejected_counts,\n            \"returned_count\": len(candidates),\n            \"rrf_k\": 60,\n            \"query_kind_weights\": {\n                query_id: QUERY_KIND_WEIGHTS.get(kind, 1.0)\n                for query_id, kind in sorted(query_kind_by_id.items())\n            },\n            \"silent_fallback_used\": False,\n            \"missing_parent_count\": int(backend_result.get(\"missing_parent_count\") or 0),\n        },\n        \"trace_id\": trace_id,\n    }\n\n\ndef _error(\n    trace_id: str,\n    code: str,\n    message: str,\n    *,\n    retryable: bool = False,\n    details: dict[str, Any] | None = None,\n) -> dict[str, Any]:\n    return {\n        \"ok\": False,\n        \"status\": \"BLOCKED\",\n        \"artifact_refs\": [],\n        \"error\": {\"code\": code, \"message\": message, \"retryable\": retryable, \"details\": details or {}},\n        \"resume\": None,\n        \"trace_id\": trace_id,\n    }\n\n\nclass CatalogHybridRetrieverComponent(Component):\n    display_name = \"21 Catalog Hybrid Retriever\"\n    description = \"활성 snapshot에서 tenant/ACL을 적용한 exact, lexical, vector 후보를 명시적 provider mode로 결합합니다.\"\n    icon = \"SearchCheck\"\n    name = \"CatalogHybridRetriever\"\n\n    inputs = [\n        DataInput(name=\"query_plan\", display_name=\"Search Query Plan\", required=True),\n        DataInput(name=\"query_vectors\", display_name=\"Query Vectors\", required=True),\n        DropdownInput(name=\"provider_mode\", display_name=\"Provider Mode\", options=sorted(PROVIDER_MODES), value=\"application_rrf\"),\n        SecretStrInput(name=\"mongodb_uri\", display_name=\"MongoDB URI\", required=True),\n        MessageTextInput(name=\"database_name\", display_name=\"Database\", value=\"business_work_design\", advanced=True),\n        MessageTextInput(name=\"chunks_collection\", display_name=\"Chunks Collection\", value=\"catalog_asset_chunks\", advanced=True),\n        MessageTextInput(name=\"assets_collection\", display_name=\"Assets Collection\", value=\"catalog_assets\", advanced=True),\n        MessageTextInput(name=\"pointer_collection\", display_name=\"Active Pointer Collection\", value=\"catalog_active_pointers\", advanced=True),\n        MessageTextInput(name=\"lexical_index_name\", display_name=\"Lexical Index\", value=\"catalog_lexical\", advanced=True),\n        MessageTextInput(name=\"vector_index_name\", display_name=\"Vector Index\", value=\"catalog_vector\", advanced=True),\n        IntInput(name=\"top_n\", display_name=\"Final Top N\", value=20, advanced=True),\n        IntInput(name=\"source_limit\", display_name=\"Per-source Candidate Limit\", value=50, advanced=True),\n        IntInput(name=\"server_selection_timeout_ms\", display_name=\"Server Selection Timeout (ms)\", value=5000, advanced=True),\n        IntInput(name=\"query_timeout_ms\", display_name=\"Query Timeout (ms)\", value=10000, advanced=True),\n    ]\n    outputs = [Output(name=\"retrieval_result\", display_name=\"Retrieval Result\", method=\"build_retrieval_result\", types=[\"Data\"])]\n\n    def build_retrieval_result(self) -> Data:\n        result = retrieve_catalog_candidates(\n            self.query_plan,\n            self.query_vectors,\n            provider_mode=self.provider_mode,\n            mongodb_uri=self.mongodb_uri,\n            database_name=getattr(self, \"database_name\", \"business_work_design\"),\n            chunks_collection=getattr(self, \"chunks_collection\", \"catalog_asset_chunks\"),\n            assets_collection=getattr(self, \"assets_collection\", \"catalog_assets\"),\n            pointer_collection=getattr(self, \"pointer_collection\", \"catalog_active_pointers\"),\n            lexical_index_name=getattr(self, \"lexical_index_name\", \"catalog_lexical\"),\n            vector_index_name=getattr(self, \"vector_index_name\", \"catalog_vector\"),\n            top_n=getattr(self, \"top_n\", 20),\n            source_limit=getattr(self, \"source_limit\", 50),\n            server_selection_timeout_ms=getattr(self, \"server_selection_timeout_ms\", 5000),\n            query_timeout_ms=getattr(self, \"query_timeout_ms\", 10000),\n        )\n        self.status = f\"Hybrid retrieval: {result.get('status')} / mode={result.get('provider_mode', self.provider_mode)} / candidates={len(result.get('candidates', []))}\"\n        return Data(data=result)\n",
+                "fileTypes": [],
+                "file_path": "",
+                "password": false,
+                "name": "code",
+                "advanced": true,
+                "api_editable": false,
+                "dynamic": true,
+                "info": "",
+                "load_from_db": false,
+                "title_case": false
+              },
+              "database_name": {
+                "tool_mode": false,
+                "trace_as_input": true,
+                "trace_as_metadata": true,
+                "load_from_db": false,
+                "list": false,
+                "list_add_label": "Add More",
+                "override_skip": false,
+                "required": false,
+                "placeholder": "",
+                "show": true,
+                "name": "database_name",
+                "value": "business_work_design",
+                "display_name": "Database",
+                "advanced": true,
+                "api_editable": false,
+                "input_types": [
+                  "Message"
+                ],
+                "dynamic": false,
+                "info": "",
+                "title_case": false,
+                "track_in_telemetry": false,
+                "type": "str",
+                "_input_type": "MessageTextInput"
+              },
+              "lexical_index_name": {
+                "tool_mode": false,
+                "trace_as_input": true,
+                "trace_as_metadata": true,
+                "load_from_db": false,
+                "list": false,
+                "list_add_label": "Add More",
+                "override_skip": false,
+                "required": false,
+                "placeholder": "",
+                "show": true,
+                "name": "lexical_index_name",
+                "value": "catalog_lexical",
+                "display_name": "Lexical Index",
+                "advanced": true,
+                "api_editable": false,
+                "input_types": [
+                  "Message"
+                ],
+                "dynamic": false,
+                "info": "",
+                "title_case": false,
+                "track_in_telemetry": false,
+                "type": "str",
+                "_input_type": "MessageTextInput"
+              },
+              "mongodb_uri": {
+                "load_from_db": true,
+                "override_skip": false,
+                "required": true,
+                "placeholder": "",
+                "show": true,
+                "name": "mongodb_uri",
+                "value": "",
+                "display_name": "MongoDB URI",
+                "advanced": false,
+                "api_editable": false,
+                "input_types": [],
+                "dynamic": false,
+                "info": "",
+                "title_case": false,
+                "track_in_telemetry": false,
+                "password": true,
+                "type": "str",
+                "_input_type": "SecretStrInput"
+              },
+              "pointer_collection": {
+                "tool_mode": false,
+                "trace_as_input": true,
+                "trace_as_metadata": true,
+                "load_from_db": false,
+                "list": false,
+                "list_add_label": "Add More",
+                "override_skip": false,
+                "required": false,
+                "placeholder": "",
+                "show": true,
+                "name": "pointer_collection",
+                "value": "catalog_active_pointers",
+                "display_name": "Active Pointer Collection",
+                "advanced": true,
+                "api_editable": false,
+                "input_types": [
+                  "Message"
+                ],
+                "dynamic": false,
+                "info": "",
+                "title_case": false,
+                "track_in_telemetry": false,
+                "type": "str",
+                "_input_type": "MessageTextInput"
+              },
+              "provider_mode": {
+                "tool_mode": false,
+                "trace_as_metadata": true,
+                "options": [
+                  "application_rrf",
+                  "native_rank_fusion",
+                  "native_score_fusion"
+                ],
+                "options_metadata": [],
+                "combobox": false,
+                "dialog_inputs": {},
+                "toggle": false,
+                "override_skip": false,
+                "required": false,
+                "placeholder": "",
+                "show": true,
+                "name": "provider_mode",
+                "value": "application_rrf",
+                "display_name": "Provider Mode",
+                "advanced": false,
+                "api_editable": false,
+                "dynamic": false,
+                "info": "",
+                "title_case": false,
+                "track_in_telemetry": true,
+                "external_options": {},
+                "type": "str",
+                "_input_type": "DropdownInput"
+              },
+              "query_timeout_ms": {
+                "tool_mode": false,
+                "trace_as_metadata": true,
+                "list": false,
+                "list_add_label": "Add More",
+                "override_skip": false,
+                "required": false,
+                "placeholder": "",
+                "show": true,
+                "name": "query_timeout_ms",
+                "value": 10000,
+                "display_name": "Query Timeout (ms)",
+                "advanced": true,
+                "api_editable": false,
+                "dynamic": false,
+                "info": "",
+                "title_case": false,
+                "track_in_telemetry": true,
+                "type": "int",
+                "_input_type": "IntInput"
+              },
+              "server_selection_timeout_ms": {
+                "tool_mode": false,
+                "trace_as_metadata": true,
+                "list": false,
+                "list_add_label": "Add More",
+                "override_skip": false,
+                "required": false,
+                "placeholder": "",
+                "show": true,
+                "name": "server_selection_timeout_ms",
+                "value": 5000,
+                "display_name": "Server Selection Timeout (ms)",
+                "advanced": true,
+                "api_editable": false,
+                "dynamic": false,
+                "info": "",
+                "title_case": false,
+                "track_in_telemetry": true,
+                "type": "int",
+                "_input_type": "IntInput"
+              },
+              "source_limit": {
+                "tool_mode": false,
+                "trace_as_metadata": true,
+                "list": false,
+                "list_add_label": "Add More",
+                "override_skip": false,
+                "required": false,
+                "placeholder": "",
+                "show": true,
+                "name": "source_limit",
+                "value": 50,
+                "display_name": "Per-source Candidate Limit",
+                "advanced": true,
+                "api_editable": false,
+                "dynamic": false,
+                "info": "",
+                "title_case": false,
+                "track_in_telemetry": true,
+                "type": "int",
+                "_input_type": "IntInput"
+              },
+              "top_n": {
+                "tool_mode": false,
+                "trace_as_metadata": true,
+                "list": false,
+                "list_add_label": "Add More",
+                "override_skip": false,
+                "required": false,
+                "placeholder": "",
+                "show": true,
+                "name": "top_n",
+                "value": 20,
+                "display_name": "Final Top N",
+                "advanced": true,
+                "api_editable": false,
+                "dynamic": false,
+                "info": "",
+                "title_case": false,
+                "track_in_telemetry": true,
+                "type": "int",
+                "_input_type": "IntInput"
+              },
+              "vector_index_name": {
+                "tool_mode": false,
+                "trace_as_input": true,
+                "trace_as_metadata": true,
+                "load_from_db": false,
+                "list": false,
+                "list_add_label": "Add More",
+                "override_skip": false,
+                "required": false,
+                "placeholder": "",
+                "show": true,
+                "name": "vector_index_name",
+                "value": "catalog_vector",
+                "display_name": "Vector Index",
+                "advanced": true,
+                "api_editable": false,
+                "input_types": [
+                  "Message"
+                ],
+                "dynamic": false,
+                "info": "",
+                "title_case": false,
+                "track_in_telemetry": false,
+                "type": "str",
+                "_input_type": "MessageTextInput"
+              }
+            },
+            "description": "활성 snapshot에서 tenant/ACL을 적용한 exact, lexical, vector 후보를 명시적 provider mode로 결합합니다.",
+            "icon": "SearchCheck",
+            "base_classes": [
+              "Data",
+              "JSON"
+            ],
+            "display_name": "21 Catalog Hybrid Retriever",
+            "documentation": "",
+            "minimized": false,
+            "custom_fields": {},
+            "output_types": [],
+            "pinned": false,
+            "conditional_paths": [],
+            "frozen": false,
+            "outputs": [
+              {
+                "types": [
+                  "Data",
+                  "JSON"
+                ],
+                "selected": "Data",
+                "name": "retrieval_result",
+                "display_name": "Retrieval Result",
+                "method": "build_retrieval_result",
+                "value": "__UNDEFINED__",
+                "cache": true,
+                "allows_loop": false,
+                "group_outputs": false,
+                "tool_mode": true
+              }
+            ],
+            "field_order": [
+              "query_plan",
+              "query_vectors",
+              "provider_mode",
+              "mongodb_uri",
+              "database_name",
+              "chunks_collection",
+              "assets_collection",
+              "pointer_collection",
+              "lexical_index_name",
+              "vector_index_name",
+              "top_n",
+              "source_limit",
+              "server_selection_timeout_ms",
+              "query_timeout_ms"
+            ],
+            "beta": false,
+            "legacy": false,
+            "edited": false,
+            "metadata": {
+              "module": "custom_components.21_catalog_hybrid_retriever",
+              "code_hash": "95beebb4af44",
+              "dependencies": {
+                "total_dependencies": 2,
+                "dependencies": [
+                  {
+                    "name": "lfx",
+                    "version": "1.11.5"
+                  },
+                  {
+                    "name": "pymongo",
+                    "version": "4.17.0"
+                  }
+                ]
+              },
+              "flow_build_target": "1.11.1",
+              "flow_node_key": "hybrid_retrieval",
+              "standalone": true,
+              "standalone_source_path": "components/hybrid_retrieval/21_catalog_hybrid_retriever.py",
+              "standalone_source_sha256": "95beebb4af4463b9da052a87c7cca514d3426ef5a5cf9ae47abe4996fb2d3c33"
+            },
+            "tool_mode": false,
+            "lf_version": "1.11.1"
+          },
+          "showNode": true,
+          "type": "CatalogHybridRetriever",
+          "description": "활성 snapshot에서 tenant/ACL을 적용한 exact, lexical, vector 후보를 명시적 provider mode로 결합합니다.",
+          "display_name": "21 Catalog Hybrid Retriever",
+          "selected_output": "retrieval_result"
+        },
+        "dragging": false,
+        "id": "CustomComponent-57b81d3",
+        "measured": {
+          "height": 260,
+          "width": 320
+        },
+        "position": {
+          "x": 760,
+          "y": 0
+        },
+        "selected": false,
+        "type": "genericNode"
+      },
+      {
+        "data": {
+          "id": "CustomComponent-080d9de",
+          "node": {
+            "template": {
+              "_type": "Component",
+              "retrieval_result": {
+                "tool_mode": false,
+                "trace_as_metadata": true,
+                "list": false,
+                "list_add_label": "Add More",
+                "trace_as_input": true,
+                "override_skip": false,
+                "required": true,
+                "placeholder": "",
+                "show": true,
+                "name": "retrieval_result",
+                "value": "",
+                "display_name": "Retrieval Result",
+                "advanced": false,
+                "api_editable": false,
+                "input_types": [
+                  "Data",
+                  "JSON"
+                ],
+                "dynamic": false,
+                "info": "",
+                "title_case": false,
+                "track_in_telemetry": false,
+                "type": "other",
+                "_input_type": "JSONInput"
+              },
+              "code": {
+                "type": "code",
+                "required": true,
+                "placeholder": "",
+                "list": false,
+                "show": true,
+                "multiline": true,
+                "value": "from __future__ import annotations\n\nimport hashlib\nimport json\nimport re\nimport uuid\nfrom typing import Any\n\nfrom lfx.custom import Component\nfrom lfx.io import DataInput, IntInput, Output\nfrom lfx.schema import Data\n\n\nTECHNICAL_STATUSES = {\"metadata_only\", \"ports_extracted\", \"flow_graph_extracted\", \"verified_runtime\"}\nRECOMMENDATION_STATUSES = {\"candidate\", \"recommended\", \"alternative\", \"rejected\"}\nIDENTITY_PATTERN = re.compile(r\"^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$\")\nSHA256_PATTERN = re.compile(r\"^sha256:[0-9a-f]{64}$\")\n\n\ndef _canonical_hash(value: Any) -> str:\n    payload = json.dumps(value, ensure_ascii=False, sort_keys=True, separators=(\",\", \":\"), allow_nan=False)\n    return \"sha256:\" + hashlib.sha256(payload.encode(\"utf-8\")).hexdigest()\n\n\ndef _payload(value: Any) -> dict[str, Any]:\n    if isinstance(value, dict):\n        return value\n    data = getattr(value, \"data\", None)\n    if isinstance(data, dict):\n        return data\n    if isinstance(value, str) and value.strip():\n        try:\n            parsed = json.loads(value)\n        except json.JSONDecodeError:\n            return {}\n        return parsed if isinstance(parsed, dict) else {}\n    return {}\n\n\ndef _safe_text(value: Any, maximum: int) -> str:\n    return re.sub(r\"[\\x00-\\x08\\x0b\\x0c\\x0e-\\x1f]\", \"\", str(value or \"\")).strip()[:maximum]\n\n\ndef _normalize_port(item: Any, index: int, direction: str) -> dict[str, Any] | None:\n    if not isinstance(item, dict):\n        return None\n    port_id = _safe_text(item.get(\"port_id\") or item.get(\"name\") or f\"{direction}-{index}\", 100)\n    if not port_id:\n        return None\n    cardinality = _safe_text(item.get(\"cardinality\") or \"one\", 20).lower()\n    if cardinality not in {\"one\", \"many\"}:\n        cardinality = \"one\"\n    return {\n        \"port_id\": port_id,\n        \"name\": _safe_text(item.get(\"name\") or port_id, 100),\n        \"data_type\": _safe_text(item.get(\"data_type\") or item.get(\"type\") or \"\", 100),\n        \"semantic_role\": _safe_text(item.get(\"semantic_role\"), 100),\n        \"schema_ref\": _safe_text(item.get(\"schema_ref\"), 500),\n        \"cardinality\": cardinality,\n        \"required\": bool(item.get(\"required\", direction == \"input\")),\n        \"has_default\": bool(item.get(\"has_default\", False)),\n        \"secret\": bool(item.get(\"secret\", False)),\n        \"permission\": _safe_text(item.get(\"permission\"), 200),\n        \"network_zone\": _safe_text(item.get(\"network_zone\"), 100),\n        \"streaming\": bool(item.get(\"streaming\", False)),\n    }\n\n\ndef _normalize_port_contract(value: Any) -> dict[str, list[dict[str, Any]]]:\n    raw = value if isinstance(value, dict) else {}\n    result: dict[str, list[dict[str, Any]]] = {\"inputs\": [], \"outputs\": []}\n    for key, direction in ((\"inputs\", \"input\"), (\"outputs\", \"output\")):\n        items = raw.get(key) if isinstance(raw.get(key), list) else []\n        result[key] = [\n            port\n            for index, item in enumerate(items[:100], start=1)\n            if (port := _normalize_port(item, index, direction)) is not None\n        ]\n    return result\n\n\ndef build_candidate_context(\n    retrieval_result: Any,\n    *,\n    max_items: int = 20,\n    per_item_chars: int = 3000,\n    total_context_chars: int = 30000,\n) -> dict[str, Any]:\n    trace_id = str(uuid.uuid4())\n    retrieval = _payload(retrieval_result)\n    if retrieval.get(\"ok\") is not True:\n        return _error(trace_id, \"RETRIEVAL_NOT_READY\", \"성공한 retrieval_result가 필요합니다.\")\n    tenant_id = str(retrieval.get(\"tenant_id\") or \"\")\n    snapshot_id = str(retrieval.get(\"snapshot_id\") or \"\")\n    if not IDENTITY_PATTERN.fullmatch(tenant_id) or not IDENTITY_PATTERN.fullmatch(snapshot_id):\n        return _error(trace_id, \"RETRIEVAL_SCOPE_MISSING\", \"retrieval_result에 tenant와 snapshot이 없습니다.\")\n    lock_fields = (\n        \"work_definition_id\", \"work_definition_revision\", \"approved_hash\", \"design_scope_sha256\", \"query_plan_sha256\"\n    )\n    if any(retrieval.get(field) in (None, \"\") for field in lock_fields):\n        return _error(trace_id, \"RETRIEVAL_LOCK_MISSING\", \"retrieval_result에 승인 업무와 design scope lock이 없습니다.\")\n    if (\n        not IDENTITY_PATTERN.fullmatch(str(retrieval.get(\"work_definition_id\") or \"\"))\n        or type(retrieval.get(\"work_definition_revision\")) is not int\n        or retrieval[\"work_definition_revision\"] < 0\n        or any(\n            not SHA256_PATTERN.fullmatch(str(retrieval.get(field) or \"\"))\n            for field in (\"approved_hash\", \"design_scope_sha256\", \"query_plan_sha256\")\n        )\n    ):\n        return _error(trace_id, \"RETRIEVAL_LOCK_INVALID\", \"retrieval_result의 provenance lock 형식이 유효하지 않습니다.\")\n    raw_trace = retrieval.get(\"retrieval_trace\") if isinstance(retrieval.get(\"retrieval_trace\"), dict) else {}\n    locked_trace = {\n        \"tenant_id\": tenant_id,\n        \"snapshot_id\": snapshot_id,\n        \"work_definition_id\": str(retrieval[\"work_definition_id\"]),\n        \"work_definition_revision\": retrieval[\"work_definition_revision\"],\n        \"approved_hash\": str(retrieval[\"approved_hash\"]),\n        \"design_scope_sha256\": str(retrieval[\"design_scope_sha256\"]),\n        \"query_plan_sha256\": str(retrieval[\"query_plan_sha256\"]),\n    }\n    if any(field in raw_trace and raw_trace.get(field) != expected for field, expected in locked_trace.items()):\n        return _error(trace_id, \"RETRIEVAL_TRACE_LOCK_MISMATCH\", \"retrieval trace가 승인 검색 범위와 일치하지 않습니다.\")\n    retrieval_trace = {**raw_trace, **locked_trace}\n    candidates = retrieval.get(\"candidates\") if isinstance(retrieval.get(\"candidates\"), list) else []\n    if not candidates:\n        return _error(trace_id, \"NO_CANDIDATES\", \"context로 만들 catalog 후보가 없습니다.\")\n    max_items = max(1, min(50, int(max_items or 20)))\n    per_item_chars = max(300, min(12000, int(per_item_chars or 3000)))\n    total_context_chars = max(per_item_chars, min(100000, int(total_context_chars or 30000)))\n\n    seen: set[tuple[str, str]] = set()\n    items: list[dict[str, Any]] = []\n    context_blocks: list[str] = []\n    used_chars = 0\n    dropped = {\"duplicate\": 0, \"invalid\": 0, \"budget\": 0}\n    allowlist: list[dict[str, Any]] = []\n    for position, raw in enumerate(candidates, start=1):\n        if not isinstance(raw, dict):\n            dropped[\"invalid\"] += 1\n            continue\n        asset_id = _safe_text(raw.get(\"asset_id\"), 200)\n        version = _safe_text(raw.get(\"version\"), 100)\n        asset_type = _safe_text(raw.get(\"asset_type\"), 50)\n        key = (asset_id, version)\n        if not asset_id or not version or asset_type not in {\"component\", \"flow\"}:\n            dropped[\"invalid\"] += 1\n            continue\n        if key in seen:\n            dropped[\"duplicate\"] += 1\n            continue\n        seen.add(key)\n        technical_status = str(raw.get(\"technical_contract_status\") or \"metadata_only\")\n        if technical_status not in TECHNICAL_STATUSES:\n            technical_status = \"metadata_only\"\n        recommendation_status = str(raw.get(\"recommendation_status\") or \"candidate\")\n        if recommendation_status not in RECOMMENDATION_STATUSES:\n            recommendation_status = \"candidate\"\n        description = _safe_text(raw.get(\"description\"), min(1500, per_item_chars))\n        readme_budget = max(0, per_item_chars - len(description) - 800)\n        readme_excerpt = _safe_text(raw.get(\"readme\"), readme_budget)\n        port_contract = _normalize_port_contract(raw.get(\"ports\"))\n        port_contract_sha256 = _canonical_hash(port_contract)\n        item = {\n            \"asset_id\": asset_id,\n            \"version\": version,\n            \"asset_type\": asset_type,\n            \"title\": _safe_text(raw.get(\"title\"), 400),\n            \"category\": _safe_text(raw.get(\"category\"), 200),\n            \"description\": description,\n            \"readme_excerpt\": readme_excerpt,\n            \"recommendation_status\": recommendation_status,\n            \"technical_contract_status\": technical_status,\n            \"metadata_only\": technical_status == \"metadata_only\",\n            \"ports\": port_contract,\n            \"port_contract_sha256\": port_contract_sha256,\n            \"limitations\": [\n                _safe_text(value, 500)\n                for value in (raw.get(\"limitations\") if isinstance(raw.get(\"limitations\"), list) else [])[:10]\n            ],\n            \"retrieval_trace\": raw.get(\"retrieval_trace\") if isinstance(raw.get(\"retrieval_trace\"), dict) else {},\n        }\n        block = json.dumps(item, ensure_ascii=False, sort_keys=True, separators=(\",\", \":\"))\n        framed = f'<untrusted-catalog-candidate rank=\"{position}\">\\n{block}\\n</untrusted-catalog-candidate>'\n        if len(items) >= max_items or used_chars + len(framed) > total_context_chars:\n            dropped[\"budget\"] += 1\n            continue\n        items.append(item)\n        context_blocks.append(framed)\n        used_chars += len(framed)\n        allowlist.append(\n            {\n                \"asset_id\": asset_id,\n                \"version\": version,\n                \"asset_type\": asset_type,\n                \"technical_contract_status\": technical_status,\n                \"ports\": item[\"ports\"],\n                \"port_contract_sha256\": port_contract_sha256,\n            }\n        )\n    if not items:\n        return _error(trace_id, \"CONTEXT_BUDGET_EXHAUSTED\", \"제한 안에 포함할 수 있는 유효 후보가 없습니다.\")\n    allowlist_projection = [\n        {\n            \"asset_id\": item[\"asset_id\"],\n            \"version\": item[\"version\"],\n            \"asset_type\": item[\"asset_type\"],\n            \"technical_contract_status\": item[\"technical_contract_status\"],\n            \"port_contract_sha256\": item[\"port_contract_sha256\"],\n        }\n        for item in allowlist\n    ]\n    candidate_allowlist_sha256 = _canonical_hash(allowlist_projection)\n    retrieval_trace = {\n        **retrieval_trace,\n        \"candidate_allowlist\": allowlist_projection,\n        \"candidate_allowlist_sha256\": candidate_allowlist_sha256,\n    }\n    return {\n        \"ok\": True,\n        \"status\": \"COMPLETED\",\n        \"tenant_id\": tenant_id,\n        \"snapshot_id\": snapshot_id,\n        \"work_definition_id\": str(retrieval[\"work_definition_id\"]),\n        \"work_definition_revision\": retrieval[\"work_definition_revision\"],\n        \"approved_hash\": str(retrieval[\"approved_hash\"]),\n        \"design_scope_sha256\": str(retrieval[\"design_scope_sha256\"]),\n        \"query_plan_sha256\": str(retrieval.get(\"query_plan_sha256\") or \"\"),\n        \"provider_mode\": retrieval.get(\"provider_mode\"),\n        \"candidate_items\": items,\n        \"candidate_allowlist\": allowlist,\n        \"candidate_allowlist_sha256\": candidate_allowlist_sha256,\n        \"untrusted_candidate_context\": \"\\n\\n\".join(context_blocks),\n        \"context_char_count\": used_chars,\n        \"limits\": {\n            \"max_items\": max_items,\n            \"per_item_chars\": per_item_chars,\n            \"total_context_chars\": total_context_chars,\n        },\n        \"dropped\": dropped,\n        \"retrieval_trace\": retrieval_trace,\n        \"trace_id\": trace_id,\n    }\n\n\ndef _error(trace_id: str, code: str, message: str) -> dict[str, Any]:\n    return {\n        \"ok\": False,\n        \"status\": \"BLOCKED\",\n        \"artifact_refs\": [],\n        \"error\": {\"code\": code, \"message\": message, \"retryable\": False, \"details\": {}},\n        \"resume\": None,\n        \"trace_id\": trace_id,\n    }\n\n\nclass CandidateContextBuilderComponent(Component):\n    display_name = \"22 Candidate Context Builder\"\n    description = \"검색 후보를 asset/version 기준으로 중복 제거하고 bounded untrusted context와 asset allowlist를 만듭니다.\"\n    icon = \"Rows3\"\n    name = \"CandidateContextBuilder\"\n\n    inputs = [\n        DataInput(name=\"retrieval_result\", display_name=\"Retrieval Result\", required=True),\n        IntInput(name=\"max_items\", display_name=\"Maximum Items\", value=20, advanced=True),\n        IntInput(name=\"per_item_chars\", display_name=\"Characters per Item\", value=3000, advanced=True),\n        IntInput(name=\"total_context_chars\", display_name=\"Total Context Characters\", value=30000, advanced=True),\n    ]\n    outputs = [Output(name=\"candidate_context\", display_name=\"Bounded Candidate Context\", method=\"build_context\", types=[\"Data\"])]\n\n    def build_context(self) -> Data:\n        result = build_candidate_context(\n            self.retrieval_result,\n            max_items=getattr(self, \"max_items\", 20),\n            per_item_chars=getattr(self, \"per_item_chars\", 3000),\n            total_context_chars=getattr(self, \"total_context_chars\", 30000),\n        )\n        self.status = f\"Candidate context: {result.get('status')} / items={len(result.get('candidate_items', []))}\"\n        return Data(data=result)\n",
+                "fileTypes": [],
+                "file_path": "",
+                "password": false,
+                "name": "code",
+                "advanced": true,
+                "api_editable": false,
+                "dynamic": true,
+                "info": "",
+                "load_from_db": false,
+                "title_case": false
+              },
+              "max_items": {
+                "tool_mode": false,
+                "trace_as_metadata": true,
+                "list": false,
+                "list_add_label": "Add More",
+                "override_skip": false,
+                "required": false,
+                "placeholder": "",
+                "show": true,
+                "name": "max_items",
+                "value": 20,
+                "display_name": "Maximum Items",
+                "advanced": true,
+                "api_editable": false,
+                "dynamic": false,
+                "info": "",
+                "title_case": false,
+                "track_in_telemetry": true,
+                "type": "int",
+                "_input_type": "IntInput"
+              },
+              "per_item_chars": {
+                "tool_mode": false,
+                "trace_as_metadata": true,
+                "list": false,
+                "list_add_label": "Add More",
+                "override_skip": false,
+                "required": false,
+                "placeholder": "",
+                "show": true,
+                "name": "per_item_chars",
+                "value": 3000,
+                "display_name": "Characters per Item",
+                "advanced": true,
+                "api_editable": false,
+                "dynamic": false,
+                "info": "",
+                "title_case": false,
+                "track_in_telemetry": true,
+                "type": "int",
+                "_input_type": "IntInput"
+              },
+              "total_context_chars": {
+                "tool_mode": false,
+                "trace_as_metadata": true,
+                "list": false,
+                "list_add_label": "Add More",
+                "override_skip": false,
+                "required": false,
+                "placeholder": "",
+                "show": true,
+                "name": "total_context_chars",
+                "value": 30000,
+                "display_name": "Total Context Characters",
+                "advanced": true,
+                "api_editable": false,
+                "dynamic": false,
+                "info": "",
+                "title_case": false,
+                "track_in_telemetry": true,
+                "type": "int",
+                "_input_type": "IntInput"
+              }
+            },
+            "description": "검색 후보를 asset/version 기준으로 중복 제거하고 bounded untrusted context와 asset allowlist를 만듭니다.",
+            "icon": "Rows3",
+            "base_classes": [
+              "Data",
+              "JSON"
+            ],
+            "display_name": "22 Candidate Context Builder",
+            "documentation": "",
+            "minimized": false,
+            "custom_fields": {},
+            "output_types": [],
+            "pinned": false,
+            "conditional_paths": [],
+            "frozen": false,
+            "outputs": [
+              {
+                "types": [
+                  "Data",
+                  "JSON"
+                ],
+                "selected": "Data",
+                "name": "candidate_context",
+                "display_name": "Bounded Candidate Context",
+                "method": "build_context",
+                "value": "__UNDEFINED__",
+                "cache": true,
+                "allows_loop": false,
+                "group_outputs": false,
+                "tool_mode": true
+              }
+            ],
+            "field_order": [
+              "retrieval_result",
+              "max_items",
+              "per_item_chars",
+              "total_context_chars"
+            ],
+            "beta": false,
+            "legacy": false,
+            "edited": false,
+            "metadata": {
+              "module": "custom_components.22_candidate_context_builder",
+              "code_hash": "4920cfdc0f80",
+              "dependencies": {
+                "total_dependencies": 1,
+                "dependencies": [
+                  {
+                    "name": "lfx",
+                    "version": "1.11.5"
+                  }
+                ]
+              },
+              "flow_build_target": "1.11.1",
+              "flow_node_key": "candidate_context",
+              "standalone": true,
+              "standalone_source_path": "components/hybrid_retrieval/22_candidate_context_builder.py",
+              "standalone_source_sha256": "4920cfdc0f80bac39b741a9cbf9f0ef21942b43299b2ce9c50d6b2a040e0c5e9"
+            },
+            "tool_mode": false,
+            "lf_version": "1.11.1"
+          },
+          "showNode": true,
+          "type": "CandidateContextBuilder",
+          "description": "검색 후보를 asset/version 기준으로 중복 제거하고 bounded untrusted context와 asset allowlist를 만듭니다.",
+          "display_name": "22 Candidate Context Builder",
+          "selected_output": "candidate_context"
+        },
+        "dragging": false,
+        "id": "CustomComponent-080d9de",
+        "measured": {
+          "height": 260,
+          "width": 320
+        },
+        "position": {
+          "x": 1140,
+          "y": 0
+        },
+        "selected": false,
+        "type": "genericNode"
+      },
+      {
+        "data": {
+          "id": "ParseData-b93f6fe",
+          "node": {
+            "template": {
+              "_type": "Component",
+              "data": {
+                "tool_mode": false,
+                "trace_as_metadata": true,
+                "list": true,
+                "list_add_label": "Add More",
+                "trace_as_input": true,
+                "override_skip": false,
+                "required": true,
+                "placeholder": "",
+                "show": true,
+                "name": "data",
+                "value": "",
+                "display_name": "JSON",
+                "advanced": false,
+                "api_editable": false,
+                "input_types": [
+                  "Data",
+                  "JSON"
+                ],
+                "dynamic": false,
+                "info": "The data to convert to text.",
+                "title_case": false,
+                "track_in_telemetry": false,
+                "type": "other",
+                "_input_type": "JSONInput"
+              },
+              "code": {
+                "type": "code",
+                "required": true,
+                "placeholder": "",
+                "list": false,
+                "show": true,
+                "multiline": true,
+                "value": "from lfx.custom.custom_component.component import Component\nfrom lfx.helpers.data import data_to_text, data_to_text_list\nfrom lfx.io import DataInput, MultilineInput, Output, StrInput\nfrom lfx.schema.data import Data\nfrom lfx.schema.message import Message\n\n\nclass ParseDataComponent(Component):\n    display_name = \"Data to Message\"\n    description = \"Convert Data objects into Messages using any {field_name} from input data.\"\n    icon = \"message-square\"\n    name = \"ParseData\"\n    legacy = True\n    replacement = [\"processing.Operations\", \"processing.TypeConverterComponent\"]\n    metadata = {\n        \"legacy_name\": \"Parse Data\",\n    }\n\n    inputs = [\n        DataInput(\n            name=\"data\",\n            display_name=\"JSON\",\n            info=\"The data to convert to text.\",\n            is_list=True,\n            required=True,\n        ),\n        MultilineInput(\n            name=\"template\",\n            display_name=\"Template\",\n            info=\"The template to use for formatting the data. \"\n            \"It can contain the keys {text}, {data} or any other key in the Data.\",\n            value=\"{text}\",\n            required=True,\n        ),\n        StrInput(name=\"sep\", display_name=\"Separator\", advanced=True, value=\"\\n\"),\n    ]\n\n    outputs = [\n        Output(\n            display_name=\"Message\",\n            name=\"text\",\n            info=\"Data as a single Message, with each input Data separated by Separator\",\n            method=\"parse_data\",\n        ),\n        Output(\n            display_name=\"JSON List\",\n            name=\"data_list\",\n            info=\"Data as a list of new Data, each having `text` formatted by Template\",\n            method=\"parse_data_as_list\",\n        ),\n    ]\n\n    def _clean_args(self) -> tuple[list[Data], str, str]:\n        data = self.data if isinstance(self.data, list) else [self.data]\n        template = self.template\n        sep = self.sep\n        return data, template, sep\n\n    def parse_data(self) -> Message:\n        data, template, sep = self._clean_args()\n        result_string = data_to_text(template, data, sep)\n        self.status = result_string\n        return Message(text=result_string)\n\n    def parse_data_as_list(self) -> list[Data]:\n        data, template, _ = self._clean_args()\n        text_list, data_list = data_to_text_list(template, data)\n        for item, text in zip(data_list, text_list, strict=True):\n            item.set_text(text)\n        self.status = data_list\n        return data_list\n",
+                "fileTypes": [],
+                "file_path": "",
+                "password": false,
+                "name": "code",
+                "advanced": true,
+                "api_editable": false,
+                "dynamic": true,
+                "info": "",
+                "load_from_db": false,
+                "title_case": false
+              },
+              "sep": {
+                "tool_mode": false,
+                "trace_as_metadata": true,
+                "load_from_db": false,
+                "list": false,
+                "list_add_label": "Add More",
+                "override_skip": false,
+                "required": false,
+                "placeholder": "",
+                "show": true,
+                "name": "sep",
+                "value": "\n",
+                "display_name": "Separator",
+                "advanced": true,
+                "api_editable": false,
+                "dynamic": false,
+                "info": "",
+                "title_case": false,
+                "track_in_telemetry": false,
+                "type": "str",
+                "_input_type": "StrInput"
+              },
+              "template": {
+                "tool_mode": false,
+                "trace_as_input": true,
+                "multiline": true,
+                "ai_enabled": false,
+                "trace_as_metadata": true,
+                "load_from_db": false,
+                "list": false,
+                "list_add_label": "Add More",
+                "override_skip": false,
+                "required": true,
+                "placeholder": "",
+                "show": true,
+                "name": "template",
+                "value": "{data}",
+                "display_name": "Template",
+                "advanced": false,
+                "api_editable": false,
+                "input_types": [
+                  "Message"
+                ],
+                "dynamic": false,
+                "info": "The template to use for formatting the data. It can contain the keys {text}, {data} or any other key in the Data.",
+                "title_case": false,
+                "track_in_telemetry": false,
+                "copy_field": false,
+                "password": false,
+                "type": "str",
+                "_input_type": "MultilineInput"
+              }
+            },
+            "description": "Convert Data objects into Messages using any {field_name} from input data.",
+            "icon": "message-square",
+            "base_classes": [
+              "JSON",
+              "Message"
+            ],
+            "display_name": "Data to Message",
+            "documentation": "",
+            "minimized": false,
+            "custom_fields": {},
+            "output_types": [],
+            "pinned": false,
+            "conditional_paths": [],
+            "frozen": false,
+            "outputs": [
+              {
+                "types": [
+                  "Message"
+                ],
+                "selected": "Message",
+                "name": "text",
+                "display_name": "Message",
+                "method": "parse_data",
+                "value": "__UNDEFINED__",
+                "cache": true,
+                "allows_loop": false,
+                "group_outputs": false,
+                "tool_mode": true
+              },
+              {
+                "types": [
+                  "JSON"
+                ],
+                "selected": "JSON",
+                "name": "data_list",
+                "display_name": "JSON List",
+                "method": "parse_data_as_list",
+                "value": "__UNDEFINED__",
+                "cache": true,
+                "allows_loop": false,
+                "group_outputs": false,
+                "tool_mode": true
+              }
+            ],
+            "field_order": [
+              "data",
+              "template",
+              "sep"
+            ],
+            "beta": false,
+            "legacy": true,
+            "replacement": [
+              "processing.Operations",
+              "processing.TypeConverterComponent"
+            ],
+            "edited": false,
+            "metadata": {
+              "legacy_name": "Parse Data",
+              "module": "custom_components.data_to_message",
+              "code_hash": "dbe2c66f1728",
+              "dependencies": {
+                "total_dependencies": 1,
+                "dependencies": [
+                  {
+                    "name": "lfx",
+                    "version": "1.11.5"
+                  }
+                ]
+              },
+              "flow_build_target": "1.11.1",
+              "flow_node_key": "evaluation_message"
+            },
+            "tool_mode": false,
+            "lf_version": "1.11.1"
+          },
+          "showNode": true,
+          "type": "ParseData",
+          "description": "Convert Data objects into Messages using any {field_name} from input data.",
+          "display_name": "Data to Message",
+          "selected_output": "text"
+        },
+        "dragging": false,
+        "id": "ParseData-b93f6fe",
+        "measured": {
+          "height": 260,
+          "width": 320
+        },
+        "position": {
+          "x": 1520,
+          "y": 0
+        },
+        "selected": false,
+        "type": "genericNode"
+      },
+      {
+        "data": {
+          "id": "ChatOutput-128293e",
+          "node": {
+            "template": {
+              "_type": "Component",
+              "input_value": {
+                "trace_as_metadata": true,
+                "list": false,
+                "list_add_label": "Add More",
+                "override_skip": false,
+                "required": true,
+                "placeholder": "",
+                "show": true,
+                "name": "input_value",
+                "value": "",
+                "display_name": "Inputs",
+                "advanced": false,
+                "api_editable": false,
+                "input_types": [
+                  "Data",
+                  "JSON",
+                  "DataFrame",
+                  "Table",
+                  "Message"
+                ],
+                "dynamic": false,
+                "info": "Message to be passed as output.",
+                "title_case": false,
+                "track_in_telemetry": false,
+                "type": "other",
+                "_input_type": "HandleInput"
+              },
+              "clean_data": {
+                "tool_mode": false,
+                "trace_as_metadata": true,
+                "list": false,
+                "list_add_label": "Add More",
+                "override_skip": false,
+                "required": false,
+                "placeholder": "",
+                "show": true,
+                "name": "clean_data",
+                "value": true,
+                "display_name": "Basic Clean Data",
+                "advanced": true,
+                "api_editable": false,
+                "dynamic": false,
+                "info": "Whether to clean data before converting to string.",
+                "title_case": false,
+                "track_in_telemetry": true,
+                "type": "bool",
+                "_input_type": "BoolInput"
+              },
+              "code": {
+                "type": "code",
+                "required": true,
+                "placeholder": "",
+                "list": false,
+                "show": true,
+                "multiline": true,
+                "value": "from collections.abc import Generator\nfrom typing import Any\n\nimport orjson\nfrom fastapi.encoders import jsonable_encoder\n\nfrom lfx.base.io.chat import ChatComponent\nfrom lfx.helpers.data import safe_convert\nfrom lfx.inputs.inputs import BoolInput, DropdownInput, HandleInput, MessageTextInput\nfrom lfx.schema.data import Data\nfrom lfx.schema.dataframe import DataFrame\nfrom lfx.schema.message import Message\nfrom lfx.schema.properties import Source\nfrom lfx.template.field.base import Output\nfrom lfx.utils.constants import (\n    MESSAGE_SENDER_AI,\n    MESSAGE_SENDER_NAME_AI,\n    MESSAGE_SENDER_USER,\n)\n\n\nclass ChatOutput(ChatComponent):\n    display_name = \"Chat Output\"\n    description = \"Display a chat message in the Playground.\"\n    documentation: str = \"https://docs.langflow.org/chat-input-and-output\"\n    icon = \"MessagesSquare\"\n    name = \"ChatOutput\"\n    minimized = True\n\n    inputs = [\n        HandleInput(\n            name=\"input_value\",\n            display_name=\"Inputs\",\n            info=\"Message to be passed as output.\",\n            input_types=[\"Data\", \"JSON\", \"DataFrame\", \"Table\", \"Message\"],\n            required=True,\n        ),\n        BoolInput(\n            name=\"should_store_message\",\n            display_name=\"Store Messages\",\n            info=\"Store the message in the history.\",\n            value=True,\n            advanced=True,\n        ),\n        DropdownInput(\n            name=\"sender\",\n            display_name=\"Sender Type\",\n            options=[MESSAGE_SENDER_AI, MESSAGE_SENDER_USER],\n            value=MESSAGE_SENDER_AI,\n            advanced=True,\n            info=\"Type of sender.\",\n        ),\n        MessageTextInput(\n            name=\"sender_name\",\n            display_name=\"Sender Name\",\n            info=\"Name of the sender.\",\n            value=MESSAGE_SENDER_NAME_AI,\n            advanced=True,\n        ),\n        MessageTextInput(\n            name=\"session_id\",\n            display_name=\"Session ID\",\n            info=\"The session ID of the chat. If empty, the current session ID parameter will be used.\",\n            advanced=True,\n        ),\n        MessageTextInput(\n            name=\"context_id\",\n            display_name=\"Context ID\",\n            info=\"The context ID of the chat. Adds an extra layer to the local memory.\",\n            value=\"\",\n            advanced=True,\n        ),\n        MessageTextInput(\n            name=\"data_template\",\n            display_name=\"Data Template\",\n            value=\"{text}\",\n            advanced=True,\n            info=\"Template to convert Data to Text. If left empty, it will be dynamically set to the Data's text key.\",\n        ),\n        BoolInput(\n            name=\"clean_data\",\n            display_name=\"Basic Clean Data\",\n            value=True,\n            advanced=True,\n            info=\"Whether to clean data before converting to string.\",\n        ),\n    ]\n    outputs = [\n        Output(\n            display_name=\"Output Message\",\n            name=\"message\",\n            method=\"message_response\",\n        ),\n    ]\n\n    def _build_source(self, id_: str | None, display_name: str | None, source: str | None) -> Source:\n        source_dict = {}\n        if id_:\n            source_dict[\"id\"] = id_\n        if display_name:\n            source_dict[\"display_name\"] = display_name\n        if source:\n            # Handle case where source is a ChatOpenAI object\n            if hasattr(source, \"model_name\"):\n                source_dict[\"source\"] = source.model_name\n            elif hasattr(source, \"model\"):\n                source_dict[\"source\"] = str(source.model)\n            else:\n                source_dict[\"source\"] = str(source)\n        return Source(**source_dict)\n\n    async def message_response(self) -> Message:\n        # First convert the input to string if needed\n        text = self.convert_to_string()\n\n        # Get source properties\n        source, _, display_name, source_id = self.get_properties_from_source_component()\n\n        # Create or use existing Message object\n        if isinstance(self.input_value, Message) and not self.is_connected_to_chat_input():\n            message = self.input_value\n            # Update message properties\n            message.text = text\n            # Preserve existing session_id from the incoming message if it exists\n            existing_session_id = message.session_id\n        else:\n            message = Message(text=text)\n            existing_session_id = None\n\n        # Set message properties\n        message.sender = self.sender\n        message.sender_name = self.sender_name\n        # Preserve session_id from incoming message, or use component/graph session_id\n        message.session_id = (\n            self.session_id or existing_session_id or (self.graph.session_id if hasattr(self, \"graph\") else None) or \"\"\n        )\n        message.context_id = self.context_id\n        message.flow_id = self.graph.flow_id if hasattr(self, \"graph\") else None\n        message.properties.source = self._build_source(source_id, display_name, source)\n\n        # Store message if needed\n        if message.session_id and self.should_store_message:\n            stored_message = await self.send_message(message)\n            self.message.value = stored_message\n            message = stored_message\n\n        # Set accumulated token usage from all upstream LLM vertices.\n        # This must happen AFTER send_message() because streaming captures\n        # usage from chunks and would overwrite accumulated totals.\n        if hasattr(self, \"_vertex\") and self._vertex is not None:\n            accumulated_usage = self._vertex._accumulate_upstream_token_usage()  # noqa: SLF001\n            if accumulated_usage:\n                message.properties.usage = accumulated_usage\n                if self.should_store_message and message.get_id():\n                    message = await self._update_stored_message(message)\n                    await self._send_message_event(message, id_=message.get_id())\n\n        self.status = message\n        return message\n\n    def _serialize_data(self, data: Data) -> str:\n        \"\"\"Serialize Data object to JSON string.\"\"\"\n        # Convert data.data to JSON-serializable format\n        serializable_data = jsonable_encoder(data.data)\n        # Serialize with orjson, enabling pretty printing with indentation\n        json_bytes = orjson.dumps(serializable_data, option=orjson.OPT_INDENT_2)\n        # Convert bytes to string and wrap in Markdown code blocks\n        return \"```json\\n\" + json_bytes.decode(\"utf-8\") + \"\\n```\"\n\n    def _validate_input(self) -> None:\n        \"\"\"Validate the input data and raise ValueError if invalid.\"\"\"\n        if self.input_value is None:\n            msg = \"Input data cannot be None\"\n            raise ValueError(msg)\n        if isinstance(self.input_value, list) and not all(\n            isinstance(item, Message | Data | DataFrame | str) for item in self.input_value\n        ):\n            invalid_types = [\n                type(item).__name__\n                for item in self.input_value\n                if not isinstance(item, Message | Data | DataFrame | str)\n            ]\n            msg = f\"Expected Data or DataFrame or Message or str, got {invalid_types}\"\n            raise TypeError(msg)\n        if not isinstance(\n            self.input_value,\n            Message | Data | DataFrame | str | list | Generator | type(None),\n        ):\n            type_name = type(self.input_value).__name__\n            msg = f\"Expected Data or DataFrame or Message or str, Generator or None, got {type_name}\"\n            raise TypeError(msg)\n\n    def convert_to_string(self) -> str | Generator[Any, None, None]:\n        \"\"\"Convert input data to string with proper error handling.\"\"\"\n        self._validate_input()\n        if isinstance(self.input_value, list):\n            clean_data: bool = getattr(self, \"clean_data\", False)\n            return \"\\n\".join([safe_convert(item, clean_data=clean_data) for item in self.input_value])\n        if isinstance(self.input_value, Generator):\n            return self.input_value\n        return safe_convert(self.input_value)\n",
+                "fileTypes": [],
+                "file_path": "",
+                "password": false,
+                "name": "code",
+                "advanced": true,
+                "api_editable": false,
+                "dynamic": true,
+                "info": "",
+                "load_from_db": false,
+                "title_case": false
+              },
+              "context_id": {
+                "tool_mode": false,
+                "trace_as_input": true,
+                "trace_as_metadata": true,
+                "load_from_db": false,
+                "list": false,
+                "list_add_label": "Add More",
+                "override_skip": false,
+                "required": false,
+                "placeholder": "",
+                "show": true,
+                "name": "context_id",
+                "value": "",
+                "display_name": "Context ID",
+                "advanced": true,
+                "api_editable": false,
+                "input_types": [
+                  "Message"
+                ],
+                "dynamic": false,
+                "info": "The context ID of the chat. Adds an extra layer to the local memory.",
+                "title_case": false,
+                "track_in_telemetry": false,
+                "type": "str",
+                "_input_type": "MessageTextInput"
+              },
+              "data_template": {
+                "tool_mode": false,
+                "trace_as_input": true,
+                "trace_as_metadata": true,
+                "load_from_db": false,
+                "list": false,
+                "list_add_label": "Add More",
+                "override_skip": false,
+                "required": false,
+                "placeholder": "",
+                "show": true,
+                "name": "data_template",
+                "value": "{text}",
+                "display_name": "Data Template",
+                "advanced": true,
+                "api_editable": false,
+                "input_types": [
+                  "Message"
+                ],
+                "dynamic": false,
+                "info": "Template to convert Data to Text. If left empty, it will be dynamically set to the Data's text key.",
+                "title_case": false,
+                "track_in_telemetry": false,
+                "type": "str",
+                "_input_type": "MessageTextInput"
+              },
+              "sender": {
+                "tool_mode": false,
+                "trace_as_metadata": true,
+                "options": [
+                  "Machine",
+                  "User"
+                ],
+                "options_metadata": [],
+                "combobox": false,
+                "dialog_inputs": {},
+                "toggle": false,
+                "override_skip": false,
+                "required": false,
+                "placeholder": "",
+                "show": true,
+                "name": "sender",
+                "value": "Machine",
+                "display_name": "Sender Type",
+                "advanced": true,
+                "api_editable": false,
+                "dynamic": false,
+                "info": "Type of sender.",
+                "title_case": false,
+                "track_in_telemetry": true,
+                "external_options": {},
+                "type": "str",
+                "_input_type": "DropdownInput"
+              },
+              "sender_name": {
+                "tool_mode": false,
+                "trace_as_input": true,
+                "trace_as_metadata": true,
+                "load_from_db": false,
+                "list": false,
+                "list_add_label": "Add More",
+                "override_skip": false,
+                "required": false,
+                "placeholder": "",
+                "show": true,
+                "name": "sender_name",
+                "value": "AI",
+                "display_name": "Sender Name",
+                "advanced": true,
+                "api_editable": false,
+                "input_types": [
+                  "Message"
+                ],
+                "dynamic": false,
+                "info": "Name of the sender.",
+                "title_case": false,
+                "track_in_telemetry": false,
+                "type": "str",
+                "_input_type": "MessageTextInput"
+              },
+              "session_id": {
+                "tool_mode": false,
+                "trace_as_input": true,
+                "trace_as_metadata": true,
+                "load_from_db": false,
+                "list": false,
+                "list_add_label": "Add More",
+                "override_skip": false,
+                "required": false,
+                "placeholder": "",
+                "show": true,
+                "name": "session_id",
+                "value": "",
+                "display_name": "Session ID",
+                "advanced": true,
+                "api_editable": false,
+                "input_types": [
+                  "Message"
+                ],
+                "dynamic": false,
+                "info": "The session ID of the chat. If empty, the current session ID parameter will be used.",
+                "title_case": false,
+                "track_in_telemetry": false,
+                "type": "str",
+                "_input_type": "MessageTextInput"
+              },
+              "should_store_message": {
+                "tool_mode": false,
+                "trace_as_metadata": true,
+                "list": false,
+                "list_add_label": "Add More",
+                "override_skip": false,
+                "required": false,
+                "placeholder": "",
+                "show": true,
+                "name": "should_store_message",
+                "value": true,
+                "display_name": "Store Messages",
+                "advanced": true,
+                "api_editable": false,
+                "dynamic": false,
+                "info": "Store the message in the history.",
+                "title_case": false,
+                "track_in_telemetry": true,
+                "type": "bool",
+                "_input_type": "BoolInput"
+              }
+            },
+            "description": "Display a chat message in the Playground.",
+            "icon": "MessagesSquare",
+            "base_classes": [
+              "Message"
+            ],
+            "display_name": "Chat Output",
+            "documentation": "https://docs.langflow.org/chat-input-and-output",
+            "minimized": true,
+            "custom_fields": {},
+            "output_types": [],
+            "pinned": false,
+            "conditional_paths": [],
+            "frozen": false,
+            "outputs": [
+              {
+                "types": [
+                  "Message"
+                ],
+                "selected": "Message",
+                "name": "message",
+                "display_name": "Output Message",
+                "method": "message_response",
+                "value": "__UNDEFINED__",
+                "cache": true,
+                "allows_loop": false,
+                "group_outputs": false,
+                "tool_mode": true
+              }
+            ],
+            "field_order": [
+              "input_value",
+              "should_store_message",
+              "sender",
+              "sender_name",
+              "session_id",
+              "context_id",
+              "data_template",
+              "clean_data"
+            ],
+            "beta": false,
+            "legacy": false,
+            "edited": false,
+            "metadata": {
+              "module": "custom_components.chat_output",
+              "code_hash": "84009527d08c",
+              "dependencies": {
+                "total_dependencies": 3,
+                "dependencies": [
+                  {
+                    "name": "orjson",
+                    "version": "3.12.0"
+                  },
+                  {
+                    "name": "fastapi",
+                    "version": "0.141.1"
+                  },
+                  {
+                    "name": "lfx",
+                    "version": "1.11.5"
+                  }
+                ]
+              },
+              "flow_build_target": "1.11.1",
+              "flow_node_key": "evaluation_output"
+            },
+            "tool_mode": false,
+            "lf_version": "1.11.1"
+          },
+          "showNode": true,
+          "type": "ChatOutput",
+          "description": "Display a chat message in the Playground.",
+          "display_name": "Chat Output",
+          "selected_output": "message"
+        },
+        "dragging": false,
+        "id": "ChatOutput-128293e",
+        "measured": {
+          "height": 260,
+          "width": 320
+        },
+        "position": {
+          "x": 1900,
+          "y": 0
+        },
+        "selected": false,
+        "type": "genericNode"
+      }
+    ],
+    "viewport": {
+      "x": 80,
+      "y": 80,
+      "zoom": 0.55
+    }
+  },
+  "description": "고정 평가 입력으로 query 계획, embedding, hybrid retrieval과 bounded context를 점검하는 검색 QA Flow.",
+  "endpoint_name": "f90-search-evaluation",
+  "icon": null,
+  "icon_bg_color": null,
+  "id": "97fb8b34-5615-530c-8358-8b20fed34b1b",
+  "is_component": false,
+  "last_tested_version": "1.11.1",
+  "locked": false,
+  "mcp_enabled": false,
+  "name": "F90_search_evaluation",
+  "tags": [
+    "business-work-design",
+    "langflow-1.11.1",
+    "standalone-custom-components"
+  ],
+  "webhook": false,
+  "metadata": {
+    "flow_contract": "business-work-design/f90/v1",
+    "generated_by": "scripts/build_langflow_1_11_flows.py",
+    "langflow_version": "1.11.1",
+    "operational_readiness": "evaluation_configuration_required",
+    "required_configuration": [
+      "evaluation WorkDefinition/ACL",
+      "tenant and active catalog snapshot",
+      "embedding endpoint/model/version/dimension",
+      "MongoDB URI and search indexes"
+    ],
+    "contains_native_hitl": false,
+    "custom_sources_embedded": true
+  }
+}

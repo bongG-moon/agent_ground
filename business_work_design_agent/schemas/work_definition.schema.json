@@ -1,0 +1,130 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://internal.example/schemas/work_definition.schema.json",
+  "title": "Canonical Work Definition",
+  "type": "object",
+  "additionalProperties": true,
+  "required": [
+    "schema_version", "tenant_id", "owner_id", "session_id", "channel_mode", "work_definition_id",
+    "revision", "status", "goal", "trigger", "actors", "systems", "inputs", "outputs", "steps",
+    "decisions", "exceptions", "risks_controls", "success_criteria", "as_is_graph", "source_requests",
+    "processed_answer_batches"
+  ],
+  "properties": {
+    "schema_version": {"const": "work-definition/v1"},
+    "tenant_id": {"$ref": "#/$defs/identity"},
+    "owner_id": {"$ref": "#/$defs/identity"},
+    "session_id": {"$ref": "#/$defs/identity"},
+    "channel_mode": {"enum": ["native_hitl", "playground"]},
+    "work_definition_id": {"$ref": "#/$defs/identity"},
+    "revision": {"type": "integer", "minimum": 0},
+    "status": {"enum": ["INTAKE", "EXTRACTING", "NEEDS_CLARIFICATION", "WAITING_ANSWER", "MERGING", "READY_FOR_REVIEW", "WAITING_APPROVAL", "APPROVED", "DESIGNING", "REPORT_READY", "REJECTED", "CANCELLED", "BLOCKED"]},
+    "goal": {"$ref": "#/$defs/fact"},
+    "trigger": {"$ref": "#/$defs/fact"},
+    "frequency_volume": {"$ref": "#/$defs/fact"},
+    "sla": {"$ref": "#/$defs/fact"},
+    "automation_intent": {"$ref": "#/$defs/fact"},
+    "scope_in": {"$ref": "#/$defs/fact_list"},
+    "scope_out": {"$ref": "#/$defs/fact_list"},
+    "actors": {"$ref": "#/$defs/fact_list"},
+    "systems": {"$ref": "#/$defs/fact_list"},
+    "inputs": {"$ref": "#/$defs/fact_list"},
+    "outputs": {"$ref": "#/$defs/fact_list"},
+    "steps": {"$ref": "#/$defs/fact_list"},
+    "decisions": {"$ref": "#/$defs/fact_list"},
+    "exceptions": {"$ref": "#/$defs/fact_list"},
+    "pains": {"$ref": "#/$defs/fact_list"},
+    "risks_controls": {"$ref": "#/$defs/fact_list"},
+    "constraints": {"$ref": "#/$defs/fact_list"},
+    "success_criteria": {"$ref": "#/$defs/fact_list"},
+    "assumptions": {"$ref": "#/$defs/fact_list"},
+    "unresolved": {"$ref": "#/$defs/fact_list"},
+    "as_is_graph": {"$ref": "#/$defs/graph"},
+    "source_requests": {"type": "array", "maxItems": 1000, "items": {"type": "object"}},
+    "processed_answer_batches": {"type": "array", "maxItems": 1000, "items": {"type": "string", "maxLength": 128}},
+    "extensions": {"type": "object"},
+    "preview_hash": {"oneOf": [{"type": "null"}, {"$ref": "#/$defs/sha256"}]},
+    "approved_hash": {"oneOf": [{"type": "null"}, {"$ref": "#/$defs/sha256"}]}
+  },
+  "$defs": {
+    "identity": {"type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$"},
+    "sha256": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
+    "fact": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["value", "status", "evidence_turn_ids", "confidence", "last_updated_revision"],
+      "properties": {
+        "value": {},
+        "status": {"enum": ["confirmed", "inferred", "unknown", "conflicting"]},
+        "evidence_turn_ids": {"type": "array", "maxItems": 50, "items": {"type": "string", "maxLength": 200}},
+        "confidence": {"type": "number", "minimum": 0, "maximum": 1},
+        "last_updated_revision": {"type": "integer", "minimum": 0}
+      }
+    },
+    "provenance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["status", "evidence_turn_ids", "confidence", "last_updated_revision"],
+      "properties": {
+        "status": {"enum": ["confirmed", "inferred", "unknown", "conflicting"]},
+        "evidence_turn_ids": {"type": "array", "maxItems": 50, "items": {"type": "string", "maxLength": 200}},
+        "confidence": {"type": "number", "minimum": 0, "maximum": 1},
+        "last_updated_revision": {"type": "integer", "minimum": 0}
+      }
+    },
+    "fact_list": {
+      "type": "array",
+      "maxItems": 1000,
+      "items": {
+        "type": "object",
+        "required": ["id", "provenance"],
+        "properties": {
+          "id": {"type": "string", "minLength": 1, "maxLength": 200},
+          "provenance": {"$ref": "#/$defs/provenance"}
+        }
+      }
+    },
+    "graph": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": ["nodes", "edges"],
+      "properties": {
+        "schema_version": {"enum": ["work-graph/v1", null]},
+        "nodes": {
+          "type": "array",
+          "maxItems": 2000,
+          "items": {
+            "type": "object",
+            "required": ["id", "kind", "label", "detail_ref"],
+            "properties": {
+              "id": {"type": "string", "minLength": 1, "maxLength": 200},
+              "kind": {"enum": ["start", "task", "decision", "human_review", "system_call", "subflow", "end", "exception"]},
+              "label": {"type": "string", "minLength": 1, "maxLength": 500},
+              "detail_ref": {"type": "string", "minLength": 1, "maxLength": 300},
+              "current_work": {"type": "string", "maxLength": 20000},
+              "problems": {"type": "array", "maxItems": 50},
+              "improvement": {"type": "string", "maxLength": 20000}
+            }
+          }
+        },
+        "edges": {
+          "type": "array",
+          "maxItems": 10000,
+          "items": {
+            "type": "object",
+            "required": ["id", "source", "target", "branch_label"],
+            "properties": {
+              "id": {"type": "string", "minLength": 1, "maxLength": 200},
+              "source": {"type": "string", "minLength": 1, "maxLength": 200},
+              "target": {"type": "string", "minLength": 1, "maxLength": 200},
+              "branch_label": {"type": "string", "maxLength": 500},
+              "condition": {},
+              "default": {"type": "boolean"}
+            }
+          }
+        },
+        "loop_policy": {"type": ["object", "null"]}
+      }
+    }
+  }
+}

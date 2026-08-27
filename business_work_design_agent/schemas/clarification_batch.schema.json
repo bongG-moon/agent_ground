@@ -1,0 +1,37 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://internal.example/schemas/clarification_batch.schema.json",
+  "title": "Clarification Batch",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["tenant_id", "batch_id", "work_definition_id", "expected_revision", "channel_mode", "questions", "status", "expires_at"],
+  "properties": {
+    "tenant_id": {"type": "string", "minLength": 1, "maxLength": 128},
+    "batch_id": {"type": "string", "minLength": 1, "maxLength": 128},
+    "work_definition_id": {"type": "string", "minLength": 1, "maxLength": 128},
+    "expected_revision": {"type": "integer", "minimum": 0},
+    "channel_mode": {"enum": ["native_hitl", "playground"]},
+    "questions": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 3,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["question_id", "text", "target_path", "reason"],
+        "properties": {
+          "question_id": {"type": "string", "minLength": 1, "maxLength": 128},
+          "text": {"type": "string", "minLength": 1, "maxLength": 1000},
+          "target_path": {"type": "string", "minLength": 1, "maxLength": 500},
+          "reason": {"type": "string", "minLength": 1, "maxLength": 2000},
+          "options": {"type": "array", "maxItems": 20, "items": {"type": "string", "maxLength": 500}}
+        }
+      }
+    },
+    "answers": {"type": "array", "maxItems": 3, "items": {"type": "object"}},
+    "status": {"enum": ["OPEN", "SUBMITTED", "EXPIRED", "CANCELLED"]},
+    "idempotency_key": {"type": ["string", "null"], "maxLength": 256},
+    "action_token_sha256": {"type": ["string", "null"], "pattern": "^(sha256:[0-9a-f]{64})?$"},
+    "expires_at": {"type": "string", "format": "date-time"}
+  }
+}

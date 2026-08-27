@@ -1,0 +1,17 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://internal.example/schemas/catalog_upload.schema.json",
+  "title": "Catalog Upload Envelope",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["tenant_id", "file_name", "format"],
+  "properties": {
+    "tenant_id": {"type": "string", "minLength": 1, "maxLength": 128},
+    "file_name": {"type": "string", "minLength": 1, "maxLength": 255},
+    "format": {"enum": ["json_array", "json_items", "jsonl"]},
+    "content_sha256": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
+    "expected_record_count": {"type": "integer", "minimum": 0, "maximum": 1000000},
+    "source_ref": {"type": ["string", "null"], "maxLength": 2048},
+    "metadata": {"type": "object", "maxProperties": 50}
+  }
+}

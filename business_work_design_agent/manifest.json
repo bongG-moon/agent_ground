@@ -1,0 +1,55 @@
+{
+  "project": "business_work_design_agent",
+  "contract_version": "1.0.0",
+  "status": "implementation",
+  "runtime": {
+    "langflow": "1.11.1",
+    "component_api": "lfx-public",
+    "python": ">=3.11,<3.14"
+  },
+  "custom_component_policy": {
+    "standalone_one_file": true,
+    "one_component_subclass_per_file": true,
+    "local_imports_allowed": false,
+    "relative_imports_allowed": false,
+    "sys_path_mutation_allowed": false,
+    "durable_self_ctx_allowed": false
+  },
+  "component_groups": {
+    "catalog_ingestion": ["00", "01", "02", "03", "04", "05", "06", "07", "08", "09", "33"],
+    "work_definition": ["10", "11", "12", "13", "14", "15", "16", "17", "18", "27", "28", "34", "35", "36"],
+    "hybrid_retrieval": ["19", "20", "29", "21", "22"],
+    "agent_blueprint": ["23", "24", "25", "26"],
+    "report": ["30", "31", "32"]
+  },
+  "flows": [
+    "F00_catalog_ingestion_admin",
+    "F10_work_definition_parent",
+    "F11_work_definition_chat_turn",
+    "F20_agent_blueprint_design",
+    "F30_responsive_report",
+    "F90_search_evaluation"
+  ],
+  "services": ["catalog_worker", "hitl_form_api", "report_api"],
+  "standalone_component_count": 37,
+  "provider_modes": {
+    "catalog_search": ["native_rank_fusion", "native_score_fusion", "application_rrf"],
+    "query_embedding": ["http_json", "precomputed"],
+    "catalog_ingestion": ["bounded_companion_worker"],
+    "catalog_activation": ["trusted_gateway_attested_server_side"],
+    "report_delivery": ["header_authenticated_api", "purpose_scoped_signed_capability_url"]
+  },
+  "production_readiness": {
+    "requires_mongodb": true,
+    "requires_embedding_provider_for_activation": true,
+    "requires_trusted_activation_attestation_gateway": true,
+    "requires_trusted_design_orchestrator": true,
+    "requires_hitl_expiry_sweeper": true,
+    "requires_tenant_and_acl": true,
+    "requires_authenticated_report_delivery": true,
+    "requires_report_view_signing_secret": true,
+    "requires_report_capability_query_log_redaction": true,
+    "requires_report_artifact_lifecycle": true,
+    "silent_demo_fallback": false
+  }
+}

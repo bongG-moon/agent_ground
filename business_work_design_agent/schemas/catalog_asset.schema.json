@@ -1,0 +1,52 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://internal.example/schemas/catalog_asset.schema.json",
+  "title": "Catalog Asset",
+  "type": "object",
+  "additionalProperties": true,
+  "required": ["tenant_id", "snapshot_id", "asset_id", "asset_type", "title", "version", "technical_contract", "acl", "content_sha256"],
+  "properties": {
+    "tenant_id": {"type": "string", "minLength": 1, "maxLength": 128},
+    "snapshot_id": {"type": "string", "minLength": 1, "maxLength": 128},
+    "asset_id": {"type": "string", "minLength": 1, "maxLength": 256},
+    "asset_type": {"enum": ["component", "flow"]},
+    "title": {"type": "string", "minLength": 1, "maxLength": 500},
+    "version": {"type": "string", "minLength": 1, "maxLength": 128},
+    "description": {"type": "string", "maxLength": 10000},
+    "category": {"type": "string", "maxLength": 256},
+    "readme": {"type": "string", "maxLength": 200000},
+    "raw_record_redacted": {"type": "object"},
+    "raw_text": {"type": "string", "maxLength": 300000},
+    "source": {
+      "type": "object",
+      "required": ["file_id", "record_index", "file_sha256"],
+      "properties": {
+        "file_id": {"type": "string"},
+        "record_index": {"type": "integer", "minimum": 0},
+        "file_sha256": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"}
+      }
+    },
+    "technical_contract": {
+      "type": "object",
+      "required": ["status"],
+      "properties": {
+        "status": {"enum": ["metadata_only", "ports_extracted", "flow_graph_extracted", "verified_runtime"]},
+        "inputs": {"type": "array", "maxItems": 500, "items": {"type": "object"}},
+        "outputs": {"type": "array", "maxItems": 500, "items": {"type": "object"}},
+        "dependencies": {"type": "array", "maxItems": 500, "items": {"type": "string"}},
+        "verified_at": {"type": ["string", "null"], "format": "date-time"}
+      }
+    },
+    "relations": {"type": "array", "maxItems": 1000, "items": {"type": "object"}},
+    "acl": {
+      "type": "object",
+      "required": ["visibility", "groups"],
+      "properties": {
+        "visibility": {"enum": ["private", "group", "tenant"]},
+        "groups": {"type": "array", "maxItems": 200, "items": {"type": "string", "maxLength": 128}},
+        "subjects": {"type": "array", "maxItems": 200, "items": {"type": "string", "maxLength": 256}}
+      }
+    },
+    "content_sha256": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"}
+  }
+}

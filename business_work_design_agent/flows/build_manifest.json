@@ -1,0 +1,67 @@
+{
+  "schema_version": "business-work-design-flow-build-manifest/v1",
+  "langflow_version": "1.11.1",
+  "lfx_version": "1.11.5",
+  "python_version": "3.13.14",
+  "generator_sha256": "a249242bf3bca946dc12bb4dfb7f4a5e8083acacd5affdfafa89dc3949925ee6",
+  "bundle": {
+    "filename": "00_business_work_design_ALL_FLOWS.json",
+    "sha256": "57ca8dee70ec0b67bf5a04bf5868d1f9105467ebdcd989e0b4a28d422b00470e"
+  },
+  "flows": [
+    {
+      "flow_key": "F00",
+      "filename": "F00_catalog_ingestion_admin.json",
+      "flow_id": "14ccbaaa-9364-5320-aa4a-b09f0aeb9f95",
+      "sha256": "5f6557160e9a82d1a52b0bfae8e50c384840ddb666c405843d2ad9529836b2f8",
+      "node_count": 10,
+      "edge_count": 10,
+      "operational_readiness": "trusted_admin_gateway_required"
+    },
+    {
+      "flow_key": "F10",
+      "filename": "F10_work_definition_parent.json",
+      "flow_id": "a27ccb6e-936e-5ac2-a41d-f03f60ab92be",
+      "sha256": "47eefeb131aff2bb409a2dc5e7fec81a1f25bba7633b69cb9c976f4c460d29c4",
+      "node_count": 224,
+      "edge_count": 286,
+      "operational_readiness": "configuration_required"
+    },
+    {
+      "flow_key": "F11",
+      "filename": "F11_work_definition_chat_turn.json",
+      "flow_id": "028c2503-189c-52a8-b34b-ea0c22a73c5d",
+      "sha256": "74d7adb6ec223d01dc9d5b598e1d1cbc1d574c14fdd7cd6d0c260dc05362d6c7",
+      "node_count": 89,
+      "edge_count": 103,
+      "operational_readiness": "structured_command_external_state_required"
+    },
+    {
+      "flow_key": "F20",
+      "filename": "F20_agent_blueprint_design.json",
+      "flow_id": "117f7dbe-1bc7-5577-9d55-3a803cb92ed8",
+      "sha256": "64c29d4a36a614ffba6bf1c4eb832a17039021d7bd6eb9ef7b512fb4cc2854eb",
+      "node_count": 16,
+      "edge_count": 21,
+      "operational_readiness": "trusted_backend_only_configuration_required"
+    },
+    {
+      "flow_key": "F30",
+      "filename": "F30_responsive_report.json",
+      "flow_id": "9c4ae6af-4172-5f98-8812-e8b8c8c0648d",
+      "sha256": "52535dfd5a75b9227046f152327678533cd283529fde4c1774347fb472149ed7",
+      "node_count": 3,
+      "edge_count": 2,
+      "operational_readiness": "configuration_required"
+    },
+    {
+      "flow_key": "F90",
+      "filename": "F90_search_evaluation.json",
+      "flow_id": "97fb8b34-5615-530c-8358-8b20fed34b1b",
+      "sha256": "b78cd0631ffbbc70895bed5c8eca1a241ba5053392b67310ca5c9c959faba328",
+      "node_count": 6,
+      "edge_count": 6,
+      "operational_readiness": "evaluation_configuration_required"
+    }
+  ]
+}

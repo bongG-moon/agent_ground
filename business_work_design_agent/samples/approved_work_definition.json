@@ -1,0 +1,558 @@
+{
+  "schema_version": "work-definition/v1",
+  "tenant_id": "tenant-demo",
+  "owner_id": "employee-demo",
+  "session_id": "session-weekly-email-report",
+  "channel_mode": "native_hitl",
+  "work_definition_id": "wd-weekly-email-report",
+  "revision": 4,
+  "status": "APPROVED",
+  "title": {
+    "value": "메일 기반 주간 업무보고 작성",
+    "status": "confirmed",
+    "evidence_turn_ids": [
+      "turn-001"
+    ],
+    "confidence": 1.0,
+    "last_updated_revision": 4
+  },
+  "goal": {
+    "value": "지난 한 주의 업무 메일을 근거로 주간 업무보고 초안을 만들고 담당자 검토 후 공유한다.",
+    "status": "confirmed",
+    "evidence_turn_ids": [
+      "turn-001",
+      "turn-003"
+    ],
+    "confidence": 1.0,
+    "last_updated_revision": 4
+  },
+  "trigger": {
+    "value": "매주 금요일 15시 또는 담당자의 수동 실행",
+    "status": "confirmed",
+    "evidence_turn_ids": [
+      "turn-002"
+    ],
+    "confidence": 1.0,
+    "last_updated_revision": 4
+  },
+  "frequency_volume": {
+    "value": {
+      "frequency": "weekly",
+      "estimated_messages_per_run": 120
+    },
+    "status": "confirmed",
+    "evidence_turn_ids": [
+      "turn-002"
+    ],
+    "confidence": 1.0,
+    "last_updated_revision": 4
+  },
+  "sla": {
+    "value": {
+      "draft_due": "금요일 16:00",
+      "approval_due": "금요일 17:00"
+    },
+    "status": "confirmed",
+    "evidence_turn_ids": [
+      "turn-003"
+    ],
+    "confidence": 1.0,
+    "last_updated_revision": 4
+  },
+  "automation_intent": {
+    "value": "semi_automatic",
+    "status": "confirmed",
+    "evidence_turn_ids": [
+      "turn-003"
+    ],
+    "confidence": 1.0,
+    "last_updated_revision": 4
+  },
+  "scope_in": [
+    {
+      "id": "scope-in-weekly-mail",
+      "name": "승인된 기간의 업무 메일 수집과 주간 보고서 초안 작성",
+      "provenance": {
+        "status": "confirmed",
+        "evidence_turn_ids": [
+          "turn-001"
+        ],
+        "confidence": 1.0,
+        "last_updated_revision": 4
+      }
+    }
+  ],
+  "scope_out": [
+    {
+      "id": "scope-out-unapproved-publish",
+      "name": "사용자 승인 없는 보고서 게시 또는 외부 전송",
+      "provenance": {
+        "status": "confirmed",
+        "evidence_turn_ids": [
+          "turn-003"
+        ],
+        "confidence": 1.0,
+        "last_updated_revision": 4
+      }
+    }
+  ],
+  "actors": [
+    {
+      "id": "employee",
+      "name": "업무 담당자",
+      "role": "보고서 검토 및 승인",
+      "provenance": {
+        "status": "confirmed",
+        "evidence_turn_ids": [
+          "turn-001"
+        ],
+        "confidence": 1.0,
+        "last_updated_revision": 4
+      }
+    },
+    {
+      "id": "team-lead",
+      "name": "팀 리더",
+      "role": "승인된 보고서 수신",
+      "provenance": {
+        "status": "confirmed",
+        "evidence_turn_ids": [
+          "turn-003"
+        ],
+        "confidence": 1.0,
+        "last_updated_revision": 4
+      }
+    }
+  ],
+  "systems": [
+    {
+      "id": "outlook",
+      "name": "사내 Outlook",
+      "purpose": "기간 내 메일 조회",
+      "provenance": {
+        "status": "confirmed",
+        "evidence_turn_ids": [
+          "turn-001"
+        ],
+        "confidence": 1.0,
+        "last_updated_revision": 4
+      }
+    },
+    {
+      "id": "report-portal",
+      "name": "업무보고 포털",
+      "purpose": "승인본 게시",
+      "provenance": {
+        "status": "confirmed",
+        "evidence_turn_ids": [
+          "turn-003"
+        ],
+        "confidence": 1.0,
+        "last_updated_revision": 4
+      }
+    }
+  ],
+  "inputs": [
+    {
+      "id": "mail-window",
+      "name": "조회 기간",
+      "data_type": "DateRange",
+      "required": true,
+      "provenance": {
+        "status": "confirmed",
+        "evidence_turn_ids": [
+          "turn-002"
+        ],
+        "confidence": 1.0,
+        "last_updated_revision": 4
+      }
+    },
+    {
+      "id": "mail-account",
+      "name": "사내 메일 계정 참조",
+      "data_type": "CredentialRef",
+      "required": true,
+      "provenance": {
+        "status": "confirmed",
+        "evidence_turn_ids": [
+          "turn-001"
+        ],
+        "confidence": 1.0,
+        "last_updated_revision": 4
+      }
+    }
+  ],
+  "steps": [
+    {
+      "id": "request",
+      "step_id": "request",
+      "sequence": 1,
+      "title": "보고 기간 확인",
+      "capability": "승인된 조회 기간과 실행 요청을 확인한다.",
+      "owner": "업무 담당자",
+      "provenance": {
+        "status": "confirmed",
+        "evidence_turn_ids": [
+          "turn-002"
+        ],
+        "confidence": 1.0,
+        "last_updated_revision": 4
+      }
+    },
+    {
+      "id": "collect",
+      "step_id": "collect",
+      "sequence": 2,
+      "title": "관련 메일 검색",
+      "capability": "기간 내 업무 메일을 검색하고 원문 참조를 보존한다.",
+      "owner": "업무 담당자",
+      "provenance": {
+        "status": "confirmed",
+        "evidence_turn_ids": [
+          "turn-001"
+        ],
+        "confidence": 1.0,
+        "last_updated_revision": 4
+      }
+    },
+    {
+      "id": "draft",
+      "step_id": "draft",
+      "sequence": 3,
+      "title": "업무 항목 분류 및 초안 작성",
+      "capability": "메일을 업무, 성과, 이슈로 정리하고 근거를 연결한다.",
+      "owner": "업무 담당자",
+      "provenance": {
+        "status": "confirmed",
+        "evidence_turn_ids": [
+          "turn-001"
+        ],
+        "confidence": 1.0,
+        "last_updated_revision": 4
+      }
+    },
+    {
+      "id": "review",
+      "step_id": "review",
+      "sequence": 4,
+      "title": "근거와 민감정보 검토",
+      "capability": "담당자가 근거, 누락, 민감정보를 확인하고 승인한다.",
+      "owner": "업무 담당자",
+      "provenance": {
+        "status": "confirmed",
+        "evidence_turn_ids": [
+          "turn-003"
+        ],
+        "confidence": 1.0,
+        "last_updated_revision": 4
+      }
+    },
+    {
+      "id": "share",
+      "step_id": "share",
+      "sequence": 5,
+      "title": "팀 리더에게 공유",
+      "capability": "승인된 보고서를 사내 포털에 게시하고 링크를 전달한다.",
+      "owner": "업무 담당자",
+      "provenance": {
+        "status": "confirmed",
+        "evidence_turn_ids": [
+          "turn-003"
+        ],
+        "confidence": 1.0,
+        "last_updated_revision": 4
+      }
+    }
+  ],
+  "decisions": [
+    {
+      "id": "sensitive-check",
+      "decision_id": "sensitive-check",
+      "question": "민감정보 또는 근거가 부족한 문장이 있는가?",
+      "owner": "업무 담당자",
+      "provenance": {
+        "status": "confirmed",
+        "evidence_turn_ids": [
+          "turn-003"
+        ],
+        "confidence": 1.0,
+        "last_updated_revision": 4
+      }
+    }
+  ],
+  "outputs": [
+    {
+      "id": "weekly-report",
+      "name": "승인된 주간 업무보고",
+      "data_type": "Document",
+      "provenance": {
+        "status": "confirmed",
+        "evidence_turn_ids": [
+          "turn-003"
+        ],
+        "confidence": 1.0,
+        "last_updated_revision": 4
+      }
+    }
+  ],
+  "exceptions": [
+    {
+      "id": "mail-auth-expired",
+      "condition": "메일 인증 만료",
+      "handling": "재인증 후 다시 실행",
+      "provenance": {
+        "status": "confirmed",
+        "evidence_turn_ids": [
+          "turn-003"
+        ],
+        "confidence": 1.0,
+        "last_updated_revision": 4
+      }
+    }
+  ],
+  "pains": [
+    {
+      "id": "manual-search",
+      "description": "메일을 하나씩 열어 업무 항목을 옮기는 데 시간이 많이 든다.",
+      "provenance": {
+        "status": "confirmed",
+        "evidence_turn_ids": [
+          "turn-001"
+        ],
+        "confidence": 1.0,
+        "last_updated_revision": 4
+      }
+    },
+    {
+      "id": "missing-evidence",
+      "description": "초안 문장과 원본 메일의 연결 근거를 다시 찾기 어렵다.",
+      "provenance": {
+        "status": "confirmed",
+        "evidence_turn_ids": [
+          "turn-001"
+        ],
+        "confidence": 1.0,
+        "last_updated_revision": 4
+      }
+    }
+  ],
+  "risks_controls": [
+    {
+      "id": "sensitive-information",
+      "name": "외부 전송 전 사용자 승인",
+      "risk": "민감정보가 보고서에 포함될 수 있음",
+      "control": "게시 전 담당자 승인과 민감정보 확인을 필수화",
+      "provenance": {
+        "status": "confirmed",
+        "evidence_turn_ids": [
+          "turn-003"
+        ],
+        "confidence": 1.0,
+        "last_updated_revision": 4
+      }
+    },
+    {
+      "id": "mail-read-failure",
+      "name": "메일 조회 실패 표시",
+      "risk": "메일 조회 실패를 성공으로 오인",
+      "control": "조회 건수와 실패 사유를 보고서에 표시",
+      "provenance": {
+        "status": "confirmed",
+        "evidence_turn_ids": [
+          "turn-003"
+        ],
+        "confidence": 1.0,
+        "last_updated_revision": 4
+      }
+    }
+  ],
+  "constraints": [
+    {
+      "id": "internal-network-only",
+      "name": "사내망에서만 메일과 보고서 API에 접근",
+      "provenance": {
+        "status": "confirmed",
+        "evidence_turn_ids": [
+          "turn-003"
+        ],
+        "confidence": 1.0,
+        "last_updated_revision": 4
+      }
+    },
+    {
+      "id": "approval-before-publish",
+      "name": "사용자 승인 없이 외부 전송 금지",
+      "provenance": {
+        "status": "confirmed",
+        "evidence_turn_ids": [
+          "turn-003"
+        ],
+        "confidence": 1.0,
+        "last_updated_revision": 4
+      }
+    }
+  ],
+  "success_criteria": [
+    {
+      "id": "evidence-coverage",
+      "name": "메일 원문 링크를 가진 업무 항목 비율 100%",
+      "provenance": {
+        "status": "confirmed",
+        "evidence_turn_ids": [
+          "turn-003"
+        ],
+        "confidence": 1.0,
+        "last_updated_revision": 4
+      }
+    },
+    {
+      "id": "no-unapproved-publish",
+      "name": "승인 전 게시 시도 0건",
+      "provenance": {
+        "status": "confirmed",
+        "evidence_turn_ids": [
+          "turn-003"
+        ],
+        "confidence": 1.0,
+        "last_updated_revision": 4
+      }
+    }
+  ],
+  "assumptions": [
+    {
+      "id": "mail-filter-support",
+      "name": "메일 API가 기간과 발신자 필터를 지원한다.",
+      "provenance": {
+        "status": "confirmed",
+        "evidence_turn_ids": [
+          "turn-003"
+        ],
+        "confidence": 1.0,
+        "last_updated_revision": 4
+      }
+    }
+  ],
+  "unresolved": [],
+  "as_is_graph": {
+    "schema_version": "work-graph/v1",
+    "nodes": [
+      {
+        "id": "as-start",
+        "kind": "start",
+        "label": "금요일 보고 준비 시작",
+        "actor_ref": null,
+        "step_ref": null,
+        "change_state": "unchanged",
+        "detail_ref": "detail-as-start",
+        "current_work": "담당자가 금요일에 직접 조회 기간과 보고 대상 범위를 정한다.",
+        "problems": [
+          "실행 기준이 사람마다 달라 누락 범위가 생길 수 있다."
+        ],
+        "improvement": "정기 실행 또는 수동 요청을 하나의 승인된 실행 계약으로 받는다."
+      },
+      {
+        "id": "as-search",
+        "kind": "task",
+        "label": "Outlook 메일 수동 검색",
+        "actor_ref": null,
+        "step_ref": null,
+        "change_state": "unchanged",
+        "detail_ref": "detail-as-search",
+        "current_work": "담당자가 Outlook에서 기간과 발신자를 바꿔가며 업무 메일을 직접 찾는다.",
+        "problems": [
+          "메일을 하나씩 열어야 하며 원문 근거를 다시 찾는 시간이 길다."
+        ],
+        "improvement": "승인된 조회 범위만 사용하는 standalone 수집 Component로 원문 참조를 함께 보존한다."
+      },
+      {
+        "id": "as-draft",
+        "kind": "task",
+        "label": "업무보고 수동 작성",
+        "actor_ref": null,
+        "step_ref": null,
+        "change_state": "unchanged",
+        "detail_ref": "detail-as-draft",
+        "current_work": "검색한 메일 내용을 사람이 업무, 성과, 이슈 항목으로 옮겨 적는다.",
+        "problems": [
+          "초안 문장과 원본 메일의 연결 근거가 끊기고 반복 편집이 많다."
+        ],
+        "improvement": "근거 우선 요약 Skill을 적용한 신규 adapter가 문장별 source_ref를 유지한다."
+      },
+      {
+        "id": "as-review",
+        "kind": "human_review",
+        "label": "민감정보와 내용 검토",
+        "actor_ref": null,
+        "step_ref": null,
+        "change_state": "unchanged",
+        "detail_ref": "detail-as-review",
+        "current_work": "담당자가 완성된 문서를 다시 읽으며 누락과 민감정보를 확인한다.",
+        "problems": [
+          "검토 여부와 수정 사유가 구조화되어 남지 않는다."
+        ],
+        "improvement": "게시 직전 Human 승인 gate에서 승인, 수정 요청, 거절을 명시적으로 기록한다."
+      },
+      {
+        "id": "as-end",
+        "kind": "end",
+        "label": "업무보고 공유 완료",
+        "actor_ref": null,
+        "step_ref": null,
+        "change_state": "unchanged",
+        "detail_ref": "detail-as-end",
+        "current_work": "승인된 문서를 포털에 올리고 링크를 별도로 전달한다.",
+        "problems": [
+          "승인 전 게시 여부와 게시 결과를 일관되게 추적하기 어렵다."
+        ],
+        "improvement": "승인 상태가 확인된 경우에만 Report API가 게시하고 감사 추적 ID와 링크를 반환한다."
+      }
+    ],
+    "edges": [
+      {
+        "id": "as-e1",
+        "source": "as-start",
+        "target": "as-search",
+        "branch_label": "작성 시작",
+        "condition": null,
+        "default": false
+      },
+      {
+        "id": "as-e2",
+        "source": "as-search",
+        "target": "as-draft",
+        "branch_label": "검색 결과",
+        "condition": null,
+        "default": false
+      },
+      {
+        "id": "as-e3",
+        "source": "as-draft",
+        "target": "as-review",
+        "branch_label": "초안 검토",
+        "condition": null,
+        "default": false
+      },
+      {
+        "id": "as-e4",
+        "source": "as-review",
+        "target": "as-end",
+        "branch_label": "승인 후 공유",
+        "condition": null,
+        "default": false
+      }
+    ],
+    "loop_policy": null
+  },
+  "source_requests": [
+    {
+      "turn_id": "turn-001",
+      "text": "지난 한 주의 업무 메일로 주간 업무보고 초안을 만들고 싶다."
+    }
+  ],
+  "processed_answer_batches": [
+    "answer-batch-001"
+  ],
+  "extensions": {},
+  "preview_hash": "sha256:86a9c68d6acb5958adc46a74a3e3479cfe7cfd6e553082359174b42df9cd07ba",
+  "approved_hash": "sha256:86a9c68d6acb5958adc46a74a3e3479cfe7cfd6e553082359174b42df9cd07ba"
+}
