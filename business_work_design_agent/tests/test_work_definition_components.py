@@ -27,7 +27,6 @@ COMPONENT_FILES = [COMPONENTS / f"{number:02d}_{name}.py" for number, name in (
     (28, "work_definition_branch_joiner"),
     (34, "work_runtime_state_store"),
     (35, "result_gate"),
-    (36, "playground_command_router"),
 )]
 
 
@@ -128,7 +127,7 @@ def _base_work(*, channel="native_hitl", status="EXTRACTING", revision=0):
 
 class StandaloneContractTests(unittest.TestCase):
     def test_all_work_definition_files_are_standalone_single_components(self):
-        self.assertEqual(len(COMPONENT_FILES), 14)
+        self.assertEqual(len(COMPONENT_FILES), 13)
         for path in COMPONENT_FILES:
             source = path.read_text(encoding="utf-8")
             self.assertFalse(path.read_bytes().startswith(b"\xef\xbb\xbf"), path.name)
@@ -149,57 +148,6 @@ class StandaloneContractTests(unittest.TestCase):
 
 
 class WorkDefinitionPipelineTests(unittest.TestCase):
-    def test_playground_command_router_accepts_only_strict_top_level_commands(self):
-        parser = MODULES["36"]
-        valid_start = parser.parse_playground_command(
-            json.dumps({"command": "start", "request_text": "메일로 주간 보고서를 만듭니다.", "additional_prompt": "승인 단계 포함"})
-        )
-        self.assertTrue(valid_start["ok"])
-        self.assertEqual(valid_start["route"], "start_path")
-        self.assertEqual(valid_start["request_text"], "메일로 주간 보고서를 만듭니다.")
-
-        nested = parser.parse_playground_command(
-            '{"command":"reject","nested":{"command":"approve"}}'
-        )
-        self.assertFalse(nested["ok"])
-        self.assertEqual(nested["error"]["code"], "PLAYGROUND_COMMAND_FIELDS_INVALID")
-
-        duplicate = parser.parse_playground_command(
-            '{"command":"reject","command":"approve"}'
-        )
-        self.assertFalse(duplicate["ok"])
-        self.assertEqual(duplicate["error"]["code"], "PLAYGROUND_COMMAND_JSON_INVALID")
-
-        malformed = parser.parse_playground_command('{"command":"approve"')
-        self.assertFalse(malformed["ok"])
-        self.assertEqual(malformed["route"], "blocked_path")
-
-        valid_action = parser.parse_playground_command('{"command":"reject"}')
-        self.assertTrue(valid_action["ok"])
-        self.assertEqual(valid_action["route"], "reject_path")
-
-        unsupported_rework = parser.parse_playground_command('{"command":"request_changes"}')
-        self.assertFalse(unsupported_rework["ok"])
-        self.assertEqual(unsupported_rework["error"]["code"], "PLAYGROUND_COMMAND_INVALID")
-
-    def test_request_envelope_extracts_exact_channels_from_validated_playground_data(self):
-        parsed = MODULES["36"].parse_playground_command(
-            json.dumps({"command": "start", "request_text": "  원문 유지\n", "additional_prompt": "추가 지침\n"})
-        )
-        routed = MODULES["36"].Data(data=parsed)
-        result = MODULES["10"].build_work_request_envelope(
-            routed,
-            additional_prompt=routed,
-            tenant_id="tenant-a",
-            owner_id="owner-a",
-            session_id="session-a",
-            channel_mode="playground",
-            submitted_at="2026-08-27T00:00:00Z",
-        )
-        self.assertTrue(result["ok"])
-        self.assertEqual(result["envelope"]["source_request"]["raw_text"], "  원문 유지\n")
-        self.assertEqual(result["envelope"]["additional_prompt"]["raw_text"], "추가 지침\n")
-
     def test_result_gate_requires_explicit_success_and_required_payload(self):
         success = {"ok": True, "status": "READY", "work_definition": {"work_definition_id": "wd-1"}}
         self.assertEqual(
@@ -217,28 +165,59 @@ class WorkDefinitionPipelineTests(unittest.TestCase):
 
     def test_envelope_preserves_raw_channels_and_rejects_cross_channel_value(self):
         raw = "  메일을 읽고 보고서를 만듭니다.\n"
-        result = MODULES["10"].build_work_request_envelope(raw, additional_prompt="추가 조건", tenant_id="tenant-a", owner_id="owner-a", session_id="session-a", channel_mode="native_hitl", submitted_at="2026-08-27T00:00:00Z")
+        result = MODULES["10"].build_work_request_envelope(MODULES["10"].Message(text=raw), additional_prompt=MODULES["10"].Message(text="추가 조건"), team_name="자동화팀", employee_id="owner-a", session_id="session-a", channel_mode="native_hitl", submitted_at="2026-08-27T00:00:00Z")
         self.assertTrue(result["ok"])
         self.assertEqual(result["envelope"]["source_request"]["raw_text"], raw)
         self.assertEqual(result["envelope"]["additional_prompt"]["raw_text"], "추가 조건")
-        bad = MODULES["10"].build_work_request_envelope("업무", tenant_id="t", owner_id="o", session_id="s", channel_mode="mixed")
+        self.assertEqual(result["envelope"]["team_name"], "자동화팀")
+        self.assertEqual(result["envelope"]["employee_id"], "owner-a")
+        self.assertEqual(result["envelope"]["tenant_id"], "default")
+        runtime_session = MODULES["10"].WorkRequestEnvelopeComponent._runtime_session_id(
+            types.SimpleNamespace(
+                graph=types.SimpleNamespace(run_id="runtime-run-a", session_id="static-flow-session-a"),
+                _session_id="component-session-a",
+            )
+        )
+        self.assertEqual(runtime_session, "runtime-run-a")
+        bad = MODULES["10"].build_work_request_envelope("업무", team_name="자동화팀", employee_id="o", session_id="s", channel_mode="mixed")
         self.assertEqual(bad["error"]["code"], "WORK_CHANNEL_INVALID")
+
+    def test_runtime_session_falls_back_when_run_id_is_unavailable_or_raises(self):
+        component_class = MODULES["10"].WorkRequestEnvelopeComponent
+
+        class _RaisingRunIdGraph:
+            session_id = "graph-session-a"
+
+            @property
+            def run_id(self):
+                raise RuntimeError("run id is not available")
+
+        from_graph_session = component_class._runtime_session_id(
+            types.SimpleNamespace(graph=_RaisingRunIdGraph(), _session_id="component-session-a")
+        )
+        self.assertEqual(from_graph_session, "graph-session-a")
+
+        from_component_session = component_class._runtime_session_id(
+            types.SimpleNamespace(graph=types.SimpleNamespace(), _session_id="component-session-a")
+        )
+        self.assertEqual(from_component_session, "component-session-a")
 
     def test_request_identity_contract_matches_hitl_api_boundary(self):
         boundary = "a" * 128
         accepted = MODULES["10"].build_work_request_envelope(
             "업무",
-            tenant_id=boundary,
-            owner_id="owner-a",
+            team_name="자동화팀",
+            employee_id="owner-a",
+            catalog_scope_id=boundary,
             session_id=boundary,
             work_definition_id=boundary,
             submitted_at="2026-08-27T00:00:00Z",
         )
         self.assertTrue(accepted["ok"])
-        for invalid_field, invalid_value in (("session_id", "a" * 129), ("work_definition_id", "wd/invalid")):
+        for invalid_field, invalid_value in (("catalog_scope_id", "a" * 129), ("work_definition_id", "wd/invalid")):
             kwargs = {
-                "tenant_id": "tenant-a",
-                "owner_id": "owner-a",
+                "team_name": "자동화팀",
+                "employee_id": "owner-a",
                 "session_id": "session-a",
                 "work_definition_id": "wd-1",
                 "submitted_at": "2026-08-27T00:00:00Z",
@@ -250,12 +229,20 @@ class WorkDefinitionPipelineTests(unittest.TestCase):
 
         naive_time = MODULES["10"].build_work_request_envelope(
             "업무",
-            tenant_id="tenant-a",
-            owner_id="owner-a",
+            team_name="자동화팀",
+            employee_id="owner-a",
             session_id="session-a",
             submitted_at="2026-08-27T00:00:00",
         )
         self.assertEqual(naive_time["error"]["code"], "WORK_REQUEST_TIMESTAMP_INVALID")
+
+        no_runtime_session = MODULES["10"].build_work_request_envelope(
+            "업무",
+            team_name="자동화팀",
+            employee_id="owner-a",
+            submitted_at="2026-08-27T00:00:00Z",
+        )
+        self.assertEqual(no_runtime_session["error"]["code"], "RUNTIME_SESSION_REQUIRED")
 
     def test_envelope_rejects_secret_literals_before_storage(self):
         for field, request_text, additional_prompt in (
@@ -265,8 +252,8 @@ class WorkDefinitionPipelineTests(unittest.TestCase):
             result = MODULES["10"].build_work_request_envelope(
                 request_text,
                 additional_prompt=additional_prompt,
-                tenant_id="tenant-a",
-                owner_id="owner-a",
+                team_name="자동화팀",
+                employee_id="owner-a",
                 session_id="session-a",
                 submitted_at="2026-08-27T00:00:00Z",
             )
@@ -278,7 +265,7 @@ class WorkDefinitionPipelineTests(unittest.TestCase):
             self.assertNotIn("top-secret-token", serialized)
 
     def test_normalizer_downgrades_model_confirmation_and_preserves_existing_confirmation(self):
-        envelope = MODULES["10"].build_work_request_envelope("메일 요약", tenant_id="tenant-a", owner_id="owner-a", session_id="session-a", submitted_at="2026-08-27T00:00:00Z")
+        envelope = MODULES["10"].build_work_request_envelope("메일 요약", team_name="자동화팀", employee_id="owner-a", session_id="session-a", submitted_at="2026-08-27T00:00:00Z")
         candidate = {"goal": {"value": "메일 요약 보고서", "status": "confirmed"}, "actors": [{"name": "담당자", "status": "confirmed"}], "as_is_graph": {"nodes": [{"id": "s", "kind": "start", "label": "시작"}], "edges": []}}
         first = MODULES["11"].normalize_work_definition(candidate, envelope)
         second = MODULES["11"].normalize_work_definition(candidate, envelope)
@@ -338,6 +325,66 @@ class WorkDefinitionPipelineTests(unittest.TestCase):
         )
         self.assertEqual(final_gate_ready["status"], "READY_FOR_REVIEW")
 
+    def test_clarification_question_capacity_is_three_then_three_then_four(self):
+        """The final native HITL card must absorb the tenth required answer."""
+
+        work = _base_work()
+        work["goal"] = _fact(None, "unknown")
+        work["trigger"] = _fact(None, "unknown")
+        work["inputs"] = []
+        work["outputs"] = []
+        work["actors"] = []
+        work["steps"] = []
+        evaluated = MODULES["12"].evaluate_work_completeness(work)
+        self.assertGreaterEqual(len(evaluated["completeness"]["blocking_gaps"]), 4)
+
+        first = MODULES["13"].build_clarification_batch(
+            work,
+            evaluated,
+            round_number=1,
+            max_questions=99,
+            now_utc="2026-08-27T00:00:00Z",
+        )
+        self.assertEqual(len(first["clarification_batch"]["questions"]), 3)
+
+        work["processed_answer_batches"] = [{"batch_id": "qb-1"}]
+        second = MODULES["13"].build_clarification_batch(
+            work,
+            evaluated,
+            round_number=2,
+            max_questions=99,
+            now_utc="2026-08-27T00:00:00Z",
+        )
+        self.assertEqual(len(second["clarification_batch"]["questions"]), 3)
+
+        work["processed_answer_batches"].append({"batch_id": "qb-2"})
+        third = MODULES["13"].build_clarification_batch(
+            work,
+            evaluated,
+            round_number=3,
+            max_questions=99,
+            now_utc="2026-08-27T00:00:00Z",
+        )
+        self.assertTrue(third["ok"])
+        self.assertEqual(third["clarification_batch"]["round_number"], 3)
+        self.assertEqual(len(third["clarification_batch"]["questions"]), 4)
+
+    def test_clarification_prompt_serializes_mongodb_datetime_values(self):
+        """Persisted BSON dates must not break F10's clarification planner."""
+
+        work = _base_work()
+        work["goal"] = _fact(None, "unknown")
+        work["created_at"] = datetime(2026, 8, 30, 9, 30, 0)
+        work["updated_at"] = datetime(2026, 8, 30, 18, 30, 0, tzinfo=timezone(timedelta(hours=9)))
+        component = MODULES["12"].WorkCompletenessEvaluatorComponent()
+        component.work_definition = work
+        component.round_number = 1
+
+        prompt = component.build_clarification_prompt()
+
+        self.assertIn('"created_at":"2026-08-30T09:30:00Z"', prompt.text)
+        self.assertIn('"updated_at":"2026-08-30T09:30:00Z"', prompt.text)
+
     def test_clarification_round_is_derived_and_replay_or_skip_is_rejected(self):
         work = _base_work()
         work["goal"] = _fact(None, "unknown")
@@ -360,7 +407,7 @@ class WorkDefinitionPipelineTests(unittest.TestCase):
         fourth = MODULES["13"].build_clarification_batch(work, completeness, round_number=0)
         self.assertEqual(fourth["error"]["code"], "CLARIFICATION_ROUND_LIMIT")
 
-    def test_answer_loader_blocks_channel_mixing_and_accepts_bound_native_form(self):
+    def test_answer_loader_accepts_bound_native_form_and_rejects_other_channel(self):
         work = _base_work()
         batch = {
             "batch_id": "qb-1",
@@ -375,18 +422,19 @@ class WorkDefinitionPipelineTests(unittest.TestCase):
             "questions": [{"question_id": "q-1", "target_paths": ["goal"], "required": True, "reason_code": "GOAL_UNKNOWN"}],
         }
         payload = {"channel_mode": "native_hitl", "command": "submit_answers", "work_definition_id": "wd-1", "batch_id": "qb-1", "session_id": "session-a", "expected_revision": 0, "idempotency_key": "idem-1", "answers": {"q-1": "새 목표"}}
-        mixed = MODULES["14"].load_work_answers(work, batch, channel_mode="native_hitl", native_form_payload=payload, playground_payload={"anything": True}, human_action="submit_answers", now_utc="2026-08-27T00:00:00Z")
-        self.assertEqual(mixed["error"]["code"], "ANSWER_CHANNEL_MIXED")
         valid = MODULES["14"].load_work_answers(work, batch, channel_mode="native_hitl", native_form_payload=payload, human_action="submit_answers", now_utc="2026-08-27T00:00:00Z")
         self.assertTrue(valid["ok"])
         self.assertEqual(valid["answer_submission"]["answers"][0]["target_paths"], ["goal"])
 
-        playground_work = _base_work(channel="playground")
-        playground_batch = {**batch, "channel_mode": "playground"}
-        playground_payload = {**payload, "channel_mode": "playground"}
-        playground = MODULES["14"].load_work_answers(playground_work, playground_batch, channel_mode="playground", playground_payload=playground_payload, now_utc="2026-08-27T00:00:00Z")
-        self.assertTrue(playground["ok"])
-        self.assertEqual(playground["answer_submission"]["channel_mode"], "playground")
+        unsupported = MODULES["14"].load_work_answers(
+            work,
+            batch,
+            channel_mode="playground",
+            native_form_payload=payload,
+            human_action="submit_answers",
+            now_utc="2026-08-27T00:00:00Z",
+        )
+        self.assertEqual(unsupported["error"]["code"], "ANSWER_CHANNEL_INVALID")
 
     def test_answer_loader_strictly_validates_answer_type_and_choices(self):
         work = _base_work()
@@ -901,10 +949,30 @@ class MongoStoreTests(unittest.TestCase):
             "blocking_gaps": [{"reason_code": "GOAL_UNKNOWN", "target_paths": ["goal"], "priority": "contract", "current_status": "unknown"}],
         }
         built = MODULES["13"].build_clarification_batch(work, completeness, now_utc="2026-08-27T00:00:00Z")
-        persisted = MODULES["13"].persist_clarification_batch(built, mongodb_uri="mongodb://example", mongo_database="db", client_factory=factory)
+        persisted = MODULES["13"].persist_clarification_batch(
+            built,
+            work_value=work,
+            mongodb_uri="mongodb://example",
+            mongo_database="db",
+            client_factory=factory,
+        )
         self.assertTrue(persisted["store_result"]["persisted"])
         batch_collection = fake["db"]["clarification_batches"]
         self.assertEqual(len(batch_collection.documents), 1)
+        work_collection = fake["db"]["work_definitions"]
+        self.assertEqual(len(work_collection.documents), 1)
+        self.assertEqual(work_collection.documents[0]["status"], "WAITING_ANSWER")
+        self.assertEqual(work_collection.documents[0]["revision"], 0)
+        replay = MODULES["13"].persist_clarification_batch(
+            built,
+            work_value=work,
+            mongodb_uri="mongodb://example",
+            mongo_database="db",
+            client_factory=factory,
+        )
+        self.assertTrue(replay["store_result"]["idempotent_replay"])
+        self.assertTrue(replay["store_result"]["initial_work_definition"]["idempotent_replay"])
+        self.assertEqual(len(work_collection.documents), 1)
         question_id = built["clarification_batch"]["questions"][0]["question_id"]
         batch_collection.documents[0]["status"] = "ANSWERED_PENDING_RESUME"
         batch_collection.documents[0]["answer_submission"] = {
@@ -925,6 +993,59 @@ class MongoStoreTests(unittest.TestCase):
         )
         self.assertTrue(loaded["ok"])
         self.assertEqual(loaded["answer_submission"]["answers"][0]["value"], "사용자가 확정한 목표")
+
+    def test_only_round_one_batch_initializes_work_definition_for_answer_form(self):
+        fake = _FakeClient()
+
+        def factory(*args, **kwargs):
+            return fake
+
+        work = _base_work(revision=1, status="WAITING_ANSWER")
+        work["goal"] = _fact(None, "unknown")
+        work["processed_answer_batches"] = [{"batch_id": "qb-previous"}]
+        completeness = {
+            "work_definition_id": work["work_definition_id"],
+            "tenant_id": work["tenant_id"],
+            "session_id": work["session_id"],
+            "revision": 1,
+            "blocking_gaps": [{"reason_code": "GOAL_UNKNOWN", "target_paths": ["goal"], "priority": "contract", "current_status": "unknown"}],
+        }
+        built = MODULES["13"].build_clarification_batch(work, completeness, round_number=2, now_utc="2026-08-27T00:00:00Z")
+        self.assertTrue(built["ok"])
+        self.assertEqual(built["clarification_batch"]["round_number"], 2)
+
+        persisted = MODULES["13"].persist_clarification_batch(
+            built,
+            work_value=work,
+            mongodb_uri="mongodb://example",
+            mongo_database="db",
+            client_factory=factory,
+        )
+
+        self.assertTrue(persisted["ok"])
+        self.assertIsNone(persisted["store_result"]["initial_work_definition"])
+        self.assertEqual(fake["db"]["work_definitions"].documents, [])
+
+    def test_round_one_batch_component_shows_required_mongodb_settings_and_hides_collections(self):
+        component = MODULES["13"].ClarificationBatchBuilderComponent
+        inputs = {item.name: item for item in component.inputs}
+        self.assertEqual(inputs["work_collection"].value, "work_definitions")
+        self.assertEqual(inputs["mongo_database"].value, "business_work_design")
+        for name in ("mongodb_uri", "mongo_database"):
+            self.assertFalse(getattr(inputs[name], "advanced", False), name)
+        for name in ("work_collection",):
+            self.assertTrue(inputs[name].advanced, name)
+
+    def test_work_definition_mongodb_database_defaults_are_unified(self):
+        component_fields = {
+            MODULES["13"].ClarificationBatchBuilderComponent: "mongo_database",
+            MODULES["14"].WorkAnswerLoaderComponent: "mongo_database",
+            MODULES["18"].WorkDefinitionStoreComponent: "mongo_database",
+            MODULES["34"].WorkRuntimeStateStoreComponent: "mongo_database",
+        }
+        for component, field_name in component_fields.items():
+            inputs = {item.name: item for item in component.inputs}
+            self.assertEqual(inputs[field_name].value, "business_work_design", component.__name__)
 
     def test_store_uses_transactional_cas_event_and_idempotent_replay(self):
         fake = _FakeClient()
@@ -958,6 +1079,129 @@ class MongoStoreTests(unittest.TestCase):
         approved = MODULES["18"].store_work_definition(waiting["work_definition"], expected_revision=2, command="approve", actor_id="owner-a", idempotency_key="approve-native", mongodb_uri="mongodb://example", mongo_database="db", now_utc="2026-08-27T00:05:00Z", client_factory=factory)
         self.assertTrue(approved["ok"])
         self.assertEqual(approved["status"], "APPROVED")
+
+    def test_review_and_request_approval_combines_initial_save_with_state_transition(self):
+        fake = _FakeClient()
+
+        def factory(*args, **kwargs):
+            return fake
+
+        review = _base_work(status="READY_FOR_REVIEW")
+        review["preview_hash"] = "sha256:preview-review"
+        created = MODULES["18"].store_work_definition(
+            review,
+            expected_revision=0,
+            command="review_and_request_approval",
+            actor_id="owner-a",
+            idempotency_key="review-approval-1",
+            mongodb_uri="mongodb://example",
+            mongo_database="db",
+            now_utc="2026-08-27T00:00:00Z",
+            client_factory=factory,
+        )
+        self.assertTrue(created["ok"])
+        self.assertEqual(created["status"], "WAITING_APPROVAL")
+        self.assertEqual(created["store_result"]["revision"], 0)
+        self.assertEqual(len(fake["db"]["work_definitions"].documents), 1)
+        self.assertEqual(len(fake["db"]["work_definition_events"].documents), 1)
+        self.assertEqual(fake["db"]["work_definition_events"].documents[0]["command"], "review_and_request_approval")
+
+        replay = MODULES["18"].store_work_definition(
+            review,
+            expected_revision=0,
+            command="review_and_request_approval",
+            actor_id="owner-a",
+            idempotency_key="review-approval-1",
+            mongodb_uri="mongodb://example",
+            mongo_database="db",
+            now_utc="2026-08-27T00:01:00Z",
+            client_factory=factory,
+        )
+        self.assertTrue(replay["ok"])
+        self.assertTrue(replay["store_result"]["idempotent_replay"])
+        self.assertEqual(len(fake["db"]["work_definition_events"].documents), 1)
+
+        wrong_state = _base_work(status="WAITING_ANSWER")
+        wrong_state["work_definition_id"] = "wd-wrong-state"
+        wrong_state["preview_hash"] = "sha256:preview-wrong"
+        blocked = MODULES["18"].store_work_definition(
+            wrong_state,
+            expected_revision=0,
+            command="review_and_request_approval",
+            actor_id="owner-a",
+            idempotency_key="review-approval-wrong-state",
+            mongodb_uri="mongodb://example",
+            mongo_database="db",
+            now_utc="2026-08-27T00:02:00Z",
+            client_factory=factory,
+        )
+        self.assertFalse(blocked["ok"])
+        self.assertEqual(blocked["error"]["code"], "WORK_STATE_TRANSITION_INVALID")
+
+    def test_store_component_hides_automatic_keys_and_fixes_operational_collections(self):
+        component = MODULES["18"].WorkDefinitionStoreComponent
+        inputs = {item.name: item for item in component.inputs}
+        self.assertTrue(inputs["expected_revision"].advanced)
+        self.assertFalse(getattr(inputs["expected_revision"], "required", False))
+        self.assertTrue(inputs["idempotency_key"].advanced)
+        self.assertTrue(inputs["derive_expected_revision"].value)
+        self.assertTrue(inputs["derive_idempotency_key"].value)
+        self.assertNotIn("work_collection", inputs)
+        self.assertNotIn("event_collection", inputs)
+        self.assertEqual(inputs["mongodb_uri"].display_name, "MongoDB URI (환경 설정)")
+        self.assertEqual(inputs["mongo_database"].display_name, "MongoDB Database (환경 설정)")
+        self.assertEqual(inputs["mongo_database"].value, "business_work_design")
+
+    def test_review_and_request_approval_updates_a_ready_durable_revision_once(self):
+        fake = _FakeClient()
+
+        def factory(*args, **kwargs):
+            return fake
+
+        existing = _base_work(status="READY_FOR_REVIEW")
+        existing["preview_hash"] = "sha256:preview-existing"
+        first = MODULES["18"].store_work_definition(
+            existing,
+            expected_revision=0,
+            command="save",
+            actor_id="owner-a",
+            idempotency_key="existing-save",
+            mongodb_uri="mongodb://example",
+            mongo_database="db",
+            now_utc="2026-08-27T00:00:00Z",
+            client_factory=factory,
+        )
+        self.assertTrue(first["ok"])
+        reviewed = copy.deepcopy(first["work_definition"])
+        reviewed["preview_hash"] = "sha256:preview-refreshed"
+        combined = MODULES["18"].store_work_definition(
+            reviewed,
+            expected_revision=0,
+            command="review_and_request_approval",
+            actor_id="owner-a",
+            idempotency_key="existing-review-approval",
+            mongodb_uri="mongodb://example",
+            mongo_database="db",
+            now_utc="2026-08-27T00:01:00Z",
+            client_factory=factory,
+        )
+        self.assertTrue(combined["ok"])
+        self.assertEqual(combined["status"], "WAITING_APPROVAL")
+        self.assertEqual(combined["store_result"]["revision"], 1)
+        self.assertEqual(len(fake["db"]["work_definition_events"].documents), 2)
+        stale = MODULES["18"].store_work_definition(
+            reviewed,
+            expected_revision=0,
+            command="review_and_request_approval",
+            actor_id="owner-a",
+            idempotency_key="existing-review-approval-stale",
+            mongodb_uri="mongodb://example",
+            mongo_database="db",
+            now_utc="2026-08-27T00:02:00Z",
+            client_factory=factory,
+        )
+        self.assertFalse(stale["ok"])
+        self.assertEqual(stale["error"]["code"], "REVISION_CONFLICT")
 
     def test_runtime_state_is_separate_from_semantic_revision_and_fail_closed(self):
         work = _base_work(status="EXTRACTING", revision=3)
@@ -1061,38 +1305,20 @@ class MongoStoreTests(unittest.TestCase):
                 now=now + timedelta(seconds=5),
             )
 
-    def test_playground_approval_requires_scoped_one_time_token(self):
-        fake = _FakeClient()
-
-        def factory(*args, **kwargs):
-            return fake
-
-        token = "0123456789abcdef0123456789abcdef"
+    def test_store_rejects_non_native_channel_before_database_access(self):
         work = _base_work(channel="playground", status="READY_FOR_REVIEW")
         work["preview_hash"] = "sha256:preview"
-        created = MODULES["18"].store_work_definition(work, expected_revision=0, command="save", actor_id="actor-a", idempotency_key="create-pg", mongodb_uri="mongodb://example", mongo_database="db", now_utc="2026-08-27T00:00:00Z", client_factory=factory)
-        self.assertTrue(created["ok"])
-        missing_issuer_token = MODULES["18"].store_work_definition(created["work_definition"], expected_revision=0, command="request_approval", actor_id="actor-a", idempotency_key="wait-missing-token", mongodb_uri="mongodb://example", mongo_database="db", now_utc="2026-08-27T00:00:30Z", client_factory=factory)
-        self.assertEqual(missing_issuer_token["error"]["code"], "ACTION_TOKEN_ISSUANCE_REQUIRED")
-        weak_token = MODULES["18"].store_work_definition(created["work_definition"], expected_revision=0, command="request_approval", actor_id="actor-a", idempotency_key="wait-weak-token", mongodb_uri="mongodb://example", mongo_database="db", one_time_action_token="too-short", now_utc="2026-08-27T00:00:45Z", client_factory=factory)
-        self.assertEqual(weak_token["error"]["code"], "ACTION_TOKEN_WEAK")
-        waiting = MODULES["18"].store_work_definition(created["work_definition"], expected_revision=0, command="request_approval", actor_id="actor-a", idempotency_key="wait-pg", mongodb_uri="mongodb://example", mongo_database="db", one_time_action_token=token, action_token_ttl_seconds=900, now_utc="2026-08-27T00:01:00Z", client_factory=factory)
-        self.assertTrue(waiting["ok"])
-        self.assertTrue(waiting["store_result"]["action_token_registered"])
-        self.assertNotIn("pending_action", waiting["work_definition"])
-        actor_mismatch = MODULES["18"].store_work_definition(waiting["work_definition"], expected_revision=1, command="approve", actor_id="actor-a", idempotency_key="approve-other-actor", mongodb_uri="mongodb://example", mongo_database="db", one_time_action_token=token, now_utc="2026-08-27T00:02:00Z", client_factory=factory)
-        self.assertEqual(actor_mismatch["error"]["code"], "ACTION_ACTOR_MISMATCH")
-        wrong = MODULES["18"].store_work_definition(waiting["work_definition"], expected_revision=1, command="approve", actor_id="owner-a", idempotency_key="approve-wrong", mongodb_uri="mongodb://example", mongo_database="db", one_time_action_token="wrong", now_utc="2026-08-27T00:02:00Z", client_factory=factory)
-        self.assertEqual(wrong["error"]["code"], "ACTION_TOKEN_INVALID")
-        tampered_action = copy.deepcopy(waiting["work_definition"])
-        tampered_action["goal"] = "공격자가 바꾼 목표"
-        tampered_action["preview_hash"] = "sha256:tampered-preview"
-        approved = MODULES["18"].store_work_definition(tampered_action, expected_revision=1, command="approve", actor_id="owner-a", idempotency_key="approve-ok", mongodb_uri="mongodb://example", mongo_database="db", one_time_action_token=token, now_utc="2026-08-27T00:02:00Z", client_factory=factory)
-        self.assertTrue(approved["ok"])
-        self.assertEqual(approved["status"], "APPROVED")
-        self.assertEqual(approved["work_definition"]["approved_hash"], "sha256:preview")
-        self.assertNotEqual(approved["work_definition"].get("goal"), "공격자가 바꾼 목표")
-        self.assertNotIn("pending_action", approved["work_definition"])
+        rejected = MODULES["18"].store_work_definition(
+            work,
+            expected_revision=0,
+            command="save",
+            actor_id="actor-a",
+            idempotency_key="create-invalid-channel",
+            mongodb_uri="mongodb://example",
+            mongo_database="db",
+            now_utc="2026-08-27T00:00:00Z",
+        )
+        self.assertEqual(rejected["error"]["code"], "WORK_CHANNEL_INVALID")
 
 
 if __name__ == "__main__":

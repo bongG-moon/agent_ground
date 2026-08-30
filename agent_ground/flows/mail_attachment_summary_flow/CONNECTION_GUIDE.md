@@ -5,9 +5,9 @@
 | 순서 | From | Output | To | Input | 타입 |
 | --- | --- | --- | --- | --- | --- |
 | 1 | 01 Outlook 메일·첨부 읽기 (EWS) | `mail_items` | 02 EWS 메일 항목별 반복 | `data` | DataFrame |
-| 2 | 02 EWS 메일 항목별 반복 | `item` | 03B EWS 문서·JPG·미지원 첨부 처리 | `file_record` | Data |
-| 3 | 03A JPG 이미지 해석 모델 (vLLM) | `model_output` | 03B EWS 문서·JPG·미지원 첨부 처리 | `vision_model` | LanguageModel |
-| 4 | 03B EWS 문서·JPG·미지원 첨부 처리 | `processed_file` | 04 원본 또는 DRM 평문 파일 읽기 | `file_path` | Data |
+| 2 | 02 EWS 메일 항목별 반복 | `item` | 03B EWS 문서·이미지·미지원 첨부 처리 | `file_record` | Data |
+| 3 | 03A JPG·PNG 이미지 해석 모델 (vLLM) | `model_output` | 03B EWS 문서·이미지·미지원 첨부 처리 | `vision_model` | LanguageModel |
+| 4 | 03B EWS 문서·이미지·미지원 첨부 처리 | `processed_file` | 04 원본 또는 DRM 평문 파일 읽기 | `file_path` | Data |
 | 5 | 04 원본 또는 DRM 평문 파일 읽기 | `dataframe` | 05 메일 항목 내용 정리 | `input_data` | DataFrame |
 | 6 | 05 메일 항목 내용 정리 | `parsed_text` | 06 메일 항목별 요약 모델 | `input_value` | Message |
 | 7 | 06 메일 항목별 요약 모델 | `text_output` | 02 EWS 메일 항목별 반복 | Loop return | Message |

@@ -257,7 +257,7 @@ def _configure_model(node: dict[str, Any], *, display_name: str, system_message:
 
 
 def _configure_vision_model(node: dict[str, Any]) -> None:
-    _rename_node(node, "03A JPG 이미지 해석 모델 (vLLM)")
+    _rename_node(node, "03A JPG·PNG 이미지 해석 모델 (vLLM)")
     _set_template_value(node, "model", "")
     _set_template_value(node, "api_key", "")
     _set_template_value(node, "temperature", 0.1)
@@ -461,7 +461,7 @@ def build_flow(*, use_dummy_source: bool = False) -> tuple[dict[str, Any], dict[
     _configure_file_node(nodes["files"])
     _rename_node(nodes["loop"], "02 EWS 메일 항목별 반복")
     _configure_vision_model(nodes["vision_model"])
-    _rename_node(nodes["drm"], "03B EWS 문서·JPG·미지원 첨부 처리")
+    _rename_node(nodes["drm"], "03B EWS 문서·이미지·미지원 첨부 처리")
     nodes["drm"]["data"]["selected_output"] = "processed_file"
     _configure_parser(
         nodes["item_parser"],
@@ -532,7 +532,7 @@ def build_flow(*, use_dummy_source: bool = False) -> tuple[dict[str, Any], dict[
             + (
                 "1. `01T 테스트 EWS 메일·첨부 데이터`는 EWS 호출 없이 메일 본문, TXT 첨부와 JPG Vision 예제를 만듭니다.\n"
                 "2. DRM 노드는 `자동(로컬 우선)`을 유지하면 네트워크를 호출하지 않습니다.\n"
-                "3. `03A JPG 이미지 해석 모델`에는 사내 vLLM Vision 모델을 선택합니다.\n"
+                "3. `03A JPG·PNG 이미지 해석 모델`에는 사내 vLLM Vision 모델을 선택합니다.\n"
                 "4. 두 요약 Language Model에 같은 사내 승인 모델을 선택합니다.\n"
                 "5. Chat Output까지 실행합니다.\n\n"
                 "첫 번째 메일의 `vision_demo_status_board.jpg`가 03B를 거쳐 03A로 전달됩니다. "
@@ -542,10 +542,10 @@ def build_flow(*, use_dummy_source: bool = False) -> tuple[dict[str, Any], dict[
                 "1. `01 Outlook 메일·첨부 읽기 (EWS)`에 EWS·AD·Nexus 값을 입력합니다.\n"
                 "2. 첨부 처리 모드를 선택합니다. 기본 자동 모드는 일반 파일을 먼저 로컬에서 읽습니다.\n"
                 "3. DRM fallback을 쓸 경우 API URL·Bearer 토큰·사번을 입력합니다.\n"
-                "4. `03A JPG 이미지 해석 모델`에는 사내 vLLM Vision 모델을 선택합니다.\n"
+                "4. `03A JPG·PNG 이미지 해석 모델`에는 사내 vLLM Vision 모델을 선택합니다.\n"
                 "5. 두 요약 Language Model에 같은 사내 승인 모델을 선택합니다.\n"
                 "6. Chat Output까지 실행합니다.\n\n"
-                "EWS 본문은 그대로 통과하고 일반 첨부는 원본 경로, DRM·JPG 첨부는 평문 TXT로 전달됩니다."
+                "EWS 본문은 그대로 통과하고 일반 첨부는 원본 경로, DRM·Vision 이미지 첨부는 평문 TXT로 전달됩니다."
             )
         ),
         "blue",
@@ -559,7 +559,7 @@ def build_flow(*, use_dummy_source: bool = False) -> tuple[dict[str, Any], dict[
             "Outlook Connector, Microsoft Graph, MCP, API Request Component는 사용하지 않습니다. "
             "사내 EWS SOAP와 NTLM 인증을 직접 사용하며 `requests-ntlm`이 필요합니다. "
             "자동 모드는 PDF·DOCX·PPTX·XLSX·TXT·CSV를 로컬에서 먼저 판별하고 실패한 첨부만 DRM API로 보냅니다. "
-            "JPG/JPEG는 별도 Vision 모델로 해석하며 ZIP·RAR·7Z·TAR·GZ 등 미지원 형식은 안내 TXT로 바꿔 Loop를 계속합니다. "
+            "JPG/JPEG/PNG는 별도 Vision 모델로 해석하며 ZIP·RAR·7Z·TAR·GZ 등 미지원 형식은 안내 TXT로 바꿔 Loop를 계속합니다. "
             "DRM API 호출 실패 시 원본 보호 파일을 우회 전달하지 않습니다. "
             "TLS 검증을 끄면 인증서 위조를 탐지하지 못하므로 사내 CA bundle 사용을 권장합니다."
         ),
@@ -593,7 +593,7 @@ def build_flow(*, use_dummy_source: bool = False) -> tuple[dict[str, Any], dict[
             else (
                 "Langflow 1.9.2 flow that reads Outlook mail bodies and file attachments through internal EWS/NTLM, "
                 "routes plain attachments through local parsing, protected files through the configured DRM text API, "
-                "JPG/JPEG through a connected vLLM-compatible Vision model, and unsupported archives to skip notices, "
+                "JPG/JPEG/PNG through a connected vLLM-compatible Vision model, and unsupported archives to skip notices, "
                 "then produces one Korean work summary."
             )
         ),
@@ -601,9 +601,9 @@ def build_flow(*, use_dummy_source: bool = False) -> tuple[dict[str, Any], dict[
         "id": str(
             uuid.uuid5(
                 uuid.NAMESPACE_URL,
-                "agent-ground/mail-attachment-summary-dummy-flow/0.7.2"
+                "agent-ground/mail-attachment-summary-dummy-flow/0.7.3"
                 if use_dummy_source
-                else "agent-ground/mail-attachment-summary-flow/0.7.2",
+                else "agent-ground/mail-attachment-summary-flow/0.7.3",
             )
         ),
         "is_component": False,
@@ -747,11 +747,11 @@ def validate_flow(flow: dict[str, Any], sources: dict[str, str], *, use_dummy_so
     if drm_template["processing_mode"].get("value") != "자동(로컬 우선)":
         raise ValueError("EWS 첨부 기본 처리 모드는 자동(로컬 우선)이어야 합니다.")
     if drm_template["vision_model"].get("show") is not True:
-        raise ValueError("JPG 이미지 해석 모델 연결 입력은 전면에 표시되어야 합니다.")
+        raise ValueError("JPG·PNG 이미지 해석 모델 연결 입력은 전면에 표시되어야 합니다.")
 
     vision_model_node = node_by_id["LanguageModelComponent-mailAttachmentVision"]
     if vision_model_node["data"].get("selected_output") != "model_output":
-        raise ValueError("JPG 이미지 해석 모델은 LanguageModel 출력을 사용해야 합니다.")
+        raise ValueError("JPG·PNG 이미지 해석 모델은 LanguageModel 출력을 사용해야 합니다.")
 
     for model_id in (
         "LanguageModelComponent-mailAttachmentVision",

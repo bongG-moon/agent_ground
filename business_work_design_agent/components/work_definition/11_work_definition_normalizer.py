@@ -165,7 +165,16 @@ def normalize_work_definition(candidate_value: Any, envelope_value: Any, existin
     except (TypeError, ValueError, json.JSONDecodeError):
         candidate, envelope, existing = {}, {}, {}
     trace_id = f"trace-{uuid.uuid4()}"
-    required_envelope = ("work_definition_id", "tenant_id", "owner_id", "session_id", "channel_mode", "source_request")
+    required_envelope = (
+        "work_definition_id",
+        "tenant_id",
+        "owner_id",
+        "session_id",
+        "team_name",
+        "employee_id",
+        "channel_mode",
+        "source_request",
+    )
     missing = [key for key in required_envelope if not envelope.get(key)]
     if missing or not isinstance(candidate, dict):
         return {
@@ -183,7 +192,10 @@ def normalize_work_definition(candidate_value: Any, envelope_value: Any, existin
         }
 
     work_id = str(envelope["work_definition_id"])
-    if existing and any(str(existing.get(key, "")) != str(envelope.get(key, "")) for key in ("work_definition_id", "tenant_id", "owner_id", "session_id", "channel_mode")):
+    if existing and any(
+        str(existing.get(key, "")) != str(envelope.get(key, ""))
+        for key in ("work_definition_id", "tenant_id", "owner_id", "session_id", "team_name", "employee_id", "channel_mode")
+    ):
         return {
             "ok": False,
             "status": "BLOCKED",
@@ -220,6 +232,8 @@ def normalize_work_definition(candidate_value: Any, envelope_value: Any, existin
         "tenant_id": str(envelope["tenant_id"]),
         "owner_id": str(envelope["owner_id"]),
         "session_id": str(envelope["session_id"]),
+        "team_name": str(envelope["team_name"]),
+        "employee_id": str(envelope["employee_id"]),
         "channel_mode": str(envelope["channel_mode"]),
         "revision": revision,
         "status": "EXTRACTING",

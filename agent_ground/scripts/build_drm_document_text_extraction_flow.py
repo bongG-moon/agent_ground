@@ -228,7 +228,7 @@ def build_flow() -> tuple[dict[str, Any], str]:
         "id": str(
             uuid.uuid5(
                 uuid.NAMESPACE_URL,
-                "agent-ground/drm-document-text-extraction-flow/0.4.2",
+                "agent-ground/drm-document-text-extraction-flow/0.4.3",
             )
         ),
         "is_component": False,

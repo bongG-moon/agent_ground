@@ -16,7 +16,7 @@ EWS 파일 항목.file_record (Data)
   -> DRM 문서 텍스트 추출.processed_file (Data)
   -> Read File.file_path
 
-JPG 이미지 해석 Language Model.model_output (LanguageModel)
+JPG·PNG 이미지 해석 Language Model.model_output (LanguageModel)
   -> DRM 문서 텍스트 추출.vision_model (LanguageModel)
 ```
 
@@ -32,7 +32,7 @@ JPG 이미지 해석 Language Model.model_output (LanguageModel)
 | --- | --- | --- |
 | `자동(로컬 우선)` | 로컬 추출 성공 파일은 Message에 바로 포함, 나머지만 DRM API | 일반 파일은 원본 경로 통과, 나머지는 DRM TXT 생성 |
 | `항상 DRM API` | 모든 파일을 DRM API 처리 | 모든 첨부를 DRM TXT로 변환 |
-| `DRM 미사용` | 로컬 지원 형식만 추출하고 DRM API를 호출하지 않음 | 문서는 원본 경로 통과, JPG/JPEG Vision 경로는 별도 동작 |
+| `DRM 미사용` | 로컬 지원 형식만 추출하고 DRM API를 호출하지 않음 | 문서는 원본 경로 통과, JPG/JPEG/PNG Vision 경로는 별도 동작 |
 
 ## 원본 Python 코드와의 대응
 
@@ -57,7 +57,7 @@ JPG 이미지 해석 Language Model.model_output (LanguageModel)
 - PNG, JPG/JPEG, BMP, TIF/TIFF
 - 미지원 안내 처리: ZIP, RAR, 7Z, TAR, GZ
 
-로컬 직접 추출은 PDF, DOCX, PPTX, XLSX, TXT, CSV를 지원합니다. 구형 Office, HWP/HWPX, RTF와 비-JPEG 이미지는 자동 모드에서 DRM API로 fallback합니다. EWS의 JPG/JPEG는 `vision_model`이 연결되어 있으면 Data URL 멀티모달 입력으로 전달하고 결과를 UTF-8 TXT로 저장합니다.
+로컬 직접 추출은 PDF, DOCX, PPTX, XLSX, TXT, CSV를 지원합니다. 구형 Office, HWP/HWPX, RTF와 JPG/JPEG/PNG 이외 이미지는 자동 모드에서 DRM API로 fallback합니다. EWS의 JPG/JPEG/PNG는 `vision_model`이 연결되어 있으면 실제 MIME의 Data URL 멀티모달 입력으로 전달하고 결과를 UTF-8 TXT로 저장합니다.
 
 ZIP·RAR·7Z·TAR·GZ는 압축을 풀거나 내부 파일을 실행하지 않습니다. `skipped_unsupported` 상태와 사유가 적힌 안내 텍스트를 반환하므로 여러 첨부 중 하나가 미지원 형식이어도 Loop는 계속됩니다.
 
@@ -65,7 +65,7 @@ ZIP·RAR·7Z·TAR·GZ는 압축을 풀거나 내부 파일을 실행하지 않�
 
 - 미지원 확장자: 파일 내용을 열지 않고 `skipped_unsupported` 안내 결과 반환
 - 파일 수·크기 초과: 네트워크 호출 전 실패
-- JPG/JPEG Vision 모델 미연결·호출 실패: `vision_failed` 안내 TXT를 반환하고 다음 Loop 항목 계속
+- JPG/JPEG/PNG Vision 모델 미연결·호출 실패: `vision_failed` 안내 TXT를 반환하고 다음 Loop 항목 계속
 - `DRM 미사용` 직접 업로드에서 로컬 미지원·손상 파일: 네트워크 fallback 없이 실패
 - 자동 모드의 로컬 추출 실패: DRM 설정이 있으면 API fallback, 없으면 필요한 설정을 안내하고 실패
 - HTTP 3xx/4xx/5xx, timeout, 빈 응답: 해당 실행 실패

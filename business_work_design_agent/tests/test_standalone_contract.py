@@ -23,7 +23,7 @@ FORBIDDEN_INTROSPECTION_ATTRIBUTES = {
 ALLOWED_IMPORT_ROOTS = {
     "__future__", "base64", "bson", "codecs", "collections", "copy", "datetime",
     "gridfs", "hashlib", "hmac", "html", "httpx", "json", "lfx", "math", "numpy",
-    "pathlib", "pymongo", "re", "requests", "socket", "typing", "unicodedata",
+    "pathlib", "pymongo", "re", "requests", "socket", "time", "typing", "unicodedata",
     "urllib", "uuid",
 }
 

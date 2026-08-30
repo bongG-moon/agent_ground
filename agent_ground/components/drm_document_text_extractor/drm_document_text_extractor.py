@@ -90,7 +90,17 @@ PROCESSING_MODES = [
     PROCESSING_MODE_BYPASS_DRM,
 ]
 LOCAL_EXTRACTION_EXTENSIONS = {".pdf", ".docx", ".pptx", ".xlsx", ".txt", ".csv"}
-VISION_IMAGE_EXTENSIONS = {".jpg", ".jpeg"}
+VISION_IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png"}
+VISION_IMAGE_MIME_TYPES = {
+    ".jpg": "image/jpeg",
+    ".jpeg": "image/jpeg",
+    ".png": "image/png",
+}
+VISION_IMAGE_SIGNATURES = {
+    ".jpg": b"\xff\xd8\xff",
+    ".jpeg": b"\xff\xd8\xff",
+    ".png": b"\x89PNG\r\n\x1a\n",
+}
 
 
 class DrmTextExtractionError(RuntimeError):
@@ -1022,15 +1032,18 @@ def process_file_record_with_vision(
         content, checked_name = _read_file_bytes(
             {"file_path": str(source_path), "filename": original_name}, 1, per_file_bytes
         )
-        if not content.startswith(b"\xff\xd8\xff"):
+        expected_signature = VISION_IMAGE_SIGNATURES[extension]
+        image_mime_type = VISION_IMAGE_MIME_TYPES[extension]
+        if not content.startswith(expected_signature):
+            image_label = "PNG" if extension == ".png" else "JPG/JPEG"
             return _vision_notice_record(
                 record,
                 source_path,
                 original_name,
                 mode,
                 output_root,
-                error_code="invalid_jpeg_signature",
-                reason="확장자는 JPG/JPEG이지만 JPEG binary signature가 아닙니다.",
+                error_code="invalid_png_signature" if extension == ".png" else "invalid_jpeg_signature",
+                reason=f"확장자는 {image_label}이지만 올바른 {image_label} binary signature가 아닙니다.",
             )
 
         try:
@@ -1048,7 +1061,7 @@ def process_file_record_with_vision(
                     {
                         "type": "image_url",
                         "image_url": {
-                            "url": f"data:image/jpeg;base64,{encoded}",
+                            "url": f"data:{image_mime_type};base64,{encoded}",
                             "detail": "high",
                         },
                     },
@@ -1138,7 +1151,7 @@ class DrmDocumentTextExtractor(Component):
     display_name = "DRM 문서 텍스트 추출"
     description = (
         "일반 문서는 로컬에서 읽고 보호 문서는 승인된 DRM text API로 평문을 추출합니다. "
-        "EWS JPG/JPEG는 연결된 Vision 모델로 해석하며 미지원 형식은 안내 결과로 반환합니다."
+        "EWS JPG/JPEG/PNG는 연결된 Vision 모델로 해석하며 미지원 형식은 안내 결과로 반환합니다."
     )
     icon = "FileLock2"
     name = "DrmDocumentTextExtractor"
@@ -1166,12 +1179,12 @@ class DrmDocumentTextExtractor(Component):
         ),
         HandleInput(
             name="vision_model",
-            display_name="JPG 이미지 해석 모델",
+            display_name="JPG·PNG 이미지 해석 모델",
             input_types=["LanguageModel"],
             required=False,
             advanced=False,
             info=(
-                "EWS의 JPG/JPEG 첨부를 해석할 Vision Language Model입니다. "
+                "EWS의 JPG/JPEG/PNG 첨부를 해석할 Vision Language Model입니다. "
                 "사내 vLLM이 OpenAI 호환 멀티모달 모델을 제공하면 기본 Language Model 노드를 연결합니다."
             ),
         ),
@@ -1183,7 +1196,7 @@ class DrmDocumentTextExtractor(Component):
             info=(
                 "자동은 PDF·DOCX·PPTX·XLSX·TXT·CSV를 로컬에서 먼저 읽고 실패한 파일만 DRM API로 보냅니다. "
                 "그 밖의 형식은 DRM API로 처리합니다. 항상 DRM은 모든 파일을 API로 보내며, "
-                "DRM 미사용은 DRM API 호출을 금지합니다. EWS JPG/JPEG의 Vision 모델 경로는 별도로 동작합니다."
+                "DRM 미사용은 DRM API 호출을 금지합니다. EWS JPG/JPEG/PNG의 Vision 모델 경로는 별도로 동작합니다."
             ),
             required=True,
             real_time_refresh=True,

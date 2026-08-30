@@ -1,52 +1,110 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://internal.example/schemas/catalog_asset.schema.json",
-  "title": "Catalog Asset",
+  "title": "F00 Stored Catalog Asset Parent",
+  "description": "Actual catalog_assets parent document produced by the visible F00 loader, chunker, and MongoDB vector writer pipeline.",
   "type": "object",
   "additionalProperties": true,
-  "required": ["tenant_id", "snapshot_id", "asset_id", "asset_type", "title", "version", "technical_contract", "acl", "content_sha256"],
+  "required": [
+    "_id", "tenant_id", "catalog_id", "snapshot_id", "asset_id", "version", "asset_type",
+    "title", "title_normalized", "aliases_normalized", "description", "category", "readme",
+    "acl", "technical_contract_status", "technical_contract", "ports", "relations", "source",
+    "is_active", "lexical_text_redacted", "raw_record_redacted", "raw_text_redacted",
+    "raw_record_redacted_sha256", "content_sha256", "embedding_manifest"
+  ],
   "properties": {
+    "_id": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
     "tenant_id": {"type": "string", "minLength": 1, "maxLength": 128},
-    "snapshot_id": {"type": "string", "minLength": 1, "maxLength": 128},
+    "catalog_id": {"type": "string", "minLength": 1, "maxLength": 128},
+    "snapshot_id": {"type": "string", "pattern": "^snap-[0-9a-f]{24}$"},
     "asset_id": {"type": "string", "minLength": 1, "maxLength": 256},
     "asset_type": {"enum": ["component", "flow"]},
-    "title": {"type": "string", "minLength": 1, "maxLength": 500},
-    "version": {"type": "string", "minLength": 1, "maxLength": 128},
-    "description": {"type": "string", "maxLength": 10000},
-    "category": {"type": "string", "maxLength": 256},
-    "readme": {"type": "string", "maxLength": 200000},
+    "title": {"type": "string", "minLength": 1, "maxLength": 1000},
+    "title_normalized": {"type": "string", "minLength": 1, "maxLength": 500},
+    "aliases_normalized": {"type": "array", "maxItems": 32, "items": {"type": "string", "maxLength": 128}},
+    "version": {"type": "string", "minLength": 1, "maxLength": 100},
+    "description": {"type": "string"},
+    "category": {"type": "string"},
+    "readme": {"type": "string"},
+    "stars_count": {"type": "integer", "minimum": 0},
+    "downloads_count": {"type": "integer", "minimum": 0},
+    "created_at": {"type": ["string", "null"]},
+    "updated_at": {"type": ["string", "null"]},
     "raw_record_redacted": {"type": "object"},
-    "raw_text": {"type": "string", "maxLength": 300000},
+    "raw_text_redacted": {"type": "string"},
+    "lexical_text_redacted": {"type": "string", "minLength": 1},
+    "raw_record_redacted_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "content_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
     "source": {
       "type": "object",
-      "required": ["file_id", "record_index", "file_sha256"],
+      "additionalProperties": false,
+      "required": ["file_sha256", "file_size_bytes", "record_index"],
       "properties": {
-        "file_id": {"type": "string"},
-        "record_index": {"type": "integer", "minimum": 0},
-        "file_sha256": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"}
+        "file_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+        "file_size_bytes": {"type": "integer", "minimum": 1},
+        "record_index": {"type": "integer", "minimum": 0}
       }
     },
-    "technical_contract": {
+    "technical_contract_status": {"enum": ["metadata_only", "ports_extracted", "flow_graph_extracted", "verified_runtime"]},
+    "technical_contract": {"$ref": "#/$defs/technicalContract"},
+    "ports": {"$ref": "#/$defs/ports"},
+    "relations": {"type": "array", "maxItems": 1000, "items": {"type": "object"}},
+    "acl": {"$ref": "#/$defs/acl"},
+    "is_active": {"const": true},
+    "embedding_manifest": {
       "type": "object",
-      "required": ["status"],
+      "additionalProperties": false,
+      "required": ["embedding_contract", "chunk_count", "complete"],
+      "properties": {
+        "embedding_contract": {"$ref": "#/$defs/embeddingRuntimeContract"},
+        "chunk_count": {"type": "integer", "minimum": 1, "maximum": 64},
+        "complete": {"const": true}
+      }
+    }
+  },
+  "$defs": {
+    "ports": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["inputs", "outputs"],
+      "properties": {
+        "inputs": {"type": "array", "maxItems": 500, "items": {}},
+        "outputs": {"type": "array", "maxItems": 500, "items": {}}
+      }
+    },
+    "technicalContract": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["status", "inputs", "outputs", "dependencies", "verified_at"],
       "properties": {
         "status": {"enum": ["metadata_only", "ports_extracted", "flow_graph_extracted", "verified_runtime"]},
-        "inputs": {"type": "array", "maxItems": 500, "items": {"type": "object"}},
-        "outputs": {"type": "array", "maxItems": 500, "items": {"type": "object"}},
-        "dependencies": {"type": "array", "maxItems": 500, "items": {"type": "string"}},
-        "verified_at": {"type": ["string", "null"], "format": "date-time"}
+        "inputs": {"type": "array", "maxItems": 500, "items": {}},
+        "outputs": {"type": "array", "maxItems": 500, "items": {}},
+        "dependencies": {"type": "array", "maxItems": 500, "items": {}},
+        "verified_at": {"type": ["string", "null"]}
       }
     },
-    "relations": {"type": "array", "maxItems": 1000, "items": {"type": "object"}},
     "acl": {
       "type": "object",
-      "required": ["visibility", "groups"],
+      "additionalProperties": false,
+      "required": ["visibility", "groups", "subjects"],
       "properties": {
-        "visibility": {"enum": ["private", "group", "tenant"]},
-        "groups": {"type": "array", "maxItems": 200, "items": {"type": "string", "maxLength": 128}},
-        "subjects": {"type": "array", "maxItems": 200, "items": {"type": "string", "maxLength": 256}}
+        "visibility": {"enum": ["tenant", "group", "private"]},
+        "groups": {"type": "array", "maxItems": 100, "items": {"type": "string", "maxLength": 128}},
+        "subjects": {"type": "array", "maxItems": 100, "items": {"type": "string", "maxLength": 128}}
       }
     },
-    "content_sha256": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"}
+    "embeddingRuntimeContract": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["schema_version", "runtime_class", "model_id", "dimension", "fingerprint"],
+      "properties": {
+        "schema_version": {"const": "embedding-runtime-contract/v2"},
+        "runtime_class": {"type": "string", "minLength": 1, "maxLength": 1000},
+        "model_id": {"type": "string", "minLength": 1, "maxLength": 500},
+        "dimension": {"type": "integer", "minimum": 1, "maximum": 65536},
+        "fingerprint": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"}
+      }
+    }
   }
 }

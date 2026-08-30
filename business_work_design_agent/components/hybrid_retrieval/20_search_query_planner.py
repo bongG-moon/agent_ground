@@ -9,11 +9,31 @@ import uuid
 from typing import Any
 
 from lfx.custom import Component
-from lfx.io import DataInput, IntInput, MessageTextInput, Output
+from lfx.io import DataInput, IntInput, Output
 from lfx.schema import Data
 
 
 ALLOWED_ASSET_TYPES = {"component", "flow"}
+DESIGN_INVOCATION_SCHEMA_VERSION = "agent-design-invocation/v1"
+DESIGN_INVOCATION_KEYS = {
+    "ok",
+    "status",
+    "schema_version",
+    "artifact_refs",
+    "tenant_id",
+    "work_definition_id",
+    "work_definition_revision",
+    "approved_hash",
+    "owner_id",
+    "session_id",
+    "catalog_snapshot_id",
+    "work_definition",
+    "acl_context",
+    "skill_registry",
+    "design_prompt",
+    "trust_boundary",
+    "trace_id",
+}
 SECRET_VALUE_PATTERNS = (
     re.compile(r"(?i)\b(?:api[_-]?key|password|passwd|secret|access[_-]?token|client[_-]?secret|authorization|cookie|session)\s*[:=]\s*[\"']?[^\s,;]{8,}"),
     re.compile(r"(?i)\b(?:bearer|basic)\s+\S{8,}"),
@@ -260,7 +280,7 @@ def build_design_scope(
                 "WORK_DEFINITION_IDENTITY_INVALID",
                 f"승인 업무 정의 {field}가 canonical identity 형식이 아닙니다.",
             )
-    if work.get("channel_mode") not in {"native_hitl", "playground"}:
+    if work.get("channel_mode") != "native_hitl":
         return _error(trace_id, "WORK_DEFINITION_CHANNEL_INVALID", "승인 업무 정의 channel_mode가 유효하지 않습니다.")
     state = work.get("status")
     approved_hash = work.get("approved_hash")
@@ -444,44 +464,132 @@ def _error(trace_id: str, code: str, message: str) -> dict[str, Any]:
     }
 
 
+def validate_design_invocation(value: Any) -> dict[str, Any]:
+    """Validate the single trusted input exposed by F20 and Run Flow."""
+
+    trace_id = str(uuid.uuid4())
+    invocation = _payload(value)
+    if invocation.get("ok") is not True or invocation.get("status") != "READY_FOR_DESIGN":
+        return _error(trace_id, "DESIGN_INVOCATION_NOT_READY", "MongoDB 권위 데이터 재확인이 완료된 invocation이 필요합니다.")
+    if invocation.get("schema_version") != DESIGN_INVOCATION_SCHEMA_VERSION:
+        return _error(trace_id, "DESIGN_INVOCATION_SCHEMA_INVALID", "승인 설계 invocation schema가 유효하지 않습니다.")
+    if set(invocation) - DESIGN_INVOCATION_KEYS:
+        return _error(trace_id, "DESIGN_INVOCATION_FIELDS_INVALID", "승인 설계 invocation에 허용되지 않은 필드가 있습니다.")
+    work = _payload(invocation.get("work_definition"))
+    acl = _payload(invocation.get("acl_context"))
+    registry_payload = invocation.get("skill_registry")
+    if isinstance(registry_payload, dict):
+        registry = registry_payload.get("skills")
+    else:
+        registry = registry_payload
+    if not isinstance(registry, list) or len(registry) > 500 or any(not isinstance(item, dict) for item in registry):
+        return _error(trace_id, "DESIGN_INVOCATION_SKILL_REGISTRY_INVALID", "승인 Skill registry 입력이 유효하지 않습니다.")
+    tenant_id = invocation.get("tenant_id")
+    snapshot_id = invocation.get("catalog_snapshot_id")
+    design_prompt = invocation.get("design_prompt", "")
+    if not _is_identity(tenant_id) or not _is_identity(snapshot_id):
+        return _error(trace_id, "DESIGN_INVOCATION_IDENTITY_INVALID", "tenant 또는 active snapshot identity가 유효하지 않습니다.")
+    if not isinstance(design_prompt, str) or len(design_prompt) > 20000:
+        return _error(trace_id, "DESIGN_INVOCATION_PROMPT_INVALID", "추가 설계 프롬프트가 유효하지 않습니다.")
+    if not work or work.get("tenant_id") != tenant_id:
+        return _error(trace_id, "DESIGN_INVOCATION_WORK_MISMATCH", "승인 업무 정의와 invocation tenant가 일치하지 않습니다.")
+    if not acl or acl.get("subject_id") != work.get("owner_id"):
+        return _error(trace_id, "DESIGN_INVOCATION_ACL_MISMATCH", "인증 사용자와 승인 업무 소유자가 일치하지 않습니다.")
+    authority = invocation.get("trust_boundary")
+    if not isinstance(authority, dict) or authority.get("work_definition_source") != "mongodb-canonical-approved":
+        return _error(trace_id, "DESIGN_INVOCATION_AUTHORITY_INVALID", "MongoDB 권위 데이터 재확인 증거가 필요합니다.")
+    return {
+        "ok": True,
+        "status": "READY",
+        "schema_version": DESIGN_INVOCATION_SCHEMA_VERSION,
+        "tenant_id": str(tenant_id),
+        "catalog_snapshot_id": str(snapshot_id),
+        "work_definition": copy.deepcopy(work),
+        "acl_context": copy.deepcopy(acl),
+        "skill_registry": copy.deepcopy(registry),
+        "design_prompt": design_prompt,
+        "authority": copy.deepcopy(authority),
+        "trace_id": trace_id,
+    }
+
+
 class SearchQueryPlannerComponent(Component):
     display_name = "20 Search Query Planner"
-    description = "승인 업무 정의를 purpose, capability, exact, risk, reporting 검색 query plan으로 변환합니다."
+    description = "MongoDB 권위 데이터에서 만든 단일 invocation을 검증하고 검색 query plan으로 변환합니다."
     icon = "ListFilter"
     name = "SearchQueryPlanner"
 
     inputs = [
-        DataInput(name="work_definition", display_name="Approved Work Definition", required=True),
-        DataInput(name="acl_context", display_name="ACL Context", required=True),
-        MessageTextInput(name="tenant_id", display_name="Tenant ID", required=True),
-        MessageTextInput(name="catalog_snapshot_id", display_name="Active Catalog Snapshot ID", required=True),
-        MessageTextInput(name="design_prompt", display_name="Additional Design Prompt", required=False),
+        DataInput(name="design_invocation", display_name="Approved Design Invocation", required=True),
         IntInput(name="max_queries", display_name="Maximum Queries", value=30, advanced=True),
     ]
     outputs = [
-        Output(name="design_scope", display_name="Sealed Design Scope", method="build_scope", types=["Data"]),
-        Output(name="query_plan", display_name="Search Query Plan", method="build_query_plan", types=["Data"]),
+        Output(
+            name="design_scope",
+            display_name="Sealed Design Scope",
+            method="build_scope",
+            types=["Data"],
+            group_outputs=True,
+        ),
+        Output(
+            name="query_plan",
+            display_name="Search Query Plan",
+            method="build_query_plan",
+            types=["Data"],
+            group_outputs=True,
+        ),
+        Output(
+            name="approved_skill_registry",
+            display_name="Approved Skill Registry",
+            method="build_skill_registry",
+            types=["Data"],
+            group_outputs=True,
+        ),
     ]
 
+    def _validated_invocation(self) -> dict[str, Any]:
+        result = getattr(self, "_invocation_result", None)
+        if not isinstance(result, dict):
+            result = validate_design_invocation(getattr(self, "design_invocation", None))
+            self._invocation_result = result
+        return result
+
     def build_scope(self) -> Data:
-        result = build_design_scope(
-            self.work_definition,
-            tenant_id=self.tenant_id,
-            catalog_snapshot_id=self.catalog_snapshot_id,
-            acl_context=self.acl_context,
-            design_prompt=getattr(self, "design_prompt", ""),
+        invocation = self._validated_invocation()
+        result = invocation if invocation.get("ok") is not True else build_design_scope(
+            invocation["work_definition"],
+            tenant_id=invocation["tenant_id"],
+            catalog_snapshot_id=invocation["catalog_snapshot_id"],
+            acl_context=invocation["acl_context"],
+            design_prompt=invocation["design_prompt"],
         )
         self.status = f"Design scope: {result.get('status')}"
         return Data(data=result)
 
     def build_query_plan(self) -> Data:
-        result = build_search_query_plan(
-            self.work_definition,
-            tenant_id=self.tenant_id,
-            catalog_snapshot_id=self.catalog_snapshot_id,
-            acl_context=self.acl_context,
-            design_prompt=getattr(self, "design_prompt", ""),
+        invocation = self._validated_invocation()
+        result = invocation if invocation.get("ok") is not True else build_search_query_plan(
+            invocation["work_definition"],
+            tenant_id=invocation["tenant_id"],
+            catalog_snapshot_id=invocation["catalog_snapshot_id"],
+            acl_context=invocation["acl_context"],
+            design_prompt=invocation["design_prompt"],
             max_queries=getattr(self, "max_queries", 30),
         )
         self.status = f"Query plan: {result.get('status')} / queries={len(result.get('queries', []))}"
         return Data(data=result)
+
+    def build_skill_registry(self) -> Data:
+        invocation = self._validated_invocation()
+        if invocation.get("ok") is not True:
+            return Data(data=copy.deepcopy(invocation))
+        return Data(
+            data={
+                "ok": True,
+                "status": "COMPLETED",
+                "tenant_id": invocation["tenant_id"],
+                "skills": copy.deepcopy(invocation["skill_registry"]),
+                "authority": copy.deepcopy(invocation["authority"]),
+                "trace_id": invocation["trace_id"],
+            }
+        )

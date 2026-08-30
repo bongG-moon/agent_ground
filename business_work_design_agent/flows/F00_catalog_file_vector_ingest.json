@@ -1,0 +1,2061 @@
+{
+  "data": {
+    "edges": [
+      {
+        "animated": false,
+        "className": "",
+        "data": {
+          "sourceHandle": {
+            "dataType": "CatalogJsonLoader",
+            "id": "CustomComponent-c4a33b6",
+            "name": "catalog_bundle",
+            "output_types": [
+              "Data",
+              "JSON"
+            ]
+          },
+          "targetHandle": {
+            "fieldName": "catalog_bundle",
+            "id": "CustomComponent-f4ec7f8",
+            "inputTypes": [
+              "Data",
+              "JSON"
+            ],
+            "type": "other"
+          }
+        },
+        "id": "xy-edge__CustomComponent-c4a33b6{œdataTypeœ:œCatalogJsonLoaderœ,œidœ:œCustomComponent-c4a33b6œ,œnameœ:œcatalog_bundleœ,œoutput_typesœ:[œDataœ,œJSONœ]}-CustomComponent-f4ec7f8{œfieldNameœ:œcatalog_bundleœ,œidœ:œCustomComponent-f4ec7f8œ,œinputTypesœ:[œDataœ,œJSONœ],œtypeœ:œotherœ}",
+        "selected": false,
+        "source": "CustomComponent-c4a33b6",
+        "sourceHandle": "{œdataTypeœ:œCatalogJsonLoaderœ,œidœ:œCustomComponent-c4a33b6œ,œnameœ:œcatalog_bundleœ,œoutput_typesœ:[œDataœ,œJSONœ]}",
+        "target": "CustomComponent-f4ec7f8",
+        "targetHandle": "{œfieldNameœ:œcatalog_bundleœ,œidœ:œCustomComponent-f4ec7f8œ,œinputTypesœ:[œDataœ,œJSONœ],œtypeœ:œotherœ}"
+      },
+      {
+        "animated": false,
+        "className": "",
+        "data": {
+          "sourceHandle": {
+            "dataType": "CatalogDeterministicChunker",
+            "id": "CustomComponent-f4ec7f8",
+            "name": "chunk_bundle",
+            "output_types": [
+              "Data",
+              "JSON"
+            ]
+          },
+          "targetHandle": {
+            "fieldName": "chunk_bundle",
+            "id": "CustomComponent-406fa38",
+            "inputTypes": [
+              "Data",
+              "JSON"
+            ],
+            "type": "other"
+          }
+        },
+        "id": "xy-edge__CustomComponent-f4ec7f8{œdataTypeœ:œCatalogDeterministicChunkerœ,œidœ:œCustomComponent-f4ec7f8œ,œnameœ:œchunk_bundleœ,œoutput_typesœ:[œDataœ,œJSONœ]}-CustomComponent-406fa38{œfieldNameœ:œchunk_bundleœ,œidœ:œCustomComponent-406fa38œ,œinputTypesœ:[œDataœ,œJSONœ],œtypeœ:œotherœ}",
+        "selected": false,
+        "source": "CustomComponent-f4ec7f8",
+        "sourceHandle": "{œdataTypeœ:œCatalogDeterministicChunkerœ,œidœ:œCustomComponent-f4ec7f8œ,œnameœ:œchunk_bundleœ,œoutput_typesœ:[œDataœ,œJSONœ]}",
+        "target": "CustomComponent-406fa38",
+        "targetHandle": "{œfieldNameœ:œchunk_bundleœ,œidœ:œCustomComponent-406fa38œ,œinputTypesœ:[œDataœ,œJSONœ],œtypeœ:œotherœ}"
+      },
+      {
+        "animated": false,
+        "className": "",
+        "data": {
+          "sourceHandle": {
+            "dataType": "EmbeddingModel",
+            "id": "EmbeddingModel-8368006",
+            "name": "embeddings",
+            "output_types": [
+              "Embeddings"
+            ]
+          },
+          "targetHandle": {
+            "fieldName": "embedding",
+            "id": "CustomComponent-406fa38",
+            "inputTypes": [
+              "Embeddings"
+            ],
+            "type": "other"
+          }
+        },
+        "id": "xy-edge__EmbeddingModel-8368006{œdataTypeœ:œEmbeddingModelœ,œidœ:œEmbeddingModel-8368006œ,œnameœ:œembeddingsœ,œoutput_typesœ:[œEmbeddingsœ]}-CustomComponent-406fa38{œfieldNameœ:œembeddingœ,œidœ:œCustomComponent-406fa38œ,œinputTypesœ:[œEmbeddingsœ],œtypeœ:œotherœ}",
+        "selected": false,
+        "source": "EmbeddingModel-8368006",
+        "sourceHandle": "{œdataTypeœ:œEmbeddingModelœ,œidœ:œEmbeddingModel-8368006œ,œnameœ:œembeddingsœ,œoutput_typesœ:[œEmbeddingsœ]}",
+        "target": "CustomComponent-406fa38",
+        "targetHandle": "{œfieldNameœ:œembeddingœ,œidœ:œCustomComponent-406fa38œ,œinputTypesœ:[œEmbeddingsœ],œtypeœ:œotherœ}"
+      },
+      {
+        "animated": false,
+        "className": "",
+        "data": {
+          "sourceHandle": {
+            "dataType": "CatalogMongoDBVectorWriter",
+            "id": "CustomComponent-406fa38",
+            "name": "ingestion_result",
+            "output_types": [
+              "Data",
+              "JSON"
+            ]
+          },
+          "targetHandle": {
+            "fieldName": "data",
+            "id": "ParseData-c7cc2c2",
+            "inputTypes": [
+              "Data",
+              "JSON"
+            ],
+            "type": "other"
+          }
+        },
+        "id": "xy-edge__CustomComponent-406fa38{œdataTypeœ:œCatalogMongoDBVectorWriterœ,œidœ:œCustomComponent-406fa38œ,œnameœ:œingestion_resultœ,œoutput_typesœ:[œDataœ,œJSONœ]}-ParseData-c7cc2c2{œfieldNameœ:œdataœ,œidœ:œParseData-c7cc2c2œ,œinputTypesœ:[œDataœ,œJSONœ],œtypeœ:œotherœ}",
+        "selected": false,
+        "source": "CustomComponent-406fa38",
+        "sourceHandle": "{œdataTypeœ:œCatalogMongoDBVectorWriterœ,œidœ:œCustomComponent-406fa38œ,œnameœ:œingestion_resultœ,œoutput_typesœ:[œDataœ,œJSONœ]}",
+        "target": "ParseData-c7cc2c2",
+        "targetHandle": "{œfieldNameœ:œdataœ,œidœ:œParseData-c7cc2c2œ,œinputTypesœ:[œDataœ,œJSONœ],œtypeœ:œotherœ}"
+      },
+      {
+        "animated": false,
+        "className": "",
+        "data": {
+          "sourceHandle": {
+            "dataType": "ParseData",
+            "id": "ParseData-c7cc2c2",
+            "name": "text",
+            "output_types": [
+              "Message"
+            ]
+          },
+          "targetHandle": {
+            "fieldName": "input_value",
+            "id": "ChatOutput-4f852f8",
+            "inputTypes": [
+              "Data",
+              "JSON",
+              "DataFrame",
+              "Table",
+              "Message"
+            ],
+            "type": "other"
+          }
+        },
+        "id": "xy-edge__ParseData-c7cc2c2{œdataTypeœ:œParseDataœ,œidœ:œParseData-c7cc2c2œ,œnameœ:œtextœ,œoutput_typesœ:[œMessageœ]}-ChatOutput-4f852f8{œfieldNameœ:œinput_valueœ,œidœ:œChatOutput-4f852f8œ,œinputTypesœ:[œDataœ,œJSONœ,œDataFrameœ,œTableœ,œMessageœ],œtypeœ:œotherœ}",
+        "selected": false,
+        "source": "ParseData-c7cc2c2",
+        "sourceHandle": "{œdataTypeœ:œParseDataœ,œidœ:œParseData-c7cc2c2œ,œnameœ:œtextœ,œoutput_typesœ:[œMessageœ]}",
+        "target": "ChatOutput-4f852f8",
+        "targetHandle": "{œfieldNameœ:œinput_valueœ,œidœ:œChatOutput-4f852f8œ,œinputTypesœ:[œDataœ,œJSONœ,œDataFrameœ,œTableœ,œMessageœ],œtypeœ:œotherœ}"
+      }
+    ],
+    "nodes": [
+      {
+        "data": {
+          "id": "note-f00-01-upload-normalize-chunk",
+          "node": {
+            "description": "## ① 파일 업로드·정규화·청킹\n\n- JSON/JSONL/NDJSON 카탈로그 파일 하나를 업로드합니다.\n- Loader가 스키마를 검사하고 민감정보를 제거한 canonical 원문을 만듭니다.\n- Chunker가 검색 가능한 텍스트 조각과 hash를 결정론적으로 생성합니다.",
+            "display_name": "",
+            "documentation": "",
+            "template": {
+              "backgroundColor": "blue"
+            },
+            "lf_version": "1.11.1"
+          },
+          "type": "note"
+        },
+        "dragging": false,
+        "height": 330.0,
+        "id": "note-f00-01-upload-normalize-chunk",
+        "position": {
+          "x": -80.0,
+          "y": -960.0
+        },
+        "positionAbsolute": {
+          "x": -80.0,
+          "y": -960.0
+        },
+        "resizing": false,
+        "selected": false,
+        "style": {
+          "height": 330.0,
+          "width": 800.0
+        },
+        "type": "noteNode",
+        "width": 800.0
+      },
+      {
+        "data": {
+          "id": "note-f00-02-embed-store-publish",
+          "node": {
+            "description": "## ② 임베딩·MongoDB 저장·게시\n\n- Embedding Model은 chunk 하나씩 vector를 생성하고, Writer는 다음 호출 전 최소 1초를 기다립니다.\n- Writer가 parent와 `catalog_asset_chunks.embedding.vector`를 묶어서 저장합니다.\n- MongoDB Database는 `business_work_design`으로 미리 채워져 있으며 URI만 환경에 맞게 설정합니다.\n- 검증이 모두 성공한 경우에만 active pointer를 갱신합니다.",
+            "display_name": "",
+            "documentation": "",
+            "template": {
+              "backgroundColor": "amber"
+            },
+            "lf_version": "1.11.1"
+          },
+          "type": "note"
+        },
+        "dragging": false,
+        "height": 330.0,
+        "id": "note-f00-02-embed-store-publish",
+        "position": {
+          "x": 760.0,
+          "y": -960.0
+        },
+        "positionAbsolute": {
+          "x": 760.0,
+          "y": -960.0
+        },
+        "resizing": false,
+        "selected": false,
+        "style": {
+          "height": 330.0,
+          "width": 1200.0
+        },
+        "type": "noteNode",
+        "width": 1200.0
+      },
+      {
+        "data": {
+          "id": "CustomComponent-c4a33b6",
+          "node": {
+            "template": {
+              "_type": "Component",
+              "catalog_file": {
+                "tool_mode": false,
+                "trace_as_metadata": true,
+                "file_path": "",
+                "fileTypes": [
+                  "json",
+                  "jsonl",
+                  "ndjson"
+                ],
+                "temp_file": false,
+                "list": false,
+                "list_add_label": "Add More",
+                "override_skip": false,
+                "required": true,
+                "placeholder": "",
+                "show": true,
+                "name": "catalog_file",
+                "value": "",
+                "display_name": "Catalog JSON File",
+                "advanced": false,
+                "api_editable": false,
+                "dynamic": false,
+                "info": "Upload one JSON, JSONL, or NDJSON catalog file. Start with samples/f00_catalog_assets_example.json.",
+                "title_case": false,
+                "track_in_telemetry": false,
+                "type": "file",
+                "_input_type": "FileInput"
+              },
+              "code": {
+                "type": "code",
+                "required": true,
+                "placeholder": "",
+                "list": false,
+                "show": true,
+                "multiline": true,
+                "value": "from __future__ import annotations\n\nimport hashlib\nimport json\nimport math\nimport re\nfrom datetime import datetime, timezone\nfrom pathlib import Path\nfrom typing import Any\n\nfrom lfx.custom import Component\nfrom lfx.io import FileInput, IntInput, Output\nfrom lfx.schema import Data\n\n\n_SENSITIVE_KEY_PATTERN = re.compile(\n    r\"(^|_)(api_?key|private_?key|authorization|cookie|credential|password|passwd|secret|session|smauthreason|smsession|token)(_|$)\",\n    re.IGNORECASE,\n)\n_EMAIL_PATTERN = re.compile(r\"(?<![\\w.+-])[A-Z0-9._%+-]+@[A-Z0-9.-]+\\.[A-Z]{2,}(?![\\w.-])\", re.IGNORECASE)\n_BEARER_PATTERN = re.compile(r\"\\bBearer\\s+[A-Za-z0-9._~+/=-]{8,}\", re.IGNORECASE)\n_BASIC_AUTH_PATTERN = re.compile(r\"\\bBasic\\s+[A-Za-z0-9+/=]{8,}\", re.IGNORECASE)\n_JWT_PATTERN = re.compile(r\"\\beyJ[A-Za-z0-9_-]{8,}\\.[A-Za-z0-9_-]{8,}\\.[A-Za-z0-9_-]{8,}\\b\")\n_GITHUB_TOKEN_PATTERN = re.compile(r\"\\b(?:gh[pousr]_[A-Za-z0-9]{20,}|github_pat_[A-Za-z0-9_]{20,})\\b\")\n_AWS_ACCESS_KEY_PATTERN = re.compile(r\"\\b(?:AKIA|ASIA)[A-Z0-9]{16}\\b\")\n_CREDENTIAL_URL_PATTERN = re.compile(r\"(?i)\\b(https?://)[^\\s/@:]+:[^\\s/@]+@\")\n_PRIVATE_KEY_BLOCK_PATTERN = re.compile(\n    r\"-----BEGIN [A-Z0-9 ]*PRIVATE KEY-----.*?-----END [A-Z0-9 ]*PRIVATE KEY-----\",\n    re.DOTALL,\n)\n_ASSIGNED_SECRET_PATTERN = re.compile(\n    r\"\\b(password|passwd|secret|token|api[_-]?key|authorization|cookie|session)\\s*[:=]\\s*[^\\s,;]{4,}\",\n    re.IGNORECASE,\n)\n_TYPE_MAP = {\"py\": \"component\", \"component\": \"component\", \"json\": \"flow\", \"flow\": \"flow\"}\n_TECHNICAL_STATUSES = {\"metadata_only\", \"ports_extracted\", \"flow_graph_extracted\", \"verified_runtime\"}\n_SUPPORTED_SUFFIXES = {\".json\", \".jsonl\", \".ndjson\"}\n_INGEST_CONTRACT_VERSION = \"catalog-file-vector-ingest/v1\"\n_TENANT_ID = \"default\"\n_CATALOG_ID = \"internal-assets\"\n\n\ndef _bounded_int(value: Any, default: int, minimum: int, maximum: int) -> int:\n    try:\n        number = int(value)\n    except (TypeError, ValueError):\n        number = default\n    return max(minimum, min(maximum, number))\n\n\ndef _canonical_json(value: Any) -> str:\n    return json.dumps(value, ensure_ascii=False, sort_keys=True, separators=(\",\", \":\"))\n\n\ndef _sha256_text(value: str) -> str:\n    return hashlib.sha256(value.encode(\"utf-8\")).hexdigest()\n\n\ndef _reject_nonfinite_json(value: str) -> Any:\n    raise ValueError(f\"Non-finite JSON number is not allowed: {value}.\")\n\n\ndef _uploaded_file_value(value: Any) -> str:\n    candidate = getattr(value, \"path\", None) or getattr(value, \"file_path\", None) or value\n    if not isinstance(candidate, str) or not candidate.strip():\n        raise ValueError(\"A JSON, JSONL, or NDJSON file upload is required.\")\n    return candidate.strip()\n\n\ndef _read_catalog_records(\n    file_path: Any,\n    *,\n    max_file_bytes: int,\n    max_records: int,\n    max_record_chars: int,\n) -> tuple[list[dict[str, Any]], str, int]:\n    try:\n        path = Path(str(file_path)).resolve(strict=True)\n    except OSError as exc:\n        raise ValueError(\"The uploaded catalog file is unavailable.\") from exc\n    if not path.is_file() or path.suffix.lower() not in _SUPPORTED_SUFFIXES:\n        raise ValueError(\"Only .json, .jsonl, and .ndjson files are supported.\")\n    size_bytes = path.stat().st_size\n    if size_bytes <= 0:\n        raise ValueError(\"The uploaded catalog file is empty.\")\n    if size_bytes > max_file_bytes:\n        raise ValueError(\"The uploaded catalog file exceeds the configured size limit.\")\n    raw_bytes = path.read_bytes()\n    source_sha256 = hashlib.sha256(raw_bytes).hexdigest()\n    try:\n        text = raw_bytes.decode(\"utf-8-sig\")\n    except UnicodeDecodeError as exc:\n        raise ValueError(\"The uploaded catalog file must use UTF-8 encoding.\") from exc\n\n    records: list[Any]\n    if path.suffix.lower() in {\".jsonl\", \".ndjson\"}:\n        records = []\n        for line_number, line in enumerate(text.splitlines(), start=1):\n            stripped = line.strip()\n            if not stripped:\n                continue\n            if len(stripped) > max_record_chars:\n                raise ValueError(f\"Catalog record on line {line_number} exceeds the configured size limit.\")\n            try:\n                records.append(json.loads(stripped, parse_constant=_reject_nonfinite_json))\n            except (json.JSONDecodeError, ValueError) as exc:\n                raise ValueError(f\"Catalog record on line {line_number} is not valid JSON.\") from exc\n            if len(records) > max_records:\n                raise ValueError(\"The uploaded catalog contains more records than the configured maximum.\")\n    else:\n        try:\n            root = json.loads(text, parse_constant=_reject_nonfinite_json)\n        except (json.JSONDecodeError, ValueError) as exc:\n            raise ValueError(\"The uploaded catalog is not valid JSON.\") from exc\n        if isinstance(root, list):\n            records = root\n        elif isinstance(root, dict) and \"items\" in root and not (root.get(\"id\") or root.get(\"asset_id\")):\n            if not isinstance(root.get(\"items\"), list):\n                raise ValueError(\"A catalog object wrapper must contain an items array.\")\n            records = root[\"items\"]\n        elif isinstance(root, dict):\n            records = [root]\n        else:\n            raise ValueError(\"The catalog root must be an object, an array of objects, or an object containing items.\")\n\n    if not records:\n        raise ValueError(\"The uploaded catalog contains no records.\")\n    if len(records) > max_records:\n        raise ValueError(\"The uploaded catalog contains more records than the configured maximum.\")\n    validated: list[dict[str, Any]] = []\n    for index, record in enumerate(records):\n        if not isinstance(record, dict):\n            raise ValueError(f\"Catalog record {index} must be a JSON object.\")\n        if len(_canonical_json(record)) > max_record_chars:\n            raise ValueError(f\"Catalog record {index} exceeds the configured size limit.\")\n        validated.append(record)\n    return validated, source_sha256, size_bytes\n\n\ndef _redact_text(value: Any, max_chars: int) -> str:\n    text = str(value or \"\").replace(\"\\x00\", \"\")[:max_chars]\n    text = _PRIVATE_KEY_BLOCK_PATTERN.sub(\"[REDACTED:PRIVATE_KEY]\", text)\n    text = _EMAIL_PATTERN.sub(\"[REDACTED:EMAIL]\", text)\n    text = _BEARER_PATTERN.sub(\"[REDACTED:BEARER]\", text)\n    text = _BASIC_AUTH_PATTERN.sub(\"[REDACTED:BASIC_AUTH]\", text)\n    text = _JWT_PATTERN.sub(\"[REDACTED:JWT]\", text)\n    text = _GITHUB_TOKEN_PATTERN.sub(\"[REDACTED:GITHUB_TOKEN]\", text)\n    text = _AWS_ACCESS_KEY_PATTERN.sub(\"[REDACTED:AWS_ACCESS_KEY]\", text)\n    text = _CREDENTIAL_URL_PATTERN.sub(r\"\\1[REDACTED:CREDENTIALS]@\", text)\n    return _ASSIGNED_SECRET_PATTERN.sub(\"[REDACTED:ASSIGNED_SECRET]\", text)\n\n\ndef _redact_value(\n    value: Any,\n    *,\n    key: str,\n    depth: int,\n    max_depth: int,\n    max_items: int,\n    max_string_chars: int,\n) -> Any:\n    if depth > max_depth:\n        raise ValueError(\"A catalog record exceeds the configured nesting depth.\")\n    snake_key = re.sub(r\"([a-z0-9])([A-Z])\", r\"\\1_\\2\", key)\n    normalized_key = re.sub(r\"[^a-z0-9]+\", \"_\", snake_key.casefold()).strip(\"_\")\n    if _SENSITIVE_KEY_PATTERN.search(normalized_key):\n        return \"[REDACTED:SENSITIVE_FIELD]\"\n    if value is None or isinstance(value, (bool, int)):\n        return value\n    if isinstance(value, float):\n        if not math.isfinite(value):\n            raise ValueError(\"A catalog record contains a non-finite number.\")\n        return value\n    if isinstance(value, str):\n        return _redact_text(value, max_string_chars)\n    if isinstance(value, list):\n        if len(value) > max_items:\n            raise ValueError(\"A catalog record contains too many list items.\")\n        return [\n            _redact_value(\n                item,\n                key=key,\n                depth=depth + 1,\n                max_depth=max_depth,\n                max_items=max_items,\n                max_string_chars=max_string_chars,\n            )\n            for item in value\n        ]\n    if isinstance(value, dict):\n        if len(value) > max_items:\n            raise ValueError(\"A catalog record contains too many object fields.\")\n        result: dict[str, Any] = {}\n        for raw_key, item in value.items():\n            safe_key = str(raw_key)\n            if not safe_key or len(safe_key) > 256 or \"\\x00\" in safe_key or \".\" in safe_key or safe_key.startswith(\"$\"):\n                raise ValueError(\"Catalog object keys must be MongoDB-safe strings of at most 256 characters.\")\n            result[safe_key] = _redact_value(\n                item,\n                key=safe_key,\n                depth=depth + 1,\n                max_depth=max_depth,\n                max_items=max_items,\n                max_string_chars=max_string_chars,\n            )\n        return result\n    raise ValueError(\"A catalog record contains an unsupported JSON value.\")\n\n\ndef _normalize_datetime(value: Any) -> str | None:\n    text = str(value or \"\").strip()\n    if not text:\n        return None\n    candidate = text[:-1] + \"+00:00\" if text.endswith(\"Z\") else text\n    try:\n        parsed = datetime.fromisoformat(candidate)\n    except ValueError:\n        return None\n    if parsed.tzinfo is None:\n        parsed = parsed.replace(tzinfo=timezone.utc)\n    return parsed.astimezone(timezone.utc).isoformat().replace(\"+00:00\", \"Z\")\n\n\ndef _nonnegative_int(value: Any) -> int:\n    try:\n        return max(0, int(value))\n    except (TypeError, ValueError):\n        return 0\n\n\ndef _string_list(value: Any, *, preserve_case: bool, maximum: int = 100) -> list[str]:\n    source = value if isinstance(value, list) else []\n    result: list[str] = []\n    for item in source[:maximum]:\n        text = str(item or \"\").strip()\n        if not preserve_case:\n            text = text.lower()\n        if text and len(text) <= 128 and text not in result:\n            result.append(text)\n    return result\n\n\ndef _normalize_acl(value: Any) -> dict[str, Any]:\n    source = value if isinstance(value, dict) else {}\n    visibility = str(source.get(\"visibility\") or \"tenant\").strip().lower()\n    if visibility not in {\"tenant\", \"group\", \"private\"}:\n        raise ValueError(\"Catalog ACL visibility must be tenant, group, or private.\")\n    groups = _string_list(source.get(\"groups\"), preserve_case=False)\n    subjects = _string_list(source.get(\"subjects\"), preserve_case=True)\n    if visibility == \"group\" and not groups:\n        raise ValueError(\"Group-visible records require at least one ACL group.\")\n    if visibility == \"private\" and not subjects:\n        raise ValueError(\"Private records require at least one ACL subject.\")\n    return {\"visibility\": visibility, \"groups\": groups, \"subjects\": subjects}\n\n\ndef _normalize_ports(safe_record: dict[str, Any]) -> tuple[str, dict[str, list[Any]], dict[str, Any]]:\n    source_contract = safe_record.get(\"technical_contract\") if isinstance(safe_record.get(\"technical_contract\"), dict) else {}\n    raw_ports = safe_record.get(\"ports\") if isinstance(safe_record.get(\"ports\"), dict) else {}\n    inputs = raw_ports.get(\"inputs\") if isinstance(raw_ports.get(\"inputs\"), list) else source_contract.get(\"inputs\")\n    outputs = raw_ports.get(\"outputs\") if isinstance(raw_ports.get(\"outputs\"), list) else source_contract.get(\"outputs\")\n    inputs = inputs if isinstance(inputs, list) else []\n    outputs = outputs if isinstance(outputs, list) else []\n    requested_status = str(\n        safe_record.get(\"technical_contract_status\") or source_contract.get(\"status\") or \"\"\n    ).strip()\n    if requested_status and requested_status not in _TECHNICAL_STATUSES:\n        raise ValueError(\"technical_contract_status is not supported.\")\n    status = requested_status or (\"ports_extracted\" if inputs or outputs else \"metadata_only\")\n    ports = {\"inputs\": inputs, \"outputs\": outputs}\n    technical_contract = {\n        \"status\": status,\n        \"inputs\": inputs,\n        \"outputs\": outputs,\n        \"dependencies\": source_contract.get(\"dependencies\") if isinstance(source_contract.get(\"dependencies\"), list) else [],\n        \"verified_at\": _normalize_datetime(source_contract.get(\"verified_at\")),\n    }\n    return status, ports, technical_contract\n\n\ndef _normalize_records(\n    records: list[dict[str, Any]],\n    *,\n    tenant_id: str,\n    catalog_id: str,\n    source_sha256: str,\n    source_size_bytes: int,\n    max_record_chars: int,\n    max_text_chars: int,\n) -> list[dict[str, Any]]:\n    normalized: list[dict[str, Any]] = []\n    seen: set[tuple[str, str]] = set()\n    for record_index, raw_record in enumerate(records):\n        safe = _redact_value(\n            raw_record,\n            key=\"record\",\n            depth=0,\n            max_depth=12,\n            max_items=5000,\n            max_string_chars=max_record_chars,\n        )\n        if not isinstance(safe, dict):\n            raise ValueError(f\"Catalog record {record_index} must be an object.\")\n        record_tenant = str(safe.get(\"tenant_id\") or tenant_id).strip().lower()\n        if record_tenant != tenant_id:\n            raise ValueError(\"A catalog record cannot override tenant_id.\")\n        asset_id = str(safe.get(\"id\") or safe.get(\"asset_id\") or \"\").strip()\n        title = str(safe.get(\"title\") or \"\").strip()\n        original_type = str(safe.get(\"type\") or safe.get(\"asset_type\") or \"\").strip().lower()\n        version = str(safe.get(\"version\") or \"unversioned\").strip() or \"unversioned\"\n        if not asset_id or len(asset_id) > 256:\n            raise ValueError(f\"Catalog record {record_index} requires id of at most 256 characters.\")\n        if not title or len(title) > 1000:\n            raise ValueError(f\"Catalog record {record_index} requires title of at most 1000 characters.\")\n        if original_type not in _TYPE_MAP:\n            raise ValueError(f\"Catalog record {record_index} type must be py, component, json, or flow.\")\n        if len(version) > 100:\n            raise ValueError(f\"Catalog record {record_index} version is too long.\")\n        identity = (asset_id, version)\n        if identity in seen:\n            raise ValueError(f\"Duplicate asset identity in upload: {asset_id}@{version}.\")\n        seen.add(identity)\n\n        description = str(safe.get(\"description\") or \"\").strip()\n        category = str(safe.get(\"category\") or \"Uncategorized\").strip() or \"Uncategorized\"\n        readme = str(safe.get(\"readme\") or \"\").strip()\n        technical_status, ports, technical_contract = _normalize_ports(safe)\n        acl = _normalize_acl(safe.get(\"acl\"))\n        relations = safe.get(\"relations\") if isinstance(safe.get(\"relations\"), list) else []\n        raw_text_redacted = _canonical_json(safe)\n        record_sha256 = _sha256_text(raw_text_redacted)\n        searchable_lines = [\n            f\"title: {title}\",\n            f\"type: {original_type} / {_TYPE_MAP[original_type]}\",\n            f\"category: {category}\",\n            f\"description: {description}\" if description else \"\",\n            f\"readme: {readme}\" if readme else \"\",\n            f\"original_record: {raw_text_redacted}\",\n        ]\n        lexical_text = \"\\n\".join(line for line in searchable_lines if line).strip()\n        if len(lexical_text) > max_text_chars:\n            raise ValueError(\n                f\"Catalog record {record_index} searchable text exceeds the configured maximum; increase max_text_chars explicitly.\"\n            )\n        content_basis = {\n            \"identity\": [asset_id, version],\n            \"record_sha256\": record_sha256,\n            \"technical_contract\": technical_contract,\n            \"acl\": acl,\n        }\n        normalized.append(\n            {\n                \"tenant_id\": tenant_id,\n                \"catalog_id\": catalog_id,\n                \"asset_id\": asset_id,\n                \"version\": version,\n                \"asset_type\": _TYPE_MAP[original_type],\n                \"title\": title,\n                \"title_normalized\": re.sub(r\"\\s+\", \" \", title.casefold()).strip()[:500],\n                \"aliases_normalized\": _string_list(safe.get(\"aliases\"), preserve_case=False, maximum=32),\n                \"description\": description,\n                \"category\": category,\n                \"readme\": readme,\n                \"acl\": acl,\n                \"technical_contract_status\": technical_status,\n                \"technical_contract\": technical_contract,\n                \"ports\": ports,\n                \"relations\": relations,\n                \"stars_count\": _nonnegative_int(safe.get(\"stars_count\")),\n                \"downloads_count\": _nonnegative_int(safe.get(\"downloads_count\")),\n                \"created_at\": _normalize_datetime(safe.get(\"created_at\")),\n                \"updated_at\": _normalize_datetime(safe.get(\"updated_at\")),\n                \"source\": {\n                    \"file_sha256\": source_sha256,\n                    \"file_size_bytes\": source_size_bytes,\n                    \"record_index\": record_index,\n                },\n                \"lexical_text_redacted\": lexical_text,\n                \"raw_record_redacted\": safe,\n                \"raw_text_redacted\": raw_text_redacted,\n                \"raw_record_redacted_sha256\": record_sha256,\n                \"content_sha256\": _sha256_text(_canonical_json(content_basis)),\n            }\n        )\n    return normalized\n\n\ndef _failure(code: str, message: str) -> Data:\n    return Data(data={\"ok\": False, \"status\": \"BLOCKED\", \"error\": {\"code\": code, \"message\": message, \"retryable\": False}})\n\n\nclass CatalogJsonLoaderComponent(Component):\n    display_name = \"00 Catalog JSON Loader & Normalizer\"\n    description = \"Upload one catalog JSON file, validate it, redact secrets, and preserve canonical parent metadata.\"\n    icon = \"FileJson\"\n    name = \"CatalogJsonLoader\"\n\n    inputs = [\n        FileInput(\n            name=\"catalog_file\",\n            display_name=\"Catalog JSON File\",\n            file_types=[\"json\", \"jsonl\", \"ndjson\"],\n            required=True,\n            info=\"Upload one JSON, JSONL, or NDJSON catalog file. Start with samples/f00_catalog_assets_example.json.\",\n        ),\n        IntInput(name=\"max_records\", display_name=\"Maximum Records\", value=50000, advanced=True),\n        IntInput(name=\"max_file_size_mb\", display_name=\"Maximum File Size (MiB)\", value=100, advanced=True),\n        IntInput(name=\"max_record_chars\", display_name=\"Maximum Record Characters\", value=200000, advanced=True),\n        IntInput(name=\"max_text_chars\", display_name=\"Maximum Searchable Text Characters\", value=60000, advanced=True),\n    ]\n\n    outputs = [Output(name=\"catalog_bundle\", display_name=\"Normalized Catalog Bundle\", method=\"load_catalog\", types=[\"Data\"])]\n\n    def load_catalog(self) -> Data:\n        try:\n            max_records = _bounded_int(getattr(self, \"max_records\", 50000), 50000, 1, 100000)\n            max_file_mb = _bounded_int(getattr(self, \"max_file_size_mb\", 100), 100, 1, 500)\n            max_record_chars = _bounded_int(getattr(self, \"max_record_chars\", 200000), 200000, 1000, 1000000)\n            max_text_chars = _bounded_int(getattr(self, \"max_text_chars\", 60000), 60000, 1000, 200000)\n            upload_value = _uploaded_file_value(getattr(self, \"catalog_file\", None))\n            resolved_path = self.resolve_path(upload_value)\n            records, source_sha256, source_size_bytes = _read_catalog_records(\n                resolved_path,\n                max_file_bytes=max_file_mb * 1024 * 1024,\n                max_records=max_records,\n                max_record_chars=max_record_chars,\n            )\n            normalized = _normalize_records(\n                records,\n                tenant_id=_TENANT_ID,\n                catalog_id=_CATALOG_ID,\n                source_sha256=source_sha256,\n                source_size_bytes=source_size_bytes,\n                max_record_chars=max_record_chars,\n                max_text_chars=max_text_chars,\n            )\n            result = {\n                \"ok\": True,\n                \"status\": \"LOADED\",\n                \"schema_version\": \"catalog-normalized-bundle/v1\",\n                \"ingest_contract_version\": _INGEST_CONTRACT_VERSION,\n                \"tenant_id\": _TENANT_ID,\n                \"catalog_id\": _CATALOG_ID,\n                \"source_sha256\": source_sha256,\n                \"source_size_bytes\": source_size_bytes,\n                \"max_text_chars\": max_text_chars,\n                \"records\": normalized,\n                \"counts\": {\"records\": len(normalized)},\n            }\n            self.status = f\"Loaded and normalized {len(normalized)} catalog records.\"\n            return Data(data=result)\n        except (OSError, ValueError) as exc:\n            self.status = \"Catalog file loading was blocked.\"\n            return _failure(\"CATALOG_FILE_INVALID\", str(exc))\n",
+                "fileTypes": [],
+                "file_path": "",
+                "password": false,
+                "name": "code",
+                "advanced": true,
+                "api_editable": false,
+                "dynamic": true,
+                "info": "",
+                "load_from_db": false,
+                "title_case": false
+              },
+              "max_file_size_mb": {
+                "tool_mode": false,
+                "trace_as_metadata": true,
+                "list": false,
+                "list_add_label": "Add More",
+                "override_skip": false,
+                "required": false,
+                "placeholder": "",
+                "show": true,
+                "name": "max_file_size_mb",
+                "value": 100,
+                "display_name": "Maximum File Size (MiB)",
+                "advanced": true,
+                "api_editable": false,
+                "dynamic": false,
+                "info": "",
+                "title_case": false,
+                "track_in_telemetry": true,
+                "type": "int",
+                "_input_type": "IntInput"
+              },
+              "max_record_chars": {
+                "tool_mode": false,
+                "trace_as_metadata": true,
+                "list": false,
+                "list_add_label": "Add More",
+                "override_skip": false,
+                "required": false,
+                "placeholder": "",
+                "show": true,
+                "name": "max_record_chars",
+                "value": 200000,
+                "display_name": "Maximum Record Characters",
+                "advanced": true,
+                "api_editable": false,
+                "dynamic": false,
+                "info": "",
+                "title_case": false,
+                "track_in_telemetry": true,
+                "type": "int",
+                "_input_type": "IntInput"
+              },
+              "max_records": {
+                "tool_mode": false,
+                "trace_as_metadata": true,
+                "list": false,
+                "list_add_label": "Add More",
+                "override_skip": false,
+                "required": false,
+                "placeholder": "",
+                "show": true,
+                "name": "max_records",
+                "value": 50000,
+                "display_name": "Maximum Records",
+                "advanced": true,
+                "api_editable": false,
+                "dynamic": false,
+                "info": "",
+                "title_case": false,
+                "track_in_telemetry": true,
+                "type": "int",
+                "_input_type": "IntInput"
+              },
+              "max_text_chars": {
+                "tool_mode": false,
+                "trace_as_metadata": true,
+                "list": false,
+                "list_add_label": "Add More",
+                "override_skip": false,
+                "required": false,
+                "placeholder": "",
+                "show": true,
+                "name": "max_text_chars",
+                "value": 60000,
+                "display_name": "Maximum Searchable Text Characters",
+                "advanced": true,
+                "api_editable": false,
+                "dynamic": false,
+                "info": "",
+                "title_case": false,
+                "track_in_telemetry": true,
+                "type": "int",
+                "_input_type": "IntInput"
+              }
+            },
+            "description": "Upload one catalog JSON file, validate it, redact secrets, and preserve canonical parent metadata.",
+            "icon": "FileJson",
+            "base_classes": [
+              "Data",
+              "JSON"
+            ],
+            "display_name": "00 Catalog JSON Loader & Normalizer",
+            "documentation": "",
+            "minimized": false,
+            "custom_fields": {},
+            "output_types": [],
+            "pinned": false,
+            "conditional_paths": [],
+            "frozen": false,
+            "outputs": [
+              {
+                "types": [
+                  "Data",
+                  "JSON"
+                ],
+                "selected": "Data",
+                "name": "catalog_bundle",
+                "display_name": "Normalized Catalog Bundle",
+                "method": "load_catalog",
+                "value": "__UNDEFINED__",
+                "cache": true,
+                "allows_loop": false,
+                "group_outputs": false,
+                "tool_mode": true
+              }
+            ],
+            "field_order": [
+              "catalog_file",
+              "max_records",
+              "max_file_size_mb",
+              "max_record_chars",
+              "max_text_chars"
+            ],
+            "beta": false,
+            "legacy": false,
+            "edited": false,
+            "metadata": {
+              "module": "custom_components.00_catalog_json_loader__normalizer",
+              "code_hash": "1705959093b5",
+              "dependencies": {
+                "total_dependencies": 1,
+                "dependencies": [
+                  {
+                    "name": "lfx",
+                    "version": "1.11.5"
+                  }
+                ]
+              },
+              "flow_build_target": "1.11.1",
+              "flow_node_key": "catalog_loader",
+              "standalone": true,
+              "standalone_source_path": "components/catalog_ingestion/00_catalog_json_loader.py",
+              "standalone_source_sha256": "1705959093b5d6739c0852df45b63330577852e4f05a96f23d75b20a69a6774d"
+            },
+            "tool_mode": false,
+            "lf_version": "1.11.1"
+          },
+          "showNode": true,
+          "type": "CatalogJsonLoader",
+          "description": "Upload one catalog JSON file, validate it, redact secrets, and preserve canonical parent metadata.",
+          "display_name": "00 Catalog JSON Loader & Normalizer",
+          "selected_output": "catalog_bundle"
+        },
+        "dragging": false,
+        "id": "CustomComponent-c4a33b6",
+        "measured": {
+          "height": 260,
+          "width": 320
+        },
+        "position": {
+          "x": 0,
+          "y": 0
+        },
+        "selected": false,
+        "type": "genericNode"
+      },
+      {
+        "data": {
+          "id": "CustomComponent-f4ec7f8",
+          "node": {
+            "template": {
+              "_type": "Component",
+              "catalog_bundle": {
+                "tool_mode": false,
+                "trace_as_metadata": true,
+                "list": false,
+                "list_add_label": "Add More",
+                "trace_as_input": true,
+                "override_skip": false,
+                "required": true,
+                "placeholder": "",
+                "show": true,
+                "name": "catalog_bundle",
+                "value": "",
+                "display_name": "Normalized Catalog Bundle",
+                "advanced": false,
+                "api_editable": false,
+                "input_types": [
+                  "Data",
+                  "JSON"
+                ],
+                "dynamic": false,
+                "info": "",
+                "title_case": false,
+                "track_in_telemetry": false,
+                "type": "other",
+                "_input_type": "JSONInput"
+              },
+              "chunk_chars": {
+                "tool_mode": false,
+                "trace_as_metadata": true,
+                "list": false,
+                "list_add_label": "Add More",
+                "override_skip": false,
+                "required": true,
+                "placeholder": "",
+                "show": true,
+                "name": "chunk_chars",
+                "value": 6000,
+                "display_name": "Chunk Size (Characters)",
+                "advanced": false,
+                "api_editable": false,
+                "dynamic": false,
+                "info": "",
+                "title_case": false,
+                "track_in_telemetry": true,
+                "type": "int",
+                "_input_type": "IntInput"
+              },
+              "code": {
+                "type": "code",
+                "required": true,
+                "placeholder": "",
+                "list": false,
+                "show": true,
+                "multiline": true,
+                "value": "from __future__ import annotations\n\nimport hashlib\nimport json\nfrom typing import Any\n\nfrom lfx.custom import Component\nfrom lfx.io import DataInput, IntInput, Output\nfrom lfx.schema import Data\n\n\n_INGEST_CONTRACT_VERSION = \"catalog-file-vector-ingest/v1\"\n_PARENT_REQUIRED_FIELDS = {\n    \"tenant_id\",\n    \"catalog_id\",\n    \"asset_id\",\n    \"version\",\n    \"asset_type\",\n    \"title\",\n    \"acl\",\n    \"lexical_text_redacted\",\n    \"raw_record_redacted\",\n    \"raw_text_redacted\",\n    \"raw_record_redacted_sha256\",\n    \"content_sha256\",\n}\n_CHUNK_SHARED_FIELDS = (\n    \"tenant_id\",\n    \"catalog_id\",\n    \"asset_id\",\n    \"version\",\n    \"asset_type\",\n    \"title\",\n    \"title_normalized\",\n    \"aliases_normalized\",\n    \"description\",\n    \"category\",\n    \"readme\",\n    \"acl\",\n    \"technical_contract_status\",\n    \"technical_contract\",\n    \"ports\",\n    \"relations\",\n    \"stars_count\",\n    \"downloads_count\",\n    \"created_at\",\n    \"updated_at\",\n    \"source\",\n)\n\n\ndef _bounded_int(value: Any, default: int, minimum: int, maximum: int) -> int:\n    try:\n        number = int(value)\n    except (TypeError, ValueError):\n        number = default\n    return max(minimum, min(maximum, number))\n\n\ndef _canonical_json(value: Any) -> str:\n    return json.dumps(value, ensure_ascii=False, sort_keys=True, separators=(\",\", \":\"))\n\n\ndef _sha256_text(value: str) -> str:\n    return hashlib.sha256(value.encode(\"utf-8\")).hexdigest()\n\n\ndef _payload(value: Any) -> dict[str, Any]:\n    data = getattr(value, \"data\", None)\n    value = data if isinstance(data, dict) else value\n    if isinstance(value, str):\n        try:\n            value = json.loads(value)\n        except json.JSONDecodeError as exc:\n            raise ValueError(\"catalog_bundle must be valid JSON.\") from exc\n    if not isinstance(value, dict):\n        raise ValueError(\"catalog_bundle must be an object.\")\n    return value\n\n\ndef _split_text(text: str, chunk_chars: int, overlap_chars: int, max_chunks: int) -> list[str]:\n    if not text:\n        return []\n    chunks: list[str] = []\n    start = 0\n    complete = False\n    while start < len(text) and len(chunks) < max_chunks:\n        proposed_end = min(len(text), start + chunk_chars)\n        end = proposed_end\n        if proposed_end < len(text):\n            lower_bound = start + chunk_chars // 2\n            boundary = max(text.rfind(\"\\n\", lower_bound, proposed_end), text.rfind(\" \", lower_bound, proposed_end))\n            if boundary > start:\n                end = boundary\n        chunk = text[start:end].strip()\n        if chunk:\n            chunks.append(chunk)\n        if end >= len(text):\n            complete = True\n            break\n        next_start = max(0, end - overlap_chars)\n        start = next_start if next_start > start else end\n    if not complete:\n        raise ValueError(\"A catalog record requires more chunks than the configured per-record maximum.\")\n    return chunks\n\n\ndef _validate_catalog_bundle(bundle: dict[str, Any]) -> tuple[str, str, str, int, list[dict[str, Any]]]:\n    if not bundle.get(\"ok\") or bundle.get(\"status\") != \"LOADED\":\n        raise ValueError(\"A successful normalized catalog bundle is required.\")\n    if bundle.get(\"schema_version\") != \"catalog-normalized-bundle/v1\":\n        raise ValueError(\"catalog_bundle schema_version is not supported.\")\n    if bundle.get(\"ingest_contract_version\") != _INGEST_CONTRACT_VERSION:\n        raise ValueError(\"catalog_bundle ingest contract version is not supported.\")\n    tenant_id = str(bundle.get(\"tenant_id\") or \"\").strip()\n    catalog_id = str(bundle.get(\"catalog_id\") or \"\").strip()\n    source_sha256 = str(bundle.get(\"source_sha256\") or \"\").strip()\n    source_size_bytes = bundle.get(\"source_size_bytes\")\n    records = bundle.get(\"records\")\n    if not tenant_id or not catalog_id or len(source_sha256) != 64:\n        raise ValueError(\"catalog_bundle scope or source hash is missing.\")\n    if isinstance(source_size_bytes, bool) or not isinstance(source_size_bytes, int) or source_size_bytes <= 0:\n        raise ValueError(\"catalog_bundle source size is invalid.\")\n    if not isinstance(records, list) or not records:\n        raise ValueError(\"catalog_bundle records are required.\")\n    seen: set[tuple[str, str]] = set()\n    validated: list[dict[str, Any]] = []\n    for index, record in enumerate(records):\n        if not isinstance(record, dict) or not _PARENT_REQUIRED_FIELDS.issubset(record):\n            raise ValueError(f\"Normalized catalog record {index} is incomplete.\")\n        if record.get(\"tenant_id\") != tenant_id or record.get(\"catalog_id\") != catalog_id:\n            raise ValueError(\"A normalized catalog record cannot change tenant or catalog scope.\")\n        identity = (str(record.get(\"asset_id\") or \"\"), str(record.get(\"version\") or \"\"))\n        if not all(identity) or identity in seen:\n            raise ValueError(\"Normalized catalog identities must be present and unique.\")\n        seen.add(identity)\n        lexical_text = record.get(\"lexical_text_redacted\")\n        if not isinstance(lexical_text, str) or not lexical_text.strip():\n            raise ValueError(f\"Normalized catalog record {index} has no searchable text.\")\n        validated.append(record)\n    return tenant_id, catalog_id, source_sha256, source_size_bytes, validated\n\n\ndef _build_chunk_bundle(\n    catalog_bundle: dict[str, Any],\n    *,\n    chunk_chars: int,\n    overlap_chars: int,\n    max_chunks_per_record: int,\n    max_total_chunks: int,\n) -> dict[str, Any]:\n    tenant_id, catalog_id, source_sha256, source_size_bytes, records = _validate_catalog_bundle(catalog_bundle)\n    parents: list[dict[str, Any]] = []\n    chunks: list[dict[str, Any]] = []\n    for record in records:\n        parent = dict(record)\n        text_chunks = _split_text(\n            str(parent[\"lexical_text_redacted\"]),\n            chunk_chars,\n            overlap_chars,\n            max_chunks_per_record,\n        )\n        if not text_chunks:\n            raise ValueError(f\"Catalog asset {parent['asset_id']} did not produce searchable text.\")\n        if len(chunks) + len(text_chunks) > max_total_chunks:\n            raise ValueError(\"The uploaded catalog requires more chunks than the configured total maximum.\")\n        parent[\"chunk_count\"] = len(text_chunks)\n        parents.append(parent)\n        shared = {field: parent.get(field) for field in _CHUNK_SHARED_FIELDS}\n        for ordinal, chunk_text in enumerate(text_chunks):\n            chunk_id = \"whole\" if len(text_chunks) == 1 else f\"chunk-{ordinal:04d}\"\n            chunks.append(\n                {\n                    **shared,\n                    \"chunk_id\": chunk_id,\n                    \"chunk_ordinal\": ordinal,\n                    \"lexical_text_redacted\": chunk_text,\n                    \"embedding_text_redacted\": chunk_text,\n                    \"embedding_input_sha256\": _sha256_text(chunk_text),\n                    \"parent_content_sha256\": str(parent[\"content_sha256\"]),\n                }\n            )\n    ingest_sha256 = _sha256_text(\n        _canonical_json(\n            {\n                \"assets\": [item[\"content_sha256\"] for item in parents],\n                \"chunks\": [item[\"embedding_input_sha256\"] for item in chunks],\n            }\n        )\n    )\n    return {\n        \"ok\": True,\n        \"status\": \"CHUNKED\",\n        \"schema_version\": \"catalog-chunk-bundle/v1\",\n        \"ingest_contract_version\": _INGEST_CONTRACT_VERSION,\n        \"tenant_id\": tenant_id,\n        \"catalog_id\": catalog_id,\n        \"source_sha256\": source_sha256,\n        \"source_size_bytes\": source_size_bytes,\n        \"ingest_sha256\": ingest_sha256,\n        \"chunk_policy\": {\n            \"chunk_chars\": chunk_chars,\n            \"overlap_chars\": overlap_chars,\n            \"max_chunks_per_record\": max_chunks_per_record,\n            \"max_total_chunks\": max_total_chunks,\n            \"max_text_chars\": int(catalog_bundle.get(\"max_text_chars\") or 60000),\n        },\n        \"parents\": parents,\n        \"chunks\": chunks,\n        \"counts\": {\"records\": len(parents), \"chunks\": len(chunks)},\n    }\n\n\ndef _failure(code: str, message: str) -> Data:\n    return Data(data={\"ok\": False, \"status\": \"BLOCKED\", \"error\": {\"code\": code, \"message\": message, \"retryable\": False}})\n\n\nclass CatalogDeterministicChunkerComponent(Component):\n    display_name = \"01 Catalog Deterministic Chunker\"\n    description = \"Split normalized catalog text deterministically while preserving parent identity, hashes, ACL, and metadata.\"\n    icon = \"SplitSquareVertical\"\n    name = \"CatalogDeterministicChunker\"\n\n    inputs = [\n        DataInput(name=\"catalog_bundle\", display_name=\"Normalized Catalog Bundle\", required=True),\n        IntInput(name=\"chunk_chars\", display_name=\"Chunk Size (Characters)\", value=6000, required=True),\n        IntInput(name=\"overlap_chars\", display_name=\"Chunk Overlap (Characters)\", value=200, required=True),\n        IntInput(name=\"max_chunks_per_record\", display_name=\"Maximum Chunks Per Record\", value=16, advanced=True),\n        IntInput(name=\"max_total_chunks\", display_name=\"Maximum Total Chunks\", value=200000, advanced=True),\n    ]\n\n    outputs = [Output(name=\"chunk_bundle\", display_name=\"Deterministic Chunk Bundle\", method=\"build_chunks\", types=[\"Data\"])]\n\n    def build_chunks(self) -> Data:\n        try:\n            bundle = _payload(getattr(self, \"catalog_bundle\", None))\n            chunk_chars = _bounded_int(getattr(self, \"chunk_chars\", 6000), 6000, 500, 20000)\n            overlap_chars = _bounded_int(getattr(self, \"overlap_chars\", 200), 200, 0, chunk_chars // 3)\n            max_chunks = _bounded_int(getattr(self, \"max_chunks_per_record\", 16), 16, 1, 64)\n            max_total = _bounded_int(getattr(self, \"max_total_chunks\", 200000), 200000, 1, 1000000)\n            result = _build_chunk_bundle(\n                bundle,\n                chunk_chars=chunk_chars,\n                overlap_chars=overlap_chars,\n                max_chunks_per_record=max_chunks,\n                max_total_chunks=max_total,\n            )\n            self.status = f\"Created {result['counts']['chunks']} chunks from {result['counts']['records']} catalog records.\"\n            return Data(data=result)\n        except (TypeError, ValueError) as exc:\n            self.status = \"Catalog chunking was blocked.\"\n            return _failure(\"CATALOG_CHUNKING_INVALID\", str(exc))\n",
+                "fileTypes": [],
+                "file_path": "",
+                "password": false,
+                "name": "code",
+                "advanced": true,
+                "api_editable": false,
+                "dynamic": true,
+                "info": "",
+                "load_from_db": false,
+                "title_case": false
+              },
+              "max_chunks_per_record": {
+                "tool_mode": false,
+                "trace_as_metadata": true,
+                "list": false,
+                "list_add_label": "Add More",
+                "override_skip": false,
+                "required": false,
+                "placeholder": "",
+                "show": true,
+                "name": "max_chunks_per_record",
+                "value": 16,
+                "display_name": "Maximum Chunks Per Record",
+                "advanced": true,
+                "api_editable": false,
+                "dynamic": false,
+                "info": "",
+                "title_case": false,
+                "track_in_telemetry": true,
+                "type": "int",
+                "_input_type": "IntInput"
+              },
+              "max_total_chunks": {
+                "tool_mode": false,
+                "trace_as_metadata": true,
+                "list": false,
+                "list_add_label": "Add More",
+                "override_skip": false,
+                "required": false,
+                "placeholder": "",
+                "show": true,
+                "name": "max_total_chunks",
+                "value": 200000,
+                "display_name": "Maximum Total Chunks",
+                "advanced": true,
+                "api_editable": false,
+                "dynamic": false,
+                "info": "",
+                "title_case": false,
+                "track_in_telemetry": true,
+                "type": "int",
+                "_input_type": "IntInput"
+              },
+              "overlap_chars": {
+                "tool_mode": false,
+                "trace_as_metadata": true,
+                "list": false,
+                "list_add_label": "Add More",
+                "override_skip": false,
+                "required": true,
+                "placeholder": "",
+                "show": true,
+                "name": "overlap_chars",
+                "value": 200,
+                "display_name": "Chunk Overlap (Characters)",
+                "advanced": false,
+                "api_editable": false,
+                "dynamic": false,
+                "info": "",
+                "title_case": false,
+                "track_in_telemetry": true,
+                "type": "int",
+                "_input_type": "IntInput"
+              }
+            },
+            "description": "Split normalized catalog text deterministically while preserving parent identity, hashes, ACL, and metadata.",
+            "icon": "SplitSquareVertical",
+            "base_classes": [
+              "Data",
+              "JSON"
+            ],
+            "display_name": "01 Catalog Deterministic Chunker",
+            "documentation": "",
+            "minimized": false,
+            "custom_fields": {},
+            "output_types": [],
+            "pinned": false,
+            "conditional_paths": [],
+            "frozen": false,
+            "outputs": [
+              {
+                "types": [
+                  "Data",
+                  "JSON"
+                ],
+                "selected": "Data",
+                "name": "chunk_bundle",
+                "display_name": "Deterministic Chunk Bundle",
+                "method": "build_chunks",
+                "value": "__UNDEFINED__",
+                "cache": true,
+                "allows_loop": false,
+                "group_outputs": false,
+                "tool_mode": true
+              }
+            ],
+            "field_order": [
+              "catalog_bundle",
+              "chunk_chars",
+              "overlap_chars",
+              "max_chunks_per_record",
+              "max_total_chunks"
+            ],
+            "beta": false,
+            "legacy": false,
+            "edited": false,
+            "metadata": {
+              "module": "custom_components.01_catalog_deterministic_chunker",
+              "code_hash": "8927802bcb73",
+              "dependencies": {
+                "total_dependencies": 1,
+                "dependencies": [
+                  {
+                    "name": "lfx",
+                    "version": "1.11.5"
+                  }
+                ]
+              },
+              "flow_build_target": "1.11.1",
+              "flow_node_key": "catalog_chunker",
+              "standalone": true,
+              "standalone_source_path": "components/catalog_ingestion/01_catalog_deterministic_chunker.py",
+              "standalone_source_sha256": "8927802bcb73747f12b432e446ee49c03fcd3fa43ab8fa0b5c60dcce5509d707"
+            },
+            "tool_mode": false,
+            "lf_version": "1.11.1"
+          },
+          "showNode": true,
+          "type": "CatalogDeterministicChunker",
+          "description": "Split normalized catalog text deterministically while preserving parent identity, hashes, ACL, and metadata.",
+          "display_name": "01 Catalog Deterministic Chunker",
+          "selected_output": "chunk_bundle"
+        },
+        "dragging": false,
+        "id": "CustomComponent-f4ec7f8",
+        "measured": {
+          "height": 260,
+          "width": 320
+        },
+        "position": {
+          "x": 420,
+          "y": 0
+        },
+        "selected": false,
+        "type": "genericNode"
+      },
+      {
+        "data": {
+          "id": "EmbeddingModel-8368006",
+          "node": {
+            "template": {
+              "_type": "Component",
+              "api_base": {
+                "tool_mode": false,
+                "trace_as_input": true,
+                "trace_as_metadata": true,
+                "load_from_db": false,
+                "list": false,
+                "list_add_label": "Add More",
+                "override_skip": false,
+                "required": false,
+                "placeholder": "",
+                "show": true,
+                "name": "api_base",
+                "value": "",
+                "display_name": "API Base URL",
+                "advanced": true,
+                "api_editable": false,
+                "input_types": [
+                  "Message"
+                ],
+                "dynamic": false,
+                "info": "Base URL for the API. Leave empty for default.",
+                "title_case": false,
+                "track_in_telemetry": false,
+                "type": "str",
+                "_input_type": "MessageTextInput"
+              },
+              "api_key": {
+                "load_from_db": true,
+                "override_skip": false,
+                "required": false,
+                "placeholder": "",
+                "show": true,
+                "name": "api_key",
+                "value": "",
+                "display_name": "API Key",
+                "advanced": true,
+                "api_editable": false,
+                "input_types": [],
+                "dynamic": false,
+                "info": "Overrides global provider settings. Leave blank to use your pre-configured API Key.",
+                "real_time_refresh": true,
+                "title_case": false,
+                "track_in_telemetry": false,
+                "password": true,
+                "type": "str",
+                "_input_type": "SecretStrInput"
+              },
+              "base_url_ibm_watsonx": {
+                "tool_mode": false,
+                "trace_as_metadata": true,
+                "options": [
+                  "https://us-south.ml.cloud.ibm.com",
+                  "https://eu-de.ml.cloud.ibm.com",
+                  "https://eu-gb.ml.cloud.ibm.com",
+                  "https://au-syd.ml.cloud.ibm.com",
+                  "https://jp-tok.ml.cloud.ibm.com",
+                  "https://ca-tor.ml.cloud.ibm.com"
+                ],
+                "options_metadata": [],
+                "combobox": true,
+                "dialog_inputs": {},
+                "toggle": false,
+                "override_skip": false,
+                "required": false,
+                "placeholder": "",
+                "show": false,
+                "name": "base_url_ibm_watsonx",
+                "value": "https://us-south.ml.cloud.ibm.com",
+                "display_name": "watsonx API Endpoint",
+                "advanced": false,
+                "api_editable": false,
+                "dynamic": false,
+                "info": "The base URL of the API (IBM watsonx.ai only)",
+                "real_time_refresh": true,
+                "title_case": false,
+                "track_in_telemetry": true,
+                "external_options": {},
+                "type": "str",
+                "_input_type": "DropdownInput"
+              },
+              "chunk_size": {
+                "tool_mode": false,
+                "trace_as_metadata": true,
+                "list": false,
+                "list_add_label": "Add More",
+                "override_skip": false,
+                "required": false,
+                "placeholder": "",
+                "show": true,
+                "name": "chunk_size",
+                "value": 1000,
+                "display_name": "Chunk Size",
+                "advanced": true,
+                "api_editable": false,
+                "dynamic": false,
+                "info": "",
+                "title_case": false,
+                "track_in_telemetry": true,
+                "type": "int",
+                "_input_type": "IntInput"
+              },
+              "code": {
+                "type": "code",
+                "required": true,
+                "placeholder": "",
+                "list": false,
+                "show": true,
+                "multiline": true,
+                "value": "from lfx.base.embeddings.model import LCEmbeddingsModel\nfrom lfx.base.models.unified_models import (\n    get_embedding_model_options,\n    get_embeddings,\n    handle_model_input_update,\n)\nfrom lfx.base.models.watsonx_constants import IBM_WATSONX_URLS\nfrom lfx.components.models_and_agents.model_selection import apply_model_overrides\nfrom lfx.field_typing import Embeddings\nfrom lfx.io import (\n    BoolInput,\n    DictInput,\n    DropdownInput,\n    FloatInput,\n    IntInput,\n    MessageTextInput,\n    ModelInput,\n    SecretStrInput,\n    StrInput,\n)\n\n\nclass EmbeddingModelComponent(LCEmbeddingsModel):\n    display_name = \"Embedding Model\"\n    description = \"Generate embeddings using a specified provider.\"\n    documentation: str = \"https://docs.langflow.org/components-embedding-models\"\n    icon = \"binary\"\n    name = \"EmbeddingModel\"\n    category = \"models\"\n\n    def update_build_config(self, build_config: dict, field_value: str, field_name: str | None = None):\n        \"\"\"Dynamically update build config with user-filtered model options.\"\"\"\n        return handle_model_input_update(\n            self,\n            dict(build_config),\n            field_value,\n            field_name,\n            cache_key_prefix=\"embedding_model_options\",\n            get_options_func=get_embedding_model_options,\n        )\n\n    inputs = [\n        ModelInput(\n            name=\"model\",\n            display_name=\"Embedding Model\",\n            info=\"Select your model provider\",\n            real_time_refresh=True,\n            required=True,\n            model_type=\"embedding\",\n            input_types=[\"Embeddings\"],  # Override default to accept Embeddings instead of LanguageModel\n        ),\n        StrInput(\n            name=\"model_name\",\n            display_name=\"Model Name Override\",\n            info=(\n                \"Optional embedding model name to use instead of the selected model. \"\n                \"Can be set from a global variable for runtime model selection.\"\n            ),\n            advanced=True,\n            load_from_db=False,\n        ),\n        StrInput(\n            name=\"provider\",\n            display_name=\"Provider Override\",\n            info=(\n                \"Optional provider to use with Model Name Override. Leave blank to use the selected model's provider.\"\n            ),\n            advanced=True,\n            load_from_db=False,\n        ),\n        SecretStrInput(\n            name=\"api_key\",\n            display_name=\"API Key\",\n            info=\"Overrides global provider settings. Leave blank to use your pre-configured API Key.\",\n            real_time_refresh=True,\n            advanced=True,\n        ),\n        MessageTextInput(\n            name=\"api_base\",\n            display_name=\"API Base URL\",\n            info=\"Base URL for the API. Leave empty for default.\",\n            advanced=True,\n        ),\n        # Watson-specific inputs\n        DropdownInput(\n            name=\"base_url_ibm_watsonx\",\n            display_name=\"watsonx API Endpoint\",\n            info=\"The base URL of the API (IBM watsonx.ai only)\",\n            options=IBM_WATSONX_URLS,\n            value=IBM_WATSONX_URLS[0],\n            combobox=True,\n            show=False,\n            real_time_refresh=True,\n        ),\n        MessageTextInput(\n            name=\"project_id\",\n            display_name=\"Project ID\",\n            info=\"IBM watsonx.ai Project ID (required for IBM watsonx.ai)\",\n            show=False,\n        ),\n        # Ollama-specific input\n        StrInput(\n            name=\"ollama_base_url\",\n            display_name=\"Ollama API URL\",\n            info=\"Endpoint of the Ollama API (Ollama only)\",\n            show=False,\n            real_time_refresh=True,\n        ),\n        IntInput(\n            name=\"dimensions\",\n            display_name=\"Dimensions\",\n            info=\"The number of dimensions the resulting output embeddings should have. \"\n            \"Only supported by certain models.\",\n            advanced=True,\n        ),\n        IntInput(\n            name=\"chunk_size\",\n            display_name=\"Chunk Size\",\n            advanced=True,\n            value=1000,\n        ),\n        FloatInput(\n            name=\"request_timeout\",\n            display_name=\"Request Timeout\",\n            advanced=True,\n        ),\n        IntInput(\n            name=\"max_retries\",\n            display_name=\"Max Retries\",\n            advanced=True,\n            value=3,\n        ),\n        BoolInput(\n            name=\"show_progress_bar\",\n            display_name=\"Show Progress Bar\",\n            advanced=True,\n        ),\n        DictInput(\n            name=\"model_kwargs\",\n            display_name=\"Model Kwargs\",\n            advanced=True,\n            info=(\n                \"Additional keyword arguments to pass to the model. Only used by providers that support this parameter \"\n                \"(e.g. OpenAI, Google Generative AI). \"\n                \"Ignored for providers that do not include it in their parameter mapping.\"\n            ),\n        ),\n        IntInput(\n            name=\"truncate_input_tokens\",\n            display_name=\"Truncate Input Tokens\",\n            advanced=True,\n            value=200,\n            show=False,\n        ),\n        BoolInput(\n            name=\"input_text\",\n            display_name=\"Include the original text in the output\",\n            value=True,\n            advanced=True,\n            show=False,\n        ),\n    ]\n\n    def build_embeddings(self) -> Embeddings:\n        \"\"\"Build and return an embeddings instance based on the selected model.\"\"\"\n        model = apply_model_overrides(\n            self.model,\n            model_name=getattr(self, \"model_name\", None),\n            provider=getattr(self, \"provider\", None),\n            user_id=self.user_id,\n            get_options=get_embedding_model_options,\n        )\n        return get_embeddings(\n            model=model,\n            user_id=self.user_id,\n            api_key=self.api_key,\n            api_base=self.api_base,\n            dimensions=self.dimensions,\n            chunk_size=self.chunk_size,\n            request_timeout=self.request_timeout,\n            max_retries=self.max_retries,\n            show_progress_bar=self.show_progress_bar,\n            model_kwargs=self.model_kwargs,\n            watsonx_url=getattr(self, \"base_url_ibm_watsonx\", None),\n            watsonx_project_id=getattr(self, \"project_id\", None),\n            watsonx_truncate_input_tokens=getattr(self, \"truncate_input_tokens\", None),\n            watsonx_input_text=getattr(self, \"input_text\", None),\n            ollama_base_url=getattr(self, \"ollama_base_url\", None),\n        )\n",
+                "fileTypes": [],
+                "file_path": "",
+                "password": false,
+                "name": "code",
+                "advanced": true,
+                "api_editable": false,
+                "dynamic": true,
+                "info": "",
+                "load_from_db": false,
+                "title_case": false
+              },
+              "dimensions": {
+                "tool_mode": false,
+                "trace_as_metadata": true,
+                "list": false,
+                "list_add_label": "Add More",
+                "override_skip": false,
+                "required": false,
+                "placeholder": "",
+                "show": true,
+                "name": "dimensions",
+                "value": 0,
+                "display_name": "Dimensions",
+                "advanced": true,
+                "api_editable": false,
+                "dynamic": false,
+                "info": "The number of dimensions the resulting output embeddings should have. Only supported by certain models.",
+                "title_case": false,
+                "track_in_telemetry": true,
+                "type": "int",
+                "_input_type": "IntInput"
+              },
+              "input_text": {
+                "tool_mode": false,
+                "trace_as_metadata": true,
+                "list": false,
+                "list_add_label": "Add More",
+                "override_skip": false,
+                "required": false,
+                "placeholder": "",
+                "show": false,
+                "name": "input_text",
+                "value": true,
+                "display_name": "Include the original text in the output",
+                "advanced": true,
+                "api_editable": false,
+                "dynamic": false,
+                "info": "",
+                "title_case": false,
+                "track_in_telemetry": true,
+                "type": "bool",
+                "_input_type": "BoolInput"
+              },
+              "max_retries": {
+                "tool_mode": false,
+                "trace_as_metadata": true,
+                "list": false,
+                "list_add_label": "Add More",
+                "override_skip": false,
+                "required": false,
+                "placeholder": "",
+                "show": true,
+                "name": "max_retries",
+                "value": 3,
+                "display_name": "Max Retries",
+                "advanced": true,
+                "api_editable": false,
+                "dynamic": false,
+                "info": "",
+                "title_case": false,
+                "track_in_telemetry": true,
+                "type": "int",
+                "_input_type": "IntInput"
+              },
+              "model": {
+                "tool_mode": false,
+                "trace_as_input": true,
+                "list": false,
+                "list_add_label": "Add More",
+                "model_type": "embedding",
+                "external_options": {
+                  "fields": {
+                    "data": {
+                      "node": {
+                        "name": "connect_other_models",
+                        "display_name": "Connect other models",
+                        "icon": "CornerDownLeft"
+                      }
+                    }
+                  }
+                },
+                "override_skip": false,
+                "required": true,
+                "placeholder": "Setup Provider",
+                "show": true,
+                "name": "model",
+                "value": "",
+                "display_name": "Embedding Model",
+                "advanced": false,
+                "api_editable": false,
+                "input_types": [
+                  "Embeddings"
+                ],
+                "dynamic": false,
+                "info": "Select your model provider",
+                "real_time_refresh": true,
+                "refresh_button": true,
+                "title_case": false,
+                "track_in_telemetry": false,
+                "type": "model",
+                "_input_type": "ModelInput"
+              },
+              "model_kwargs": {
+                "tool_mode": false,
+                "trace_as_input": true,
+                "list": false,
+                "list_add_label": "Add More",
+                "override_skip": false,
+                "required": false,
+                "placeholder": "",
+                "show": true,
+                "name": "model_kwargs",
+                "value": {},
+                "display_name": "Model Kwargs",
+                "advanced": true,
+                "api_editable": false,
+                "dynamic": false,
+                "info": "Additional keyword arguments to pass to the model. Only used by providers that support this parameter (e.g. OpenAI, Google Generative AI). Ignored for providers that do not include it in their parameter mapping.",
+                "title_case": false,
+                "track_in_telemetry": false,
+                "type": "dict",
+                "_input_type": "DictInput"
+              },
+              "model_name": {
+                "tool_mode": false,
+                "trace_as_metadata": true,
+                "load_from_db": false,
+                "list": false,
+                "list_add_label": "Add More",
+                "override_skip": false,
+                "required": false,
+                "placeholder": "",
+                "show": true,
+                "name": "model_name",
+                "value": "",
+                "display_name": "Model Name Override",
+                "advanced": true,
+                "api_editable": false,
+                "dynamic": false,
+                "info": "Optional embedding model name to use instead of the selected model. Can be set from a global variable for runtime model selection.",
+                "title_case": false,
+                "track_in_telemetry": false,
+                "type": "str",
+                "_input_type": "StrInput"
+              },
+              "ollama_base_url": {
+                "tool_mode": false,
+                "trace_as_metadata": true,
+                "load_from_db": false,
+                "list": false,
+                "list_add_label": "Add More",
+                "override_skip": false,
+                "required": false,
+                "placeholder": "",
+                "show": false,
+                "name": "ollama_base_url",
+                "value": "",
+                "display_name": "Ollama API URL",
+                "advanced": false,
+                "api_editable": false,
+                "dynamic": false,
+                "info": "Endpoint of the Ollama API (Ollama only)",
+                "real_time_refresh": true,
+                "title_case": false,
+                "track_in_telemetry": false,
+                "type": "str",
+                "_input_type": "StrInput"
+              },
+              "project_id": {
+                "tool_mode": false,
+                "trace_as_input": true,
+                "trace_as_metadata": true,
+                "load_from_db": false,
+                "list": false,
+                "list_add_label": "Add More",
+                "override_skip": false,
+                "required": false,
+                "placeholder": "",
+                "show": false,
+                "name": "project_id",
+                "value": "",
+                "display_name": "Project ID",
+                "advanced": false,
+                "api_editable": false,
+                "input_types": [
+                  "Message"
+                ],
+                "dynamic": false,
+                "info": "IBM watsonx.ai Project ID (required for IBM watsonx.ai)",
+                "title_case": false,
+                "track_in_telemetry": false,
+                "type": "str",
+                "_input_type": "MessageTextInput"
+              },
+              "provider": {
+                "tool_mode": false,
+                "trace_as_metadata": true,
+                "load_from_db": false,
+                "list": false,
+                "list_add_label": "Add More",
+                "override_skip": false,
+                "required": false,
+                "placeholder": "",
+                "show": true,
+                "name": "provider",
+                "value": "",
+                "display_name": "Provider Override",
+                "advanced": true,
+                "api_editable": false,
+                "dynamic": false,
+                "info": "Optional provider to use with Model Name Override. Leave blank to use the selected model's provider.",
+                "title_case": false,
+                "track_in_telemetry": false,
+                "type": "str",
+                "_input_type": "StrInput"
+              },
+              "request_timeout": {
+                "tool_mode": false,
+                "trace_as_metadata": true,
+                "list": false,
+                "list_add_label": "Add More",
+                "override_skip": false,
+                "required": false,
+                "placeholder": "",
+                "show": true,
+                "name": "request_timeout",
+                "value": "",
+                "display_name": "Request Timeout",
+                "advanced": true,
+                "api_editable": false,
+                "dynamic": false,
+                "info": "",
+                "title_case": false,
+                "track_in_telemetry": true,
+                "type": "float",
+                "_input_type": "FloatInput"
+              },
+              "show_progress_bar": {
+                "tool_mode": false,
+                "trace_as_metadata": true,
+                "list": false,
+                "list_add_label": "Add More",
+                "override_skip": false,
+                "required": false,
+                "placeholder": "",
+                "show": true,
+                "name": "show_progress_bar",
+                "value": false,
+                "display_name": "Show Progress Bar",
+                "advanced": true,
+                "api_editable": false,
+                "dynamic": false,
+                "info": "",
+                "title_case": false,
+                "track_in_telemetry": true,
+                "type": "bool",
+                "_input_type": "BoolInput"
+              },
+              "truncate_input_tokens": {
+                "tool_mode": false,
+                "trace_as_metadata": true,
+                "list": false,
+                "list_add_label": "Add More",
+                "override_skip": false,
+                "required": false,
+                "placeholder": "",
+                "show": false,
+                "name": "truncate_input_tokens",
+                "value": 200,
+                "display_name": "Truncate Input Tokens",
+                "advanced": true,
+                "api_editable": false,
+                "dynamic": false,
+                "info": "",
+                "title_case": false,
+                "track_in_telemetry": true,
+                "type": "int",
+                "_input_type": "IntInput"
+              }
+            },
+            "description": "Generate embeddings using a specified provider.",
+            "icon": "binary",
+            "base_classes": [
+              "Embeddings"
+            ],
+            "display_name": "Embedding Model",
+            "documentation": "https://docs.langflow.org/components-embedding-models",
+            "minimized": false,
+            "custom_fields": {},
+            "output_types": [],
+            "pinned": false,
+            "conditional_paths": [],
+            "frozen": false,
+            "outputs": [
+              {
+                "types": [
+                  "Embeddings"
+                ],
+                "selected": "Embeddings",
+                "name": "embeddings",
+                "display_name": "Embedding Model",
+                "method": "build_embeddings",
+                "value": "__UNDEFINED__",
+                "cache": true,
+                "allows_loop": false,
+                "group_outputs": false,
+                "tool_mode": true
+              }
+            ],
+            "field_order": [
+              "model",
+              "model_name",
+              "provider",
+              "api_key",
+              "api_base",
+              "base_url_ibm_watsonx",
+              "project_id",
+              "ollama_base_url",
+              "dimensions",
+              "chunk_size",
+              "request_timeout",
+              "max_retries",
+              "show_progress_bar",
+              "model_kwargs",
+              "truncate_input_tokens",
+              "input_text"
+            ],
+            "beta": false,
+            "legacy": false,
+            "edited": false,
+            "metadata": {
+              "module": "custom_components.embedding_model",
+              "code_hash": "0780e9bbc5fa",
+              "dependencies": {
+                "total_dependencies": 1,
+                "dependencies": [
+                  {
+                    "name": "lfx",
+                    "version": "1.11.5"
+                  }
+                ]
+              },
+              "flow_build_target": "1.11.1",
+              "flow_node_key": "embedding_model"
+            },
+            "tool_mode": false,
+            "lf_version": "1.11.1"
+          },
+          "showNode": true,
+          "type": "EmbeddingModel",
+          "description": "Generate embeddings using a specified provider.",
+          "display_name": "Embedding Model",
+          "selected_output": "embeddings"
+        },
+        "dragging": false,
+        "id": "EmbeddingModel-8368006",
+        "measured": {
+          "height": 260,
+          "width": 320
+        },
+        "position": {
+          "x": 840,
+          "y": -380
+        },
+        "selected": false,
+        "type": "genericNode"
+      },
+      {
+        "data": {
+          "id": "CustomComponent-406fa38",
+          "node": {
+            "template": {
+              "_type": "Component",
+              "chunk_bundle": {
+                "tool_mode": false,
+                "trace_as_metadata": true,
+                "list": false,
+                "list_add_label": "Add More",
+                "trace_as_input": true,
+                "override_skip": false,
+                "required": true,
+                "placeholder": "",
+                "show": true,
+                "name": "chunk_bundle",
+                "value": "",
+                "display_name": "Deterministic Chunk Bundle",
+                "advanced": false,
+                "api_editable": false,
+                "input_types": [
+                  "Data",
+                  "JSON"
+                ],
+                "dynamic": false,
+                "info": "",
+                "title_case": false,
+                "track_in_telemetry": false,
+                "type": "other",
+                "_input_type": "JSONInput"
+              },
+              "embedding": {
+                "trace_as_metadata": true,
+                "list": false,
+                "list_add_label": "Add More",
+                "override_skip": false,
+                "required": false,
+                "placeholder": "",
+                "show": true,
+                "name": "embedding",
+                "value": "",
+                "display_name": "Embedding Model",
+                "advanced": false,
+                "api_editable": false,
+                "input_types": [
+                  "Embeddings"
+                ],
+                "dynamic": false,
+                "info": "Connect Langflow's Embedding Model. Runtime model ID and vector dimension are derived automatically.",
+                "title_case": false,
+                "track_in_telemetry": false,
+                "type": "other",
+                "_input_type": "HandleInput"
+              },
+              "assets_collection": {
+                "tool_mode": false,
+                "trace_as_metadata": true,
+                "load_from_db": false,
+                "list": false,
+                "list_add_label": "Add More",
+                "override_skip": false,
+                "required": true,
+                "placeholder": "",
+                "show": true,
+                "name": "assets_collection",
+                "value": "catalog_assets",
+                "display_name": "Parent Assets Collection",
+                "advanced": false,
+                "api_editable": false,
+                "dynamic": false,
+                "info": "",
+                "title_case": false,
+                "track_in_telemetry": false,
+                "type": "str",
+                "_input_type": "StrInput"
+              },
+              "chunks_collection": {
+                "tool_mode": false,
+                "trace_as_metadata": true,
+                "load_from_db": false,
+                "list": false,
+                "list_add_label": "Add More",
+                "override_skip": false,
+                "required": true,
+                "placeholder": "",
+                "show": true,
+                "name": "chunks_collection",
+                "value": "catalog_asset_chunks",
+                "display_name": "Vector Chunks Collection",
+                "advanced": false,
+                "api_editable": false,
+                "dynamic": false,
+                "info": "",
+                "title_case": false,
+                "track_in_telemetry": false,
+                "type": "str",
+                "_input_type": "StrInput"
+              },
+              "code": {
+                "type": "code",
+                "required": true,
+                "placeholder": "",
+                "list": false,
+                "show": true,
+                "multiline": true,
+                "value": "from __future__ import annotations\n\nimport hashlib\nimport json\nimport math\nimport re\nimport time\nfrom datetime import datetime, timezone\nfrom typing import Any\n\nfrom lfx.custom import Component\nfrom lfx.io import BoolInput, DataInput, FloatInput, HandleInput, IntInput, Output, SecretStrInput, StrInput\nfrom lfx.schema import Data\nfrom pymongo import ASCENDING, MongoClient, ReplaceOne\nfrom pymongo.errors import PyMongoError\n\n\n_SAFE_IDENTIFIER_PATTERN = re.compile(r\"^[A-Za-z0-9][A-Za-z0-9_.-]{0,127}$\")\n_INGEST_CONTRACT_VERSION = \"catalog-file-vector-ingest/v1\"\n_EMBEDDING_CONTRACT_VERSION = \"embedding-runtime-contract/v2\"\n_EMBEDDING_CONTRACT_FIELDS = (\n    \"schema_version\",\n    \"runtime_class\",\n    \"model_id\",\n    \"dimension\",\n    \"fingerprint\",\n)\n_MODEL_ID_ATTRIBUTES = (\n    \"model_name\",\n    \"model\",\n    \"model_id\",\n    \"deployment_name\",\n    \"deployment\",\n)\n_MAX_EMBEDDING_DIMENSION = 65536\n_MIN_EMBEDDING_CALL_INTERVAL_SECONDS = 1.0\n_MAX_EMBEDDING_CALL_INTERVAL_SECONDS = 60.0\n_RUNTIME_CLASS_PATTERN = re.compile(\n    r\"^<class '([A-Za-z_][A-Za-z0-9_]*(?:\\.(?:[A-Za-z_][A-Za-z0-9_]*|<locals>))*)'>$\"\n)\n_CHUNK_PARENT_FIELDS = (\n    \"tenant_id\",\n    \"catalog_id\",\n    \"asset_id\",\n    \"version\",\n    \"asset_type\",\n    \"title\",\n    \"title_normalized\",\n    \"aliases_normalized\",\n    \"description\",\n    \"category\",\n    \"readme\",\n    \"acl\",\n    \"technical_contract_status\",\n    \"technical_contract\",\n    \"ports\",\n    \"relations\",\n    \"stars_count\",\n    \"downloads_count\",\n    \"created_at\",\n    \"updated_at\",\n    \"source\",\n)\n\n\ndef _bounded_int(value: Any, default: int, minimum: int, maximum: int) -> int:\n    try:\n        number = int(value)\n    except (TypeError, ValueError):\n        number = default\n    return max(minimum, min(maximum, number))\n\n\ndef _bounded_float(value: Any, default: float, minimum: float, maximum: float) -> float:\n    try:\n        number = float(value)\n    except (TypeError, ValueError):\n        number = default\n    if not math.isfinite(number):\n        number = default\n    return max(minimum, min(maximum, number))\n\n\ndef _secret_value(value: Any) -> str:\n    getter = getattr(value, \"get_secret_value\", None)\n    if callable(getter):\n        return str(getter()).strip()\n    return str(value or \"\").strip()\n\n\ndef _canonical_json(value: Any) -> str:\n    return json.dumps(value, ensure_ascii=False, sort_keys=True, separators=(\",\", \":\"))\n\n\ndef _sha256_text(value: str) -> str:\n    return hashlib.sha256(value.encode(\"utf-8\")).hexdigest()\n\n\ndef _stable_document_id(parts: list[str]) -> str:\n    return hashlib.sha256(\"|\".join(parts).encode(\"utf-8\")).hexdigest()\n\n\ndef _utc_now() -> datetime:\n    return datetime.now(timezone.utc)\n\n\ndef _payload(value: Any) -> dict[str, Any]:\n    data = getattr(value, \"data\", None)\n    value = data if isinstance(data, dict) else value\n    if isinstance(value, str):\n        try:\n            value = json.loads(value)\n        except json.JSONDecodeError as exc:\n            raise ValueError(\"chunk_bundle must be valid JSON.\") from exc\n    if not isinstance(value, dict):\n        raise ValueError(\"chunk_bundle must be an object.\")\n    return value\n\n\ndef _safe_identifier(value: Any, field_name: str) -> str:\n    text = str(value or \"\").strip()\n    if not _SAFE_IDENTIFIER_PATTERN.fullmatch(text):\n        raise ValueError(f\"{field_name} contains unsupported characters.\")\n    return text\n\n\ndef _direct_attribute(value: Any, name: str) -> Any:\n    \"\"\"Read only the small allowlist of embedding runtime metadata attributes.\"\"\"\n    try:\n        if name == \"embeddings\":\n            return getattr(value, \"embeddings\", None)\n        if name == \"available_models\":\n            return getattr(value, \"available_models\", None)\n        if name == \"model_name\":\n            return getattr(value, \"model_name\", None)\n        if name == \"model\":\n            return getattr(value, \"model\", None)\n        if name == \"model_id\":\n            return getattr(value, \"model_id\", None)\n        if name == \"deployment_name\":\n            return getattr(value, \"deployment_name\", None)\n        if name == \"deployment\":\n            return getattr(value, \"deployment\", None)\n    except Exception:  # noqa: BLE001 - provider wrappers may reject a metadata property\n        return None\n    return None\n\n\ndef _underlying_embedding(embedding: Any) -> Any:\n    \"\"\"Unwrap Langflow's EmbeddingsWithModels without guessing through provider proxies.\"\"\"\n    underlying = _direct_attribute(embedding, \"embeddings\")\n    return embedding if underlying is None else underlying\n\n\ndef _model_id_text(value: Any) -> str:\n    if not isinstance(value, str):\n        return \"\"\n    text = value.strip()\n    return text if 0 < len(text) <= 500 else \"\"\n\n\ndef _model_id_from_available_models(embedding: Any, underlying: Any) -> str:\n    \"\"\"Use the configured Langflow model key only when it points to this exact instance.\"\"\"\n    available_models = _direct_attribute(embedding, \"available_models\")\n    if not isinstance(available_models, dict):\n        return \"\"\n    matches = {\n        text\n        for key, candidate in available_models.items()\n        if candidate is underlying and (text := _model_id_text(key))\n    }\n    if len(matches) > 1:\n        raise ValueError(\"Embedding Model identity resolves to more than one configured model ID.\")\n    return next(iter(matches), \"\")\n\n\ndef _resolved_model_id(embedding: Any, underlying: Any) -> str:\n    configured_model_id = _model_id_from_available_models(embedding, underlying)\n    if configured_model_id:\n        return configured_model_id\n    for attribute in _MODEL_ID_ATTRIBUTES:\n        model_id = _model_id_text(_direct_attribute(underlying, attribute))\n        if model_id:\n            return model_id\n    raise ValueError(\n        \"The connected Embedding Model has no resolvable model ID. \"\n        \"Use Langflow Embedding Model or a provider that exposes a supported model identifier.\"\n    )\n\n\ndef _validated_dimension(value: Any) -> int:\n    if isinstance(value, bool) or not isinstance(value, int) or not 1 <= value <= _MAX_EMBEDDING_DIMENSION:\n        raise ValueError(f\"The embedding vector dimension must be between 1 and {_MAX_EMBEDDING_DIMENSION}.\")\n    return value\n\n\ndef _embedding_runtime_contract(embedding: Any, dimension: Any) -> dict[str, Any]:\n    \"\"\"Build the exact, provider-derived contract stored with an active snapshot.\"\"\"\n    dimension_number = _validated_dimension(dimension)\n    underlying = _underlying_embedding(embedding)\n    runtime_match = _RUNTIME_CLASS_PATTERN.fullmatch(str(type(underlying)))\n    runtime_class = runtime_match.group(1) if runtime_match else \"\"\n    if not runtime_class or len(runtime_class) > 1000:\n        raise ValueError(\"The connected Embedding Model runtime class cannot be identified.\")\n    core = {\n        \"schema_version\": _EMBEDDING_CONTRACT_VERSION,\n        \"runtime_class\": runtime_class,\n        \"model_id\": _resolved_model_id(embedding, underlying),\n        \"dimension\": dimension_number,\n    }\n    return {**core, \"fingerprint\": \"sha256:\" + _sha256_text(_canonical_json(core))}\n\n\ndef _validate_embedding_contract(contract: Any) -> dict[str, Any]:\n    if not isinstance(contract, dict) or set(contract) != set(_EMBEDDING_CONTRACT_FIELDS):\n        raise ValueError(\"embedding runtime contract must contain exactly the v2 contract fields.\")\n    if contract.get(\"schema_version\") != _EMBEDDING_CONTRACT_VERSION:\n        raise ValueError(\"embedding runtime contract schema version is not supported.\")\n    runtime_class = _model_id_text(contract.get(\"runtime_class\"))\n    model_id = _model_id_text(contract.get(\"model_id\"))\n    dimension = _validated_dimension(contract.get(\"dimension\"))\n    if not runtime_class or not model_id:\n        raise ValueError(\"embedding runtime contract runtime_class and model_id are required.\")\n    core = {\n        \"schema_version\": _EMBEDDING_CONTRACT_VERSION,\n        \"runtime_class\": runtime_class,\n        \"model_id\": model_id,\n        \"dimension\": dimension,\n    }\n    expected_fingerprint = \"sha256:\" + _sha256_text(_canonical_json(core))\n    if contract.get(\"fingerprint\") != expected_fingerprint:\n        raise ValueError(\"embedding runtime contract fingerprint is invalid.\")\n    return {**core, \"fingerprint\": expected_fingerprint}\n\n\ndef _deferred_embedding_contract() -> dict[str, Any]:\n    \"\"\"Mark a test-run result as non-publishable without inspecting a provider handle.\"\"\"\n    return {\n        \"schema_version\": _EMBEDDING_CONTRACT_VERSION,\n        \"runtime_class\": None,\n        \"model_id\": None,\n        \"dimension\": None,\n        \"fingerprint\": None,\n        \"state\": \"DEFERRED\",\n    }\n\n\ndef _validate_chunk_bundle(bundle: dict[str, Any]) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:\n    if not bundle.get(\"ok\") or bundle.get(\"status\") != \"CHUNKED\":\n        raise ValueError(\"A successful deterministic chunk bundle is required.\")\n    if bundle.get(\"schema_version\") != \"catalog-chunk-bundle/v1\":\n        raise ValueError(\"chunk_bundle schema_version is not supported.\")\n    if bundle.get(\"ingest_contract_version\") != _INGEST_CONTRACT_VERSION:\n        raise ValueError(\"chunk_bundle ingest contract version is not supported.\")\n    tenant_id = str(bundle.get(\"tenant_id\") or \"\")\n    catalog_id = str(bundle.get(\"catalog_id\") or \"\")\n    source_sha256 = str(bundle.get(\"source_sha256\") or \"\")\n    source_size_bytes = bundle.get(\"source_size_bytes\")\n    ingest_sha256 = str(bundle.get(\"ingest_sha256\") or \"\")\n    policy = bundle.get(\"chunk_policy\")\n    parents = bundle.get(\"parents\")\n    chunks = bundle.get(\"chunks\")\n    if not tenant_id or not catalog_id or len(source_sha256) != 64 or len(ingest_sha256) != 64:\n        raise ValueError(\"chunk_bundle scope or digest is missing.\")\n    if isinstance(source_size_bytes, bool) or not isinstance(source_size_bytes, int) or source_size_bytes <= 0:\n        raise ValueError(\"chunk_bundle source size is invalid.\")\n    if not isinstance(policy, dict):\n        raise ValueError(\"chunk_bundle chunk policy is required.\")\n    for field in (\"chunk_chars\", \"overlap_chars\", \"max_chunks_per_record\", \"max_text_chars\"):\n        if isinstance(policy.get(field), bool) or not isinstance(policy.get(field), int):\n            raise ValueError(\"chunk_bundle chunk policy is invalid.\")\n    if not isinstance(parents, list) or not parents or not isinstance(chunks, list) or not chunks:\n        raise ValueError(\"chunk_bundle parents and chunks are required.\")\n    identities: set[tuple[str, str]] = set()\n    parent_by_identity: dict[tuple[str, str], dict[str, Any]] = {}\n    parent_hash_by_identity: dict[tuple[str, str], str] = {}\n    record_indices: set[int] = set()\n    chunk_identities: set[tuple[str, str, str]] = set()\n    chunk_counts: dict[tuple[str, str], int] = {}\n    chunk_ordinals: dict[tuple[str, str], list[int]] = {}\n    chunk_ids_by_identity: dict[tuple[str, str], set[str]] = {}\n    for parent in parents:\n        if not isinstance(parent, dict):\n            raise ValueError(\"chunk_bundle parent must be an object.\")\n        identity = (str(parent.get(\"asset_id\") or \"\"), str(parent.get(\"version\") or \"\"))\n        if not all(identity) or identity in identities:\n            raise ValueError(\"chunk_bundle parent identities must be present and unique.\")\n        if parent.get(\"tenant_id\") != tenant_id or parent.get(\"catalog_id\") != catalog_id:\n            raise ValueError(\"chunk_bundle parent scope mismatch.\")\n        if parent.get(\"asset_type\") not in {\"component\", \"flow\"} or not str(parent.get(\"title\") or \"\").strip():\n            raise ValueError(\"chunk_bundle parent search identity is invalid.\")\n        if not isinstance(parent.get(\"lexical_text_redacted\"), str) or not parent[\"lexical_text_redacted\"].strip():\n            raise ValueError(\"chunk_bundle parent searchable text is missing.\")\n        acl = parent.get(\"acl\")\n        if not isinstance(acl, dict) or acl.get(\"visibility\") not in {\"tenant\", \"group\", \"private\"}:\n            raise ValueError(\"chunk_bundle parent ACL is invalid.\")\n        if acl.get(\"visibility\") == \"group\" and not (\n            isinstance(acl.get(\"groups\"), list) and acl.get(\"groups\")\n        ):\n            raise ValueError(\"chunk_bundle group ACL is invalid.\")\n        if acl.get(\"visibility\") == \"private\" and not (\n            isinstance(acl.get(\"subjects\"), list) and acl.get(\"subjects\")\n        ):\n            raise ValueError(\"chunk_bundle private ACL is invalid.\")\n        raw_record = parent.get(\"raw_record_redacted\")\n        raw_text = parent.get(\"raw_text_redacted\")\n        raw_sha256 = str(parent.get(\"raw_record_redacted_sha256\") or \"\")\n        if not isinstance(raw_record, dict) or not isinstance(raw_text, str):\n            raise ValueError(\"chunk_bundle parent raw record contract is missing.\")\n        if raw_text != _canonical_json(raw_record) or raw_sha256 != _sha256_text(raw_text):\n            raise ValueError(\"chunk_bundle parent raw record hash does not match its canonical text.\")\n        expected_content_sha256 = _sha256_text(\n            _canonical_json(\n                {\n                    \"identity\": [identity[0], identity[1]],\n                    \"record_sha256\": raw_sha256,\n                    \"technical_contract\": parent.get(\"technical_contract\"),\n                    \"acl\": parent.get(\"acl\"),\n                }\n            )\n        )\n        content_sha256 = str(parent.get(\"content_sha256\") or \"\")\n        if content_sha256 != expected_content_sha256:\n            raise ValueError(\"chunk_bundle parent content hash is invalid.\")\n        source = parent.get(\"source\")\n        if not isinstance(source, dict):\n            raise ValueError(\"chunk_bundle parent source contract is missing.\")\n        if source.get(\"file_sha256\") != source_sha256 or source.get(\"file_size_bytes\") != source_size_bytes:\n            raise ValueError(\"chunk_bundle parent source does not match the uploaded file.\")\n        record_index = source.get(\"record_index\")\n        if isinstance(record_index, bool) or not isinstance(record_index, int) or record_index < 0:\n            raise ValueError(\"chunk_bundle parent source record index is invalid.\")\n        if record_index in record_indices:\n            raise ValueError(\"chunk_bundle parent source record index is duplicated.\")\n        record_indices.add(record_index)\n        identities.add(identity)\n        parent_by_identity[identity] = parent\n        parent_hash_by_identity[identity] = content_sha256\n        chunk_counts[identity] = 0\n        chunk_ordinals[identity] = []\n        chunk_ids_by_identity[identity] = set()\n    if record_indices != set(range(len(parents))):\n        raise ValueError(\"chunk_bundle parent source record indices must be contiguous from zero.\")\n    for chunk in chunks:\n        if not isinstance(chunk, dict):\n            raise ValueError(\"chunk_bundle chunk must be an object.\")\n        identity = (str(chunk.get(\"asset_id\") or \"\"), str(chunk.get(\"version\") or \"\"))\n        chunk_id = str(chunk.get(\"chunk_id\") or \"\")\n        chunk_identity = (*identity, chunk_id)\n        text = chunk.get(\"embedding_text_redacted\")\n        if identity not in identities or not chunk_id or chunk_identity in chunk_identities:\n            raise ValueError(\"chunk_bundle chunk identity is invalid or duplicated.\")\n        if chunk.get(\"tenant_id\") != tenant_id or chunk.get(\"catalog_id\") != catalog_id:\n            raise ValueError(\"chunk_bundle chunk scope mismatch.\")\n        ordinal = chunk.get(\"chunk_ordinal\")\n        if isinstance(ordinal, bool) or not isinstance(ordinal, int) or ordinal < 0:\n            raise ValueError(\"chunk_bundle chunk ordinal is invalid.\")\n        if not isinstance(text, str) or not text.strip():\n            raise ValueError(\"chunk_bundle embedding text is required.\")\n        if chunk.get(\"lexical_text_redacted\") != text:\n            raise ValueError(\"chunk_bundle lexical and embedding text must match.\")\n        if str(chunk.get(\"embedding_input_sha256\") or \"\") != _sha256_text(text):\n            raise ValueError(\"chunk_bundle embedding input hash does not match its text.\")\n        parent = parent_by_identity[identity]\n        if str(chunk.get(\"parent_content_sha256\") or \"\") != parent_hash_by_identity[identity]:\n            raise ValueError(\"chunk_bundle parent content hash does not match.\")\n        if any(chunk.get(field) != parent.get(field) for field in _CHUNK_PARENT_FIELDS):\n            raise ValueError(\"chunk_bundle chunk metadata does not match its authoritative parent.\")\n        if \"embedding\" in chunk:\n            raise ValueError(\"chunk_bundle must not contain caller-supplied embeddings.\")\n        chunk_identities.add(chunk_identity)\n        chunk_counts[identity] += 1\n        chunk_ordinals[identity].append(ordinal)\n        chunk_ids_by_identity[identity].add(chunk_id)\n    for parent in parents:\n        identity = (str(parent[\"asset_id\"]), str(parent[\"version\"]))\n        declared_chunk_count = parent.get(\"chunk_count\")\n        if isinstance(declared_chunk_count, bool) or not isinstance(declared_chunk_count, int):\n            raise ValueError(\"chunk_bundle parent chunk count is invalid.\")\n        if declared_chunk_count != chunk_counts[identity]:\n            raise ValueError(\"chunk_bundle parent chunk count does not match.\")\n        expected_ordinals = list(range(declared_chunk_count))\n        if sorted(chunk_ordinals[identity]) != expected_ordinals:\n            raise ValueError(\"chunk_bundle chunk ordinals must be unique and contiguous from zero.\")\n        expected_ids = {\"whole\"} if declared_chunk_count == 1 else {f\"chunk-{index:04d}\" for index in expected_ordinals}\n        if chunk_ids_by_identity[identity] != expected_ids:\n            raise ValueError(\"chunk_bundle chunk IDs do not match their deterministic ordinals.\")\n    expected_ingest_sha256 = _sha256_text(\n        _canonical_json(\n            {\n                \"assets\": [str(item[\"content_sha256\"]) for item in parents],\n                \"chunks\": [str(item[\"embedding_input_sha256\"]) for item in chunks],\n            }\n        )\n    )\n    if ingest_sha256 != expected_ingest_sha256:\n        raise ValueError(\"chunk_bundle ingest hash does not match its parent and chunk contents.\")\n    counts = bundle.get(\"counts\")\n    if not isinstance(counts, dict) or counts.get(\"records\") != len(parents) or counts.get(\"chunks\") != len(chunks):\n        raise ValueError(\"chunk_bundle counts do not match its contents.\")\n    return parents, chunks\n\n\ndef _snapshot_id(bundle: dict[str, Any], embedding_contract: dict[str, Any]) -> str:\n    validated_contract = _validate_embedding_contract(embedding_contract)\n    policy = bundle[\"chunk_policy\"]\n    basis = {\n        \"ingest_contract_version\": _INGEST_CONTRACT_VERSION,\n        \"tenant_id\": bundle[\"tenant_id\"],\n        \"catalog_id\": bundle[\"catalog_id\"],\n        \"source_sha256\": bundle[\"source_sha256\"],\n        \"embedding_contract\": validated_contract,\n        \"chunk_chars\": policy[\"chunk_chars\"],\n        \"overlap_chars\": policy[\"overlap_chars\"],\n        \"max_chunks\": policy[\"max_chunks_per_record\"],\n        \"max_text_chars\": policy[\"max_text_chars\"],\n    }\n    return \"snap-\" + _sha256_text(_canonical_json(basis))[:24]\n\n\ndef _vectors(value: Any, expected_count: int, dimension: int) -> list[list[float]]:\n    dimension = _validated_dimension(dimension)\n    if not isinstance(value, list) or len(value) != expected_count:\n        raise ValueError(\"The embedding response count does not match the batch.\")\n    result: list[list[float]] = []\n    for vector in value:\n        if not isinstance(vector, list) or len(vector) != dimension:\n            raise ValueError(\"The embedding response vector dimension is invalid.\")\n        normalized: list[float] = []\n        for item in vector:\n            if isinstance(item, bool) or not isinstance(item, (int, float)) or not math.isfinite(float(item)):\n                raise ValueError(\"The embedding response contains a non-finite or non-numeric value.\")\n            normalized.append(float(item))\n        result.append(normalized)\n    return result\n\n\ndef _vectors_with_derived_dimension(value: Any, expected_count: int) -> tuple[list[list[float]], int]:\n    if not isinstance(value, list) or len(value) != expected_count or not value:\n        raise ValueError(\"The first embedding response count does not match the batch.\")\n    first_vector = value[0]\n    if not isinstance(first_vector, list):\n        raise ValueError(\"The first embedding response vector is invalid.\")\n    dimension = _validated_dimension(len(first_vector))\n    return _vectors(value, expected_count, dimension), dimension\n\n\ndef _single_vector_response(value: Any) -> list[Any] | None:\n    \"\"\"Recognize only an unambiguous, finite single-vector provider response.\n\n    LangChain's ``Embeddings.embed_documents`` contract is a list of vectors, but\n    a few provider adapters return one vector when given a list of documents.  A\n    single response can safely trigger a per-document retry; a partial multi-vector\n    response cannot, because its text-to-vector correspondence is unknown.\n    \"\"\"\n    candidate = value\n    if isinstance(value, list) and len(value) == 1 and isinstance(value[0], list):\n        candidate = value[0]\n    if not isinstance(candidate, list) or not candidate:\n        return None\n    for item in candidate:\n        if isinstance(item, bool) or not isinstance(item, (int, float)) or not math.isfinite(float(item)):\n            return None\n    return candidate\n\n\ndef _embed_documents(\n    embedding: Any,\n    texts: list[str],\n    dimension: int | None = None,\n) -> tuple[list[list[float]], int]:\n    method = getattr(embedding, \"embed_documents\", None)\n    if not callable(method):\n        raise ValueError(\"The connected Embedding Model does not provide embed_documents.\")\n    try:\n        raw_vectors = method(texts)\n    except Exception as exc:  # noqa: BLE001 - provider SDKs expose heterogeneous exception classes\n        raise RuntimeError(\"The connected Embedding Model failed.\") from exc\n\n    # A provider that returns exactly one valid vector for a multi-chunk request\n    # has not supplied an index-preserving batch response.  Do not reuse that\n    # vector for other chunks.  Instead retry one chunk per request, where each\n    # response must still validate as exactly one vector.  Any partial or malformed\n    # multi-vector response remains fail-closed below.\n    single_vector = _single_vector_response(raw_vectors)\n    if len(texts) > 1 and single_vector is not None:\n        vectors: list[list[float]] = []\n        current_dimension = dimension\n        for text in texts:\n            one_vector, current_dimension = _embed_documents(embedding, [text], current_dimension)\n            if len(one_vector) != 1:\n                raise ValueError(\"The embedding response did not return exactly one vector for a single chunk.\")\n            vectors.extend(one_vector)\n        if current_dimension is None:\n            raise ValueError(\"The embedding response did not provide a vector dimension.\")\n        return vectors, current_dimension\n\n    # Some adapters use a flat ``[float, ...]`` shape only for a one-item\n    # request.  Normalize that documented one-vector shape before the ordinary\n    # cardinality and dimension validation; it is never expanded across chunks.\n    if len(texts) == 1 and single_vector is not None and raw_vectors is single_vector:\n        raw_vectors = [single_vector]\n    if dimension is None:\n        return _vectors_with_derived_dimension(raw_vectors, len(texts))\n    validated_dimension = _validated_dimension(dimension)\n    return _vectors(raw_vectors, len(texts), validated_dimension), validated_dimension\n\n\ndef _build_stored_parent_documents(\n    bundle: dict[str, Any],\n    embedding_contract: dict[str, Any],\n    snapshot_id: str,\n) -> list[dict[str, Any]]:\n    validated_contract = _validate_embedding_contract(embedding_contract)\n    documents: list[dict[str, Any]] = []\n    for parent in bundle[\"parents\"]:\n        asset_id = str(parent[\"asset_id\"])\n        version = str(parent[\"version\"])\n        chunk_count = int(parent.get(\"chunk_count\") or 0)\n        stored_parent = {key: value for key, value in parent.items() if key != \"chunk_count\"}\n        documents.append(\n            {\n                **stored_parent,\n                \"_id\": _stable_document_id([str(bundle[\"tenant_id\"]), snapshot_id, asset_id, version]),\n                \"snapshot_id\": snapshot_id,\n                \"is_active\": True,\n                \"embedding_manifest\": {\n                    \"embedding_contract\": validated_contract,\n                    \"chunk_count\": chunk_count,\n                    \"complete\": True,\n                },\n            }\n        )\n    return documents\n\n\ndef _build_stored_chunk_documents(\n    bundle: dict[str, Any],\n    selected_chunks: list[dict[str, Any]],\n    embedding_contract: dict[str, Any],\n    snapshot_id: str,\n    vectors: list[list[float]],\n) -> list[dict[str, Any]]:\n    if len(selected_chunks) != len(vectors):\n        raise ValueError(\"The selected chunk and vector counts do not match.\")\n    validated_contract = _validate_embedding_contract(embedding_contract)\n    validated_vectors = _vectors(vectors, len(selected_chunks), int(validated_contract[\"dimension\"]))\n    documents: list[dict[str, Any]] = []\n    for document, vector in zip(selected_chunks, validated_vectors):\n        asset_id = str(document[\"asset_id\"])\n        version = str(document[\"version\"])\n        chunk_id = str(document[\"chunk_id\"])\n        documents.append(\n            {\n                **document,\n                \"_id\": _stable_document_id(\n                    [str(bundle[\"tenant_id\"]), snapshot_id, asset_id, version, chunk_id]\n                ),\n                \"snapshot_id\": snapshot_id,\n                \"is_active\": True,\n                \"embedding\": {\n                    \"contract\": validated_contract,\n                    \"vector\": vector,\n                    \"input_sha256\": document[\"embedding_input_sha256\"],\n                },\n            }\n        )\n    return documents\n\n\ndef _build_stored_documents(\n    bundle: dict[str, Any],\n    embedding_contract: dict[str, Any],\n    snapshot_id: str,\n    vectors: list[list[float]],\n) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:\n    \"\"\"Build final parent/chunk documents without I/O for contract tests and bounded callers.\"\"\"\n    validated_contract = _validate_embedding_contract(embedding_contract)\n    validated_vectors = _vectors(vectors, len(bundle[\"chunks\"]), int(validated_contract[\"dimension\"]))\n    return (\n        _build_stored_parent_documents(bundle, validated_contract, snapshot_id),\n        _build_stored_chunk_documents(bundle, bundle[\"chunks\"], validated_contract, snapshot_id, validated_vectors),\n    )\n\n\ndef _bulk_replace(collection: Any, documents: list[dict[str, Any]], batch_size: int) -> None:\n    for start in range(0, len(documents), batch_size):\n        operations = [\n            ReplaceOne({\"_id\": document[\"_id\"]}, document, upsert=True)\n            for document in documents[start : start + batch_size]\n        ]\n        if operations:\n            collection.bulk_write(operations, ordered=False)\n\n\ndef _failure(code: str, message: str, *, retryable: bool = False) -> Data:\n    return Data(\n        data={\n            \"ok\": False,\n            \"status\": \"BLOCKED\",\n            \"error\": {\"code\": code, \"message\": message, \"retryable\": retryable},\n        }\n    )\n\n\nclass CatalogMongoDBVectorWriterComponent(Component):\n    display_name = \"02 MongoDB Catalog Vector Writer\"\n    description = \"Embed catalog chunks sequentially one at a time with a rate-limit interval, buffer MongoDB writes, then activate the verified snapshot.\"\n    icon = \"DatabaseZap\"\n    name = \"CatalogMongoDBVectorWriter\"\n\n    inputs = [\n        DataInput(name=\"chunk_bundle\", display_name=\"Deterministic Chunk Bundle\", required=True),\n        HandleInput(\n            name=\"embedding\",\n            display_name=\"Embedding Model\",\n            input_types=[\"Embeddings\"],\n            required=False,\n            info=\"Connect Langflow's Embedding Model. Runtime model ID and vector dimension are derived automatically.\",\n        ),\n        SecretStrInput(name=\"mongodb_uri\", display_name=\"MongoDB URI\", required=False),\n        StrInput(name=\"mongodb_database\", display_name=\"MongoDB Database\", value=\"business_work_design\", required=True),\n        StrInput(name=\"assets_collection\", display_name=\"Parent Assets Collection\", value=\"catalog_assets\", required=True),\n        StrInput(name=\"chunks_collection\", display_name=\"Vector Chunks Collection\", value=\"catalog_asset_chunks\", required=True),\n        StrInput(name=\"pointer_collection\", display_name=\"Active Pointer Collection\", value=\"catalog_active_pointers\", required=True),\n        BoolInput(\n            name=\"dry_run\",\n            display_name=\"테스트 실행 (저장하지 않음)\",\n            value=False,\n            info=\"켜면 scope, hash, chunk 정책만 검증하며 Embedding Model이나 MongoDB를 호출하거나 저장하지 않습니다.\",\n        ),\n        FloatInput(\n            name=\"embedding_call_interval_seconds\",\n            display_name=\"임베딩 호출 간격(초)\",\n            value=_MIN_EMBEDDING_CALL_INTERVAL_SECONDS,\n            advanced=True,\n            info=\"청크 1개씩 순차 호출할 때 다음 Embedding Model 호출 전 대기 시간입니다. 첫 호출 전에는 대기하지 않으며 1초 미만은 1초로 처리합니다.\",\n        ),\n        IntInput(\n            name=\"mongo_write_batch_size\",\n            display_name=\"MongoDB 일괄 저장 문서 수\",\n            value=500,\n            advanced=True,\n            info=\"한 번의 MongoDB bulk write에 저장할 문서 수입니다. 임베딩 요청 단위와 별개이며 청크 크기는 바꾸지 않습니다.\",\n        ),\n        IntInput(\n            name=\"mongodb_timeout_ms\",\n            display_name=\"MongoDB 연결·서버 선택 제한 시간 (ms)\",\n            value=5000,\n            advanced=True,\n            info=\"MongoDB 연결과 서버 선택에 적용합니다. 소켓 read/write는 안정성을 위해 최소 10초를 사용하며 Embedding Model 호출 시간에는 적용되지 않습니다.\",\n        ),\n    ]\n\n    outputs = [Output(name=\"ingestion_result\", display_name=\"Catalog Ingestion Result\", method=\"write_catalog\", types=[\"Data\"])]\n\n    def write_catalog(self) -> Data:\n        client: Any = None\n        try:\n            bundle = _payload(getattr(self, \"chunk_bundle\", None))\n            parents, chunks = _validate_chunk_bundle(bundle)\n            embedding_call_interval_seconds = _bounded_float(\n                getattr(self, \"embedding_call_interval_seconds\", _MIN_EMBEDDING_CALL_INTERVAL_SECONDS),\n                _MIN_EMBEDDING_CALL_INTERVAL_SECONDS,\n                _MIN_EMBEDDING_CALL_INTERVAL_SECONDS,\n                _MAX_EMBEDDING_CALL_INTERVAL_SECONDS,\n            )\n            compact_base = {\n                \"tenant_id\": bundle[\"tenant_id\"],\n                \"catalog_id\": bundle[\"catalog_id\"],\n                \"source_sha256\": bundle[\"source_sha256\"],\n                \"ingest_sha256\": bundle[\"ingest_sha256\"],\n                \"source_size_bytes\": bundle[\"source_size_bytes\"],\n                \"counts\": {\"records\": len(parents), \"chunks\": len(chunks)},\n                \"ingest_contract_version\": _INGEST_CONTRACT_VERSION,\n            }\n            if bool(getattr(self, \"dry_run\", False)):\n                self.status = (\n                    f\"테스트 실행 완료: {len(parents)}개 레코드와 {len(chunks)}개 청크를 검증했습니다. \"\n                    \"MongoDB에는 저장하지 않았습니다.\"\n                )\n                return Data(\n                    data={\n                        \"ok\": True,\n                        \"status\": \"DRY_RUN_VALIDATED\",\n                        \"dry_run\": True,\n                        \"execution_mode_display\": \"테스트 실행 (저장하지 않음)\",\n                        \"message\": \"테스트 실행입니다. MongoDB에는 저장하지 않았습니다.\",\n                        \"snapshot_id\": None,\n                        \"embedding_contract\": _deferred_embedding_contract(),\n                        \"embedding_execution\": {\n                            \"mode\": \"deferred_test_run\",\n                            \"calls\": 0,\n                            \"minimum_interval_seconds\": embedding_call_interval_seconds,\n                        },\n                        **compact_base,\n                    }\n                )\n\n            mongodb_uri = _secret_value(getattr(self, \"mongodb_uri\", \"\"))\n            embedding = getattr(self, \"embedding\", None)\n            if not mongodb_uri or embedding is None:\n                return _failure(\n                    \"PRODUCTION_CONFIG_MISSING\",\n                    \"테스트 실행을 해제한 실제 저장 실행에는 MongoDB URI와 연결된 Embedding Model이 필요합니다.\",\n                )\n            database_name = _safe_identifier(getattr(self, \"mongodb_database\", \"\"), \"mongodb_database\")\n            assets_name = _safe_identifier(getattr(self, \"assets_collection\", \"\"), \"assets_collection\")\n            chunks_name = _safe_identifier(getattr(self, \"chunks_collection\", \"\"), \"chunks_collection\")\n            pointer_name = _safe_identifier(getattr(self, \"pointer_collection\", \"\"), \"pointer_collection\")\n            if len({assets_name, chunks_name, pointer_name}) != 3:\n                raise ValueError(\"Parent, chunk, and pointer collections must be distinct.\")\n            write_batch_size = _bounded_int(getattr(self, \"mongo_write_batch_size\", 500), 500, 1, 1000)\n            timeout_ms = _bounded_int(getattr(self, \"mongodb_timeout_ms\", 5000), 5000, 1000, 30000)\n\n            # Establish the actual vector contract before any MongoDB side effect. The\n            # first response determines dimension; model identity comes only from the\n            # connected Langflow embedding runtime, never a duplicate writer field.\n            # Each provider request intentionally contains exactly one chunk.\n            first_selected = chunks[:1]\n            first_vectors, dimension = _embed_documents(\n                embedding,\n                [str(item[\"embedding_text_redacted\"]) for item in first_selected],\n            )\n            embedding_call_count = 1\n            contract = _embedding_runtime_contract(embedding, dimension)\n            snapshot_id = _snapshot_id(bundle, contract)\n            compact = {\n                **compact_base,\n                \"snapshot_id\": snapshot_id,\n                \"embedding_contract\": contract,\n            }\n            first_documents = _build_stored_chunk_documents(\n                bundle,\n                first_selected,\n                contract,\n                snapshot_id,\n                first_vectors,\n            )\n\n            client = MongoClient(\n                mongodb_uri,\n                connectTimeoutMS=timeout_ms,\n                serverSelectionTimeoutMS=timeout_ms,\n                socketTimeoutMS=max(timeout_ms, 10000),\n                retryReads=True,\n                retryWrites=True,\n            )\n            client.admin.command(\"ping\")\n            database = client[database_name]\n            assets_collection = database[assets_name]\n            chunks_collection = database[chunks_name]\n            pointers_collection = database[pointer_name]\n            assets_collection.create_index(\n                [(\"tenant_id\", ASCENDING), (\"snapshot_id\", ASCENDING), (\"asset_id\", ASCENDING), (\"version\", ASCENDING)],\n                unique=True,\n                name=\"uq_catalog_asset_version\",\n            )\n            chunks_collection.create_index(\n                [\n                    (\"tenant_id\", ASCENDING),\n                    (\"snapshot_id\", ASCENDING),\n                    (\"asset_id\", ASCENDING),\n                    (\"version\", ASCENDING),\n                    (\"chunk_id\", ASCENDING),\n                ],\n                unique=True,\n                name=\"uq_catalog_asset_chunk\",\n            )\n\n            # Keep MongoDB write batching independent from the provider call\n            # policy: vectors arrive one chunk at a time, then are flushed in\n            # configured document groups.\n            pending_chunk_documents = list(first_documents)\n            embedded_count = len(first_documents)\n            if len(pending_chunk_documents) >= write_batch_size:\n                _bulk_replace(chunks_collection, pending_chunk_documents, write_batch_size)\n                pending_chunk_documents = []\n            for start in range(len(first_selected), len(chunks)):\n                # The first provider request is made above without waiting.  Every\n                # later request is delayed so providers receive at most one chunk\n                # per call and at least the configured interval between calls.\n                time.sleep(embedding_call_interval_seconds)\n                selected = chunks[start : start + 1]\n                vectors, validated_dimension = _embed_documents(\n                    embedding,\n                    [str(item[\"embedding_text_redacted\"]) for item in selected],\n                    int(contract[\"dimension\"]),\n                )\n                embedding_call_count += 1\n                if validated_dimension != int(contract[\"dimension\"]):\n                    raise ValueError(\"The embedding response dimension changed between batches.\")\n                embedded_documents = _build_stored_chunk_documents(\n                    bundle,\n                    selected,\n                    contract,\n                    snapshot_id,\n                    vectors,\n                )\n                pending_chunk_documents.extend(embedded_documents)\n                embedded_count += len(embedded_documents)\n                if len(pending_chunk_documents) >= write_batch_size:\n                    _bulk_replace(chunks_collection, pending_chunk_documents, write_batch_size)\n                    pending_chunk_documents = []\n\n            if pending_chunk_documents:\n                _bulk_replace(chunks_collection, pending_chunk_documents, write_batch_size)\n\n            parent_documents = _build_stored_parent_documents(bundle, contract, snapshot_id)\n            _bulk_replace(assets_collection, parent_documents, write_batch_size)\n            scope_filter = {\"tenant_id\": bundle[\"tenant_id\"], \"snapshot_id\": snapshot_id}\n            stored_assets = assets_collection.count_documents(scope_filter)\n            stored_chunks = chunks_collection.count_documents(scope_filter)\n            if stored_assets != len(parent_documents) or stored_chunks != len(chunks) or embedded_count != len(chunks):\n                raise PyMongoError(\"The completed snapshot counts do not match the prepared catalog.\")\n\n            now = _utc_now()\n            pointer = {\n                \"tenant_id\": bundle[\"tenant_id\"],\n                \"catalog_id\": bundle[\"catalog_id\"],\n                \"snapshot_id\": snapshot_id,\n                \"active_snapshot_id\": snapshot_id,\n                \"embedding_contract\": contract,\n                \"source_sha256\": bundle[\"source_sha256\"],\n                \"counts\": {\"records\": len(parent_documents), \"chunks\": len(chunks)},\n                \"activated_at\": now,\n                \"updated_at\": now,\n            }\n            pointers_collection.update_one(\n                {\"_id\": bundle[\"tenant_id\"]},\n                {\"$set\": pointer},\n                upsert=True,\n            )\n            self.status = (\n                f\"Activated {snapshot_id}: {len(parent_documents)} records, {embedded_count} vectors, \"\n                f\"{embedding_call_count} one-chunk embedding calls at >= {embedding_call_interval_seconds:.1f}s intervals.\"\n            )\n            return Data(\n                data={\n                    \"ok\": True,\n                    \"status\": \"ACTIVE\",\n                    \"dry_run\": False,\n                    **compact,\n                    \"counts\": {\"records\": len(parent_documents), \"chunks\": len(chunks), \"vectors\": embedded_count},\n                    \"embedding_execution\": {\n                        \"mode\": \"sequential_one_chunk_per_call\",\n                        \"calls\": embedding_call_count,\n                        \"minimum_interval_seconds\": embedding_call_interval_seconds,\n                    },\n                }\n            )\n        except RuntimeError:\n            self.status = \"Catalog vectorization stopped before snapshot activation.\"\n            return _failure(\n                \"EMBEDDING_PROVIDER_FAILED\",\n                \"The connected Embedding Model failed; no new active snapshot was published.\",\n                retryable=True,\n            )\n        except ValueError as exc:\n            self.status = \"Catalog vector storage was rejected by validation.\"\n            return _failure(\"CATALOG_PIPELINE_INVALID\", str(exc))\n        except (PyMongoError, OSError):\n            self.status = \"Catalog vector storage stopped before snapshot activation.\"\n            return _failure(\n                \"MONGODB_INGEST_FAILED\",\n                \"MongoDB storage failed; no new active snapshot was published.\",\n                retryable=True,\n            )\n        finally:\n            if client is not None:\n                client.close()\n",
+                "fileTypes": [],
+                "file_path": "",
+                "password": false,
+                "name": "code",
+                "advanced": true,
+                "api_editable": false,
+                "dynamic": true,
+                "info": "",
+                "load_from_db": false,
+                "title_case": false
+              },
+              "dry_run": {
+                "tool_mode": false,
+                "trace_as_metadata": true,
+                "list": false,
+                "list_add_label": "Add More",
+                "override_skip": false,
+                "required": false,
+                "placeholder": "",
+                "show": true,
+                "name": "dry_run",
+                "value": false,
+                "display_name": "테스트 실행 (저장하지 않음)",
+                "advanced": false,
+                "api_editable": false,
+                "dynamic": false,
+                "info": "켜면 scope, hash, chunk 정책만 검증하며 Embedding Model이나 MongoDB를 호출하거나 저장하지 않습니다.",
+                "title_case": false,
+                "track_in_telemetry": true,
+                "type": "bool",
+                "_input_type": "BoolInput"
+              },
+              "embedding_call_interval_seconds": {
+                "tool_mode": false,
+                "trace_as_metadata": true,
+                "list": false,
+                "list_add_label": "Add More",
+                "override_skip": false,
+                "required": false,
+                "placeholder": "",
+                "show": true,
+                "name": "embedding_call_interval_seconds",
+                "value": 1.0,
+                "display_name": "임베딩 호출 간격(초)",
+                "advanced": true,
+                "api_editable": false,
+                "dynamic": false,
+                "info": "청크 1개씩 순차 호출할 때 다음 Embedding Model 호출 전 대기 시간입니다. 첫 호출 전에는 대기하지 않으며 1초 미만은 1초로 처리합니다.",
+                "title_case": false,
+                "track_in_telemetry": true,
+                "type": "float",
+                "_input_type": "FloatInput"
+              },
+              "mongo_write_batch_size": {
+                "tool_mode": false,
+                "trace_as_metadata": true,
+                "list": false,
+                "list_add_label": "Add More",
+                "override_skip": false,
+                "required": false,
+                "placeholder": "",
+                "show": true,
+                "name": "mongo_write_batch_size",
+                "value": 500,
+                "display_name": "MongoDB 일괄 저장 문서 수",
+                "advanced": true,
+                "api_editable": false,
+                "dynamic": false,
+                "info": "한 번의 MongoDB bulk write에 저장할 문서 수입니다. 임베딩 요청 단위와 별개이며 청크 크기는 바꾸지 않습니다.",
+                "title_case": false,
+                "track_in_telemetry": true,
+                "type": "int",
+                "_input_type": "IntInput"
+              },
+              "mongodb_database": {
+                "tool_mode": false,
+                "trace_as_metadata": true,
+                "load_from_db": false,
+                "list": false,
+                "list_add_label": "Add More",
+                "override_skip": false,
+                "required": true,
+                "placeholder": "",
+                "show": true,
+                "name": "mongodb_database",
+                "value": "business_work_design",
+                "display_name": "MongoDB Database",
+                "advanced": false,
+                "api_editable": false,
+                "dynamic": false,
+                "info": "",
+                "title_case": false,
+                "track_in_telemetry": false,
+                "type": "str",
+                "_input_type": "StrInput"
+              },
+              "mongodb_timeout_ms": {
+                "tool_mode": false,
+                "trace_as_metadata": true,
+                "list": false,
+                "list_add_label": "Add More",
+                "override_skip": false,
+                "required": false,
+                "placeholder": "",
+                "show": true,
+                "name": "mongodb_timeout_ms",
+                "value": 5000,
+                "display_name": "MongoDB 연결·서버 선택 제한 시간 (ms)",
+                "advanced": true,
+                "api_editable": false,
+                "dynamic": false,
+                "info": "MongoDB 연결과 서버 선택에 적용합니다. 소켓 read/write는 안정성을 위해 최소 10초를 사용하며 Embedding Model 호출 시간에는 적용되지 않습니다.",
+                "title_case": false,
+                "track_in_telemetry": true,
+                "type": "int",
+                "_input_type": "IntInput"
+              },
+              "mongodb_uri": {
+                "load_from_db": true,
+                "override_skip": false,
+                "required": false,
+                "placeholder": "",
+                "show": true,
+                "name": "mongodb_uri",
+                "value": "MONGO_URL",
+                "display_name": "MongoDB URI",
+                "advanced": false,
+                "api_editable": false,
+                "input_types": [],
+                "dynamic": false,
+                "info": "",
+                "title_case": false,
+                "track_in_telemetry": false,
+                "password": true,
+                "type": "str",
+                "_input_type": "SecretStrInput"
+              },
+              "pointer_collection": {
+                "tool_mode": false,
+                "trace_as_metadata": true,
+                "load_from_db": false,
+                "list": false,
+                "list_add_label": "Add More",
+                "override_skip": false,
+                "required": true,
+                "placeholder": "",
+                "show": true,
+                "name": "pointer_collection",
+                "value": "catalog_active_pointers",
+                "display_name": "Active Pointer Collection",
+                "advanced": false,
+                "api_editable": false,
+                "dynamic": false,
+                "info": "",
+                "title_case": false,
+                "track_in_telemetry": false,
+                "type": "str",
+                "_input_type": "StrInput"
+              }
+            },
+            "description": "Embed catalog chunks sequentially one at a time with a rate-limit interval, buffer MongoDB writes, then activate the verified snapshot.",
+            "icon": "DatabaseZap",
+            "base_classes": [
+              "Data",
+              "JSON"
+            ],
+            "display_name": "02 MongoDB Catalog Vector Writer",
+            "documentation": "",
+            "minimized": false,
+            "custom_fields": {},
+            "output_types": [],
+            "pinned": false,
+            "conditional_paths": [],
+            "frozen": false,
+            "outputs": [
+              {
+                "types": [
+                  "Data",
+                  "JSON"
+                ],
+                "selected": "Data",
+                "name": "ingestion_result",
+                "display_name": "Catalog Ingestion Result",
+                "method": "write_catalog",
+                "value": "__UNDEFINED__",
+                "cache": true,
+                "allows_loop": false,
+                "group_outputs": false,
+                "tool_mode": true
+              }
+            ],
+            "field_order": [
+              "chunk_bundle",
+              "embedding",
+              "mongodb_uri",
+              "mongodb_database",
+              "assets_collection",
+              "chunks_collection",
+              "pointer_collection",
+              "dry_run",
+              "embedding_call_interval_seconds",
+              "mongo_write_batch_size",
+              "mongodb_timeout_ms"
+            ],
+            "beta": false,
+            "legacy": false,
+            "edited": false,
+            "metadata": {
+              "module": "custom_components.02_mongodb_catalog_vector_writer",
+              "code_hash": "ed60d9dc9c08",
+              "dependencies": {
+                "total_dependencies": 2,
+                "dependencies": [
+                  {
+                    "name": "lfx",
+                    "version": "1.11.5"
+                  },
+                  {
+                    "name": "pymongo",
+                    "version": "4.15.5"
+                  }
+                ]
+              },
+              "flow_build_target": "1.11.1",
+              "flow_node_key": "mongodb_vector_writer",
+              "standalone": true,
+              "standalone_source_path": "components/catalog_ingestion/02_catalog_mongodb_vector_writer.py",
+              "standalone_source_sha256": "ed60d9dc9c080257c8fa10caec818d2a5726c881f477ae91bc31e92f84a4abdc"
+            },
+            "tool_mode": false,
+            "lf_version": "1.11.1"
+          },
+          "showNode": true,
+          "type": "CatalogMongoDBVectorWriter",
+          "description": "Embed catalog chunks sequentially one at a time with a rate-limit interval, buffer MongoDB writes, then activate the verified snapshot.",
+          "display_name": "02 MongoDB Catalog Vector Writer",
+          "selected_output": "ingestion_result"
+        },
+        "dragging": false,
+        "id": "CustomComponent-406fa38",
+        "measured": {
+          "height": 260,
+          "width": 320
+        },
+        "position": {
+          "x": 840,
+          "y": 0
+        },
+        "selected": false,
+        "type": "genericNode"
+      },
+      {
+        "data": {
+          "id": "ParseData-c7cc2c2",
+          "node": {
+            "template": {
+              "_type": "Component",
+              "data": {
+                "tool_mode": false,
+                "trace_as_metadata": true,
+                "list": true,
+                "list_add_label": "Add More",
+                "trace_as_input": true,
+                "override_skip": false,
+                "required": true,
+                "placeholder": "",
+                "show": true,
+                "name": "data",
+                "value": "",
+                "display_name": "JSON",
+                "advanced": false,
+                "api_editable": false,
+                "input_types": [
+                  "Data",
+                  "JSON"
+                ],
+                "dynamic": false,
+                "info": "The data to convert to text.",
+                "title_case": false,
+                "track_in_telemetry": false,
+                "type": "other",
+                "_input_type": "JSONInput"
+              },
+              "code": {
+                "type": "code",
+                "required": true,
+                "placeholder": "",
+                "list": false,
+                "show": true,
+                "multiline": true,
+                "value": "from lfx.custom.custom_component.component import Component\nfrom lfx.helpers.data import data_to_text, data_to_text_list\nfrom lfx.io import DataInput, MultilineInput, Output, StrInput\nfrom lfx.schema.data import Data\nfrom lfx.schema.message import Message\n\n\nclass ParseDataComponent(Component):\n    display_name = \"Data to Message\"\n    description = \"Convert Data objects into Messages using any {field_name} from input data.\"\n    icon = \"message-square\"\n    name = \"ParseData\"\n    legacy = True\n    replacement = [\"processing.Operations\", \"processing.TypeConverterComponent\"]\n    metadata = {\n        \"legacy_name\": \"Parse Data\",\n    }\n\n    inputs = [\n        DataInput(\n            name=\"data\",\n            display_name=\"JSON\",\n            info=\"The data to convert to text.\",\n            is_list=True,\n            required=True,\n        ),\n        MultilineInput(\n            name=\"template\",\n            display_name=\"Template\",\n            info=\"The template to use for formatting the data. \"\n            \"It can contain the keys {text}, {data} or any other key in the Data.\",\n            value=\"{text}\",\n            required=True,\n        ),\n        StrInput(name=\"sep\", display_name=\"Separator\", advanced=True, value=\"\\n\"),\n    ]\n\n    outputs = [\n        Output(\n            display_name=\"Message\",\n            name=\"text\",\n            info=\"Data as a single Message, with each input Data separated by Separator\",\n            method=\"parse_data\",\n        ),\n        Output(\n            display_name=\"JSON List\",\n            name=\"data_list\",\n            info=\"Data as a list of new Data, each having `text` formatted by Template\",\n            method=\"parse_data_as_list\",\n        ),\n    ]\n\n    def _clean_args(self) -> tuple[list[Data], str, str]:\n        data = self.data if isinstance(self.data, list) else [self.data]\n        template = self.template\n        sep = self.sep\n        return data, template, sep\n\n    def parse_data(self) -> Message:\n        data, template, sep = self._clean_args()\n        result_string = data_to_text(template, data, sep)\n        self.status = result_string\n        return Message(text=result_string)\n\n    def parse_data_as_list(self) -> list[Data]:\n        data, template, _ = self._clean_args()\n        text_list, data_list = data_to_text_list(template, data)\n        for item, text in zip(data_list, text_list, strict=True):\n            item.set_text(text)\n        self.status = data_list\n        return data_list\n",
+                "fileTypes": [],
+                "file_path": "",
+                "password": false,
+                "name": "code",
+                "advanced": true,
+                "api_editable": false,
+                "dynamic": true,
+                "info": "",
+                "load_from_db": false,
+                "title_case": false
+              },
+              "sep": {
+                "tool_mode": false,
+                "trace_as_metadata": true,
+                "load_from_db": false,
+                "list": false,
+                "list_add_label": "Add More",
+                "override_skip": false,
+                "required": false,
+                "placeholder": "",
+                "show": true,
+                "name": "sep",
+                "value": "\n",
+                "display_name": "Separator",
+                "advanced": true,
+                "api_editable": false,
+                "dynamic": false,
+                "info": "",
+                "title_case": false,
+                "track_in_telemetry": false,
+                "type": "str",
+                "_input_type": "StrInput"
+              },
+              "template": {
+                "tool_mode": false,
+                "trace_as_input": true,
+                "multiline": true,
+                "ai_enabled": false,
+                "trace_as_metadata": true,
+                "load_from_db": false,
+                "list": false,
+                "list_add_label": "Add More",
+                "override_skip": false,
+                "required": true,
+                "placeholder": "",
+                "show": true,
+                "name": "template",
+                "value": "{data}",
+                "display_name": "Template",
+                "advanced": false,
+                "api_editable": false,
+                "input_types": [
+                  "Message"
+                ],
+                "dynamic": false,
+                "info": "The template to use for formatting the data. It can contain the keys {text}, {data} or any other key in the Data.",
+                "title_case": false,
+                "track_in_telemetry": false,
+                "copy_field": false,
+                "password": false,
+                "type": "str",
+                "_input_type": "MultilineInput"
+              }
+            },
+            "description": "Convert Data objects into Messages using any {field_name} from input data.",
+            "icon": "message-square",
+            "base_classes": [
+              "JSON",
+              "Message"
+            ],
+            "display_name": "Data to Message",
+            "documentation": "",
+            "minimized": false,
+            "custom_fields": {},
+            "output_types": [],
+            "pinned": false,
+            "conditional_paths": [],
+            "frozen": false,
+            "outputs": [
+              {
+                "types": [
+                  "Message"
+                ],
+                "selected": "Message",
+                "name": "text",
+                "display_name": "Message",
+                "method": "parse_data",
+                "value": "__UNDEFINED__",
+                "cache": true,
+                "allows_loop": false,
+                "group_outputs": false,
+                "tool_mode": true
+              },
+              {
+                "types": [
+                  "JSON"
+                ],
+                "selected": "JSON",
+                "name": "data_list",
+                "display_name": "JSON List",
+                "method": "parse_data_as_list",
+                "value": "__UNDEFINED__",
+                "cache": true,
+                "allows_loop": false,
+                "group_outputs": false,
+                "tool_mode": true
+              }
+            ],
+            "field_order": [
+              "data",
+              "template",
+              "sep"
+            ],
+            "beta": false,
+            "legacy": true,
+            "replacement": [
+              "processing.Operations",
+              "processing.TypeConverterComponent"
+            ],
+            "edited": false,
+            "metadata": {
+              "legacy_name": "Parse Data",
+              "module": "custom_components.data_to_message",
+              "code_hash": "dbe2c66f1728",
+              "dependencies": {
+                "total_dependencies": 1,
+                "dependencies": [
+                  {
+                    "name": "lfx",
+                    "version": "1.11.5"
+                  }
+                ]
+              },
+              "flow_build_target": "1.11.1",
+              "flow_node_key": "ingestion_message"
+            },
+            "tool_mode": false,
+            "lf_version": "1.11.1"
+          },
+          "showNode": true,
+          "type": "ParseData",
+          "description": "Convert Data objects into Messages using any {field_name} from input data.",
+          "display_name": "Data to Message",
+          "selected_output": "text"
+        },
+        "dragging": false,
+        "id": "ParseData-c7cc2c2",
+        "measured": {
+          "height": 260,
+          "width": 320
+        },
+        "position": {
+          "x": 1260,
+          "y": 0
+        },
+        "selected": false,
+        "type": "genericNode"
+      },
+      {
+        "data": {
+          "id": "ChatOutput-4f852f8",
+          "node": {
+            "template": {
+              "_type": "Component",
+              "input_value": {
+                "trace_as_metadata": true,
+                "list": false,
+                "list_add_label": "Add More",
+                "override_skip": false,
+                "required": true,
+                "placeholder": "",
+                "show": true,
+                "name": "input_value",
+                "value": "",
+                "display_name": "Inputs",
+                "advanced": false,
+                "api_editable": false,
+                "input_types": [
+                  "Data",
+                  "JSON",
+                  "DataFrame",
+                  "Table",
+                  "Message"
+                ],
+                "dynamic": false,
+                "info": "Message to be passed as output.",
+                "title_case": false,
+                "track_in_telemetry": false,
+                "type": "other",
+                "_input_type": "HandleInput"
+              },
+              "clean_data": {
+                "tool_mode": false,
+                "trace_as_metadata": true,
+                "list": false,
+                "list_add_label": "Add More",
+                "override_skip": false,
+                "required": false,
+                "placeholder": "",
+                "show": true,
+                "name": "clean_data",
+                "value": true,
+                "display_name": "Basic Clean Data",
+                "advanced": true,
+                "api_editable": false,
+                "dynamic": false,
+                "info": "Whether to clean data before converting to string.",
+                "title_case": false,
+                "track_in_telemetry": true,
+                "type": "bool",
+                "_input_type": "BoolInput"
+              },
+              "code": {
+                "type": "code",
+                "required": true,
+                "placeholder": "",
+                "list": false,
+                "show": true,
+                "multiline": true,
+                "value": "from collections.abc import Generator\nfrom typing import Any\n\nimport orjson\nfrom fastapi.encoders import jsonable_encoder\n\nfrom lfx.base.io.chat import ChatComponent\nfrom lfx.helpers.data import safe_convert\nfrom lfx.inputs.inputs import BoolInput, DropdownInput, HandleInput, MessageTextInput\nfrom lfx.schema.data import Data\nfrom lfx.schema.dataframe import DataFrame\nfrom lfx.schema.message import Message\nfrom lfx.schema.properties import Source\nfrom lfx.template.field.base import Output\nfrom lfx.utils.constants import (\n    MESSAGE_SENDER_AI,\n    MESSAGE_SENDER_NAME_AI,\n    MESSAGE_SENDER_USER,\n)\n\n\nclass ChatOutput(ChatComponent):\n    display_name = \"Chat Output\"\n    description = \"Display a chat message in the Playground.\"\n    documentation: str = \"https://docs.langflow.org/chat-input-and-output\"\n    icon = \"MessagesSquare\"\n    name = \"ChatOutput\"\n    minimized = True\n\n    inputs = [\n        HandleInput(\n            name=\"input_value\",\n            display_name=\"Inputs\",\n            info=\"Message to be passed as output.\",\n            input_types=[\"Data\", \"JSON\", \"DataFrame\", \"Table\", \"Message\"],\n            required=True,\n        ),\n        BoolInput(\n            name=\"should_store_message\",\n            display_name=\"Store Messages\",\n            info=\"Store the message in the history.\",\n            value=True,\n            advanced=True,\n        ),\n        DropdownInput(\n            name=\"sender\",\n            display_name=\"Sender Type\",\n            options=[MESSAGE_SENDER_AI, MESSAGE_SENDER_USER],\n            value=MESSAGE_SENDER_AI,\n            advanced=True,\n            info=\"Type of sender.\",\n        ),\n        MessageTextInput(\n            name=\"sender_name\",\n            display_name=\"Sender Name\",\n            info=\"Name of the sender.\",\n            value=MESSAGE_SENDER_NAME_AI,\n            advanced=True,\n        ),\n        MessageTextInput(\n            name=\"session_id\",\n            display_name=\"Session ID\",\n            info=\"The session ID of the chat. If empty, the current session ID parameter will be used.\",\n            advanced=True,\n        ),\n        MessageTextInput(\n            name=\"context_id\",\n            display_name=\"Context ID\",\n            info=\"The context ID of the chat. Adds an extra layer to the local memory.\",\n            value=\"\",\n            advanced=True,\n        ),\n        MessageTextInput(\n            name=\"data_template\",\n            display_name=\"Data Template\",\n            value=\"{text}\",\n            advanced=True,\n            info=\"Template to convert Data to Text. If left empty, it will be dynamically set to the Data's text key.\",\n        ),\n        BoolInput(\n            name=\"clean_data\",\n            display_name=\"Basic Clean Data\",\n            value=True,\n            advanced=True,\n            info=\"Whether to clean data before converting to string.\",\n        ),\n    ]\n    outputs = [\n        Output(\n            display_name=\"Output Message\",\n            name=\"message\",\n            method=\"message_response\",\n        ),\n    ]\n\n    def _build_source(self, id_: str | None, display_name: str | None, source: str | None) -> Source:\n        source_dict = {}\n        if id_:\n            source_dict[\"id\"] = id_\n        if display_name:\n            source_dict[\"display_name\"] = display_name\n        if source:\n            # Handle case where source is a ChatOpenAI object\n            if hasattr(source, \"model_name\"):\n                source_dict[\"source\"] = source.model_name\n            elif hasattr(source, \"model\"):\n                source_dict[\"source\"] = str(source.model)\n            else:\n                source_dict[\"source\"] = str(source)\n        return Source(**source_dict)\n\n    async def message_response(self) -> Message:\n        # First convert the input to string if needed\n        text = self.convert_to_string()\n\n        # Get source properties\n        source, _, display_name, source_id = self.get_properties_from_source_component()\n\n        # Create or use existing Message object\n        if isinstance(self.input_value, Message) and not self.is_connected_to_chat_input():\n            message = self.input_value\n            # Update message properties\n            message.text = text\n            # Preserve existing session_id from the incoming message if it exists\n            existing_session_id = message.session_id\n        else:\n            message = Message(text=text)\n            existing_session_id = None\n\n        # Set message properties\n        message.sender = self.sender\n        message.sender_name = self.sender_name\n        # Preserve session_id from incoming message, or use component/graph session_id\n        message.session_id = (\n            self.session_id or existing_session_id or (self.graph.session_id if hasattr(self, \"graph\") else None) or \"\"\n        )\n        message.context_id = self.context_id\n        message.flow_id = self.graph.flow_id if hasattr(self, \"graph\") else None\n        message.properties.source = self._build_source(source_id, display_name, source)\n\n        # Store message if needed\n        if message.session_id and self.should_store_message:\n            stored_message = await self.send_message(message)\n            self.message.value = stored_message\n            message = stored_message\n\n        # Set accumulated token usage from all upstream LLM vertices.\n        # This must happen AFTER send_message() because streaming captures\n        # usage from chunks and would overwrite accumulated totals.\n        if hasattr(self, \"_vertex\") and self._vertex is not None:\n            accumulated_usage = self._vertex._accumulate_upstream_token_usage()  # noqa: SLF001\n            if accumulated_usage:\n                message.properties.usage = accumulated_usage\n                if self.should_store_message and message.get_id():\n                    message = await self._update_stored_message(message)\n                    await self._send_message_event(message, id_=message.get_id())\n\n        self.status = message\n        return message\n\n    def _serialize_data(self, data: Data) -> str:\n        \"\"\"Serialize Data object to JSON string.\"\"\"\n        # Convert data.data to JSON-serializable format\n        serializable_data = jsonable_encoder(data.data)\n        # Serialize with orjson, enabling pretty printing with indentation\n        json_bytes = orjson.dumps(serializable_data, option=orjson.OPT_INDENT_2)\n        # Convert bytes to string and wrap in Markdown code blocks\n        return \"```json\\n\" + json_bytes.decode(\"utf-8\") + \"\\n```\"\n\n    def _validate_input(self) -> None:\n        \"\"\"Validate the input data and raise ValueError if invalid.\"\"\"\n        if self.input_value is None:\n            msg = \"Input data cannot be None\"\n            raise ValueError(msg)\n        if isinstance(self.input_value, list) and not all(\n            isinstance(item, Message | Data | DataFrame | str) for item in self.input_value\n        ):\n            invalid_types = [\n                type(item).__name__\n                for item in self.input_value\n                if not isinstance(item, Message | Data | DataFrame | str)\n            ]\n            msg = f\"Expected Data or DataFrame or Message or str, got {invalid_types}\"\n            raise TypeError(msg)\n        if not isinstance(\n            self.input_value,\n            Message | Data | DataFrame | str | list | Generator | type(None),\n        ):\n            type_name = type(self.input_value).__name__\n            msg = f\"Expected Data or DataFrame or Message or str, Generator or None, got {type_name}\"\n            raise TypeError(msg)\n\n    def convert_to_string(self) -> str | Generator[Any, None, None]:\n        \"\"\"Convert input data to string with proper error handling.\"\"\"\n        self._validate_input()\n        if isinstance(self.input_value, list):\n            clean_data: bool = getattr(self, \"clean_data\", False)\n            return \"\\n\".join([safe_convert(item, clean_data=clean_data) for item in self.input_value])\n        if isinstance(self.input_value, Generator):\n            return self.input_value\n        return safe_convert(self.input_value)\n",
+                "fileTypes": [],
+                "file_path": "",
+                "password": false,
+                "name": "code",
+                "advanced": true,
+                "api_editable": false,
+                "dynamic": true,
+                "info": "",
+                "load_from_db": false,
+                "title_case": false
+              },
+              "context_id": {
+                "tool_mode": false,
+                "trace_as_input": true,
+                "trace_as_metadata": true,
+                "load_from_db": false,
+                "list": false,
+                "list_add_label": "Add More",
+                "override_skip": false,
+                "required": false,
+                "placeholder": "",
+                "show": true,
+                "name": "context_id",
+                "value": "",
+                "display_name": "Context ID",
+                "advanced": true,
+                "api_editable": false,
+                "input_types": [
+                  "Message"
+                ],
+                "dynamic": false,
+                "info": "The context ID of the chat. Adds an extra layer to the local memory.",
+                "title_case": false,
+                "track_in_telemetry": false,
+                "type": "str",
+                "_input_type": "MessageTextInput"
+              },
+              "data_template": {
+                "tool_mode": false,
+                "trace_as_input": true,
+                "trace_as_metadata": true,
+                "load_from_db": false,
+                "list": false,
+                "list_add_label": "Add More",
+                "override_skip": false,
+                "required": false,
+                "placeholder": "",
+                "show": true,
+                "name": "data_template",
+                "value": "{text}",
+                "display_name": "Data Template",
+                "advanced": true,
+                "api_editable": false,
+                "input_types": [
+                  "Message"
+                ],
+                "dynamic": false,
+                "info": "Template to convert Data to Text. If left empty, it will be dynamically set to the Data's text key.",
+                "title_case": false,
+                "track_in_telemetry": false,
+                "type": "str",
+                "_input_type": "MessageTextInput"
+              },
+              "sender": {
+                "tool_mode": false,
+                "trace_as_metadata": true,
+                "options": [
+                  "Machine",
+                  "User"
+                ],
+                "options_metadata": [],
+                "combobox": false,
+                "dialog_inputs": {},
+                "toggle": false,
+                "override_skip": false,
+                "required": false,
+                "placeholder": "",
+                "show": true,
+                "name": "sender",
+                "value": "Machine",
+                "display_name": "Sender Type",
+                "advanced": true,
+                "api_editable": false,
+                "dynamic": false,
+                "info": "Type of sender.",
+                "title_case": false,
+                "track_in_telemetry": true,
+                "external_options": {},
+                "type": "str",
+                "_input_type": "DropdownInput"
+              },
+              "sender_name": {
+                "tool_mode": false,
+                "trace_as_input": true,
+                "trace_as_metadata": true,
+                "load_from_db": false,
+                "list": false,
+                "list_add_label": "Add More",
+                "override_skip": false,
+                "required": false,
+                "placeholder": "",
+                "show": true,
+                "name": "sender_name",
+                "value": "AI",
+                "display_name": "Sender Name",
+                "advanced": true,
+                "api_editable": false,
+                "input_types": [
+                  "Message"
+                ],
+                "dynamic": false,
+                "info": "Name of the sender.",
+                "title_case": false,
+                "track_in_telemetry": false,
+                "type": "str",
+                "_input_type": "MessageTextInput"
+              },
+              "session_id": {
+                "tool_mode": false,
+                "trace_as_input": true,
+                "trace_as_metadata": true,
+                "load_from_db": false,
+                "list": false,
+                "list_add_label": "Add More",
+                "override_skip": false,
+                "required": false,
+                "placeholder": "",
+                "show": true,
+                "name": "session_id",
+                "value": "",
+                "display_name": "Session ID",
+                "advanced": true,
+                "api_editable": false,
+                "input_types": [
+                  "Message"
+                ],
+                "dynamic": false,
+                "info": "The session ID of the chat. If empty, the current session ID parameter will be used.",
+                "title_case": false,
+                "track_in_telemetry": false,
+                "type": "str",
+                "_input_type": "MessageTextInput"
+              },
+              "should_store_message": {
+                "tool_mode": false,
+                "trace_as_metadata": true,
+                "list": false,
+                "list_add_label": "Add More",
+                "override_skip": false,
+                "required": false,
+                "placeholder": "",
+                "show": true,
+                "name": "should_store_message",
+                "value": true,
+                "display_name": "Store Messages",
+                "advanced": true,
+                "api_editable": false,
+                "dynamic": false,
+                "info": "Store the message in the history.",
+                "title_case": false,
+                "track_in_telemetry": true,
+                "type": "bool",
+                "_input_type": "BoolInput"
+              }
+            },
+            "description": "Display a chat message in the Playground.",
+            "icon": "MessagesSquare",
+            "base_classes": [
+              "Message"
+            ],
+            "display_name": "Chat Output",
+            "documentation": "https://docs.langflow.org/chat-input-and-output",
+            "minimized": true,
+            "custom_fields": {},
+            "output_types": [],
+            "pinned": false,
+            "conditional_paths": [],
+            "frozen": false,
+            "outputs": [
+              {
+                "types": [
+                  "Message"
+                ],
+                "selected": "Message",
+                "name": "message",
+                "display_name": "Output Message",
+                "method": "message_response",
+                "value": "__UNDEFINED__",
+                "cache": true,
+                "allows_loop": false,
+                "group_outputs": false,
+                "tool_mode": true
+              }
+            ],
+            "field_order": [
+              "input_value",
+              "should_store_message",
+              "sender",
+              "sender_name",
+              "session_id",
+              "context_id",
+              "data_template",
+              "clean_data"
+            ],
+            "beta": false,
+            "legacy": false,
+            "edited": false,
+            "metadata": {
+              "module": "custom_components.chat_output",
+              "code_hash": "84009527d08c",
+              "dependencies": {
+                "total_dependencies": 3,
+                "dependencies": [
+                  {
+                    "name": "orjson",
+                    "version": "3.12.0"
+                  },
+                  {
+                    "name": "fastapi",
+                    "version": "0.141.1"
+                  },
+                  {
+                    "name": "lfx",
+                    "version": "1.11.5"
+                  }
+                ]
+              },
+              "flow_build_target": "1.11.1",
+              "flow_node_key": "ingestion_output"
+            },
+            "tool_mode": false,
+            "lf_version": "1.11.1"
+          },
+          "showNode": true,
+          "type": "ChatOutput",
+          "description": "Display a chat message in the Playground.",
+          "display_name": "Chat Output",
+          "selected_output": "message"
+        },
+        "dragging": false,
+        "id": "ChatOutput-4f852f8",
+        "measured": {
+          "height": 260,
+          "width": 320
+        },
+        "position": {
+          "x": 1680,
+          "y": 0
+        },
+        "selected": false,
+        "type": "genericNode"
+      }
+    ],
+    "viewport": {
+      "x": 80,
+      "y": 80,
+      "zoom": 0.55
+    }
+  },
+  "description": "파일 로더, deterministic chunker, Embedding Model, MongoDB Vector Writer가 Canvas에 분리되어 보이는 catalog 적재 Flow.",
+  "endpoint_name": "f00-catalog-file-vector-ingest",
+  "icon": null,
+  "icon_bg_color": null,
+  "id": "14ccbaaa-9364-5320-aa4a-b09f0aeb9f95",
+  "is_component": false,
+  "last_tested_version": "1.11.1",
+  "locked": false,
+  "mcp_enabled": false,
+  "name": "F00_catalog_file_vector_ingest",
+  "tags": [
+    "business-work-design",
+    "langflow-1.11.1",
+    "standalone-custom-components"
+  ],
+  "webhook": false,
+  "metadata": {
+    "flow_contract": "business-work-design/f00/v1",
+    "generated_by": "scripts/build_langflow_1_11_flows.py",
+    "langflow_version": "1.11.1",
+    "operational_readiness": "mongodb_vector_ingestion_configuration_required",
+    "required_configuration": [
+      "one catalog JSON file",
+      "Langflow Secret Global Variable MONGO_URL, prefilled business_work_design database, and canonical catalog collections",
+      "configured Langflow Embedding Model provider/model/API credential",
+      "the writer derives its runtime embedding identity and vector dimension from the connected Embedding Model",
+      "MongoDB Atlas Vector Search index"
+    ],
+    "contains_native_hitl": false,
+    "custom_sources_embedded": true,
+    "sticky_note_count": 2
+  }
+}

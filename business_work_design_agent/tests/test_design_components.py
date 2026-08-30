@@ -167,10 +167,23 @@ def seal_query_plan(plan: dict[str, Any]) -> dict[str, Any]:
     return plan
 
 
+def embedding_runtime_contract(model_id: str, dimension: int, runtime_class: str = "tests.embedding.FakeRuntime") -> dict[str, Any]:
+    signature = {
+        "schema_version": "embedding-runtime-contract/v2",
+        "runtime_class": runtime_class,
+        "model_id": model_id,
+        "dimension": dimension,
+    }
+    fingerprint = "sha256:" + hashlib.sha256(
+        json.dumps(signature, ensure_ascii=False, sort_keys=True, separators=(",", ":")).encode("utf-8")
+    ).hexdigest()
+    return {**signature, "fingerprint": fingerprint}
+
+
 def locked_query_vectors(plan: dict[str, Any], vectors: dict[str, list[float]], dimension: int) -> dict[str, Any]:
     return {
         "vectors": vectors,
-        "embedding_contract": {"model": "embed-model", "version": "v1", "dimension": dimension},
+        "embedding_contract": embedding_runtime_contract("embed-model", dimension),
         "design_scope_sha256": plan["design_scope_sha256"],
         "query_plan_sha256": plan["query_plan_sha256"],
     }
@@ -490,6 +503,13 @@ def test_query_planner_uses_only_confirmed_exact_terms(modules: dict[str, Any]) 
     assert scope["design_scope_sha256"] != result["design_scope_sha256"]
 
 
+def test_query_planner_exposes_each_output_port_on_the_canvas(modules: dict[str, Any]) -> None:
+    component = modules["20_search_query_planner"].SearchQueryPlannerComponent
+    outputs = {output.name: output for output in component.outputs}
+    assert set(outputs) == {"design_scope", "query_plan", "approved_skill_registry"}
+    assert all(output.group_outputs is True for output in outputs.values())
+
+
 def test_retriever_application_rrf_filters_scope_acl_and_preserves_trace(monkeypatch: pytest.MonkeyPatch, modules: dict[str, Any]) -> None:
     module = modules["21_catalog_hybrid_retriever"]
     plan = modules["20_search_query_planner"].build_search_query_plan(
@@ -665,7 +685,7 @@ def test_retriever_executes_every_query_vector_in_application_and_native_modes(
         def find_one(self, *args: Any, **kwargs: Any) -> dict[str, Any]:
             return {
                 "snapshot_id": "snap-1",
-                "embedding_contract": {"model": "embed-model", "version": "v1", "dimension": 2},
+                "embedding_contract": embedding_runtime_contract("embed-model", 2),
             }
 
     class ChunkCollection:
@@ -709,7 +729,7 @@ def test_retriever_executes_every_query_vector_in_application_and_native_modes(
         acl=acl(),
         query_plan=plan,
         vectors={"q-purpose": [0.1, 0.2], "q-risk": [0.3, 0.4]},
-        query_embedding_contract={"model": "embed-model", "version": "v1", "dimension": 2},
+        query_embedding_contract=embedding_runtime_contract("embed-model", 2),
         lexical_index_name="catalog_lexical",
         vector_index_name="catalog_vector",
         source_limit=5,
@@ -724,6 +744,11 @@ def test_retriever_executes_every_query_vector_in_application_and_native_modes(
     }
     module._retrieve_from_mongodb(provider_mode="native_rank_fusion", **common)
     assert native_vector_pipeline_count == [2]
+    mismatch = module._retrieve_from_mongodb(
+        provider_mode="application_rrf",
+        **{**common, "query_embedding_contract": embedding_runtime_contract("different-model", 2)},
+    )
+    assert mismatch["contract_error"] == "QUERY_EMBEDDING_CONTRACT_MISMATCH"
 
 
 def test_retriever_vector_boundary_parent_enrichment_and_tie_breakers(
@@ -732,17 +757,23 @@ def test_retriever_vector_boundary_parent_enrichment_and_tie_breakers(
 ) -> None:
     module = modules["21_catalog_hybrid_retriever"]
     valid_vectors, contract = module._query_vectors(
-        {"vectors": {"q-1": [0.1, 0.2]}, "embedding_contract": {"model": "m", "version": "v", "dimension": 2}}
+        {"vectors": {"q-1": [0.1, 0.2]}, "embedding_contract": embedding_runtime_contract("m", 2)}
     )
     assert valid_vectors == {"q-1": [0.1, 0.2]}
     assert contract["dimension"] == 2
+    tampered_contract = embedding_runtime_contract("m", 2)
+    tampered_contract["model_id"] = "another-model"
+    with pytest.raises(ValueError, match="EMBEDDING_RUNTIME_CONTRACT_FINGERPRINT_INVALID"):
+        module._query_vectors({"vectors": {"q-1": [0.1, 0.2]}, "embedding_contract": tampered_contract})
+    with pytest.raises(ValueError, match="EMBEDDING_RUNTIME_CONTRACT_INVALID"):
+        module._query_vectors({"vectors": {"q-1": [0.1, 0.2]}, "embedding_contract": {"dimension": 2}})
     with pytest.raises(ValueError, match="VECTOR_NUMERIC_INVALID"):
         module._query_vectors(
-            {"vectors": {"q-1": [True, 0.2]}, "embedding_contract": {"model": "m", "version": "v", "dimension": 2}}
+            {"vectors": {"q-1": [True, 0.2]}, "embedding_contract": embedding_runtime_contract("m", 2)}
         )
     with pytest.raises(ValueError, match="VECTOR_DIMENSION_MISMATCH"):
         module._query_vectors(
-            {"vectors": {"q-1": [0.1, 0.2]}, "embedding_contract": {"model": "m", "version": "v", "dimension": 3}}
+            {"vectors": {"q-1": [0.1, 0.2]}, "embedding_contract": embedding_runtime_contract("m", 3)}
         )
 
     exact_queries: list[dict[str, Any]] = []
@@ -774,7 +805,7 @@ def test_retriever_vector_boundary_parent_enrichment_and_tie_breakers(
 
     class PointerCollection:
         def find_one(self, *args: Any, **kwargs: Any) -> dict[str, Any]:
-            return {"snapshot_id": "snap-1", "embedding_contract": {"model": "m", "version": "v", "dimension": 2}}
+            return {"snapshot_id": "snap-1", "embedding_contract": embedding_runtime_contract("m", 2)}
 
     class ChunkCollection:
         def find(self, query: dict[str, Any], *args: Any, **kwargs: Any) -> list[dict[str, Any]]:
@@ -823,7 +854,7 @@ def test_retriever_vector_boundary_parent_enrichment_and_tie_breakers(
         acl=acl(),
         query_plan={"queries": [{"query_id": "q-1", "kind": "exact", "text": "Ｏｕｔｌｏｏｋ", "expected_asset_types": ["component"]}]},
         vectors={"q-1": [0.1, 0.2]},
-        query_embedding_contract={"model": "m", "version": "v", "dimension": 2},
+        query_embedding_contract=embedding_runtime_contract("m", 2),
         provider_mode="application_rrf",
         lexical_index_name="catalog_lexical",
         vector_index_name="catalog_vector",

@@ -28,10 +28,10 @@
 | `SECRET_INPUTS` | secret 이름과 사용처 | `mongodb_uri` |
 | `TIMEOUT_LIMITS` | network/DB timeout과 batch 상한 | `serverSelection=5s, limit<=100` |
 | `ERROR_CODES` | 예측 가능한 실패 목록 | `CATALOG_NOT_READY`, `ACL_CONTEXT_MISSING` |
-| `DEPLOYMENT_MODE` | inline bounded 또는 worker adapter | `worker_adapter` |
+| `DEPLOYMENT_MODE` | 실행 방식 | `inline_bounded` |
 | `PROMPT_PACK` | 아래 그룹별 추가문 | `CCP-SEARCH-SKILL` |
 
-`ONE_RESPONSIBILITY`에 `그리고`, `동시에`, `전체 pipeline`이 반복되면 Component를 나눠야 한다. 특히 catalog `00`~`09`/`33`, work `10`~`18`/`27`/`28`/`34`/`35`, search·blueprint `19`~`26`/`29`, report `30`~`32`를 한 파일에 여러 Component subclass로 묶지 않는다.
+`ONE_RESPONSIBILITY`에 `그리고`, `동시에`, `전체 pipeline`이 반복되면 Component를 나눈다. F00도 예외가 아니며 파일 정규화(`00`), 결정론적 청킹(`01`), embedding·MongoDB 게시(`02`)를 서로 다른 Standalone Component로 구현한다. work `10`~`18`/`27`/`28`/`34`/`35`/`39`~`43`, search·blueprint `19`~`26`/`29`/`36`, report `30`~`32` 역시 한 파일에 여러 Component subclass로 묶지 않는다. 이 중 현행 F10 Canvas는 `42`·`39`~`41`·`43`을 사용하며 `14`·`15`·`27`·`28`·`34`·`35`와 Answer Form/HITL API 연동은 독립 검증 또는 과거 재사용용 historical source/연동이다.
 
 ---
 
@@ -126,78 +126,72 @@ Langflow OSS 1.11.1에서 실행되는 Standalone Custom Component 하나를 작
 
 ## 3. 그룹별 prompt pack
 
-### 3.1 `CCP-CATALOG`: `00`~`09`/`33` catalog pipeline와 worker adapter
+### 3.1 `CCP-CATALOG`: `00`~`02` 파일 vector ingest
 
-한 번의 요청에서 아래 stage 중 하나만 고른다.
+Catalog ingest는 아래 세 Standalone Component를 서로 다른 생성 요청으로 만든다. built-in `Embedding Model`은 새 Custom Component로 생성하지 않는다.
 
-| stage | 파일 | 한 가지 책임 |
-| --- | --- | --- |
-| intake | `00_catalog_file_intake.py` | 파일·tenant·hash 검증과 job 생성 |
-| secret scan | `01_catalog_secret_scanner.py` | DLP 결과와 quarantine/redaction 상태 기록 |
-| parse | `02_catalog_stream_parser.py` | bounded parse와 durable cursor 저장 |
-| normalize | `03_catalog_record_normalizer.py` | record schema·type·날짜·숫자 정규화 |
-| text build | `04_catalog_embedding_text_builder.py` | redacted canonical search/embedding text 생성 |
-| embedding | `05_catalog_embedding_batcher.py` | 변경 chunk만 bounded provider 호출 |
-| snapshot write | `06_mongodb_snapshot_writer.py` | inactive snapshot bulk upsert |
-| validate | `07_catalog_snapshot_validator.py` | count/hash/vector/index 검증 |
-| activate | `08_catalog_snapshot_activator.py` | 승인 snapshot pointer 원자 전환 |
-| worker client | `09_catalog_pipeline_worker_client.py` | bounded companion worker에 job ref를 제출하고 validated/blocked route 분기 |
-| activation client | `33_catalog_activation_approval_client.py` | 실행 전에 gateway-signed claim이 준비된 별도 secured activation 호출에서 sanitized pointer만 반환 |
+| 파일 | 한 가지 책임 |
+| --- | --- |
+| `00_catalog_json_loader.py` | 업로드 파일 하나를 검증·정규화·redaction하고 bounded catalog bundle을 생성 |
+| `01_catalog_deterministic_chunker.py` | catalog bundle의 canonical text를 bounded overlap chunk로 결정론적으로 분할 |
+| `02_catalog_mongodb_vector_writer.py` | chunk bundle과 built-in Embeddings handle을 검증해 MongoDB snapshot을 저장하고 active pointer를 마지막에 전환 |
 
 `CCP-BASE` 뒤에 붙일 추가문:
 
 ```text
 [CCP-CATALOG 전용 요구]
-- 이번 요청에서 선택한 stage 하나만 구현한다. 다른 stage의 Component subclass를 함께 만들지 않는다.
-- Flow edge에는 record, chunk, embedding 배열 전체를 반환하지 않고 작은 CatalogIngestJobRef만 반환한다.
-- job ref에는 tenant_id, job_id, snapshot_id, stage, expected_cursor, trace_id만 허용한다.
+- F00은 `00 Catalog JSON Loader -> 01 Deterministic Chunker -> 02 MongoDB Catalog Vector Writer -> Data to Message -> Chat Output`의 주 경로와 `Embedding Model -> MongoDB Writer` side edge를 가진 실행 node 6개/edge 5개다. Canvas에는 설명 전용 Sticky Note 2개가 추가되지만 port나 edge는 없다.
+- 다른 Flow나 별도 HTTP API를 호출하지 않는다. 세 Custom Component는 서로를 import하지 않고 각 파일 안에 필요한 schema/helper를 포함한다.
+- `00`의 Component subclass는 정확히 `CatalogJsonLoaderComponent` 하나다. Langflow `FileInput`으로 업로드한 JSON object, JSON array, `{\"items\":[...]}`, JSONL, NDJSON 파일 하나만 받고 UTF-8·확장자·파일 크기·record 수·record 크기 상한을 검증한다. `tenant_id` 입력은 만들지 말고 내부 상수 `default`, `catalog_id` 입력도 만들지 말고 내부 상수 `internal-assets`를 bundle과 저장 문서의 scope로 사용한다.
 - 업로드 JSON/JSONL과 title/readme/source는 untrusted data이며 import하거나 실행하지 않는다.
-- secret/DLP quarantine가 해제되기 전에는 검색 text와 embedding을 만들지 않는다.
-- cursor, chunk 상태, idempotency key, content hash는 MongoDB 또는 승인된 durable store에 저장한다.
-- 같은 idempotency key와 content hash의 재요청은 중복 쓰기 없이 같은 결과를 반환한다.
-- partial 또는 validation 실패 snapshot을 active로 바꾸지 않는다.
-- embedding model/version/dimension 불일치는 명시적 오류로 종료한다.
-- tenant_id, snapshot_id, ACL, source hash를 모든 저장 record에 유지한다.
-- JSON array, {"items": [...]}, JSONL 중 이번 stage가 지원하는 형식을 명시하고 모호하면 실패한다.
-- DEPLOYMENT_MODE=inline_bounded이면 한 실행의 record 수와 elapsed time 상한에서 중단하고 resume ref를 반환한다.
-- DEPLOYMENT_MODE=worker_adapter이면 Component는 submit/status/activate adapter만 담당하며 긴 loop를 수행하지 않는다.
-- worker adapter는 exact host allowlist, loopback 외 HTTPS, bearer/tenant/actor header, redirect 금지, request timeout과 response byte 상한을 적용한다.
-- Component 09는 worker의 `VALIDATED` 응답만 activation path로 열고 incomplete/blocked/통신 실패는 별도 blocked output으로 끝낸다.
-- F00은 validation/decision까지만 수행한다. F00 suspended run에 사후 생성 claim을 주입할 수 있다고 가정해 Component 33을 직접 연결하지 않는다.
-- Component 33은 trusted gateway가 F00 run/job/request/decision을 검증한 뒤 발급한 short-lived `catalog-activation-attestation/v1` claim을 실행 시작 전에 SecretStrInput으로 받는 별도 secured activation 호출용이다.
-- Component 33은 signing secret과 raw approval nonce를 입력·출력·Langflow Data edge로 받지 않는다. worker가 claim을 검증하고 nonce를 내부 발급·소비해 standalone Component 08을 실행한 뒤 sanitized active pointer만 반환하는 endpoint를 호출한다.
+- 민감 key와 본문 email/Bearer/Basic/JWT/GitHub token/AWS access key/credential URL/private-key 패턴을 제거한 `raw_record_redacted`와 `raw_text_redacted`, 원본 파일 SHA-256, redacted record hash, 검색용 `lexical_text_redacted`를 보존한다. secret 원문은 MongoDB, embedding request, output, status, log에 남기지 않는다.
+- `00`은 정규화된 parent record, canonical text, source hash와 identity를 bounded `catalog_bundle: Data`로 출력하며 network 또는 MongoDB를 호출하지 않는다.
+- `01`의 Component subclass는 정확히 `CatalogDeterministicChunkerComponent` 하나다. `catalog_bundle: Data`, chunk size/overlap, record별·전체 chunk 상한을 받고 canonical 검색 text를 bounded overlap chunk로 나누며 각 chunk의 입력 hash를 만든다. 잘못된 identity/hash/schema는 차단하고 network 또는 MongoDB를 호출하지 않는다.
+- `01`은 내부 고정된 `tenant_id=default`, `catalog_id=internal-assets`, snapshot seed, `asset_id`, `version`, `asset_type`, ACL, 기술 계약, source hash, parent records와 chunks를 bounded `chunk_bundle: Data`로 출력한다.
+- `02`의 Component subclass는 정확히 `CatalogMongoDBVectorWriterComponent` 하나다. `chunk_bundle: Data`와 `HandleInput(input_types=["Embeddings"])`을 받고 built-in Embedding Model에 청크 1개씩을 순차 호출해 vector를 생성한다. 첫 호출 전에는 대기하지 않고 이후 호출 간에는 최소 1초의 interval을 적용한다.
+- model/provider credential과 모델 선택은 built-in Embedding Model에만 설정하고 Writer에는 model/version/dimension 입력을 만들지 않는다. built-in node의 advanced `Dimensions`는 provider가 output-size override를 의도적으로 지원할 때만 쓰는 선택값이므로 기본적으로 비워 둔다. 이는 Writer 저장 계약이 아니며 runtime은 반환 vector의 실제 길이를 사용한다.
+- Writer는 `schema_version`, runtime class, configured `available_models` identity 또는 지원된 runtime metadata에서 해석한 model ID, 첫 vector의 실제 dimension, 이 값을 묶은 SHA-256 `fingerprint`로 `embedding-runtime-contract/v2` 계약을 만든다. model ID를 해석할 수 없거나 finite vector/계약이 일치하지 않으면 명시적 오류로 종료한다.
+- MongoDB 핵심 collection은 `catalog_assets`, `catalog_asset_chunks`, `catalog_active_pointers`다. parent/chunk는 deterministic `_id`로 bounded bulk upsert한다.
+- F20/F90 호환성을 위해 vector는 `catalog_asset_chunks.embedding.vector`에, runtime v2 contract는 동일 nested embedding metadata와 active pointer에 저장한다.
+- 모든 embedding과 parent/chunk 저장 건수를 확인한 뒤에만 `catalog_active_pointers`를 마지막에 갱신한다. 어느 단계든 실패하면 기존 pointer를 유지한다.
+- 같은 내부 scope·file hash·runtime v2/chunk contract는 같은 snapshot ID와 document ID를 만들어 재실행이 중복 자산을 만들지 않게 한다.
+- Writer Canvas의 **테스트 실행 (저장하지 않음)**은 내부 `dry_run=true`에서 전달받은 loader/chunker bundle의 schema·hash·count만 검증하고 Embeddings handle 또는 MongoDB를 호출하지 않는다. 따라서 output은 `embedding_contract.state=DEFERRED`, `snapshot_id=null`이며 live contract를 만들거나 주장하지 않는다.
+- `02`의 정상 출력은 `ingestion_result: Data` 하나이며 `ok`, `status`, `tenant_id`, `catalog_id`, `snapshot_id`, source/ingest hash, record/chunk/vector count, runtime v2 contract만 포함한다. 원문과 vector 전체는 출력하지 않는다.
 
 [CCP-CATALOG 추가 테스트]
-- 2만~3만 줄 상당 입력에서 bounded memory 또는 worker submit 계약
-- malformed record quarantine와 원문 index 보존
-- 중간 장애 후 expected_cursor부터 재개
-- 같은 파일 재요청 idempotency
-- secret 탐지 후 indexing 차단
-- incomplete snapshot 활성화 차단
-- embedding dimension mismatch
-- tenant가 다른 job/snapshot 접근 차단
-- worker redirect/host allowlist/response-size/auth 실패
-- activation 결과에 raw nonce·token·approval hash가 노출되지 않음
+- JSON object/array/items wrapper/JSONL/NDJSON 입력과 malformed/non-UTF-8/초과 입력 차단
+- 2만~3만 줄 상당 입력에서 file/record/chunk/batch 상한 준수
+- 민감 key·token·email redaction과 안전한 원문/hash 보존
+- loader→chunker→writer 각 edge의 닫힌 schema, identity/hash 보존과 최대 payload 제한
+- 같은 파일 재요청의 deterministic snapshot/document ID
+- embedding 또는 MongoDB 중간 장애 시 기존 active pointer 유지
+- model ID 해석 실패, runtime fingerprint/dimension mismatch
+- record의 tenant override와 잘못된 ACL 차단
+- built-in Embeddings 객체의 batch 실패·빈 결과·NaN/Inf·count mismatch 차단
+- 테스트 실행(`dry_run=true`)에서 Embeddings handle/MongoDB 호출 0건
+- active pointer 갱신이 parent/chunk write와 count 검증보다 항상 뒤에 실행됨
 ```
 
-### 3.2 `CCP-WORK`: `10`~`18`/`27`/`28`/`34`~`36` WorkDefinition/HITL
+### 3.2 `CCP-WORK`: `10`~`18`/`27`/`28`/`34`/`35`/`39`~`43` WorkDefinition/HITL
 
 `CCP-BASE` 뒤에 붙일 추가문:
 
 ```text
 [CCP-WORK 전용 요구]
-- 이번 Component는 envelope, normalize, completeness, question batch, answer load, answer merge, graph normalize, preview hash, semantic store, clarification route/join, runtime state store, result gate, Playground command route 중 하나만 책임진다.
+- 이번 Component는 envelope, normalize, completeness, question batch, native clarification answer gate, answer commit, review entry joiner, terminal result message, graph normalize, preview hash, semantic store, clarification route/join, runtime state store, result gate 중 하나만 책임진다.
+- 현행 F10 Canvas의 보완 경로는 최대 3회 `12 → 질문 LLM → 13 → 42 → 39`이고, `42`는 `graph.request_pause`의 `kind=node_input`과 question별 `schema` field로 Playground 답변 카드 및 `Submit Answers`/`추가 입력 건너뛰기`/`Cancel` branch를 만든다. `39`는 native 제출을 감사 저장한 뒤 검증·병합·CAS·재평가하고, 명시적 skip은 audit·unresolved 기록 후 review로 보낸다. `40`은 9개 review entry 중 하나만 결합한다. built-in `Human Input`은 최종 `Approve`/`Reject`/`Cancel` 승인 단계 하나이고, `43`은 선택되지 않은 최종 상태 저장 branch를 즉시 조건부 제외한다. `41`은 event-list로 terminal 결과를 표시한다. F11/Playground 분리 Flow와 4차 질문은 현재 경로가 아니다. `14`·`15`·`27`·`28`·`34`·`35` 및 Answer Form/HITL API는 historical standalone source 또는 연동으로 취급하고 현행 F10 Canvas 연결을 요구하지 않는다.
 - LLM 응답을 신뢰하지 말고 JSON Schema와 상태 전이 규칙을 결정론적으로 검증한다.
 - 모든 변경에 expected_revision을 요구하고 불일치는 REVISION_CONFLICT로 차단한다.
 - confirmed, inferred, unknown, conflicting 상태와 evidence_turn_ids를 보존한다.
-- 질문을 만드는 책임이면 최대 3개이고 이미 confirmed인 항목을 다시 묻지 않는다.
+- 질문을 만드는 책임이면 1·2차에는 최대 3개, 마지막 3차에는 최대 4개의 질문을 만들며 이미 confirmed인 항목을 다시 묻지 않는다. 네 번째 HITL 회차는 만들지 않는다.
+- 1차 질문 batch가 실제로 `WAITING_ANSWER`가 되는 경우에는 revision 0 WorkDefinition을 batch identity와 동일하게 idempotent하게 준비한다. 질문이 없거나 2·3차 batch이면 초기 WorkDefinition을 새로 만들지 않는다.
 - 같은 batch_id와 idempotency key의 중복 답변은 같은 결과를 반환한다.
-- Human Input action과 자유서술 answer payload를 서로 다른 channel로 검증한다.
+- native clarification answer gate 책임이면 안전한 schema field 이름과 원래 `question_id`의 결정론적 mapping을 보존하고, resume values에서 `native-clarification-answer-submission/v1`의 identity, `request_id`, `action_id`, `{question_id,value,evidence_turn_id?}` 배열을 만든다. `skip_additional_input`은 빈 answer submission이 아니라 `native-clarification-skip-submission/v1` event로 만들고 현재 card의 모든 `question_id`를 `skipped_question_ids`에 보존한다. Submit·Skip·Cancel branch는 서로 배타적으로 분리하며, Skip과 Cancel은 answer submission을 내보내지 않는다.
+- F10 intake UI를 만들 때 업무 원문과 추가 설계 프롬프트는 별도 Text Input/Message 입력으로 받고, 화면에는 팀 명·사번만 노출한다. `session_id`는 사용자 입력으로 만들지 않고 Langflow graph runtime session을 사용해 native HITL pending job과 일치시킨다. 현재 공용 catalog scope는 내부 `default`이며 팀 명은 표시·감사 메타데이터다.
 - request envelope 책임이면 request/additional prompt의 credential assignment, bearer/basic token, JWT, private key, credential URL을 저장 전에 차단하고 값은 error/trace에 반향하지 않는다.
-- answer loader/API 책임이면 text/single_choice/single_choice_with_text/multi_choice/boolean/number를 실제 JSON 타입과 choice 계약대로 검증하고, immutable answer_deadline_at과 submitted_at을 사용한다.
-- runtime state store 책임이면 work_runtime_states/work_runtime_events를 semantic WorkDefinition 저장소와 분리하고 semantic revision을 증가시키지 않는다. WAITING_ANSWER, MERGING, READY_FOR_REVIEW, WAITING_APPROVAL, CANCELLED, BLOCKED와 새 semantic revision의 MERGING reconciliation checkpoint를 허용 전이로 검증한다. 성공 envelope에는 top-level work_definition을 포함하고 success_path와 blocked_path를 group output으로 분리해 실패 payload가 Human Input/Loader 또는 다음 의미 단계로 진행하지 못하게 한다.
-- result gate 책임이면 `payload.get("ok") is True`와 선택적 점 표기 required field를 모두 만족한 원 envelope만 success_path로 보낸다. `ok=false`와 구조화 error는 원 failure envelope를 보존하고, 누락·malformed·필수 field 누락은 canonical BLOCKED envelope로 정규화한다. Data 객체나 빈 dict의 truthiness를 성공으로 추정하지 않고 선택하지 않은 group output을 stop한다.
-- Playground command router 책임이면 `object_pairs_hook` 기반 strict JSON parser로 duplicate key, nested command, unknown top-level field와 non-finite number를 거절한다. command는 start, submit_answers, approve, reject, cancel만 허용하고 request_changes를 공개 route로 만들지 않는다. command별 closed field set을 적용하고 선택한 group output 하나 외에는 모두 stop한다.
+- native answer commit 책임이면 text/single_choice/single_choice_with_text/multi_choice/boolean/number를 실제 JSON 타입과 choice 계약대로 검증하고, immutable answer_deadline_at과 submitted_at을 사용한다. Component 42의 native 제출을 `clarification_batches` 감사 기록으로 먼저 남긴 뒤 canonical 답변으로 정규화·병합·CAS·재평가한다. `skip_additional_input`은 같은 identity/deadline/CAS/idempotency를 검증해 별도 `work-clarification-skip/v1` audit을 남기고 WorkDefinition `clarification_skip_history`와 질문별 `unresolved`/`unknown` provenance를 기록한 뒤 `READY_FOR_REVIEW`/review path만 연다. 답변을 추정하지 않고, 취소 또는 4차 질문으로 바꾸지 않는다.
+- historical runtime state store 책임이면 work_runtime_states/work_runtime_events를 semantic WorkDefinition 저장소와 분리하고 semantic revision을 증가시키지 않는다. WAITING_ANSWER, MERGING, READY_FOR_REVIEW, WAITING_APPROVAL, CANCELLED, BLOCKED와 새 semantic revision의 MERGING reconciliation checkpoint를 허용 전이로 검증한다. 성공 envelope에는 top-level work_definition을 포함하고 success_path와 blocked_path를 group output으로 분리해 실패 payload가 Component 42/39 보완 경로 또는 다음 의미 단계로 진행하지 못하게 한다.
+- historical result gate 책임이면 `payload.get("ok") is True`와 선택적 점 표기 required field를 모두 만족한 원 envelope만 success_path로 보낸다. `ok=false`와 구조화 error는 원 failure envelope를 보존하고, 누락·malformed·필수 field 누락은 canonical BLOCKED envelope로 정규화한다. Data 객체나 빈 dict의 truthiness를 성공으로 추정하지 않고 선택하지 않은 group output을 stop한다.
 - self.ctx나 Agent memory를 영구 상태로 사용하지 않는다.
 - canonical preview hash는 UI 좌표, timestamp, display 순서처럼 의미와 무관한 필드를 제외한다.
 - preview_hash가 바뀌면 기존 approved_hash를 무효화한다.
@@ -212,21 +206,27 @@ Langflow OSS 1.11.1에서 실행되는 Standalone Custom Component 하나를 작
 - decision branch label 누락
 - 의도하지 않은 cycle과 unreachable node
 - preview 변경 후 재승인 요구
-- F10 native HITL과 F11 playground channel 혼용 차단
+- F10 요청·WorkDefinition·질문 batch·native answer gate/commit이 `channel_mode=native_hitl`만 허용하는지 확인
 - deadline 전 제출 후 처리 시점이 지나도 정상 병합되고 deadline 후 제출은 거절됨
-- runtime persistence 실패 output이 Human Input/Answer Loader에 연결되지 않음
-- result gate가 `ok=true`+필수 payload만 성공으로 보내고 `ok=false`, 누락된 `ok`, 필수 field 누락, malformed JSON을 blocked로 보내며 원 구조화 오류를 보존함
-- Playground router가 duplicate key, nested/unknown field, 비허용 command와 non-finite JSON을 blocked로 보내고 다섯 공개 route 중 하나만 엶
+- native answer gate의 question별 schema field, resume mapping, Submit/Skip/Cancel 상호 배타 분기와 필수 답변 검증
+- explicit skip이 현재 card의 전체 question ID만 허용하고, idempotent audit·unresolved/unknown provenance·review path를 남기며 answer value·CANCELLED·4차 HITL 회차를 만들지 않음
+- historical runtime persistence 실패 output이 Component 42/39 보완 경로에 연결되지 않음
+- historical result gate가 `ok=true`+필수 payload만 성공으로 보내고 `ok=false`, 누락된 `ok`, 필수 field 누락, malformed JSON을 blocked로 보내며 원 구조화 오류를 보존함
 ```
 
-### 3.3 `CCP-SEARCH-SKILL`: `19`~`22`/`29` Skill·hybrid retrieval
+### 3.3 `CCP-SEARCH-SKILL`: `19`~`22`/`29`/`36` Skill·hybrid retrieval·승인 호출 조립
 
 `CCP-BASE` 뒤에 붙일 추가문:
 
 ```text
 [CCP-SEARCH-SKILL 전용 요구]
-- 이번 Component는 Skill resolve, query plan, hybrid retrieve, candidate context build 중 하나만 책임진다.
+- 이번 Component는 승인 설계 invocation load, Skill resolve, query plan, hybrid retrieve, candidate context build 중 하나만 책임진다.
+- 승인 설계 invocation loader 책임이면 F10의 `APPROVED` receipt와 원 요청 envelope는 identity hint로만 사용하고, MongoDB canonical `APPROVED` WorkDefinition을 다시 읽어 revision·approved hash·owner/session/channel을 재검증한다. 인증 subject는 owner와 정확히 일치해야 하며 인증 group은 bounded ACL projection으로만 사용한다.
+- 같은 loader가 tenant의 `catalog_active_pointers`와 `status=active` Skill registry를 MongoDB에서 읽어 bounded `agent-design-invocation/v1` 하나를 만든다. caller가 넘긴 WorkDefinition, snapshot 또는 Skill 객체를 권위 데이터로 사용하지 않는다.
+- loader 성공 결과만 F10의 Langflow 1.11.1 `Run Flow` direct mode(`tool_mode=false`)에 연결하고, 실패 output은 child 호출 없이 종료한다. 다른 Flow의 HTTP API를 호출하지 않는다.
 - query planner는 승인 WorkDefinition, tenant/ACL, active snapshot, 별도 추가 설계 프롬프트를 `design_scope_sha256`/`query_plan_sha256`으로 고정한다. Skill/Blueprint 단계는 design scope canonical hash를, Retriever는 query plan canonical hash와 query vector의 두 lock을 재검증하며 embedding 결과도 두 lock을 보존한다.
+- `29_search_query_embedding_batcher.py` 책임이면 `query_plan: Data`와 built-in `Embeddings` handle을 받고 query ID 순서를 보존해 vector를 만든다. HTTP endpoint/token/model/version/dimension 입력을 만들지 않는다. runtime class·configured `available_models` identity 또는 지원된 runtime metadata model ID·첫 vector dimension·fingerprint로 v2 contract를 만들고, F00 active pointer와 완전히 같지 않으면 Retriever가 fail-closed 하게 한다.
+- F00/F20/F90의 built-in Embedding Model에는 같은 승인 provider/model을 설정한다. advanced `Dimensions`는 provider output-size override가 의도적으로 필요한 경우만 설정하며 Writer/Component 29의 저장·검색 계약이 아니다.
 - Retriever의 top-level retrieval trace에는 tenant_id, snapshot_id, work_definition_id, 정수 work_definition_revision, approved_hash, design_scope_sha256, query_plan_sha256를 모두 고정한다. context builder는 기존 trace 값이 top-level 검색 결과와 하나라도 다르면 차단하고 같은 lock으로 trace를 완성한다.
 - 승인 Skill context를 추가 설계 프롬프트나 사용자 입력으로 재사용하지 않는다.
 - active snapshot과 tenant/ACL filter를 후보 생성 전에 적용하고 rerank 직전에 다시 검증한다.
@@ -247,6 +247,8 @@ Langflow OSS 1.11.1에서 실행되는 Standalone Custom Component 하나를 작
 [CCP-SEARCH-SKILL 추가 테스트]
 - ACL leakage 0건과 tenant 교차 접근 차단
 - active snapshot 외 결과 차단
+- F00 active pointer와 F20/F90 query runtime v2 contract의 runtime_class/model_id/dimension/fingerprint 완전 일치, 하나라도 다르면 fail-closed
+- configured model identity를 해석하지 못한 Embeddings runtime 차단
 - exact/lexical/vector/fusion 각각의 결과와 trace
 - unsupported provider_mode readiness 실패
 - catalog에 없는 asset ID 차단
@@ -304,7 +306,7 @@ Langflow OSS 1.11.1에서 실행되는 Standalone Custom Component 하나를 작
 - 이 문서의 CCP-BASE와 node group에 해당하는 prompt pack을 고정 constant로 사용한다.
 - node 책임, input/output, secret, dependency, timeout, error code가 빠지면 INCOMPLETE_GENERATION_CONTRACT로 실패한다.
 - implementation_source가 new_standalone_component가 아니면 PROMPT_NOT_ALLOWED_FOR_SOURCE로 실패한다.
-- 전체 처리 시 신규 node가 0개여도 blueprint와 빈 generation_requests를 정상 반환하고, 32개를 넘으면 GENERATION_REQUEST_LIMIT_EXCEEDED로 실패한다.
+- 전체 처리 시 신규 node가 0개여도 blueprint와 빈 generation_requests를 정상 반환하고, 33개를 넘으면 GENERATION_REQUEST_LIMIT_EXCEEDED로 실패한다.
 - 한 요청에는 파일 하나와 Component subclass 하나만 들어가도록 검증한다.
 - 결과에 template_version, component_filename, class_name, request_text, prompt_sha256를 반환한다.
 - canonical UTF-8 LF text를 hash해 같은 입력에 같은 prompt_sha256를 만든다.
@@ -372,40 +374,37 @@ Langflow OSS 1.11.1에서 실행되는 Standalone Custom Component 하나를 작
 
 ## 4. Component별 prompt pack 매핑
 
-현재 구현 inventory는 Standalone Component 37개다. 아래 표의 각 행은 한 번의 생성 요청에서 하나의 `.py`만 만들도록 사용한다.
+현재 구현 inventory는 Standalone Component 34개다. 아래 표의 각 행은 한 번의 생성 요청에서 하나의 `.py`만 만들도록 사용한다. `historical unused` 표시는 source가 삭제된 것이 아니라 현행 compact F10 Canvas에 배치되지 않았다는 뜻이다.
 
 | 파일 | prompt pack | 생성 요청에서 특히 채울 값 |
 | --- | --- | --- |
-| `00_catalog_file_intake.py` | `CCP-CATALOG` | FileInput 제한, 원본 store ref, max size |
-| `01_catalog_secret_scanner.py` | `CCP-CATALOG` | DLP provider, quarantine code, redaction policy |
-| `02_catalog_stream_parser.py` | `CCP-CATALOG` | JSON wrapper, JSONL, cursor, chunk size |
-| `03_catalog_record_normalizer.py` | `CCP-CATALOG` | required/optional field, unknown field 보존 |
-| `04_catalog_embedding_text_builder.py` | `CCP-CATALOG` | canonical field order, chunk policy, redaction |
-| `05_catalog_embedding_batcher.py` | `CCP-CATALOG` | provider, model, dimension, batch/rate limit |
-| `06_mongodb_snapshot_writer.py` | `CCP-CATALOG` | collection, unique key, bulk upsert policy |
-| `07_catalog_snapshot_validator.py` | `CCP-CATALOG` | count/hash/vector/index acceptance |
-| `08_catalog_snapshot_activator.py` | `CCP-CATALOG` | admin approval ref, atomic pointer, rollback |
-| `09_catalog_pipeline_worker_client.py` | `CCP-CATALOG` | worker URL/host allowlist/bearer, whole-job timeout, validated/blocked route |
-| `33_catalog_activation_approval_client.py` | `CCP-CATALOG` | pre-issued signed attestation, 별도 secured activation, sanitized active pointer |
+| `00_catalog_json_loader.py` | `CCP-CATALOG` | FileInput 제한, JSON/JSONL 정규화·redaction, 내부 고정 `default`/`internal-assets` scope, bounded catalog bundle |
+| `01_catalog_deterministic_chunker.py` | `CCP-CATALOG` | catalog bundle schema/hash, chunk size/overlap, record별·전체 chunk 상한 |
+| `02_catalog_mongodb_vector_writer.py` | `CCP-CATALOG` | Embeddings handle, MongoDB parent/chunk/pointer, nested vector와 runtime v2 contract |
 | `10_work_request_envelope.py` | `CCP-WORK` | 원문 보존, tenant/session, size limit |
 | `11_work_definition_normalizer.py` | `CCP-WORK` | schema version, stable ID, provenance |
 | `12_work_completeness_evaluator.py` | `CCP-WORK` | blocking path, risk rule, completeness threshold |
 | `13_clarification_batch_builder.py` | `CCP-WORK` | 최대 질문 수, target path, answer deadline |
-| `14_work_answer_loader.py` | `CCP-WORK` | F10/F11 channel, batch/revision, strict answer type/deadline 검증 |
-| `15_work_answer_merger.py` | `CCP-WORK` | merge rule, conflict rule, idempotency |
+| `14_work_answer_loader.py` | `CCP-WORK` | historical unused; batch/revision, strict answer type/deadline 검증 |
+| `15_work_answer_merger.py` | `CCP-WORK` | historical unused; merge rule, conflict rule, idempotency |
 | `16_work_graph_normalizer.py` | `CCP-WORK` | node/edge schema, cycle policy |
 | `17_work_preview_hasher.py` | `CCP-WORK` | canonical field와 제외 field |
-| `18_work_definition_store.py` | `CCP-WORK` | revision CAS, event append, approved hash |
-| `27_work_clarification_router.py` | `CCP-WORK` | completeness/batch revision 일치, 단일 branch output, round limit |
-| `28_work_definition_branch_joiner.py` | `CCP-WORK` | exactly-one branch 입력, identity/revision 보존 |
-| `34_work_runtime_state_store.py` | `CCP-WORK` | semantic/runtime revision 분리, 전 상태 checkpoint·reconciliation, CAS/event, top-level work_definition, success/blocked route |
-| `35_result_gate.py` | `CCP-WORK` | explicit `ok=true`, 점 표기 필수 payload, 원/canonical error, group output stop |
-| `36_playground_command_router.py` | `CCP-WORK` | strict JSON duplicate/nested/unknown 차단, 다섯 command의 exactly-one route |
+| `18_work_definition_store.py` | `CCP-WORK` | revision CAS, event append, approved hash, `review_and_request_approval` 단일 검토 저장·승인 요청 |
+| `27_work_clarification_router.py` | `CCP-WORK` | historical unused; completeness/batch revision 일치, 단일 branch output, round limit |
+| `28_work_definition_branch_joiner.py` | `CCP-WORK` | historical unused; exactly-one branch 입력, identity/revision 보존 |
+| `34_work_runtime_state_store.py` | `CCP-WORK` | historical unused; semantic/runtime revision 분리, 전 상태 checkpoint·reconciliation, CAS/event |
+| `35_result_gate.py` | `CCP-WORK` | historical unused; explicit `ok=true`, 점 표기 필수 payload, 원/canonical error, group output stop |
+| `39_f10_answer_commit.py` | `CCP-WORK` | Component 42 native 제출·skip 감사 저장/재검증, 답변 병합 또는 unresolved 기록, revision CAS, 다음 질문/검토/취소/차단 route |
+| `40_f10_review_entry_joiner.py` | `CCP-WORK` | 9개 review entry 중 유효한 성공 WorkDefinition 하나만 결합 |
+| `41_f10_terminal_result_message.py` | `CCP-WORK` | 취소·반려·차단 terminal 결과 하나를 민감정보 없이 짧은 Message로 투영 |
+| `42_f10_clarification_answer_gate.py` | `CCP-WORK` | `node_input`/`schema` 질문 카드, 안전한 question ID mapping, native 답변 값 또는 explicit skip event, Submit/Skip/Cancel branch |
+| `43_f10_final_approval_route_gate.py` | `CCP-WORK` | built-in Human Input의 final action 판별, non-selected Component 18 branch의 즉시 conditional exclusion, 선택 output 외 빈 payload |
 | `19_skill_context_resolver.py` | `CCP-SEARCH-SKILL` | registry contract, trigger/near-miss, context limit |
 | `20_search_query_planner.py` | `CCP-SEARCH-SKILL` | exact/capability/type query, additional design prompt, design scope/lock |
-| `29_search_query_embedding_batcher.py` | `CCP-SEARCH-SKILL` | exact query ID coverage, two scope locks, model/version/dimension, endpoint allowlist |
+| `29_search_query_embedding_batcher.py` | `CCP-SEARCH-SKILL` | exact query ID coverage, two scope locks, built-in Embeddings handle, runtime v2 contract |
 | `21_catalog_hybrid_retriever.py` | `CCP-SEARCH-SKILL` | query plan/vector lock 재검증, Mongo provider mode, RRF, top-N, ACL, retrieval provenance lock |
 | `22_candidate_context_builder.py` | `CCP-SEARCH-SKILL` | retrieval trace lock 검증·완성, dedupe, per-item/total context budget |
+| `36_approved_design_invocation_loader.py` | `CCP-SEARCH-SKILL` | APPROVED canonical 재조회, owner/group 검증, active catalog/Skill 조립, Run Flow 단일 입력 |
 | `23_agent_blueprint_normalizer.py` | `CCP-BLUEPRINT` | implementation_source와 asset allowlist |
 | `24_port_contract_validator.py` | `CCP-BLUEPRINT` | port type/cardinality/permission matrix |
 | `25_blueprint_readiness_classifier.py` | `CCP-BLUEPRINT` | `design_only`/`proposed_unverified`/`import_ready` rule |
@@ -420,49 +419,63 @@ Langflow OSS 1.11.1에서 실행되는 Standalone Custom Component 하나를 작
 
 아래 예시는 형식 확인용이다. 실제 URI, token, 사내 host는 넣지 않는다.
 
-### 5.1 Catalog Pipeline Worker Client 생성 요청 시작부
+### 5.1 F00 Catalog Component 생성 요청
+
+아래 세 요청은 합치지 않고 각각 `CCP-BASE`와 `CCP-CATALOG` 뒤에 붙여 별도로 실행한다.
 
 ```text
-Langflow OSS 1.11.1에서 실행되는 Standalone Custom Component 하나를 작성해줘.
-
 [대상]
-- 파일명: 09_catalog_pipeline_worker_client.py
-- Component class명: CatalogPipelineWorkerClientComponent
-- display_name: Catalog Pipeline Worker Client
-- 한 가지 책임: secret scan을 통과한 CatalogIngestJobRef를 bounded companion worker에 제출하고 VALIDATED와 blocked 결과를 서로 다른 group output으로 분기한다.
-- 입력 계약: scanned_job_ref(Data, required), worker_server_url(str, required), approved_server_hosts(str, required), worker_bearer_token(SecretStrInput, required), tenant_id(str, required), actor_id(str, required), max_stage_invocations(int, 1~1000), request_timeout_seconds(int, 5~7200), max_response_mb(int, 1~16)
-- 출력 계약: activation_path(Data, group output), blocked_path(Data, group output). 선택하지 않은 output은 stop한다.
-- secret 입력: worker_bearer_token
-- 외부 의존성: 없음. urllib 등 Python 표준 라이브러리만 사용한다.
-- timeout·batch 상한: whole request 1800초, stage invocation 400, response 4MiB
-- 예측 가능한 오류 코드: CATALOG_WORKER_CLIENT_INPUT_INVALID, CATALOG_WORKER_UNAVAILABLE
-- 배포 mode: worker_adapter
-
-이후 CCP-BASE의 나머지 공통 규칙과 CCP-CATALOG 전용 요구를 모두 적용해줘.
+- 파일명: 00_catalog_json_loader.py
+- Component class명: CatalogJsonLoaderComponent
+- display_name: 00 Catalog JSON Loader & Normalizer
+- 한 가지 책임: 사용자가 업로드한 catalog 파일 하나를 검증·정규화·redaction해 bounded catalog bundle을 만든다.
+- 입력 계약: catalog_file(FileInput, json/jsonl/ndjson, required), max_records/max_file_size_mb/max_record_chars/max_text_chars(IntInput). `tenant_id`/`catalog_id` 입력은 만들지 않고 각각 내부 상수 `default`/`internal-assets`로 고정한다.
+- 출력 계약: catalog_bundle(Data). source hash, 내부 고정 tenant/catalog scope, redacted parent records, canonical text, closed schema/version을 포함하고 secret 원문은 포함하지 않는다.
+- secret 입력: 없음
+- 외부 의존성: 없음
+- timeout·batch 상한: file 500MiB 이하, records 100000 이하, record 1000000자 이하, searchable text 200000자 이하
+- 예측 가능한 오류 코드: CATALOG_FILE_INVALID, CATALOG_RECORD_INVALID, CATALOG_SECRET_REDACTION_FAILED
+- 배포 mode: inline_bounded
 ```
-
-### 5.2 Catalog Activation Approval Client 생성 요청 시작부
 
 ```text
-Langflow OSS 1.11.1에서 실행되는 Standalone Custom Component 하나를 작성해줘.
-
 [대상]
-- 파일명: 33_catalog_activation_approval_client.py
-- Component class명: CatalogActivationApprovalClientComponent
-- display_name: Catalog Activation Approval Client
-- 한 가지 책임: trusted gateway가 미리 발급한 snapshot-scoped activation attestation과 VALIDATED report를 worker의 server-side activation endpoint에 전달하고 sanitized active pointer만 반환한다.
-- 입력 계약: validation_report(Data, required), approval_trigger(Message, required), approval_attestation(SecretStrInput, required), worker_server_url(str, required), approved_server_hosts(str, required), worker_bearer_token(SecretStrInput, required), tenant_id(str, required), actor_id(str, required), idempotency_key(str, optional)
-- 출력 계약: approval_path(Data, group output), blocked_path(Data, group output). raw approval nonce/hash/token은 어떤 output에도 포함하지 않는다.
-- secret 입력: worker_bearer_token, approval_attestation. signing secret 자체는 절대 입력받지 않는다.
-- 외부 의존성: 없음. urllib 등 Python 표준 라이브러리만 사용한다.
-- timeout·batch 상한: request 30초, response 64KiB
-- 예측 가능한 오류 코드: CATALOG_APPROVAL_CLIENT_INPUT_INVALID, CATALOG_APPROVAL_NOT_ISSUED
-- 배포 mode: worker_adapter
-
-Component 자체가 attestation을 발급하거나 08 파일을 import하거나 nonce를 생성하지 않게 해줘. 이 Component를 F00 Human Input 뒤에 직접 연결하지 말고, trusted gateway가 `catalog-activation-attestation/v1`의 tenant/actor/snapshot/job/validation_hash/decision/iat/exp/jti를 서명해 실행 전에 주입한 별도 secured invocation에서만 사용한다고 명시해줘. worker가 claim을 검증하고 one-time evidence를 내부 발급·소비해 standalone 08을 실행하는 endpoint만 호출해야 한다. 이후 CCP-BASE의 나머지 공통 규칙과 CCP-CATALOG 전용 요구를 모두 적용해줘.
+- 파일명: 01_catalog_deterministic_chunker.py
+- Component class명: CatalogDeterministicChunkerComponent
+- display_name: 01 Deterministic Chunker
+- 한 가지 책임: 검증된 catalog bundle의 canonical text를 bounded overlap chunk로 결정론적으로 분할한다.
+- 입력 계약: catalog_bundle(Data, required), chunk_chars/overlap_chars/max_chunks_per_record/max_total_chunks(IntInput)
+- 출력 계약: chunk_bundle(Data). 원 parent records, ordered chunks, chunk input hash, identity/source/chunk contract를 보존한다.
+- secret 입력: 없음
+- 외부 의존성: 없음
+- timeout·batch 상한: overlap은 chunk size 미만, record당 chunk 64개 이하, 전체 chunk 1000000개 이하
+- 예측 가능한 오류 코드: CATALOG_BUNDLE_INVALID, CHUNK_POLICY_INVALID, CHUNK_LIMIT_EXCEEDED
+- 배포 mode: inline_bounded
 ```
 
-### 5.3 Work Runtime State Store 생성 요청 시작부
+```text
+[대상]
+- 파일명: 02_catalog_mongodb_vector_writer.py
+- Component class명: CatalogMongoDBVectorWriterComponent
+- display_name: 02 MongoDB Catalog Vector Writer
+- 한 가지 책임: 검증된 chunk bundle과 built-in Embeddings handle로 vector를 생성해 F20 호환 MongoDB snapshot을 게시한다.
+- 입력 계약: chunk_bundle(Data, required), embedding(HandleInput input_types=[Embeddings], required), mongodb_uri(SecretStrInput), mongodb_database(StrInput), assets_collection/chunks_collection/pointer_collection(StrInput), embedding_call_interval_seconds(FloatInput, 최소 1초), mongo_write_batch_size/mongodb_timeout_ms(IntInput), dry_run(BoolInput, 화면 표시명 `테스트 실행 (저장하지 않음)`). provider/model/API key 선택은 이 node가 아니라 built-in Embedding Model node가 맡는다. advanced `Dimensions`는 provider의 의도적인 output-size override일 때만 설정하며 Writer 입력이 아니다.
+- 출력 계약: ingestion_result(Data). live ACTIVE면 runtime v2 contract와 snapshot/hash/count만, 내부 status가 DRY_RUN_VALIDATED인 테스트 실행이면 `execution_mode_display=테스트 실행 (저장하지 않음)`, `message=테스트 실행입니다. MongoDB에는 저장하지 않았습니다.`, `embedding_contract.state=DEFERRED`, `snapshot_id=null`만 반환하고 원문/vector/secret은 반환하지 않는다.
+- secret 입력: mongodb_uri. provider API key는 built-in Embedding Model에만 설정한다.
+- 외부 의존성: pymongo의 사내 승인 version과 Langflow가 전달하는 Embeddings interface
+- timeout·batch 상한: embedding 호출 간격 1~60초, MongoDB batch 1000 이하, MongoDB timeout 30초 이하
+- 예측 가능한 오류 코드: CHUNK_BUNDLE_INVALID, PRODUCTION_CONFIG_MISSING, EMBEDDING_PROVIDER_FAILED, EMBEDDING_MODEL_ID_UNRESOLVED, EMBEDDING_RUNTIME_CONTRACT_MISMATCH, MONGODB_INGEST_FAILED
+- 배포 mode: inline_bounded
+
+[저장 계약]
+1. finite vector의 count와 실제 dimension을 runtime v2 contract와 검증하고, approved model ID/fingerprint를 저장한다.
+2. `catalog_assets`와 `catalog_asset_chunks.embedding.vector`에 deterministic ID로 bounded bulk upsert한다.
+3. 전체 parent/chunk/vector count 검증 뒤에만 `catalog_active_pointers`를 마지막에 갱신한다. 실패 시 기존 pointer를 유지한다.
+4. 다른 Flow를 HTTP API로 호출하거나 로컬 module을 import하지 않는다.
+5. `catalog_assets`는 parent metadata/redacted 원문, `catalog_asset_chunks`는 검색 chunk/vector, `catalog_active_pointers`는 검증 완료 snapshot 게시 pointer라는 서로 다른 역할을 유지한다.
+```
+
+### 5.2 Historical unused: Work Runtime State Store 생성 요청 시작부
 
 ```text
 Langflow OSS 1.11.1에서 실행되는 Standalone Custom Component 하나를 작성해줘.
@@ -483,7 +496,7 @@ Langflow OSS 1.11.1에서 실행되는 Standalone Custom Component 하나를 작
 semantic revision은 참조만 하고 증가시키지 말고 별도 runtime_revision CAS와 append-only event를 사용해줘. 성공 envelope에는 검증된 top-level `work_definition` deep copy를 포함해 Result Gate의 required field로 사용할 수 있게 해줘. 이후 CCP-BASE의 나머지 공통 규칙과 CCP-WORK 전용 요구를 모두 적용해줘.
 ```
 
-### 5.4 Result Gate 생성 요청 시작부
+### 5.3 Historical unused: Result Gate 생성 요청 시작부
 
 ```text
 Langflow OSS 1.11.1에서 실행되는 Standalone Custom Component 하나를 작성해줘.
@@ -504,45 +517,45 @@ Langflow OSS 1.11.1에서 실행되는 Standalone Custom Component 하나를 작
 `payload.get("ok") is True`이고 required_field가 비어 있거나 해당 점 표기 값이 None/빈 문자열이 아닐 때만 원 envelope의 deep copy를 success_path로 보내줘. `ok=false`와 dict error를 가진 envelope는 원 오류를 blocked_path로 보존하고, 누락된 ok·malformed JSON·필수 field 누락은 secret 없는 canonical BLOCKED envelope로 정규화해줘. Data 객체의 truthiness를 성공으로 취급하지 말고 trace_id가 있으면 안전한 길이로 보존해줘. 이후 CCP-BASE의 나머지 공통 규칙과 CCP-WORK 전용 요구를 모두 적용해줘.
 ```
 
-### 5.5 Playground Command Router 생성 요청
+### 5.4 Approved Design Invocation Loader 생성 요청
 
-아래 요청은 F11의 공개 command surface를 하나의 Standalone Component로 고정할 때 그대로 사용할 수 있다.
+아래 요청은 F10 최종 승인 뒤 F20에 넘길 단일 권위 입력을 만드는 Standalone Component를 재생성할 때 사용한다.
 
 ```text
 Langflow OSS 1.11.1에서 실행되는 Standalone Custom Component 하나를 작성해줘.
 
 [대상]
-- 파일명: 36_playground_command_router.py
-- Component class명: PlaygroundCommandRouterComponent
-- display_name: 36 Playground Command Router
-- 한 가지 책임: Playground Chat Input의 최상위 JSON command를 strict하게 파싱·검증하고 허용된 경로 하나만 연다.
-- 입력 계약: input_text(MessageTextInput, required), max_input_chars(IntInput, 기본 200000, 허용 1000~500000)
-- 출력 계약: start_path, submit_answers_path, approve_path, reject_path, cancel_path, blocked_path를 Data group output으로 제공한다. 정확히 하나만 반환하고 선택하지 않은 output은 모두 self.stop한다.
-- secret 입력: 없음
-- 외부 의존성: 없음. Python 표준 라이브러리와 lfx public API만 사용한다.
-- timeout·batch 상한: network/DB/LLM 호출 없음, JSON text 최대 max_input_chars, request_text 최대 50000자, additional_prompt 최대 20000자, identity/idempotency 값 최대 300자
-- 예측 가능한 오류 코드: PLAYGROUND_COMMAND_SIZE_INVALID, PLAYGROUND_COMMAND_JSON_INVALID, PLAYGROUND_COMMAND_OBJECT_REQUIRED, PLAYGROUND_COMMAND_SCHEMA_INVALID, PLAYGROUND_COMMAND_INVALID, PLAYGROUND_COMMAND_FIELDS_INVALID, PLAYGROUND_START_REQUEST_INVALID, PLAYGROUND_START_PROMPT_INVALID, PLAYGROUND_ANSWER_FIELDS_REQUIRED, PLAYGROUND_ANSWER_IDENTITY_INVALID, PLAYGROUND_ANSWER_REVISION_INVALID, PLAYGROUND_ANSWER_LIST_INVALID, PLAYGROUND_ANSWER_TIMESTAMP_INVALID
+- 파일명: 36_approved_design_invocation_loader.py
+- Component class명: ApprovedDesignInvocationLoaderComponent
+- display_name: 36 Approved Design Invocation Loader
+- 한 가지 책임: F10 승인 receipt와 인증 주체를 MongoDB canonical 승인본·활성 catalog pointer·활성 Skill registry와 재검증하여 F20용 `agent-design-invocation/v1` 하나를 만든다.
+- 입력 계약: approval_result(Data, required), request_envelope(Data, required), authenticated_subject_id(MessageTextInput, required, trusted gateway only), authenticated_groups(MessageTextInput/Data/JSON, optional), mongodb_uri(SecretStrInput, required), mongo_database(MessageTextInput, required), work_collection/pointer_collection/skill_registry_collection(MessageTextInput), timeout_ms(IntInput), max_skill_entries(IntInput), trace_id(MessageTextInput)
+- 출력 계약: success_path(Data, group output), blocked_path(Data, group output). 정확히 하나만 반환하고 선택하지 않은 output은 self.stop한다.
+- secret 입력: mongodb_uri
+- 외부 의존성: pymongo의 사내 승인 version
+- timeout·batch 상한: MongoDB timeout 1~30초, 인증 group 최대 100개, active Skill 최대 500개, 추가 설계 prompt 최대 20000자
+- 예측 가능한 오류 코드: APPROVAL_RESULT_INVALID, AUTHENTICATED_SUBJECT_OWNER_MISMATCH, APPROVED_WORK_DEFINITION_NOT_FOUND, APPROVED_WORK_DEFINITION_HASH_MISMATCH, ACTIVE_CATALOG_POINTER_NOT_FOUND, DESIGN_INVOCATION_MONGODB_UNAVAILABLE
 - 배포 mode: inline_bounded
 
-[닫힌 command 계약]
-1. json.loads에 object_pairs_hook를 제공해 모든 object level의 duplicate key를 탐지하고, parse_constant로 NaN/Infinity/-Infinity를 거절해줘. 최상위 결과는 object여야 한다.
-2. schema_version은 생략 또는 정확히 playground-command/v1만 허용하고 성공 결과에는 이 version을 명시해줘.
-3. command는 정확히 start, submit_answers, approve, reject, cancel만 허용해줘. request_changes, 임의 alias, 대소문자 보정, nested command를 route로 인정하지 마.
-4. start의 허용 key는 schema_version, command, request_text, additional_prompt뿐이다. request_text는 trim 후 비어 있지 않은 문자열이어야 하고 additional_prompt는 문자열이어야 한다.
-5. submit_answers의 허용 key는 schema_version, command, channel_mode, work_definition_id, batch_id, session_id, expected_revision, idempotency_key, answers, submitted_at뿐이다. channel_mode는 정확히 playground, identity/idempotency는 비어 있지 않은 문자열, expected_revision은 bool이 아닌 0 이상의 int, answers는 object 또는 array여야 한다. submitted_at이 있으면 문자열이어야 한다.
-6. approve/reject/cancel의 허용 key는 schema_version과 command뿐이다. 모든 command에서 허용 목록 밖의 최상위 key가 하나라도 있으면 fail closed해줘.
-7. 성공 envelope에는 ok=true, status=ROUTED, route=<command>_path, trace_id와 deep-copied validated payload를 넣어줘. 실패 envelope에는 ok=false, status=BLOCKED, route=blocked_path, secret 없는 고정 error message를 넣고 원문이나 unknown key 이름을 반향하지 마.
-8. Data/Message/문자열 truthiness로 command를 추정하지 말고 top-level command의 정확한 문자열 값만 사용해줘.
+[권위·검증 계약]
+1. edge의 WorkDefinition body를 신뢰하지 말고 tenant/work/owner/session identity와 승인 receipt를 사용해 `work_definitions`의 canonical 문서를 다시 읽어줘.
+2. canonical 문서가 정확히 `work-definition/v1`, `status=APPROVED`, 같은 revision/approved_hash/owner/session/channel인지 확인하고 의미 hash를 다시 계산해 constant-time 비교해줘.
+3. `authenticated_subject_id`는 빈 값이나 사용자 자유 입력을 허용하지 않고 canonical owner와 정확히 일치시켜줘. group은 bounded identity list로 정규화해 ACL projection에만 넣어줘.
+4. 같은 tenant의 `catalog_active_pointers`에서 활성 snapshot을, `skill_registry`에서 `status=active`인 bounded 항목만 읽어줘. caller가 제공한 snapshot이나 Skill 객체를 사용하지 마.
+5. 원 request envelope의 별도 additional prompt는 길이/hash/secret-material 검사를 통과한 문자열만 `design_prompt`로 넣어줘.
+6. 성공 결과는 `ok=true`, `status=READY_FOR_DESIGN`, `schema_version=agent-design-invocation/v1`, canonical WorkDefinition, ACL, active snapshot ID, bounded Skill registry, design prompt, authority source를 포함해줘. Mongo `_id`, mutation receipt, pending action, secret은 제거해줘.
+7. 실패는 secret 없는 canonical `BLOCKED` envelope로 반환하고 success output을 중지해줘. 실패한 결과가 Run Flow 입력으로 진행하면 안 돼.
+8. 이 Component가 F20 HTTP API를 호출하거나 F20 source를 import하지 않게 해줘. 상위 F10이 성공 output을 Langflow 1.11.1 `Run Flow` direct mode(`tool_mode=false`)의 동적 ChatInput port에 연결한다.
 
 [Standalone 산출 규칙]
-- 실행 Component는 위 한 개의 .py 파일만 출력하고 helper·상수·parser를 모두 같은 파일에 둬. 형제/로컬 모듈, 프로젝트 package, 상대 import, sys.path 조작을 사용하지 마.
-- Langflow import는 from lfx.custom import Component, lfx.io의 public input/output, lfx.schema.Data만 사용해줘.
-- 테스트 코드를 Component 파일 안에 넣지 말고 별도 pytest 예시로 제시해줘. duplicate key, nested command value, unknown field, non-finite number, 여섯 route의 unselected stop을 포함해줘.
+- 실행 Component는 위 한 개의 `.py` 파일만 출력하고 helper·상수·검증 로직을 모두 같은 파일에 둬. 형제/로컬 모듈, 프로젝트 package, 상대 import, `sys.path` 조작을 사용하지 마.
+- Langflow import는 `lfx.custom`, `lfx.io`, `lfx.schema`의 public API만 사용해줘.
+- 테스트 코드를 Component 파일 안에 넣지 말고 별도 pytest 예시로 제시해줘. owner mismatch, stale approval revision/hash, active pointer 없음, Skill 상한, additional prompt secret, Mongo 장애, group output stop을 포함해줘.
 
-이후 CCP-BASE의 나머지 공통 규칙과 CCP-WORK 전용 요구를 모두 적용해줘. 임의 command나 호환 alias를 추가하지 말고 모순이 있으면 코드 생성 전에 알려줘.
+이후 CCP-BASE의 나머지 공통 규칙과 CCP-SEARCH-SKILL 전용 요구를 모두 적용해줘.
 ```
 
-### 5.6 Hybrid Retriever 생성 요청 시작부
+### 5.5 Hybrid Retriever 생성 요청 시작부
 
 ```text
 Langflow OSS 1.11.1에서 실행되는 Standalone Custom Component 하나를 작성해줘.
@@ -563,7 +576,7 @@ Langflow OSS 1.11.1에서 실행되는 Standalone Custom Component 하나를 작
 이후 CCP-BASE의 나머지 공통 규칙과 CCP-SEARCH-SKILL 전용 요구를 모두 적용해줘.
 ```
 
-### 5.7 Responsive Report Renderer 생성 요청 시작부
+### 5.6 Responsive Report Renderer 생성 요청 시작부
 
 ```text
 Langflow OSS 1.11.1에서 실행되는 Standalone Custom Component 하나를 작성해줘.

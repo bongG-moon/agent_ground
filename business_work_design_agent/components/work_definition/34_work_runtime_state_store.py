@@ -358,7 +358,7 @@ class WorkRuntimeStateStoreComponent(Component):
         MessageTextInput(name="actor_id", display_name="Actor ID (기본 owner_id)", value="", required=False),
         MessageTextInput(name="idempotency_key", display_name="Idempotency Key (비우면 파생)", value="", required=False),
         SecretStrInput(name="mongodb_uri", display_name="MongoDB URI", required=True),
-        MessageTextInput(name="mongo_database", display_name="MongoDB Database", required=True),
+        MessageTextInput(name="mongo_database", display_name="MongoDB Database", value="business_work_design", required=True),
         MessageTextInput(name="state_collection", display_name="Runtime State Collection", value="work_runtime_states", advanced=True),
         MessageTextInput(name="event_collection", display_name="Runtime Event Collection", value="work_runtime_events", advanced=True),
         MessageTextInput(name="now_utc", display_name="기준 시각(ISO-8601)", value="", advanced=True),

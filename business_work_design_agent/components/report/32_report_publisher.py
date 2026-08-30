@@ -116,10 +116,27 @@ class ReportPublisherComponent(Component):
 
     inputs = [
         DataInput(name="render_result", display_name="Rendered Report", required=True),
+        DataInput(
+            name="report_context",
+            display_name="Report Execution Context",
+            required=False,
+            info="F30 handoff가 자동 연결하는 tenant/actor/approval identity입니다.",
+        ),
         StrInput(name="report_api_url", display_name="Report API Base URL", required=True),
         SecretStrInput(name="bearer_token", display_name="Report API Bearer Token", required=False),
-        StrInput(name="tenant_id", display_name="Tenant ID", required=True),
-        StrInput(name="actor_id", display_name="Actor ID", value="langflow-service", required=True),
+        StrInput(
+            name="tenant_id",
+            display_name="Tenant ID",
+            required=False,
+            info="F30 handoff 연결 시 자동 적용됩니다. 단독 실행에서만 직접 입력합니다.",
+        ),
+        StrInput(
+            name="actor_id",
+            display_name="Actor ID",
+            value="langflow-service",
+            required=False,
+            info="F30 handoff 연결 시 자동 적용됩니다. 단독 실행에서만 직접 입력합니다.",
+        ),
         StrInput(
             name="idempotency_key",
             display_name="Idempotency Key",
@@ -135,7 +152,13 @@ class ReportPublisherComponent(Component):
             info="JSON array (or comma-separated list) of exact report API and returned-link hostnames.",
         ),
         IntInput(name="timeout_seconds", display_name="Timeout (seconds)", value=30, advanced=True),
-        BoolInput(name="dry_run", display_name="Dry Run", value=True, advanced=True),
+        BoolInput(
+            name="dry_run",
+            display_name="테스트 실행 (저장하지 않음)",
+            value=True,
+            advanced=True,
+            info="켜면 Report API에 게시하지 않고 HTML, hash, URL 허용 범위만 검증합니다.",
+        ),
     ]
     outputs = [Output(name="publish_result", display_name="Publish Result", method="publish_report")]
 
@@ -144,8 +167,18 @@ class ReportPublisherComponent(Component):
         html = rendered.get("html")
         supplied_hash = str(rendered.get("content_sha256") or "").strip()
         report_id = str(rendered.get("report_id") or "").strip()
-        tenant_id = str(getattr(self, "tenant_id", "") or "").strip()
-        actor_id = str(getattr(self, "actor_id", "") or "").strip()
+        supplied_context = getattr(self, "report_context", None)
+        context = _payload(supplied_context, "report_context") if supplied_context not in (None, "") else {}
+        context_tenant_id = str(context.get("tenant_id") or "").strip()
+        context_actor_id = str(context.get("actor_id") or "").strip()
+        configured_tenant_id = str(getattr(self, "tenant_id", "") or "").strip()
+        configured_actor_id = str(getattr(self, "actor_id", "") or "").strip()
+        if context_tenant_id and configured_tenant_id and context_tenant_id != configured_tenant_id:
+            raise ValueError("report_context tenant_id does not match tenant_id")
+        if context_actor_id and configured_actor_id and context_actor_id != configured_actor_id:
+            raise ValueError("report_context actor_id does not match actor_id")
+        tenant_id = context_tenant_id or configured_tenant_id
+        actor_id = context_actor_id or configured_actor_id
         if not isinstance(html, str) or not html.strip():
             raise ValueError("render_result.html is required")
         if not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9._:-]{0,127}", report_id):
@@ -181,11 +214,16 @@ class ReportPublisherComponent(Component):
             "metadata": metadata,
         }
         if bool(getattr(self, "dry_run", False)):
-            self.status = f"Dry run validated {len(html_bytes)} bytes for {target_url}"
+            self.status = (
+                f"테스트 실행 완료: {len(html_bytes)} bytes를 검증했습니다. "
+                "Report API에는 게시하지 않았습니다."
+            )
             return Data(
                 data={
                     "ok": True,
                     "status": "would_publish",
+                    "execution_mode_display": "테스트 실행 (저장하지 않음)",
+                    "message": "테스트 실행입니다. Report API에는 게시하지 않았습니다.",
                     "report_id": report_id or None,
                     "content_sha256": actual_hash,
                     "content_bytes": len(html_bytes),

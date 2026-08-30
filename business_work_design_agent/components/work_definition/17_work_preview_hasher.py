@@ -221,9 +221,49 @@ class WorkPreviewHasherComponent(Component):
             info="Optional control dependency from a conditional router; excluded from the canonical hash.",
         ),
     ]
-    outputs = [Output(name="preview", display_name="Canonical Preview", method="build_preview", types=["Data"])]
+    outputs = [
+        Output(name="preview", display_name="Canonical Preview", method="build_preview", types=["Data"]),
+        Output(name="success_path", display_name="Preview 생성 성공", method="route_preview", types=["Data"], group_outputs=True),
+        Output(name="blocked_path", display_name="Preview 생성 차단", method="route_preview", types=["Data"], group_outputs=True),
+    ]
+
+    def _result(self) -> dict[str, Any]:
+        result = getattr(self, "_preview_result", None)
+        if isinstance(result, dict):
+            return result
+        result = build_work_preview_hash(getattr(self, "work_definition", None))
+        self._preview_result = result
+        self.status = {
+            "ok": result["ok"],
+            "status": result["status"],
+            "preview_hash": (result.get("preview") or {}).get("preview_hash"),
+        }
+        return result
 
     def build_preview(self) -> Data:
-        result = build_work_preview_hash(getattr(self, "work_definition", None))
-        self.status = {"ok": result["ok"], "status": result["status"], "preview_hash": (result.get("preview") or {}).get("preview_hash")}
+        return Data(data=self._result())
+
+    def _component_id(self) -> str:
+        return str(getattr(self, "_id", "") or self.name)[:200]
+
+    def _select_output_route(self, selected: str) -> None:
+        output_names = ("success_path", "blocked_path")
+        non_selected = [output_name for output_name in output_names if output_name != selected]
+        for output_name in non_selected:
+            self.stop(output_name)
+        graph = getattr(self, "graph", None)
+        exclude = getattr(graph, "exclude_branches_conditionally", None) if graph is not None else None
+        if callable(exclude):
+            exclude(self._component_id(), non_selected)
+
+    def _is_nonselected_group_output(self, selected: str) -> bool:
+        current_output = str(getattr(self, "_current_output", "") or "")
+        return bool(current_output and current_output in {"success_path", "blocked_path"} and current_output != selected)
+
+    def route_preview(self) -> Data:
+        result = self._result()
+        selected = "success_path" if result.get("ok") is True else "blocked_path"
+        self._select_output_route(selected)
+        if self._is_nonselected_group_output(selected):
+            return Data(data={})
         return Data(data=result)

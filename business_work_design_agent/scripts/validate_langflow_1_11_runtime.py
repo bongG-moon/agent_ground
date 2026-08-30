@@ -22,9 +22,8 @@ EXPECTED_VERSIONS = {
     "lfx": "1.11.5",
 }
 FLOW_FILES = (
-    "F00_catalog_ingestion_admin.json",
+    "F00_catalog_file_vector_ingest.json",
     "F10_work_definition_parent.json",
-    "F11_work_definition_chat_turn.json",
     "F20_agent_blueprint_design.json",
     "F30_responsive_report.json",
     "F90_search_evaluation.json",
@@ -32,7 +31,7 @@ FLOW_FILES = (
 ALLOWED_IMPORT_ROOTS = {
     "__future__", "base64", "bson", "codecs", "collections", "copy", "datetime",
     "gridfs", "hashlib", "hmac", "html", "httpx", "json", "lfx", "math", "numpy",
-    "pathlib", "pymongo", "re", "requests", "socket", "typing", "unicodedata",
+    "pathlib", "pymongo", "re", "requests", "socket", "time", "typing", "unicodedata",
     "urllib", "uuid",
 }
 DYNAMIC_IMPORT_ROOTS = {
@@ -201,6 +200,15 @@ def _validate_source(path: Path) -> dict[str, Any]:
 
 def _validate_flow(path: Path) -> dict[str, Any]:
     flow = _load_json(path)
+    canvas_nodes = flow["data"]["nodes"]
+    sticky_notes = [
+        wrapper
+        for wrapper in canvas_nodes
+        if wrapper.get("type") == "noteNode" and wrapper.get("data", {}).get("type") == "note"
+    ]
+    note_ids = {wrapper["id"] for wrapper in sticky_notes}
+    if any(edge.get("source") in note_ids or edge.get("target") in note_ids for edge in flow["data"]["edges"]):
+        raise ValueError(f"{path.name}: Canvas-only Sticky Notes must not have execution edges")
     graph = Graph.from_payload(
         flow["data"],
         flow_id=flow["id"],
@@ -222,7 +230,9 @@ def _validate_flow(path: Path) -> dict[str, Any]:
     return {
         "filename": path.name,
         "flow_id": flow["id"],
+        "canvas_nodes": len(canvas_nodes),
         "nodes": len(graph.vertices),
+        "sticky_notes": len(sticky_notes),
         "edges": len(graph.edges),
         "operational_readiness": flow["metadata"]["operational_readiness"],
     }
@@ -276,8 +286,9 @@ def main() -> int:
 
     component_paths = _component_files()
     components = [_validate_source(path) for path in component_paths]
-    if len(components) != 37:
-        raise ValueError(f"Expected 37 standalone components, found {len(components)}")
+    expected_component_count = 37
+    if len(components) != expected_component_count:
+        raise ValueError(f"Expected {expected_component_count} standalone components, found {len(components)}")
     flows = [_validate_flow(FLOW_ROOT / filename) for filename in FLOW_FILES]
     manifest = _validate_manifest()
     project_manifest = _validate_project_manifest(component_paths)

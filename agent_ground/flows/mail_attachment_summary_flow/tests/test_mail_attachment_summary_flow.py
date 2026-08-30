@@ -110,12 +110,12 @@ def test_package_contract_reuses_drm_component_and_registers_internal_nodes() ->
     internal = json.loads((FLOW_ROOT / "internal_nodes.json").read_text(encoding="utf-8"))
 
     assert manifest["status"] == "user_testing"
-    assert manifest["version"] == "0.7.2"
+    assert manifest["version"] == "0.7.3"
     assert manifest["source_export_version"] == "1.9.2"
     assert manifest["test_flow_file"] == "mail_attachment_summary_dummy_flow.json"
     assert refs == {
         "flow_id": "mail_attachment_summary_flow",
-        "components": [{"id": "drm_document_text_extractor", "version": "0.6.0"}],
+        "components": [{"id": "drm_document_text_extractor", "version": "0.6.1"}],
     }
     assert internal["flow_id"] == "mail_attachment_summary_flow"
     assert {item["id"] for item in internal["nodes"]} == {
@@ -602,6 +602,42 @@ def test_jpeg_attachment_uses_connected_vision_model_and_writes_text(tmp_path: P
     assert content[0]["type"] == "text"
     assert content[1]["type"] == "image_url"
     assert content[1]["image_url"]["url"].startswith("data:image/jpeg;base64,")
+
+
+def test_png_attachment_uses_connected_vision_model_with_png_mime(tmp_path: Path) -> None:
+    module = load_module(DRM_SOURCE, "mail_flow_png_vision_test")
+    source = tmp_path / "equipment.png"
+    source.write_bytes(b"\x89PNG\r\n\x1a\nfake-png-payload")
+
+    class VisionModel:
+        def __init__(self) -> None:
+            self.calls: list = []
+
+        async def ainvoke(self, messages):
+            self.calls.append(messages)
+            return SimpleNamespace(content="PNG 설비 상태판에 온도 센서 점검 문구가 표시되어 있습니다.")
+
+    model = VisionModel()
+    result = asyncio.run(
+        module.process_file_record_with_vision(
+            {
+                "file_path": str(source),
+                "file_name": "equipment.png",
+                "source_kind": "ews_attachment",
+                "mail_subject": "PNG 설비 상태 확인",
+            },
+            model,
+            output_root=tmp_path / "png-vision-output",
+        )
+    )
+
+    assert result["processing_path"] == "vision_model"
+    assert result["vision_status"] == "text_extracted"
+    assert result["drm_status"] == "not_applicable"
+    assert result["file_name"] == "equipment_vision_text.txt"
+    assert Path(result["file_path"]).read_text(encoding="utf-8").startswith("PNG 설비 상태판")
+    content = model.calls[0][0].content
+    assert content[1]["image_url"]["url"].startswith("data:image/png;base64,")
 
 
 def test_jpeg_without_vision_model_becomes_failure_notice(tmp_path: Path) -> None:

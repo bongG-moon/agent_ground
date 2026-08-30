@@ -108,6 +108,107 @@ def sealed_scope(modules: dict[str, ModuleType]) -> dict[str, Any]:
     return scope
 
 
+def design_invocation(modules: dict[str, ModuleType]) -> dict[str, Any]:
+    work = approved_work(modules)
+    return {
+        "ok": True,
+        "status": "READY_FOR_DESIGN",
+        "schema_version": "agent-design-invocation/v1",
+        "artifact_refs": [],
+        "tenant_id": "tenant-a",
+        "work_definition_id": work["work_definition_id"],
+        "work_definition_revision": work["revision"],
+        "approved_hash": work["approved_hash"],
+        "owner_id": work["owner_id"],
+        "session_id": work["session_id"],
+        "work_definition": work,
+        "acl_context": {"subject_id": "employee-1", "groups": ["engineering"]},
+        "catalog_snapshot_id": "snapshot-1",
+        "skill_registry": {"skills": [], "count": 0, "truncated": False, "maximum": 200},
+        "design_prompt": "승인 단계를 유지한다",
+        "trust_boundary": {
+            "work_definition_source": "mongodb-canonical-approved",
+            "catalog_snapshot_source": "mongodb-active-pointer",
+            "skill_registry_source": "mongodb-active-only",
+            "authenticated_subject_verified": True,
+        },
+        "trace_id": "trace-invocation",
+    }
+
+
+def test_design_invocation_is_the_single_authority_bound_f20_input(modules: dict[str, ModuleType]) -> None:
+    invocation = design_invocation(modules)
+    result = modules["planner"].validate_design_invocation(invocation)
+    assert result["ok"] is True
+    assert result["tenant_id"] == "tenant-a"
+    assert result["authority"]["work_definition_source"] == "mongodb-canonical-approved"
+
+    strict_json_result = modules["planner"].validate_design_invocation(
+        json.dumps(invocation, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
+    )
+    assert strict_json_result["ok"] is True
+    assert strict_json_result["work_definition"]["work_definition_id"] == invocation["work_definition_id"]
+
+
+def test_design_invocation_rejects_unknown_fields_and_untrusted_authority(modules: dict[str, ModuleType]) -> None:
+    unknown = design_invocation(modules)
+    unknown["browser_override"] = True
+    assert modules["planner"].validate_design_invocation(unknown)["error"]["code"] == "DESIGN_INVOCATION_FIELDS_INVALID"
+
+    untrusted = design_invocation(modules)
+    untrusted["trust_boundary"]["work_definition_source"] = "browser"
+    assert modules["planner"].validate_design_invocation(untrusted)["error"]["code"] == "DESIGN_INVOCATION_AUTHORITY_INVALID"
+
+
+def test_empty_approved_skill_registry_preserves_design_scope_locks(modules: dict[str, ModuleType]) -> None:
+    invocation = modules["planner"].validate_design_invocation(design_invocation(modules))
+    assert invocation["ok"] is True
+    scope = sealed_scope(modules)
+    approved_skill_registry = {
+        "ok": True,
+        "status": "COMPLETED",
+        "tenant_id": invocation["tenant_id"],
+        "skills": invocation["skill_registry"],
+        "authority": invocation["authority"],
+        "trace_id": invocation["trace_id"],
+    }
+
+    result = modules["skill"].resolve_skill_context(scope, approved_skill_registry)
+
+    assert result["ok"] is True
+    assert result["status"] == "COMPLETED"
+    assert result["approved_skill_context"] == ""
+    assert result["applied_skills"] == []
+    assert result["rejected_skills"] == []
+    for field in (
+        "tenant_id",
+        "catalog_snapshot_id",
+        "work_definition_id",
+        "work_definition_revision",
+        "approved_hash",
+        "design_scope_sha256",
+    ):
+        assert result[field] == scope[field]
+
+
+@pytest.mark.parametrize(
+    ("registry", "error_code"),
+    [
+        (None, "SKILL_REGISTRY_EMPTY"),
+        ({}, "SKILL_REGISTRY_EMPTY"),
+        ({"skills": "not-a-list"}, "SKILL_REGISTRY_CONTRACT_INVALID"),
+        ({"ok": False, "skills": []}, "SKILL_REGISTRY_UPSTREAM_FAILED"),
+    ],
+)
+def test_missing_or_malformed_skill_registry_stays_fail_closed(
+    modules: dict[str, ModuleType], registry: Any, error_code: str
+) -> None:
+    result = modules["skill"].resolve_skill_context(sealed_scope(modules), registry)
+
+    assert result["ok"] is False
+    assert result["error"]["code"] == error_code
+
+
 def skill_entry(*, acl: Any) -> dict[str, Any]:
     prompt = "메일 업무보고 설계에서는 입력, 출력, 사용자 승인 단계를 명시한다."
     digest = "sha256:" + hashlib.sha256(prompt.encode("utf-8")).hexdigest()

@@ -1452,11 +1452,15 @@ def test_32_dry_run_validates_hash_host_and_never_uses_network(
     assert result == {
         "ok": True,
         "status": "would_publish",
+        "execution_mode_display": "테스트 실행 (저장하지 않음)",
+        "message": "테스트 실행입니다. Report API에는 게시하지 않았습니다.",
         "report_id": rendered["report_id"],
         "content_sha256": rendered["content_sha256"],
         "content_bytes": len(rendered["html"].encode("utf-8")),
         "target_url": "http://localhost:8080/internal/report-api/reports",
     }
+    publisher_inputs = {item.name: item for item in modules["32_report_publisher"].ReportPublisherComponent.inputs}
+    assert publisher_inputs["dry_run"].display_name == "테스트 실행 (저장하지 않음)"
 
     tampered = dict(rendered)
     tampered["html"] += "tampered"

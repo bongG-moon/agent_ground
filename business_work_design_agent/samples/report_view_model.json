@@ -252,7 +252,7 @@
     ]
   },
   "renderer_version": "business-report-renderer.v1",
-  "report_id": "report-6a33b4496f00c87dad4bde07",
+  "report_id": "report-07829eb24c8f38e897129837",
   "retrieval_trace": {
     "approved_hash": "sha256:86a9c68d6acb5958adc46a74a3e3479cfe7cfd6e553082359174b42df9cd07ba",
     "candidate_allowlist": [
@@ -272,14 +272,14 @@
       }
     ],
     "candidate_allowlist_sha256": "sha256:9394d3730e4a8f757a3b01851613215d69cde12d0bfc257a8cb9bc88273e1f9d",
-    "design_scope_sha256": "sha256:16ceb41db5d6e2a20bde852157530bb0016ab03f40e6417701dc330f909b7a82",
+    "design_scope_sha256": "sha256:ff82e47e8bc30d9b98b643703ff0395a62493a2c9c61c1149ff7480a7055fbb6",
     "exact_used": true,
     "fusion": "weighted_rrf",
     "lexical_used": true,
     "query_plan_sha256": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
     "silent_fallback_used": false,
     "snapshot_id": "catalog-snapshot-20260827",
-    "tenant_id": "tenant-demo",
+    "tenant_id": "default",
     "vector_used": true,
     "work_definition_id": "wd-weekly-email-report",
     "work_definition_revision": 4
@@ -358,12 +358,12 @@
       "title": "검증 계획"
     }
   ],
-  "source_contract_hash": "sha256:5ba52e34abde428f791ca87448f736c013062a2d43ee9fd575b22f7ac5d0a780",
+  "source_contract_hash": "sha256:f3cc9bfc21e59f4cf52a147bc912063a40ae6f73d58ec716871957e79efc7ced",
   "summary": {
     "approval_status": "APPROVED",
     "approved_hash": "sha256:86a9c68d6acb5958adc46a74a3e3479cfe7cfd6e553082359174b42df9cd07ba",
     "blueprint_id": "bp-weekly-email-report-v1",
-    "blueprint_sha256": "sha256:b5388bc5f75bdfb5f2d1014cb419c10ef7adbe3165e0853653325b9b153e034b",
+    "blueprint_sha256": "sha256:a05d096c97450003a3d9f89145ff51d0c29eb1292d1b79ca52f90b048266e89d",
     "build_readiness": "proposed_unverified",
     "catalog_snapshot_id": "catalog-snapshot-20260827",
     "pattern": "deterministic_sequential",

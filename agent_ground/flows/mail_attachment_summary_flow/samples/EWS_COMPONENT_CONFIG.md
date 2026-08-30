@@ -34,4 +34,4 @@ Flow를 Export하거나 공유하기 전 이메일 주소, AD 계정·비밀번�
 | TLS 인증서 검증 | 아니요 | `true` | HTTPS 사용 시 유지 |
 | 제한 시간 | 아니요 | `180초` | 파일 하나당 timeout |
 
-DRM API 주소·토큰·사번도 Export 전에 비어 있는지 확인합니다. JPG/JPEG용 vLLM 모델과 API Key도 기본값으로 저장하지 않습니다.
+DRM API 주소·토큰·사번도 Export 전에 비어 있는지 확인합니다. JPG/JPEG/PNG용 vLLM 모델과 API Key도 기본값으로 저장하지 않습니다.

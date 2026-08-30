@@ -1,6 +1,6 @@
 {
   "schema_version": "agent-blueprint.v1",
-  "tenant_id": "tenant-demo",
+  "tenant_id": "default",
   "blueprint_id": "bp-weekly-email-report-v1",
   "work_definition_id": "wd-weekly-email-report",
   "work_definition_revision": 4,
@@ -759,7 +759,7 @@
       "agent-e5"
     ]
   },
-  "design_scope_sha256": "sha256:16ceb41db5d6e2a20bde852157530bb0016ab03f40e6417701dc330f909b7a82",
+  "design_scope_sha256": "sha256:ff82e47e8bc30d9b98b643703ff0395a62493a2c9c61c1149ff7480a7055fbb6",
   "query_plan_sha256": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
   "candidate_allowlist_sha256": "sha256:9394d3730e4a8f757a3b01851613215d69cde12d0bfc257a8cb9bc88273e1f9d",
   "connection_validation": {

@@ -1,15 +1,12 @@
-# HITL 상태 머신과 Resume 운영 계약
+# HITL 상태 머신과 Playground 답변 운영 계약
 
-이 구현에는 서로 섞을 수 없는 두 채널이 있다.
+F10의 업무 정의 채널은 `F10_work_definition_parent` 하나이며, `channel_mode`는 내부적으로 항상 `native_hitl`이다. 사용자는 F10 시작부에서 **업무 설명 원문**, **추가 설계 프롬프트**, **팀 명**, **사번**만 입력한다. `tenant_id`, `owner_id`, `session_id`는 저장·감사·재개를 위한 내부 식별자이며 별도 화면 입력이 아니다. Component 10이 팀 명·사번과 현재 Langflow graph session을 내부 계약으로 변환한다.
 
-- `F10_work_definition_parent`: Langflow 1.11.1 `Human Input`으로 실제 workflow를 suspend/resume한다.
-- `F11_work_definition_chat_turn`: Playground에서 한 turn씩 실행하고 `WAITING_ANSWER` 결과를 반환한다. native pause를 사용하지 않는다.
-
-작업이 시작된 뒤 `channel_mode`, `tenant_id`, `owner_id`, `session_id`는 변경할 수 없다.
+자유서술 보완 답변은 별도 웹 폼이나 API에 입력하지 않는다. **`42 보완 답변 HITL` 카드가 Langflow Playground 안에 실제 입력칸을 표시한다.** 사용자는 답변을 채운 뒤 `Submit Answers`를 선택하거나, 지금 줄 수 있는 추가 정보가 없을 때 **`추가 입력 건너뛰기` (`Skip Additional Input`)**를 선택할 수 있다. `Cancel`은 이 두 선택과 별개의 업무 정의 종료 행동이다.
 
 ## 1. 업무 상태
 
-Component 18이 허용하는 WorkDefinition 의미 상태는 다음과 같다.
+Component 18이 다루는 WorkDefinition 의미 상태는 다음과 같다.
 
 ```mermaid
 stateDiagram-v2
@@ -19,6 +16,7 @@ stateDiagram-v2
   EXTRACTING --> READY_FOR_REVIEW
   NEEDS_CLARIFICATION --> WAITING_ANSWER
   WAITING_ANSWER --> MERGING
+  WAITING_ANSWER --> READY_FOR_REVIEW: skip_additional_input
   MERGING --> NEEDS_CLARIFICATION
   MERGING --> READY_FOR_REVIEW
   READY_FOR_REVIEW --> WAITING_APPROVAL
@@ -28,128 +26,108 @@ stateDiagram-v2
   DESIGNING --> REPORT_READY
 ```
 
-각 주요 상태에서 `CANCELLED` 또는 검증 실패에 따른 `BLOCKED`로 갈 수 있지만, `REJECTED`와 `CANCELLED`는 terminal 상태다. 실제 허용 전이 표는 `18_work_definition_store.py`의 `ALLOWED_TRANSITIONS`가 기준이다.
+각 주요 상태는 `CANCELLED` 또는 검증 실패에 따른 `BLOCKED`로도 끝날 수 있다. `REJECTED`와 `CANCELLED`는 terminal 상태이며, 실제 허용 전이는 `18_work_definition_store.py`의 `ALLOWED_TRANSITIONS`가 기준이다.
 
-F10의 `WAITING_ANSWER`, `MERGING`, `READY_FOR_REVIEW`, `WAITING_APPROVAL`, router `BLOCKED`, `CANCELLED` 기록은 Component 34가 별도의 `work_runtime_states`와 `work_runtime_events`에 저장한다. `runtime_revision`은 WorkDefinition의 `revision`과 독립적이다. 답변 CAS 저장 직후에는 증가한 semantic revision으로 `MERGING`을 한 번 더 기록해 runtime revision과 조정하고, 그 성공 경로만 다음 completeness/review로 진행한다. review 저장 뒤 `READY_FOR_REVIEW`, approval 요청 저장 뒤 `WAITING_APPROVAL`을 기록한 성공 경로만 최종 Human Input을 연다. runtime persistence 실패 `blocked_path`는 전용 진단으로 종료한다.
+Compact F10은 과거의 별도 Runtime State Store/Result Gate Canvas node를 사용하지 않는다. Component 12·13·16·17·18·39·40이 각자의 결과를 검증하고 성공 또는 차단 출력만 연다. 따라서 오류 envelope가 다음 LLM, HITL 카드, 저장 또는 preview 단계로 이어지지 않는다.
 
-Component 35는 F10/F11의 구조화 결과를 다음 단계로 넘기기 전 `ok is True`와 단계별 필수 payload를 검사한다. 원래 `ok=false` 오류는 보존하고, 암묵적 truthy 값·누락된 `ok`·필수 field 누락은 canonical `BLOCKED` 오류로 바꾼다. `success_path`와 `blocked_path`를 물리적으로 분리해 실패 envelope가 completeness, Human Input, 저장, preview 또는 action 후속 경로로 유입되지 않게 한다.
+## 2. 각 컴포넌트의 역할과 MongoDB 설정
 
-## 2. F10 native HITL 순서
+| 컴포넌트 | 역할 | MongoDB 설정 |
+| --- | --- | --- |
+| `13 재질문 Batch 생성` (3개) | 부족한 정보를 immutable 질문 batch로 저장한다. 첫 질문 회차에는 필요한 revision 0 WorkDefinition도 멱등적으로 준비한다. | **자동:** Secret `MONGO_URL`, Database. 내부 collection: `clarification_batches`, `work_definitions` |
+| `42 보완 답변 HITL` (3개) | 저장된 질문 batch를 Playground `node_input` schema 카드로 표시하고, 답변 제출·추가 입력 건너뛰기·취소를 서로 배타적인 native action으로 만든다. | MongoDB 연결 없음 |
+| `39 답변 반영·다음 단계` (3개) | Component 42 action을 canonical batch와 대조한다. 답변은 검증·CAS 병합하고, 건너뛰기는 감사 이력과 미확정 항목을 기록한 뒤 검토로 보낸다. | **자동:** Secret `MONGO_URL`, Database. 내부 collection: `clarification_batches`, `work_definitions` |
+| `18 WorkDefinition Mongo Store` | 검토 요청·승인·반려·취소 상태와 audit event를 저장한다. | **자동:** Secret `MONGO_URL`, Database. 내부 collection: `work_definitions`, `work_definition_events` |
+| `43 최종 승인 경로 Gate` | 마지막 built-in Human Input의 Approve·Reject·Cancel 중 하나만 열고, 선택하지 않은 두 Component 18 저장 branch를 즉시 제외한다. | MongoDB 연결 없음, 모든 입력은 자동 연결 |
+| `36 Approved Design Invocation Loader` | 승인본, active catalog pointer, active Skill registry를 다시 읽어 F20 입력을 만든다. | **자동:** Secret `MONGO_URL`, Database. 내부 collection: `work_definitions`, `catalog_active_pointers`, `skill_registry` |
 
-F10은 반드시 Workflow API의 background mode로 실행한다. 동기 `/run` 호출을 native HITL resume와 혼용하지 않는다.
+모든 active F10 MongoDB node는 export에서 자동 연결된 Langflow Secret/Global Variable **`MONGO_URL`**을 사용하고 Database는 기본값 **`business_work_design`**으로 둔다. URI를 각 node에 평문으로 복사하지 않는다. collection 이름은 내부 기본값이므로 일반 운영에서는 변경할 필요가 없다.
 
-1. Component 10~11이 요청을 정규화하고 Component 18이 최초 WorkDefinition을 revision 0으로 먼저 영속 저장한다. Component 35가 저장 결과의 `ok=true`와 `work_definition`을 확인한 `success_path`만 Component 12/13으로 보낸다.
-2. Component 27이 completeness 결과를 분기한다. 부족한 정보가 없으면 Human Input을 건너뛰고 review 경로로, 부족하면 immutable 질문 batch를 `clarification_batches`에 저장한 뒤 해당 회차 Human Input으로 이동한다.
-3. Component 34가 `WAITING_ANSWER` runtime state를 저장한 `success_path`에서만 clarification `Human Input`이 `Submit Answers`와 `Cancel` 선택지를 가진 채 workflow를 suspend한다.
-4. Langflow 1.11.1은 pending request에 `job_id`, `flow_id`, `session_id`, `request_id`, `kind=node_input`, 허용 decision을 저장한다.
-5. UI/backend orchestrator가 pending 목록을 읽고 HITL API의 batch 등록 endpoint를 호출한다.
-6. F10 background job을 시작한 Langflow service account와 `LANGFLOW_API_KEY`의 소유자는 반드시 동일해야 한다. HITL API는 그 동일 service account 범위의 F10 pending 목록을 다시 조회하여 job/request/flow/session/action을 검증한 뒤 reference를 질문 batch에 부착한다. 다른 사용자로 시작한 job은 `/pending`에 보이지 않으므로 등록·resume 준비 실패로 처리한다.
-7. 사용자가 구조화 답변 폼을 제출하면 API가 question type/choice/revision/tenant/deadline을 검증하고 `ANSWERED_PENDING_RESUME`로 CAS 전이한다.
-8. API만 Langflow resume endpoint를 호출한다. 브라우저에는 Langflow API key와 `request_id`를 노출하지 않는다.
-9. resume decision은 `{"action_id":"submit_answers"}`다. 선택된 Human Input branch에서 Component 34가 `MERGING`을 저장하고 `success_path`만 Component 14를 실행한다.
-10. Component 14는 MongoDB 또는 companion API에서 저장된 답변을 다시 읽고, 현재 WorkDefinition/batch/session/revision, immutable 질문 계약과 제출 시각을 대조한다. Component 35가 `answer_submission`을 확인한 성공 경로만 Merger로 보낸다.
-11. Component 15가 답변을 병합하고 revision을 하나 올리며, Component 35가 merged WorkDefinition을 확인한 뒤 Component 18이 `incoming_revision_is_next=true` CAS로 저장한다. 저장 결과가 Component 35를 통과하면 Component 34가 새 semantic revision의 `MERGING` runtime checkpoint를 기록하고, 이 성공 경로만 Component 12가 다시 평가하여 다음 질문 회차 또는 review로 이동한다.
-12. 답변 회차는 세 번까지 unroll되어 있다. 세 번째 병합 뒤 round 4의 Component 13/27은 사람에게 네 번째 질문을 만들지 않는 최종 gate이며, gap이 남으면 `CLARIFICATION_ROUND_LIMIT`로 `BLOCKED`, 없으면 review 경로로 이동한다.
-13. Component 28이 어느 회차에서든 도달한 유일한 review 경로를 합치고 graph/preview hash를 생성한다. join, graph, preview, review 저장과 Component 18의 `request_approval` 결과는 각각 Component 35를 통과해야 한다. Component 34의 `READY_FOR_REVIEW`와 `WAITING_APPROVAL` 저장까지 성공한 경로만 최종 Human Input을 연다.
-14. 최종 `Approve`, `Reject`, `Cancel` branch는 각각 Component 18의 해당 command와 Component 35 결과 gate를 거쳐 성공 또는 진단 output으로 끝난다. `request_changes`는 현재 Flow에서 노출하지 않는다. 수정이 필요하면 승인 전 clarification에서 반영하거나 취소 후 새 session을 시작한다.
+## 3. Playground-native 보완 질문 순서
 
-각 Component 27 blocked branch도 Component 34의 `BLOCKED` 저장을 거친다. 저장 자체가 실패한 경우 기존 정상 payload를 다음 단계로 전달하지 않고 persistence failure 진단만 반환한다.
+1. 사용자가 F10을 Playground에서 실행한다. 필요하다면 운영자가 Langflow Workflow API로 background job을 시작할 수 있지만, 이것은 F10 시작 방식일 뿐 답변 입력 경로를 바꾸지 않는다.
+2. Component 10~12가 업무 설명을 정규화하고 완전성을 평가한다. 정보가 충분하면 곧바로 검토 경로로 간다.
+3. 정보가 부족하면 질문 생성 LLM과 Component 13이 `clarification_batches`에 `WAITING_ANSWER` 질문 batch를 저장한다.
+4. Component 42가 그 batch에서 `schema`를 만든 뒤 Langflow의 native `node_input` pause를 요청한다. 1·2차 Playground 카드에는 `answer_01`~`answer_03`, 마지막 3차 카드에는 필요할 때 `answer_04`까지 입력칸이 나타난다.
+5. 사용자는 **같은 Playground 카드**에서 다음 중 하나를 선택한다.
+   - 모든 필수 입력을 채운 뒤 `Submit Answers`: 검증된 답변만 WorkDefinition에 병합한다.
+   - **`추가 입력 건너뛰기`**: 현재 카드의 질문 전체를 명시적으로 건너뛰고, 새 답변을 만들지 않은 채 검토로 진행한다.
+   - `Cancel`: 현재 업무 정의를 종료한다.
+6. Playground는 선택된 action과 입력값을 Langflow에 재개 결정으로 보낸다. 내부 형태는 아래와 같지만, 일반 사용자가 `request_id`, API key 또는 curl 요청을 직접 작성할 필요는 없다.
 
-Langflow API 계약:
+   ```json
+   {
+     "decision": {
+       "action_id": "submit_answers",
+       "values": {
+         "answer_01": "매주 금요일 16시에 지난 1주 메일만 조회합니다.",
+         "answer_02": "프로젝트별 완료·진행·리스크·다음 주 계획 표를 보고 포털에 게시합니다."
+       }
+     }
+   }
+   ```
 
-```http
-GET /api/v2/workflows/pending?flow_id={F10_UUID}
-x-api-key: {server_only_key}
-```
+7. Component 42가 안전한 카드 field key를 원래 `question_id`로 복원한다. Component 39는 canonical batch, 질문 계약, 사번, deadline, revision과 중복 실행 방지 키를 다시 확인한다. `Submit Answers`에서 검증된 답변만 MongoDB CAS로 병합한다.
+8. `추가 입력 건너뛰기`는 빈 답변 제출이 아니다. Component 39가 별도 skip audit을 저장하고 현재 카드의 `question_id`를 WorkDefinition `unresolved`에 `unknown` provenance로 남긴다. 답을 추정하거나 confirmed로 바꾸지 않으며, 기존 정보와 이 미확정 목록을 포함한 normal preview/review 경로로 보낸다.
+9. `Submit Answers`를 선택한 경우에만 Component 39가 다시 평가해 2·3차 질문, review, cancel 또는 blocked 중 하나를 선택한다. 같은 질문 패턴은 최대 세 회까지 반복되며 1·2차 card에는 최대 세 개, 마지막 3차 card에는 최대 네 개의 입력칸을 둘 수 있다. 그 입력까지 답한 뒤에도 blocking gap이 남으면 네 번째 질문 회차를 만들지 않고 `CLARIFICATION_ROUND_LIMIT`로 차단한다. 건너뛰기는 네 번째 회차가 아니라 현재 카드에서 끝나는 review 진입 action이다.
+10. 업무가 충분해지거나 명시적으로 추가 입력을 건너뛰면 Component 40·16·17이 검토본을 만들고 Component 18이 `WAITING_APPROVAL`로 저장한다. 마지막 built-in `Human Input`은 **승인 결정 전용**이므로 `Approve`, `Reject`, `Cancel` 버튼만 표시되는 것이 정상이다. 바로 뒤의 Component 43은 사용자의 선택을 읽어 선택하지 않은 18 저장 branch를 조건부 제외하므로, terminal 결과가 실행되지 않은 sibling 저장 node를 읽지 않는다.
 
-```http
-POST /api/v2/workflows/{job_id}/resume
-x-api-key: {server_only_key}
-Content-Type: application/json
+### 추가 입력 건너뛰기 운영 규칙
 
-{
-  "request_id": "{verified_request_id}",
-  "decision": {"action_id": "submit_answers"}
-}
-```
+- 이 action의 내부 ID는 `skip_additional_input`이며, Component 42의 `branch_skip_additional_input`만 같은 회차 Component 39의 `skip_trigger`에 자동 연결된다. 사용자가 Canvas 입력값이나 API 요청을 직접 만들 필요는 없다.
+- 현재 card에 표시된 질문 전체를 한 번에 건너뛴다. 일부 칸만 비워 둔 제출과 혼용하지 않으며, partial answer를 임의로 저장하지 않는다.
+- Component 39는 `clarification_batches.skip_submission`과 WorkDefinition의 `clarification_skip_history`에 멱등 가능한 audit을 남기고, 질문별 `unresolved` record에 질문 ID·target path·reason code와 `unknown` provenance를 기록한다.
+- 결과는 `READY_FOR_REVIEW`/`review_path`다. 따라서 기존 정보와 미확정 항목을 Preview에서 확인한 뒤 최종 승인·거절·취소를 선택할 수 있다. `Cancel`처럼 `CANCELLED`로 만들지 않으며, 승인 전에는 F20을 실행하지 않는다.
+- 건너뛰기는 답변을 추정하거나 blocking gap을 해소하지 않는다. 또한 추가 질문을 만들지 않으므로 4차 HITL 회차가 아니다.
 
-위 형태는 설치된 `langflow==1.11.1`과 `lfx==1.11.5`의 route/schema를 기준으로 검증했다.
+### 입력 형식 안내
 
-## 3. 질문 Batch 등록 시점
+Langflow 1.11.1 Playground의 schema card는 현재 모든 field를 text box로 렌더링한다. Component 42 카드 안의 안내를 우선하며, 주요 입력 규칙은 다음과 같다.
 
-Component 13이 실행될 때는 아직 Human Input이 suspend를 만들기 전이므로 workflow `job_id/request_id`를 알 수 없다. 따라서 다음 두 단계가 분리된다.
+- `text`: 자유 서술
+- `single_choice`: 카드에 표시된 선택지 중 하나를 정확히 입력
+- `single_choice_with_text`: 선택지를 입력하거나 `{"choice":"__other__","text":"설명"}` 형식 입력
+- `multi_choice`: 선택지를 쉼표 또는 줄바꿈으로 구분
+- `boolean`: `true/false`, `예/아니오`
+- `number`: 숫자
 
-- Flow 내부: immutable 질문 계약을 먼저 MongoDB에 저장
-- Orchestrator: suspend가 관측된 뒤 `job_id/request_id`를 HITL API에 등록
+카드의 required 표시는 사용 편의를 위한 1차 안내다. Component 42와 39이 서버 측에서 필수값·선택지·형식·길이·deadline을 다시 검증하므로, 잘못된 값은 다음 단계로 전달되지 않는다.
 
-등록 endpoint:
+## 4. 카드에 입력칸이 보이지 않을 때
 
-```http
-POST /api/work-definitions/{work_id}/question-batches
-Authorization: Bearer {hitl_api_token}
-X-Tenant-ID: tenant-a
-X-Actor-ID: user-a
-Idempotency-Key: register-{job_id}-{request_id}
+`Submit Answers`/`추가 입력 건너뛰기`/`Cancel` 버튼만 있고 질문별 입력칸이 없다면, 과거 built-in `Human Input` node 또는 이전 F10 export를 실행한 경우다. built-in `Human Input`은 선택 버튼만 지원한다.
 
-{
-  "clarification_batch": {"...": "Component 13 output"},
-  "workflow_job_id": "...",
-  "workflow_request_id": "..."
-}
-```
+다음 항목을 확인한다.
 
-production에서는 pending verification을 끌 수 없다. `LANGFLOW_RESUME_ENABLED`, `LANGFLOW_API_KEY`, `LANGFLOW_F10_FLOW_ID`가 없으면 서비스 readiness가 실패한다.
+1. F10에 각 회차별 `42 보완 답변 HITL` component가 있으며, Component 13의 `재질문 Batch` 출력이 42의 `질문 Batch` 입력에 연결되어 있는지 확인한다.
+2. 42의 `답변 제출 Data` 출력이 같은 회차 Component 39의 `Native Answer Submission` 입력으로, `Submit Answers` 출력이 `Submit Trigger` 입력으로, `추가 입력 건너뛰기` 출력이 `추가 입력 건너뛰기 Trigger` 입력으로 각각 연결되어 있는지 확인한다.
+3. F10 JSON과 `42_f10_clarification_answer_gate.py`를 최신 import/source로 갱신하고 Langflow가 component를 다시 build한 뒤 새 실행을 시작한다. 이미 suspend된 옛 job은 새 schema로 변환되지 않는다.
+4. 실제 질문 batch가 `WAITING_ANSWER`, `round_number` 1~3, 1·2차에는 1~3개·3차에는 1~4개의 유효한 질문을 가진지 확인한다. 계약 오류면 42는 입력 카드를 열지 않고 차단 결과를 반환한다.
 
-## 4. 자유서술 답변 제출
+## 5. API 및 legacy Answer Form 서비스의 위치
 
-```http
-POST /api/work-definitions/{work_id}/question-batches/{batch_id}/answers
-Authorization: Bearer {hitl_api_token}
-X-Tenant-ID: tenant-a
-X-Actor-ID: user-a
-Idempotency-Key: answer-{client-generated-uuid}
+F10이 Playground에서 실행되는 정상 경로에는 외부 Answer Form/API 등록, `HITL_API_BEARER_TOKEN`, `LANGFLOW_API_KEY`, `request_id`의 브라우저 노출 또는 수동 resume HTTP 호출이 필요하지 않다. Playground의 인증된 Langflow session이 schema 카드의 `values`를 포함해 재개한다.
 
-{
-  "expected_revision": 2,
-  "answers": [
-    {"question_id": "q-...", "value": "저장 전에 팀장 검토가 필요합니다."}
-  ]
-}
-```
+`services/hitl_form_api`는 저장소에 남아 있을 수 있으나 **legacy/reference 전용**이다. 과거 외부 폼 연동이나 마이그레이션을 참고하기 위한 서비스이며, 현행 F10의 질문 batch 등록·답변 수집·재개 흐름에 포함하지 않는다. F10 운영 runbook과 E2E 합격 조건은 이 서비스를 시작하거나 호출하는 것을 요구하지 않는다.
 
-서버는 다음을 모두 확인한다.
+운영자가 자동화 목적으로 Workflow API를 사용해 F10을 시작·상태 조회·중단할 수는 있다. 이 경우에도 Flow-to-Flow HTTP 호출은 사용하지 않으며, F10→F20 연결은 내부 `Run Flow(tool_mode=false)` direct mode다.
 
-- URL의 work/batch ID와 저장 문서 identity
-- `X-Tenant-ID`, `X-Actor-ID`와 owner
-- batch status와 expiry
-- `expected_revision`
-- question ID 중복·누락·최대 개수·값 크기
-- `text`, `single_choice`, `single_choice_with_text`, `multi_choice`, `boolean`, `number`별 실제 JSON 타입, choice membership, finite 숫자와 길이 상한
-- immutable `answer_deadline_at` 이전 제출인지 여부
-- 동일 idempotency key의 request hash
+## 6. 만료·동시성·재시도
 
-답변을 수락하면 원래 질문 가능 기한은 `answer_deadline_at`로 보존하고 TTL purge용 `expires_at`만 현재 구현의 7일 답변 보존 기간까지 연장한다. Loader는 처리 현재 시각이 아니라 저장된 `submitted_at < answer_deadline_at`을 검사한다.
+- 질문 batch의 `answer_deadline_at` 만료만으로 suspended Langflow job이 자동 종료되지는 않는다. production에서는 별도 sweeper가 만료 batch와 pending request를 대조해 더 이상 재개하지 않을 job을 중단하고 audit event를 남겨야 한다.
+- WorkDefinition 저장은 expected revision 기반 CAS와 idempotency receipt를 사용한다.
+- Component 39는 현재 revision을 읽고 답변을 다음 revision으로 한 번만 병합한다. 동일 재개 이벤트의 중복 전달은 duplicate 저장이 아니라 replay 또는 conflict로 끝나야 한다.
+- native pause의 `request_id`는 Langflow 내부의 단회성 재개 주소다. 사용자가 입력·저장하거나 Canvas 값으로 설정하는 값이 아니다. 새 질문 카드에는 새 request ID가 생긴다.
+- `clarification_batches`의 원래 `answer_deadline_at`은 변경하지 않고, 답변 보존을 위한 `expires_at`만 정책 기간까지 연장한다. 제출 시각이 deadline 이전인지로 수락 여부를 판단한다.
 
-Resume가 일시 실패하면 답변은 `ANSWERED_PENDING_RESUME`로 남고, 동일 key 재시도는 같은 submission을 반환한다. 새로운 답변으로 덮어쓰지 않는다. resume 응답이 유실되어 Langflow가 409를 반환한 경우 API는 동일 request가 아직 pending인지, 같은 job이 다음 request로 진행했는지, durable workflow 상태가 `in_progress`/`completed`인지 서버 측으로 재조회한다. 소비 사실이 확인된 경우만 reconciled resume로 기록하며, 같은 request가 여전히 pending이면 성공으로 간주하지 않는다.
+## 7. 최종 승인 후 F20 직접 실행
 
-## 5. F11 Playground 채널
+사용자는 F10에서 업무를 승인한 뒤 WorkDefinition을 복사해 F20에 다시 입력하지 않는다.
 
-F11은 `Human Input`을 포함하지 않으며 자체적으로 이전 turn을 복원하지 않는다. 호출자가 저장소에서 읽은 현재 WorkDefinition과 active 질문 batch, 구조화된 `playground_payload`를 함께 주는 한 turn 처리 계약이다. start의 최초 저장과 answer loader/merger/store, review join/graph/preview/store/approval, 최종 action store마다 Component 35가 명시적 성공 envelope와 필수 payload를 확인한다. 한 실행은 다음 중 하나를 반환하고 종료한다.
+1. Component 18이 `status=APPROVED`, `approved_hash`, revision을 MongoDB에 저장한다.
+2. Component 36이 canonical 승인 WorkDefinition과 request identity를 다시 읽어 schema/status/revision/hash/owner/session/native channel을 검증한다.
+3. 같은 scope의 active catalog pointer와 `status=active` Skill registry를 읽고 bounded ACL/group 및 추가 설계 프롬프트를 포함한 `agent-design-invocation/v1`을 만든다.
+4. built-in TypeConverter가 strict JSON `text`를 Message로 바꾸고 Langflow 1.11.1 `Run Flow` node가 `tool_mode=false` direct mode로 F20 ChatInput에 전달한다.
+5. F20 최종 ChatOutput이 F10의 최종 Chat Output으로 반환된다.
 
-- `WAITING_ANSWER`: 질문, `batch_id`, `expected_revision`
-- `READY_FOR_REVIEW`: preview와 다음 action 정보
-- `APPROVED` 또는 오류
-
-자유서술 자연어와 action command를 같은 값으로 동시에 해석하지 않는다. Component 36은 중복 key와 nested command 우회를 거부하며 `start`, `submit_answers`, `approve`, `reject`, `cancel`만 허용한다. 답변 command는 구조화된 `playground_payload`로 Component 14에 들어가며, 승인·거절·취소 action은 trusted gateway가 생성한 32~512 byte one-time token 원문을 제출한다. MongoDB에는 token SHA-256과 session/channel/revision/preview/actor/허용 command/expiry만 저장하고 public WorkDefinition 응답에서는 `pending_action`을 제거한다. action은 durable WorkDefinition을 의미 원본으로 사용하므로 요청 payload가 goal이나 preview hash를 바꿀 수 없다. F10 작업을 F11로 이어받거나 그 반대로 바꾸지 않는다.
-
-질문 batch의 `answer_deadline_at` 만료만으로 Langflow 1.11.1 suspended job이 자동 종료되지는 않는다. production에서는 별도 sweeper가 만료된 `clarification_batches`와 pending request를 대조하고, 더 이상 resume하지 않을 job을 권한 있는 Workflow API로 중단한 뒤 terminal `BLOCKED` 또는 `CANCELLED` runtime event를 원자적으로 기록해야 한다. 이 sweeper와 재시작/중복 실행 검증 전에는 F10 native HITL을 production-ready로 승격하지 않는다.
-
-## 6. 동시성·재시도 원칙
-
-- WorkDefinition 저장은 `expected_revision` CAS와 idempotency receipt를 함께 사용한다.
-- 답변 병합 후 revision이 먼저 증가한 payload는 Store의 `incoming_revision_is_next=true` 경로만 사용한다.
-- 동일 idempotency key + 동일 body는 replay다.
-- 동일 idempotency key + 다른 body는 conflict다.
-- stale revision, 만료 batch, 이미 소비한 request/action token은 다시 열지 않는다.
-- native Human Input의 `request_id`는 단회성이다. 새 pause는 새 request ID와 별도 등록을 요구한다.
-- HITL API와 Standalone Component가 같은 canonical collection을 쓰므로 `MONGODB_COLLECTION_PREFIX`는 비어 있어야 하며, non-empty 설정은 시작 시 실패한다.
+이 연결은 Langflow 내부 Run Flow 계약이며 다른 Flow의 HTTP API를 호출하지 않는다. Component 36의 owner/hash/pointer/Skill 검증이 하나라도 실패하면 `blocked_path`만 열리고 F20은 실행되지 않는다.

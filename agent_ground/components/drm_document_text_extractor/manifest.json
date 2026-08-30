@@ -4,7 +4,7 @@
   "class_name": "DrmDocumentTextExtractor",
   "asset_type": "component",
   "status": "user_testing",
-  "version": "0.6.0",
+  "version": "0.6.1",
   "packaging": "standalone",
   "standalone": true,
   "reusability": "shared",
@@ -30,7 +30,7 @@
     ]
   },
   "source_family": "enterprise_utility_components",
-  "summary_ko": "일반 문서는 로컬에서 읽고 보호 문서는 승인된 DRM text API로 평문을 추출합니다. EWS JPG/JPEG는 연결된 Vision 모델로 해석하며 미지원 형식은 안내 결과로 반환합니다.",
+  "summary_ko": "일반 문서는 로컬에서 읽고 보호 문서는 승인된 DRM text API로 평문을 추출합니다. EWS JPG/JPEG/PNG는 연결된 Vision 모델로 해석하며 미지원 형식은 안내 결과로 반환합니다.",
   "source_file": "drm_document_text_extractor.py",
   "inputs": [
     {
@@ -78,13 +78,13 @@
     {
       "type": "HandleInput",
       "name": "vision_model",
-      "display_name": "JPG 이미지 해석 모델",
+      "display_name": "JPG·PNG 이미지 해석 모델",
       "input_types": [
         "LanguageModel"
       ],
       "required": false,
       "advanced": false,
-      "info": "EWS의 JPG/JPEG 첨부를 해석할 Vision Language Model입니다. 사내 vLLM이 OpenAI 호환 멀티모달 모델을 제공하면 기본 Language Model 노드를 연결합니다."
+      "info": "EWS의 JPG/JPEG/PNG 첨부를 해석할 Vision Language Model입니다. 사내 vLLM이 OpenAI 호환 멀티모달 모델을 제공하면 기본 Language Model 노드를 연결합니다."
     },
     {
       "type": "DropdownInput",
@@ -96,7 +96,7 @@
         "DRM 미사용"
       ],
       "value": "자동(로컬 우선)",
-      "info": "자동은 PDF·DOCX·PPTX·XLSX·TXT·CSV를 로컬에서 먼저 읽고 실패한 파일만 DRM API로 보냅니다. 그 밖의 형식은 DRM API로 처리합니다. 항상 DRM은 모든 파일을 API로 보내며, DRM 미사용은 DRM API 호출을 금지합니다. EWS JPG/JPEG의 Vision 모델 경로는 별도로 동작합니다.",
+      "info": "자동은 PDF·DOCX·PPTX·XLSX·TXT·CSV를 로컬에서 먼저 읽고 실패한 파일만 DRM API로 보냅니다. 그 밖의 형식은 DRM API로 처리합니다. 항상 DRM은 모든 파일을 API로 보내며, DRM 미사용은 DRM API 호출을 금지합니다. EWS JPG/JPEG/PNG의 Vision 모델 경로는 별도로 동작합니다.",
       "required": true
     },
     {

@@ -424,7 +424,7 @@ def test_manifest_refs_and_samples_are_safe() -> None:
     internal = json.loads((FLOW_ROOT / "internal_nodes.json").read_text(encoding="utf-8"))
     assert manifest["status"] == "user_testing"
     assert manifest["source_export_version"] == "1.9.2"
-    assert refs["components"] == [{"id": "drm_document_text_extractor", "version": "0.6.0"}]
+    assert refs["components"] == [{"id": "drm_document_text_extractor", "version": "0.6.1"}]
     assert len(internal["nodes"]) == 4
     all_text = "\n".join(
         path.read_text(encoding="utf-8")

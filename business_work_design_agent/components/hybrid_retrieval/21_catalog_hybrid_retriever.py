@@ -29,6 +29,9 @@ QUERY_KIND_WEIGHTS = {
     "risk": 1.15,
     "reporting": 1.00,
 }
+_RUNTIME_CONTRACT_SCHEMA = "embedding-runtime-contract/v2"
+_RUNTIME_CONTRACT_FIELDS = ("schema_version", "runtime_class", "model_id", "dimension", "fingerprint")
+_MAX_EMBEDDING_DIMENSION = 65536
 
 
 def _safe_identifier(value: Any, default: str) -> str:
@@ -115,12 +118,58 @@ def _acl_allows(document: dict[str, Any], tenant_id: str, snapshot_id: str, acl:
     return visibility == "private" and bool(subject_id) and subject_id in subjects
 
 
+def _runtime_contract_text(value: Any, maximum: int = 500) -> str:
+    if not isinstance(value, str):
+        return ""
+    text = value.strip()
+    return text if 0 < len(text) <= maximum else ""
+
+
+def _embedding_runtime_contract(value: Any) -> dict[str, Any]:
+    """Validate the portable runtime identity emitted by the vectorization node."""
+    if not isinstance(value, dict) or set(value) != set(_RUNTIME_CONTRACT_FIELDS):
+        raise ValueError("EMBEDDING_RUNTIME_CONTRACT_INVALID")
+    if value.get("schema_version") != _RUNTIME_CONTRACT_SCHEMA:
+        raise ValueError("EMBEDDING_RUNTIME_CONTRACT_INVALID")
+    runtime_class = _runtime_contract_text(value.get("runtime_class"), maximum=1000)
+    model_id = _runtime_contract_text(value.get("model_id"))
+    dimension = value.get("dimension")
+    fingerprint = value.get("fingerprint")
+    if (
+        not runtime_class
+        or not model_id
+        or isinstance(dimension, bool)
+        or not isinstance(dimension, int)
+        or not 1 <= dimension <= _MAX_EMBEDDING_DIMENSION
+        or not isinstance(fingerprint, str)
+        or not re.fullmatch(r"sha256:[0-9a-fA-F]{64}", fingerprint)
+    ):
+        raise ValueError("EMBEDDING_RUNTIME_CONTRACT_INVALID")
+    signature = {
+        "schema_version": _RUNTIME_CONTRACT_SCHEMA,
+        "runtime_class": runtime_class,
+        "model_id": model_id,
+        "dimension": dimension,
+    }
+    expected_fingerprint = _canonical_hash(signature)
+    if not hmac.compare_digest(fingerprint, expected_fingerprint):
+        raise ValueError("EMBEDDING_RUNTIME_CONTRACT_FINGERPRINT_INVALID")
+    return {**signature, "fingerprint": fingerprint}
+
+
+def _embedding_runtime_signature(contract: dict[str, Any]) -> tuple[str, str, str, int]:
+    return (
+        str(contract["schema_version"]),
+        str(contract["runtime_class"]),
+        str(contract["model_id"]),
+        int(contract["dimension"]),
+    )
+
+
 def _query_vectors(value: Any) -> tuple[dict[str, list[float]], dict[str, Any]]:
     payload = _payload(value)
-    contract = payload.get("embedding_contract") if isinstance(payload.get("embedding_contract"), dict) else {}
-    declared_dimension = contract.get("dimension")
-    if isinstance(declared_dimension, bool) or not isinstance(declared_dimension, int) or not 1 <= declared_dimension <= 8192:
-        raise ValueError("VECTOR_CONTRACT_DIMENSION_INVALID")
+    contract = _embedding_runtime_contract(payload.get("embedding_contract"))
+    declared_dimension = contract["dimension"]
     raw = payload.get("vectors") if isinstance(payload, dict) else None
     result: dict[str, list[float]] = {}
     if isinstance(raw, dict):
@@ -131,7 +180,7 @@ def _query_vectors(value: Any) -> tuple[dict[str, list[float]], dict[str, Any]]:
         pairs = []
     dimension: int | None = None
     for query_id, vector in pairs:
-        if not query_id or not isinstance(vector, list) or not vector or len(vector) > 8192:
+        if not query_id or not isinstance(vector, list) or not vector or len(vector) > _MAX_EMBEDDING_DIMENSION:
             raise ValueError("VECTOR_PAYLOAD_INVALID")
         if any(isinstance(item, bool) or not isinstance(item, (int, float)) for item in vector):
             raise ValueError("VECTOR_NUMERIC_INVALID")
@@ -350,11 +399,16 @@ def _retrieve_from_mongodb(
             return {"active_snapshot_id": "", "source_results": {}}
         if active_snapshot_id != snapshot_id:
             return {"active_snapshot_id": active_snapshot_id, "source_results": {}}
-        active_contract = (pointer or {}).get("embedding_contract") if isinstance((pointer or {}).get("embedding_contract"), dict) else {}
-        contract_fields = ("model", "version", "dimension")
-        if any(active_contract.get(field) in (None, "") for field in contract_fields):
+        try:
+            active_contract = _embedding_runtime_contract((pointer or {}).get("embedding_contract"))
+        except ValueError:
             return {"active_snapshot_id": active_snapshot_id, "contract_error": "CATALOG_EMBEDDING_CONTRACT_MISSING", "source_results": {}}
-        if any(str(active_contract.get(field)) != str(query_embedding_contract.get(field)) for field in contract_fields):
+        if (
+            _embedding_runtime_signature(active_contract) != _embedding_runtime_signature(query_embedding_contract)
+            or not hmac.compare_digest(
+                str(active_contract["fingerprint"]), str(query_embedding_contract["fingerprint"])
+            )
+        ):
             return {"active_snapshot_id": active_snapshot_id, "contract_error": "QUERY_EMBEDDING_CONTRACT_MISMATCH", "source_results": {}}
 
         collection = database[chunks_collection]
@@ -701,7 +755,8 @@ def retrieve_catalog_candidates(
     except ValueError as exc:
         code = str(exc)
         messages = {
-            "VECTOR_CONTRACT_DIMENSION_INVALID": "query embedding 계약의 dimension이 유효하지 않습니다.",
+            "EMBEDDING_RUNTIME_CONTRACT_INVALID": "query vector의 embedding runtime 계약이 유효하지 않습니다.",
+            "EMBEDDING_RUNTIME_CONTRACT_FINGERPRINT_INVALID": "query vector의 embedding runtime fingerprint가 계약과 일치하지 않습니다.",
             "VECTOR_PAYLOAD_INVALID": "query vector payload가 유효하지 않습니다.",
             "VECTOR_NUMERIC_INVALID": "query vector는 bool이 아닌 유한 숫자로만 구성되어야 합니다.",
             "VECTOR_DIMENSION_MISMATCH": "query vector dimension이 계약 또는 다른 vector와 다릅니다.",
@@ -712,9 +767,6 @@ def retrieve_catalog_candidates(
         return _error(trace_id, "INVALID_QUERY_PLAN", "모든 query에는 중복되지 않는 query_id가 필요합니다.")
     if not query_ids or set(vectors) != query_ids:
         return _error(trace_id, "VECTOR_QUERY_MISSING", "모든 query plan ID에 정확히 대응하는 vector가 필요합니다.")
-    if any(query_embedding_contract.get(field) in (None, "") for field in ("model", "version", "dimension")):
-        return _error(trace_id, "QUERY_EMBEDDING_CONTRACT_MISSING", "query vector의 model, version, dimension 계약이 필요합니다.")
-
     top_n = max(1, min(50, int(top_n or 20)))
     source_limit = max(top_n, min(MAX_SOURCE_CANDIDATES, int(source_limit or 50)))
     try:
@@ -764,7 +816,7 @@ def retrieve_catalog_candidates(
     if contract_error:
         messages = {
             "CATALOG_EMBEDDING_CONTRACT_MISSING": "활성 catalog pointer에 embedding 계약이 없습니다. snapshot을 재검증·재활성화해야 합니다.",
-            "QUERY_EMBEDDING_CONTRACT_MISMATCH": "query embedding model/version/dimension이 활성 catalog와 일치하지 않습니다.",
+            "QUERY_EMBEDDING_CONTRACT_MISMATCH": "query embedding runtime 계약이 활성 catalog와 일치하지 않습니다.",
         }
         return _error(trace_id, contract_error, messages.get(contract_error, "embedding 계약이 일치하지 않습니다."))
     source_results = backend_result.get("source_results") if isinstance(backend_result.get("source_results"), dict) else {}
@@ -898,7 +950,7 @@ class CatalogHybridRetrieverComponent(Component):
         DataInput(name="query_vectors", display_name="Query Vectors", required=True),
         DropdownInput(name="provider_mode", display_name="Provider Mode", options=sorted(PROVIDER_MODES), value="application_rrf"),
         SecretStrInput(name="mongodb_uri", display_name="MongoDB URI", required=True),
-        MessageTextInput(name="database_name", display_name="Database", value="business_work_design", advanced=True),
+        MessageTextInput(name="database_name", display_name="MongoDB Database", value="business_work_design", advanced=True),
         MessageTextInput(name="chunks_collection", display_name="Chunks Collection", value="catalog_asset_chunks", advanced=True),
         MessageTextInput(name="assets_collection", display_name="Assets Collection", value="catalog_assets", advanced=True),
         MessageTextInput(name="pointer_collection", display_name="Active Pointer Collection", value="catalog_active_pointers", advanced=True),

@@ -139,7 +139,7 @@ def route_work_clarification(work_value: Any, clarification_value: Any) -> dict[
 
 class WorkClarificationRouterComponent(Component):
     display_name = "27 업무 보완 분기 Router"
-    description = "질문 batch가 있으면 native/playground 보완 경로로, 없으면 review 경로로 정확히 하나만 실행합니다."
+    description = "질문 batch가 있으면 native HITL 보완 경로로, 없으면 review 경로로 정확히 하나만 실행합니다."
     icon = "GitBranch"
     name = "WorkClarificationRouter"
 

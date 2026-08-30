@@ -375,7 +375,7 @@ def _validate_approved_contract(work: dict[str, Any], blueprint: dict[str, Any])
     for field in ("tenant_id", "owner_id", "session_id", "work_definition_id"):
         if not _is_identity(work.get(field)):
             raise ValueError(f"work_definition {field} must be a canonical identity")
-    if work.get("channel_mode") not in {"native_hitl", "playground"}:
+    if work.get("channel_mode") != "native_hitl":
         raise ValueError("work_definition channel_mode is invalid")
     work_tenant = work.get("tenant_id")
     blueprint_tenant = blueprint.get("tenant_id")
@@ -1298,7 +1298,7 @@ class ReportViewModelBuilderComponent(Component):
     inputs = [
         DataInput(name="work_definition", display_name="Approved Work Definition", required=True),
         DataInput(name="agent_blueprint", display_name="Agent Blueprint", required=True),
-        DataInput(name="retrieval_trace", display_name="Retrieval Trace", required=True, advanced=True),
+        DataInput(name="retrieval_trace", display_name="Retrieval Trace", required=True),
         StrInput(name="report_title", display_name="Report Title", value="업무 방식 및 Agent 설계 보고서"),
         IntInput(name="max_nodes", display_name="Maximum Nodes per Graph", value=500, advanced=True),
         IntInput(name="max_edges", display_name="Maximum Edges per Graph", value=1000, advanced=True),

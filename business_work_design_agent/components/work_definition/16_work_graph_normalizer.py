@@ -369,9 +369,54 @@ class WorkGraphNormalizerComponent(Component):
         IntInput(name="max_nodes", display_name="최대 Node 수", value=500, advanced=True),
         IntInput(name="max_edges", display_name="최대 Edge 수", value=2000, advanced=True),
     ]
-    outputs = [Output(name="normalized_graph", display_name="정규화 AS-IS Graph", method="build_graph", types=["Data"])]
+    outputs = [
+        Output(name="normalized_graph", display_name="정규화 AS-IS Graph", method="build_graph", types=["Data"]),
+        Output(name="success_path", display_name="Graph 검증 성공", method="route_graph", types=["Data"], group_outputs=True),
+        Output(name="blocked_path", display_name="Graph 검증 차단", method="route_graph", types=["Data"], group_outputs=True),
+    ]
+
+    def _result(self) -> dict[str, Any]:
+        result = getattr(self, "_graph_result", None)
+        if isinstance(result, dict):
+            return result
+        result = normalize_work_graph(
+            getattr(self, "work_definition", None),
+            max_nodes=getattr(self, "max_nodes", 500),
+            max_edges=getattr(self, "max_edges", 2000),
+        )
+        self._graph_result = result
+        self.status = {
+            "ok": result["ok"],
+            "status": result["status"],
+            "node_count": result.get("graph_validation", {}).get("node_count", 0),
+            "error_count": len(result.get("graph_validation", {}).get("errors", [])),
+        }
+        return result
 
     def build_graph(self) -> Data:
-        result = normalize_work_graph(getattr(self, "work_definition", None), max_nodes=getattr(self, "max_nodes", 500), max_edges=getattr(self, "max_edges", 2000))
-        self.status = {"ok": result["ok"], "status": result["status"], "node_count": result.get("graph_validation", {}).get("node_count", 0), "error_count": len(result.get("graph_validation", {}).get("errors", []))}
+        return Data(data=self._result())
+
+    def _component_id(self) -> str:
+        return str(getattr(self, "_id", "") or self.name)[:200]
+
+    def _select_output_route(self, selected: str) -> None:
+        output_names = ("success_path", "blocked_path")
+        non_selected = [output_name for output_name in output_names if output_name != selected]
+        for output_name in non_selected:
+            self.stop(output_name)
+        graph = getattr(self, "graph", None)
+        exclude = getattr(graph, "exclude_branches_conditionally", None) if graph is not None else None
+        if callable(exclude):
+            exclude(self._component_id(), non_selected)
+
+    def _is_nonselected_group_output(self, selected: str) -> bool:
+        current_output = str(getattr(self, "_current_output", "") or "")
+        return bool(current_output and current_output in {"success_path", "blocked_path"} and current_output != selected)
+
+    def route_graph(self) -> Data:
+        result = self._result()
+        selected = "success_path" if result.get("ok") is True else "blocked_path"
+        self._select_output_route(selected)
+        if self._is_nonselected_group_output(selected):
+            return Data(data={})
         return Data(data=result)

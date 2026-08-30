@@ -1,0 +1,26 @@
+{
+  "items": [
+    {
+      "tenant_id": "default",
+      "skill_id": "evidence_first_weekly_report",
+      "name": "근거 우선 주간 업무보고",
+      "version": "1.0.0",
+      "prompt_sha256": "sha256:eb8de5e7cfd911d8011f94bf50922ae7e4b6a183ddc9d7246e0c694c4b6f0cff",
+      "trigger_rules": [
+        {"kind": "contains", "value": "주간 업무보고"},
+        {"kind": "all", "values": ["메일", "보고"]}
+      ],
+      "near_miss_rules": [
+        {"kind": "contains", "value": "교육 퀴즈"}
+      ],
+      "prompt_text": "주간 업무보고를 설계할 때 각 요약 항목에 원본 자료 참조를 유지하고, 민감정보 검토와 담당자 승인이 완료되기 전에는 게시 단계로 진행하지 않는다.",
+      "forbidden_actions": ["승인 전 게시", "원본 근거 없는 완료 처리"],
+      "status": "active",
+      "acl": {"visibility": "tenant", "groups": [], "subjects": []},
+      "approved_by": "demo-security-reviewer",
+      "approved_at": "2026-08-29T09:00:00+09:00",
+      "match_reason": "메일 기반 주간 업무보고에 원본 근거와 게시 전 승인을 적용합니다.",
+      "target_stage": "blueprint_design"
+    }
+  ]
+}

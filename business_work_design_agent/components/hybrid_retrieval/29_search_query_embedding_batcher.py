@@ -1,26 +1,24 @@
 from __future__ import annotations
 
-"""Create ID-preserving query vectors for hybrid retrieval without local imports."""
+"""Create locked query vectors through the connected Langflow Embedding Model."""
 
 import hashlib
 import hmac
 import json
 import math
 import re
-import socket
-import urllib.error
-import urllib.parse
-import urllib.request
 from typing import Any
 
 from lfx.custom import Component
-from lfx.io import BoolInput, DataInput, DropdownInput, IntInput, Output, SecretStrInput, StrInput
+from lfx.io import DataInput, HandleInput, IntInput, Output
 from lfx.schema import Data
 
 
-class _NoRedirect(urllib.request.HTTPRedirectHandler):
-    def redirect_request(self, req, fp, code, msg, headers, newurl):  # noqa: ANN001, ANN201, ARG002
-        return None
+_RUNTIME_CONTRACT_SCHEMA = "embedding-runtime-contract/v2"
+_MAX_EMBEDDING_DIMENSION = 65536
+_RUNTIME_CLASS_PATTERN = re.compile(
+    r"^<class '([A-Za-z_][A-Za-z0-9_]*(?:\.(?:[A-Za-z_][A-Za-z0-9_]*|<locals>))*)'>$"
+)
 
 
 def _payload(value: Any, field: str) -> dict[str, Any]:
@@ -38,13 +36,8 @@ def _payload(value: Any, field: str) -> dict[str, Any]:
     return value
 
 
-def _secret(value: Any) -> str:
-    getter = getattr(value, "get_secret_value", None)
-    return str(getter() if callable(getter) else value or "").strip()
-
-
 def _canonical_hash(value: Any) -> str:
-    material = json.dumps(value, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
+    material = json.dumps(value, ensure_ascii=False, sort_keys=True, separators=(",", ":"), allow_nan=False)
     return "sha256:" + hashlib.sha256(material.encode("utf-8")).hexdigest()
 
 
@@ -61,23 +54,6 @@ def _verified_plan_locks(plan: dict[str, Any]) -> dict[str, str]:
     if not hmac.compare_digest(locks["query_plan_sha256"].lower(), _canonical_hash(plan_core).lower()):
         raise ValueError("query_plan_sha256 does not match query plan")
     return locks
-
-
-def _vector(value: Any, dimension: int, query_id: str) -> list[float]:
-    if not isinstance(value, list) or len(value) != dimension:
-        raise ValueError(f"vector dimension mismatch for query_id={query_id}")
-    result: list[float] = []
-    for item in value:
-        if isinstance(item, bool):
-            raise ValueError(f"boolean vector value for query_id={query_id}")
-        try:
-            number = float(item)
-        except (TypeError, ValueError) as exc:
-            raise ValueError(f"non-numeric vector value for query_id={query_id}") from exc
-        if not math.isfinite(number):
-            raise ValueError(f"non-finite vector value for query_id={query_id}")
-        result.append(number)
-    return result
 
 
 def _queries(plan: dict[str, Any], maximum: int) -> list[dict[str, str]]:
@@ -100,130 +76,182 @@ def _queries(plan: dict[str, Any], maximum: int) -> list[dict[str, str]]:
     return result
 
 
-def _endpoint(value: str, allow_loopback: bool, allowed_host: str) -> str:
-    parsed = urllib.parse.urlsplit(value.strip())
-    hostname = (parsed.hostname or "").lower().rstrip(".")
-    loopback = hostname in {"localhost", "127.0.0.1", "::1"}
-    if not hostname or parsed.username or parsed.password or parsed.fragment:
-        raise ValueError("embedding_endpoint must be an absolute URL without credentials or fragment")
-    if parsed.scheme != "https" and not (allow_loopback and loopback and parsed.scheme == "http"):
-        raise ValueError("HTTPS is required; HTTP is allowed only for explicit loopback development")
-    expected_host = allowed_host.strip().lower().rstrip(".")
-    if not expected_host:
-        raise ValueError("allowed_host is required for the embedding endpoint")
-    if hostname != expected_host:
-        raise ValueError("embedding endpoint hostname does not match allowed_host")
-    return urllib.parse.urlunsplit((parsed.scheme, parsed.netloc, parsed.path, parsed.query, ""))
+def _underlying_embedding(embedding: Any) -> Any:
+    if embedding is None:
+        raise ValueError("A connected Embedding Model is required")
+    try:
+        underlying = getattr(embedding, "embeddings", None)
+    except Exception:  # noqa: BLE001 - provider wrappers can reject metadata reads
+        underlying = None
+    return embedding if underlying is None else underlying
 
 
-def _response_vectors(payload: dict[str, Any]) -> dict[str, Any]:
-    if isinstance(payload.get("vectors"), dict):
-        return dict(payload["vectors"])
-    data = payload.get("data")
-    if isinstance(data, list):
-        result: dict[str, Any] = {}
-        for item in data:
-            if isinstance(item, dict) and item.get("id") is not None:
-                result[str(item["id"])] = item.get("embedding") or item.get("vector")
-        return result
-    raise ValueError("embedding response must contain vectors or data")
+def _model_id_text(value: Any) -> str:
+    if not isinstance(value, str):
+        return ""
+    text = value.strip()
+    return text if 0 < len(text) <= 500 else ""
+
+
+def _model_id(embedding: Any, underlying: Any) -> str:
+    """Resolve only a provider-selected model identity; never infer from a class name."""
+    try:
+        available_models = getattr(embedding, "available_models", None)
+    except Exception:  # noqa: BLE001 - provider wrappers can reject metadata reads
+        available_models = None
+    if isinstance(available_models, dict):
+        matches = {
+            text
+            for candidate_id, candidate in available_models.items()
+            if candidate is underlying and (text := _model_id_text(candidate_id))
+        }
+        if len(matches) > 1:
+            raise ValueError("Embedding Model identity resolves to more than one configured model ID")
+        if matches:
+            return next(iter(matches))
+    candidates: list[Any] = []
+    try:
+        candidates.append(getattr(underlying, "model_name", None))
+    except Exception:  # noqa: BLE001 - provider model metadata is heterogeneous
+        pass
+    try:
+        candidates.append(getattr(underlying, "model", None))
+    except Exception:  # noqa: BLE001 - provider model metadata is heterogeneous
+        pass
+    try:
+        candidates.append(getattr(underlying, "model_id", None))
+    except Exception:  # noqa: BLE001 - provider model metadata is heterogeneous
+        pass
+    try:
+        candidates.append(getattr(underlying, "deployment_name", None))
+    except Exception:  # noqa: BLE001 - provider model metadata is heterogeneous
+        pass
+    try:
+        candidates.append(getattr(underlying, "deployment", None))
+    except Exception:  # noqa: BLE001 - provider model metadata is heterogeneous
+        pass
+    for candidate in candidates:
+        text = _model_id_text(candidate)
+        if text:
+            return text
+    raise ValueError("The connected Embedding Model does not expose a stable model identity")
+
+
+def _runtime_class(underlying: Any) -> str:
+    rendered = str(type(underlying))
+    match = _RUNTIME_CLASS_PATTERN.fullmatch(rendered) if len(rendered) <= 1024 else None
+    value = match.group(1) if match else ""
+    if not value or len(value) > 1000:
+        raise ValueError("The connected Embedding Model does not expose a stable runtime class")
+    return value
+
+
+def _runtime_contract(embedding: Any, dimension: int) -> dict[str, Any]:
+    if isinstance(dimension, bool) or not isinstance(dimension, int) or not 1 <= dimension <= _MAX_EMBEDDING_DIMENSION:
+        raise ValueError("The embedding response dimension is invalid")
+    underlying = _underlying_embedding(embedding)
+    contract = {
+        "schema_version": _RUNTIME_CONTRACT_SCHEMA,
+        "runtime_class": _runtime_class(underlying),
+        "model_id": _model_id(embedding, underlying),
+        "dimension": dimension,
+    }
+    return {**contract, "fingerprint": _canonical_hash(contract)}
+
+
+def _vectors(value: Any, expected_count: int, dimension: int | None, query_ids: list[str]) -> tuple[list[list[float]], int]:
+    if not isinstance(value, list) or len(value) != expected_count:
+        raise ValueError("The embedding response count does not match the query batch")
+    actual_dimension = dimension
+    result: list[list[float]] = []
+    for index, vector in enumerate(value):
+        query_id = query_ids[index]
+        if not isinstance(vector, list) or not vector:
+            raise ValueError(f"The embedding response vector is missing for query_id={query_id}")
+        if actual_dimension is None:
+            actual_dimension = len(vector)
+            if not 1 <= actual_dimension <= _MAX_EMBEDDING_DIMENSION:
+                raise ValueError("The embedding response dimension is invalid")
+        if len(vector) != actual_dimension:
+            raise ValueError(f"The embedding response vector dimension is invalid for query_id={query_id}")
+        normalized: list[float] = []
+        for item in vector:
+            if isinstance(item, bool):
+                raise ValueError(f"The embedding response contains a boolean for query_id={query_id}")
+            try:
+                number = float(item)
+            except (TypeError, ValueError) as exc:
+                raise ValueError(f"The embedding response contains a non-numeric value for query_id={query_id}") from exc
+            if not math.isfinite(number):
+                raise ValueError(f"The embedding response contains a non-finite value for query_id={query_id}")
+            normalized.append(number)
+        result.append(normalized)
+    if actual_dimension is None:
+        raise ValueError("The embedding response did not contain a vector dimension")
+    return result, actual_dimension
+
+
+def _embed_documents(embedding: Any, texts: list[str], query_ids: list[str], dimension: int | None) -> tuple[list[list[float]], int]:
+    try:
+        method = getattr(embedding, "embed_documents", None)
+    except Exception as exc:  # noqa: BLE001 - provider wrappers can expose arbitrary properties
+        raise ValueError("The connected Embedding Model could not be used") from exc
+    if not callable(method):
+        raise ValueError("The connected Embedding Model does not provide embed_documents")
+    try:
+        raw_vectors = method(texts)
+    except Exception as exc:  # noqa: BLE001 - providers expose heterogeneous error types
+        raise RuntimeError("The connected Embedding Model failed to vectorize the query batch") from exc
+    return _vectors(raw_vectors, len(texts), dimension, query_ids)
 
 
 class SearchQueryEmbeddingBatcherComponent(Component):
-    display_name = "29 검색 Query Embedding Batcher"
-    description = "Vectorizes every planned query with stable IDs using an approved endpoint or explicit precomputed vectors."
+    display_name = "29 Search Query Embedding Batcher"
+    description = "Vectorize locked search queries through the connected Langflow Embedding Model in bounded batches."
     icon = "Binary"
     name = "SearchQueryEmbeddingBatcher"
 
     inputs = [
         DataInput(name="query_plan", display_name="Search Query Plan", required=True),
-        DropdownInput(name="provider_mode", display_name="Provider Mode", options=["http_json", "precomputed"], value="http_json"),
-        DataInput(name="precomputed_vectors", display_name="Precomputed Vectors", required=False, advanced=True),
-        StrInput(name="embedding_endpoint", display_name="Embedding Endpoint", value="", required=False),
-        SecretStrInput(name="api_token", display_name="Embedding API Token", required=False),
-        StrInput(name="model", display_name="Embedding Model", required=True),
-        StrInput(name="model_version", display_name="Embedding Model Version", required=True),
-        IntInput(name="dimension", display_name="Vector Dimension", value=1024, required=True),
-        IntInput(name="batch_size", display_name="Batch Size", value=16, advanced=True),
+        HandleInput(name="embedding", display_name="Embedding Model", input_types=["Embeddings"], required=True),
+        IntInput(name="batch_size", display_name="Embedding Batch Size", value=16, advanced=True),
         IntInput(name="max_queries", display_name="Maximum Queries", value=30, advanced=True),
-        IntInput(name="timeout_seconds", display_name="Timeout (seconds)", value=30, advanced=True),
-        IntInput(name="max_response_bytes", display_name="Maximum Response Bytes", value=5000000, advanced=True),
-        StrInput(name="allowed_host", display_name="Exact Allowed Host", value="", advanced=True),
-        BoolInput(name="allow_insecure_loopback", display_name="Allow HTTP Loopback", value=False, advanced=True),
     ]
     outputs = [Output(name="query_vectors", display_name="ID-preserving Query Vectors", method="build_query_vectors", types=["Data"])]
 
     def build_query_vectors(self) -> Data:
-        plan = _payload(self.query_plan, "query_plan")
+        plan = _payload(getattr(self, "query_plan", None), "query_plan")
         locks = _verified_plan_locks(plan)
         maximum = max(1, min(int(getattr(self, "max_queries", 30) or 30), 100))
         queries = _queries(plan, maximum)
-        dimension = max(1, min(int(getattr(self, "dimension", 1024) or 1024), 65536))
-        model = str(getattr(self, "model", "") or "").strip()
-        model_version = str(getattr(self, "model_version", "") or "").strip()
-        if not model or not model_version:
-            raise ValueError("model and model_version are required")
-        mode = str(getattr(self, "provider_mode", "http_json") or "")
-        raw_vectors: dict[str, Any] = {}
-        provider_receipts: list[dict[str, Any]] = []
-        if mode == "precomputed":
-            supplied = _payload(getattr(self, "precomputed_vectors", None), "precomputed_vectors")
-            raw_vectors = supplied.get("vectors") if isinstance(supplied.get("vectors"), dict) else supplied
-        elif mode == "http_json":
-            endpoint = _endpoint(
-                str(getattr(self, "embedding_endpoint", "") or ""),
-                bool(getattr(self, "allow_insecure_loopback", False)),
-                str(getattr(self, "allowed_host", "") or ""),
+        embedding = getattr(self, "embedding", None)
+        underlying = _underlying_embedding(embedding)
+        # Resolve model metadata before the first provider request so unknown model
+        # identities fail closed without creating an untraceable vector snapshot.
+        _model_id(embedding, underlying)
+        _runtime_class(underlying)
+        batch_size = max(1, min(int(getattr(self, "batch_size", 16) or 16), 128))
+        vectors: dict[str, list[float]] = {}
+        dimension: int | None = None
+        for start in range(0, len(queries), batch_size):
+            batch = queries[start : start + batch_size]
+            batch_vectors, dimension = _embed_documents(
+                embedding,
+                [item["text"] for item in batch],
+                [item["id"] for item in batch],
+                dimension,
             )
-            token = _secret(getattr(self, "api_token", ""))
-            hostname = (urllib.parse.urlsplit(endpoint).hostname or "").lower()
-            if hostname not in {"localhost", "127.0.0.1", "::1"} and not token:
-                raise ValueError("api_token is required outside loopback development")
-            batch_size = max(1, min(int(getattr(self, "batch_size", 16) or 16), 64))
-            timeout = max(1, min(int(getattr(self, "timeout_seconds", 30) or 30), 120))
-            response_limit = max(1024, min(int(getattr(self, "max_response_bytes", 5_000_000) or 5_000_000), 25_000_000))
-            opener = urllib.request.build_opener(_NoRedirect())
-            for start in range(0, len(queries), batch_size):
-                batch = queries[start : start + batch_size]
-                request_payload = {"model": model, "version": model_version, "dimension": dimension, "inputs": batch}
-                body = json.dumps(request_payload, ensure_ascii=False, separators=(",", ":")).encode("utf-8")
-                headers = {"Content-Type": "application/json", "Accept": "application/json", "User-Agent": "business-work-design-agent/1.0"}
-                if token:
-                    headers["Authorization"] = "Bearer " + token
-                request = urllib.request.Request(endpoint, data=body, headers=headers, method="POST")
-                try:
-                    with opener.open(request, timeout=timeout) as response:
-                        response_body = response.read(response_limit + 1)
-                        status_code = int(response.status)
-                except urllib.error.HTTPError as exc:
-                    raise ValueError(f"embedding provider rejected batch with HTTP {exc.code}") from exc
-                except (urllib.error.URLError, socket.timeout, TimeoutError) as exc:
-                    raise ValueError("embedding provider is unavailable") from exc
-                if status_code not in {200, 201} or len(response_body) > response_limit:
-                    raise ValueError("embedding provider returned an invalid or oversized response")
-                try:
-                    response_payload = json.loads(response_body.decode("utf-8"))
-                except (UnicodeDecodeError, json.JSONDecodeError) as exc:
-                    raise ValueError("embedding provider response must be UTF-8 JSON") from exc
-                if not isinstance(response_payload, dict):
-                    raise ValueError("embedding provider response must be an object")
-                raw_vectors.update(_response_vectors(response_payload))
-                provider_receipts.append({"start": start, "count": len(batch), "response_sha256": hashlib.sha256(response_body).hexdigest()})
-        else:
-            raise ValueError("unsupported provider_mode")
-        expected_ids = {item["id"] for item in queries}
-        if set(raw_vectors) != expected_ids:
-            raise ValueError("embedding response query IDs do not exactly match the query plan")
-        vectors = {item["id"]: _vector(raw_vectors[item["id"]], dimension, item["id"]) for item in queries}
+            for item, vector in zip(batch, batch_vectors):
+                vectors[item["id"]] = vector
+        contract = _runtime_contract(embedding, dimension if dimension is not None else 0)
         result = {
             "ok": True,
             "status": "VECTORIZED",
             "schema_version": "query-vectors/v1",
             "vectors": vectors,
             "query_order": [item["id"] for item in queries],
-            "embedding_contract": {"provider_mode": mode, "model": model, "version": model_version, "dimension": dimension},
-            "provider_receipts": provider_receipts,
+            "embedding_contract": contract,
             **locks,
         }
-        self.status = f"Vectorized {len(vectors)} queries with {model}@{model_version}"
+        self.status = f"Vectorized {len(vectors)} queries with {contract['model_id']} ({contract['dimension']}d)."
         return Data(data=result)

@@ -16,6 +16,7 @@ SAMPLE_PATHS = {
     "blueprint": PROJECT_ROOT / "samples" / "approved_agent_blueprint.json",
     "terminal": PROJECT_ROOT / "samples" / "agent_blueprint_terminal.json",
     "candidate_context": PROJECT_ROOT / "samples" / "candidate_context.json",
+    "report_handoff": PROJECT_ROOT / "samples" / "f20_report_handoff.json",
 }
 COMPONENT_PATHS = {
     "graph": PROJECT_ROOT / "components" / "work_definition" / "16_work_graph_normalizer.py",
@@ -27,6 +28,7 @@ COMPONENT_PATHS = {
     "ports": PROJECT_ROOT / "components" / "agent_blueprint" / "24_port_contract_validator.py",
     "readiness": PROJECT_ROOT / "components" / "agent_blueprint" / "25_blueprint_readiness_classifier.py",
     "generation": PROJECT_ROOT / "components" / "agent_blueprint" / "26_component_generation_prompt_builder.py",
+    "report_handoff": PROJECT_ROOT / "components" / "agent_blueprint" / "38_f20_report_handoff_builder.py",
 }
 
 
@@ -73,7 +75,7 @@ def source_work_definition() -> dict[str, Any]:
 
     return {
         "schema_version": "work-definition/v1",
-        "tenant_id": "tenant-demo",
+        "tenant_id": "default",
         "owner_id": "employee-demo",
         "session_id": "session-weekly-email-report",
         "channel_mode": "native_hitl",
@@ -387,7 +389,7 @@ def _skill_registry() -> dict[str, Any]:
     prompt_text = "업무보고 문장은 원본 근거를 보존하고 게시 전 담당자 승인을 거친다."
     prompt_sha256 = "sha256:" + hashlib.sha256(prompt_text.encode("utf-8")).hexdigest()
     skill = {
-        "tenant_id": "tenant-demo",
+        "tenant_id": "default",
         "skill_id": "skill-evidence-first-summarization",
         "name": "근거 우선 요약",
         "version": "1.2.0",
@@ -644,7 +646,7 @@ def build_sample_documents() -> dict[str, dict[str, Any]]:
 
     scope = modules["scope"].build_design_scope(
         approved_work,
-        tenant_id="tenant-demo",
+        tenant_id="default",
         catalog_snapshot_id="catalog-snapshot-20260827",
         acl_context={"subject_id": "employee-demo", "groups": ["business-automation"]},
         design_prompt="메일 근거를 보존하고 게시 전 사람의 승인을 강제한다.",
@@ -684,11 +686,17 @@ def build_sample_documents() -> dict[str, dict[str, Any]]:
         raise RuntimeError("The sample must create exactly two standalone generation requests.")
     terminal["trace_id"] = "trace-sample-f20-terminal"
 
+    report_handoff = modules["report_handoff"].build_f20_report_handoff(scope, candidates, terminal)
+    if report_handoff.get("ok") is not True or report_handoff.get("status") != "COMPLETED":
+        raise RuntimeError(f"F20 report handoff build failed: {report_handoff.get('error')}")
+    report_handoff["trace_id"] = "trace-sample-f20-report-handoff"
+
     return {
         "work_definition": approved_work,
         "blueprint": terminal["blueprint"],
         "terminal": terminal,
         "candidate_context": candidates,
+        "report_handoff": report_handoff,
     }
 
 
@@ -697,7 +705,7 @@ def _serialized(value: Any) -> str:
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="Build deterministic canonical sample contracts through Components 16/17/19/20/22/23/24/25/26.")
+    parser = argparse.ArgumentParser(description="Build deterministic canonical sample contracts through Components 16/17/19/20/22/23/24/25/26/38.")
     parser.add_argument("--check", action="store_true", help="Do not write; fail when committed samples differ from the pipeline output.")
     args = parser.parse_args()
     documents = build_sample_documents()

@@ -10,13 +10,16 @@ from typing import Any
 
 from lfx.custom import Component
 from lfx.io import DataInput, IntInput, MessageTextInput, Output, SecretStrInput
-from lfx.schema import Data
+from lfx.schema import Data, Message
 from pymongo import MongoClient
 from pymongo.errors import DuplicateKeyError, PyMongoError
 
 
 ALLOWED_ANSWER_TYPES = {"text", "single_choice", "single_choice_with_text", "multi_choice", "boolean", "number"}
 PRIORITY_ORDER = {"safety": 0, "branch": 1, "contract": 2, "quality": 3}
+MAX_INITIAL_WORK_DOCUMENT_BYTES = 1_000_000
+DEFAULT_MAX_QUESTIONS_PER_ROUND = 3
+FINAL_ROUND_MAX_QUESTIONS = 4
 
 
 def _payload(value: Any) -> dict[str, Any]:
@@ -117,11 +120,11 @@ def build_clarification_batch(
         candidate_payload = _payload(candidate_questions_value) if candidate_questions_value is not None else {}
         candidates = candidate_payload.get("questions") if isinstance(candidate_payload.get("questions"), list) else []
         supplied_round = int(round_number)
-        question_limit = max(1, min(int(max_questions), 3))
+        requested_question_limit = int(max_questions)
         expiry = max(5, min(int(expiry_minutes), 1440))
         now = _parse_now(now_utc)
     except (TypeError, ValueError, json.JSONDecodeError):
-        work, completeness, candidates, supplied_round, question_limit, expiry, now = {}, {}, [], -1, 3, 60, datetime.now(timezone.utc)
+        work, completeness, candidates, supplied_round, requested_question_limit, expiry, now = {}, {}, [], -1, DEFAULT_MAX_QUESTIONS_PER_ROUND, 60, datetime.now(timezone.utc)
     processed = work.get("processed_answer_batches") if isinstance(work.get("processed_answer_batches"), list) else []
     processed_batch_ids = {
         str(item.get("batch_id") or "")
@@ -130,6 +133,8 @@ def build_clarification_batch(
     }
     expected_round = min(len(processed_batch_ids) + 1, 4)
     current_round = expected_round if supplied_round == 0 else supplied_round
+    maximum_for_round = FINAL_ROUND_MAX_QUESTIONS if current_round == 3 else DEFAULT_MAX_QUESTIONS_PER_ROUND
+    question_limit = max(1, min(requested_question_limit, maximum_for_round))
     identity_fields = ("work_definition_id", "tenant_id", "owner_id", "session_id", "revision", "channel_mode")
     missing = [field for field in identity_fields if work.get(field) in (None, "")]
     # Round 4 is a non-interactive post-round gate: it may return
@@ -277,12 +282,95 @@ def build_clarification_batch(
     }
 
 
+def _initial_work_document(work_value: Any, batch: dict[str, Any]) -> dict[str, Any]:
+    """Build the first durable WorkDefinition required by the Answer Form API.
+
+    This is intentionally limited to round 1.  Later rounds must never
+    overwrite a WorkDefinition that may already contain answer provenance and
+    a newer semantic revision.
+    """
+    work = _named(work_value, "work_definition")
+    required = ("work_definition_id", "tenant_id", "owner_id", "session_id", "channel_mode", "revision")
+    missing = [name for name in required if work.get(name) in (None, "")]
+    if missing:
+        raise ValueError("INITIAL_WORK_INPUT_INVALID")
+    for name in ("work_definition_id", "tenant_id", "owner_id", "session_id", "channel_mode", "revision"):
+        if str(work.get(name)) != str(batch.get(name)):
+            raise ValueError("INITIAL_WORK_BATCH_IDENTITY_MISMATCH")
+    if str(work.get("channel_mode")) != "native_hitl":
+        raise ValueError("INITIAL_WORK_CHANNEL_INVALID")
+    try:
+        revision = int(work.get("revision"))
+    except (TypeError, ValueError) as exc:
+        raise ValueError("INITIAL_WORK_REVISION_INVALID") from exc
+    if revision != 0 or int(batch.get("round_number", 0)) != 1:
+        raise ValueError("INITIAL_WORK_REVISION_INVALID")
+    identity_material = f"{work['tenant_id']}|{work['work_definition_id']}"
+    document = copy.deepcopy(work)
+    document.pop("_id", None)
+    document.pop("pending_action", None)
+    document.pop("mutation_receipts", None)
+    document.pop("last_event", None)
+    document["_id"] = "work-definition:" + hashlib.sha256(identity_material.encode("utf-8")).hexdigest()
+    document["revision"] = 0
+    document["status"] = "WAITING_ANSWER"
+    document["approved_hash"] = None
+    document["processed_answer_batches"] = []
+    created_at = _parse_now(batch.get("created_at"))
+    document["created_at"] = created_at
+    document["updated_at"] = created_at
+    serialized = json.dumps(document, ensure_ascii=False, sort_keys=True, separators=(",", ":"), default=str)
+    if len(serialized.encode("utf-8")) > MAX_INITIAL_WORK_DOCUMENT_BYTES:
+        raise ValueError("INITIAL_WORK_DOCUMENT_TOO_LARGE")
+    return document
+
+
+def _ensure_initial_work_definition(definitions: Any, work_value: Any, batch: dict[str, Any]) -> dict[str, Any]:
+    """Idempotently insert the round-1 record without clobbering later work."""
+    document = _initial_work_document(work_value, batch)
+    identity = {"tenant_id": document["tenant_id"], "work_definition_id": document["work_definition_id"]}
+    existing = definitions.find_one(identity)
+    if existing is not None:
+        for name in ("tenant_id", "work_definition_id", "owner_id", "session_id", "channel_mode"):
+            if str(existing.get(name) or "") != str(document.get(name) or ""):
+                raise ValueError("INITIAL_WORK_IDENTITY_CONFLICT")
+        return {
+            "initialized": True,
+            "idempotent_replay": True,
+            "work_definition_id": document["work_definition_id"],
+            "revision": int(existing.get("revision", 0)),
+        }
+    try:
+        definitions.insert_one(document)
+    except DuplicateKeyError:
+        existing = definitions.find_one(identity)
+        if existing is None:
+            raise
+        for name in ("tenant_id", "work_definition_id", "owner_id", "session_id", "channel_mode"):
+            if str(existing.get(name) or "") != str(document.get(name) or ""):
+                raise ValueError("INITIAL_WORK_IDENTITY_CONFLICT")
+        return {
+            "initialized": True,
+            "idempotent_replay": True,
+            "work_definition_id": document["work_definition_id"],
+            "revision": int(existing.get("revision", 0)),
+        }
+    return {
+        "initialized": True,
+        "idempotent_replay": False,
+        "work_definition_id": document["work_definition_id"],
+        "revision": 0,
+    }
+
+
 def persist_clarification_batch(
     result: dict[str, Any],
     *,
+    work_value: Any = None,
     mongodb_uri: Any,
     mongo_database: Any,
     collection_name: Any = "clarification_batches",
+    work_collection: Any = "work_definitions",
     timeout_ms: Any = 5000,
     client_factory: Any = MongoClient,
 ) -> dict[str, Any]:
@@ -292,11 +380,17 @@ def persist_clarification_batch(
     uri = _secret(mongodb_uri)
     database_name = str(mongo_database or "").strip()[:200]
     collection = str(collection_name or "clarification_batches").strip()[:200]
+    work_name = str(work_collection or "work_definitions").strip()[:200]
     try:
         timeout = max(1000, min(int(timeout_ms), 30_000))
     except (TypeError, ValueError):
         timeout = 5000
-    if not uri or not database_name or not re.fullmatch(r"[A-Za-z0-9_.-]{1,200}", collection):
+    if (
+        not uri
+        or not database_name
+        or not re.fullmatch(r"[A-Za-z0-9_.-]{1,200}", collection)
+        or not re.fullmatch(r"[A-Za-z0-9_.-]{1,200}", work_name)
+    ):
         failed = copy.deepcopy(result)
         failed.update({"ok": False, "status": "BLOCKED", "error": {"code": "CLARIFICATION_STORE_CONFIG_MISSING", "message": "질문 batch를 저장할 production MongoDB 설정이 필요합니다.", "retryable": False, "details": {}}, "resume": None})
         return failed
@@ -315,25 +409,48 @@ def persist_clarification_batch(
     try:
         client = client_factory(uri, serverSelectionTimeoutMS=timeout, connectTimeoutMS=timeout, socketTimeoutMS=timeout, retryWrites=True)
         client.admin.command("ping")
-        batches = client[database_name][collection]
+        database = client[database_name]
+        batches = database[collection]
         existing = batches.find_one({"_id": document["_id"]})
+        batch_replay = False
         if existing is not None:
             if str(existing.get("contract_sha256")) != contract_hash:
                 failed = copy.deepcopy(result)
                 failed.update({"ok": False, "status": "BLOCKED", "error": {"code": "CLARIFICATION_BATCH_CONFLICT", "message": "같은 batch ID에 다른 질문 계약이 이미 저장되어 있습니다.", "retryable": False, "details": {}}, "resume": None})
                 return failed
-            persisted = copy.deepcopy(result)
-            persisted["store_result"] = {"persisted": True, "idempotent_replay": True, "contract_sha256": contract_hash}
-            return persisted
-        try:
-            batches.insert_one(document)
-        except DuplicateKeyError:
-            existing = batches.find_one({"_id": document["_id"]})
-            if existing is None or str(existing.get("contract_sha256")) != contract_hash:
-                raise
+            batch_replay = True
+        else:
+            try:
+                batches.insert_one(document)
+            except DuplicateKeyError:
+                existing = batches.find_one({"_id": document["_id"]})
+                if existing is None or str(existing.get("contract_sha256")) != contract_hash:
+                    raise
+                batch_replay = True
+        initial_work_result = None
+        if int(batch.get("round_number", 0)) == 1:
+            initial_work_result = _ensure_initial_work_definition(database[work_name], work_value, batch)
         persisted = copy.deepcopy(result)
-        persisted["store_result"] = {"persisted": True, "idempotent_replay": False, "contract_sha256": contract_hash}
+        persisted["store_result"] = {
+            "persisted": True,
+            "idempotent_replay": batch_replay,
+            "contract_sha256": contract_hash,
+            "initial_work_definition": initial_work_result,
+        }
         return persisted
+    except ValueError as exc:
+        code = str(exc)
+        messages = {
+            "INITIAL_WORK_INPUT_INVALID": "첫 질문 batch에는 초기 WorkDefinition 입력이 필요합니다.",
+            "INITIAL_WORK_BATCH_IDENTITY_MISMATCH": "초기 WorkDefinition과 질문 batch의 식별자 또는 revision이 다릅니다.",
+            "INITIAL_WORK_CHANNEL_INVALID": "초기 WorkDefinition은 native_hitl channel이어야 합니다.",
+            "INITIAL_WORK_REVISION_INVALID": "초기 WorkDefinition은 revision 0의 1차 질문에서만 생성할 수 있습니다.",
+            "INITIAL_WORK_DOCUMENT_TOO_LARGE": "초기 WorkDefinition이 허용 크기를 초과합니다.",
+            "INITIAL_WORK_IDENTITY_CONFLICT": "같은 WorkDefinition ID에 다른 owner, session 또는 channel이 이미 저장되어 있습니다.",
+        }
+        failed = copy.deepcopy(result)
+        failed.update({"ok": False, "status": "BLOCKED", "error": {"code": code or "INITIAL_WORK_STORE_FAILED", "message": messages.get(code, "초기 WorkDefinition을 안전하게 준비하지 못했습니다."), "retryable": False, "details": {}}, "resume": None})
+        return failed
     except PyMongoError as exc:
         failed = copy.deepcopy(result)
         failed.update({"ok": False, "status": "BLOCKED", "error": {"code": "CLARIFICATION_STORE_FAILED", "message": "질문 batch를 MongoDB에 저장하지 못했습니다.", "retryable": True, "details": {"exception_type": type(exc).__name__}}, "resume": None})
@@ -345,7 +462,7 @@ def persist_clarification_batch(
 
 class ClarificationBatchBuilderComponent(Component):
     display_name = "13 재질문 Batch 생성"
-    description = "완전성 gap과 질문 후보를 검증해 confirmed 항목을 제외한 최대 3개 질문 batch를 만들며, 세 회차 뒤에는 비대화형 final gate로 차단합니다."
+    description = "완전성 gap과 질문 후보를 검증해 confirmed 항목을 제외한 질문 batch를 만듭니다. 1·2차는 최대 3개, 마지막 3차는 최대 4개 질문이며 1차에는 초기 WorkDefinition도 idempotent하게 준비합니다."
     icon = "MessageCircleQuestion"
     name = "ClarificationBatchBuilder"
 
@@ -354,17 +471,40 @@ class ClarificationBatchBuilderComponent(Component):
         DataInput(name="completeness", display_name="완전성 평가", input_types=["Data", "JSON"], required=True),
         DataInput(name="candidate_questions", display_name="모델 질문 후보", input_types=["Data", "Message", "JSON"], required=False),
         IntInput(name="round_number", display_name="질문 회차(0=이력에서 자동 계산)", value=0),
-        IntInput(name="max_questions", display_name="회차당 최대 질문", value=3, advanced=True),
+        IntInput(name="max_questions", display_name="회차당 최대 질문 (3차 최대 4개)", value=3, advanced=True),
         IntInput(name="expiry_minutes", display_name="응답 만료(분)", value=60, advanced=True),
         MessageTextInput(name="now_utc", display_name="기준 시각(ISO-8601)", value="", advanced=True),
-        SecretStrInput(name="mongodb_uri", display_name="MongoDB URI", required=True),
-        MessageTextInput(name="mongo_database", display_name="MongoDB Database", required=True),
+        SecretStrInput(
+            name="mongodb_uri",
+            display_name="MongoDB URI (환경 설정)",
+            required=True,
+            info="F10의 질문 Batch 저장에 필요한 환경 Secret입니다. 세 회차에 같은 URI를 설정합니다.",
+        ),
+        MessageTextInput(
+            name="mongo_database",
+            display_name="MongoDB Database (환경 설정)",
+            value="business_work_design",
+            required=True,
+            info="F10의 질문 Batch 저장에 사용하는 Database입니다. 기본값을 유지합니다.",
+        ),
         MessageTextInput(name="collection_name", display_name="질문 Batch Collection", value="clarification_batches", advanced=True),
+        MessageTextInput(name="work_collection", display_name="WorkDefinition Collection", value="work_definitions", advanced=True),
         IntInput(name="timeout_ms", display_name="MongoDB Timeout(ms)", value=5000, advanced=True),
     ]
-    outputs = [Output(name="clarification_batch", display_name="재질문 Batch", method="build_batch", types=["Data"])]
+    outputs = [
+        Output(name="clarification_batch", display_name="재질문 Batch", method="build_batch", types=["Data"]),
+        Output(name="waiting_path", display_name="답변 대기", method="route_batch", types=["Data"], group_outputs=True),
+        Output(name="review_path", display_name="바로 검토", method="route_batch", types=["Data"], group_outputs=True),
+        Output(name="blocked_path", display_name="질문 생성 차단", method="route_batch", types=["Data"], group_outputs=True),
+        Output(name="question_message", display_name="HITL 질문 안내", method="build_question_message", types=["Message"]),
+    ]
 
-    def build_batch(self) -> Data:
+    def _result(self) -> dict[str, Any]:
+        """Persist a question contract only once even when several outputs run."""
+
+        result = getattr(self, "_batch_result", None)
+        if isinstance(result, dict):
+            return result
         built = build_clarification_batch(
             getattr(self, "work_definition", None),
             getattr(self, "completeness", None),
@@ -376,11 +516,110 @@ class ClarificationBatchBuilderComponent(Component):
         )
         result = persist_clarification_batch(
             built,
+            work_value=getattr(self, "work_definition", None),
             mongodb_uri=getattr(self, "mongodb_uri", ""),
             mongo_database=getattr(self, "mongo_database", ""),
             collection_name=getattr(self, "collection_name", "clarification_batches"),
+            work_collection=getattr(self, "work_collection", "work_definitions"),
             timeout_ms=getattr(self, "timeout_ms", 5000),
             client_factory=MongoClient,
         )
-        self.status = {"ok": result["ok"], "status": result["status"], "question_count": len((result.get("clarification_batch") or {}).get("questions", []))}
+        # A no-question result is a valid direct review exit.  Preserve the
+        # canonical work beside the batch envelope so the compact F10 Joiner
+        # can route it without a duplicate bypass edge.
+        try:
+            work = _named(getattr(self, "work_definition", None), "work_definition")
+        except (TypeError, ValueError, json.JSONDecodeError):
+            work = {}
+        if isinstance(work, dict) and work and "work_definition" not in result:
+            result = copy.deepcopy(result)
+            result["work_definition"] = work
+        self._batch_result = result
+        self.status = {
+            "ok": result["ok"],
+            "status": result["status"],
+            "question_count": len((result.get("clarification_batch") or {}).get("questions", [])),
+        }
+        return result
+
+    def build_batch(self) -> Data:
+        return Data(data=self._result())
+
+    def _component_id(self) -> str:
+        """Return the graph vertex id used by Langflow branch exclusion."""
+
+        return str(getattr(self, "_id", "") or self.name)[:200]
+
+    def _select_output_route(self, selected: str) -> None:
+        """Stop and persistently exclude non-selected batch routes."""
+
+        output_names = ("waiting_path", "review_path", "blocked_path")
+        if selected not in output_names:
+            for output_name in output_names:
+                self.stop(output_name)
+            self.stop("question_message")
+            return
+
+        non_selected = [output_name for output_name in output_names if output_name != selected]
+        for output_name in non_selected:
+            self.stop(output_name)
+        if selected != "waiting_path":
+            self.stop("question_message")
+            non_selected.append("question_message")
+
+        graph = getattr(self, "graph", None)
+        exclude = getattr(graph, "exclude_branches_conditionally", None) if graph is not None else None
+        if callable(exclude):
+            exclude(self._component_id(), non_selected)
+
+    def _is_nonselected_group_output(self, selected: str) -> bool:
+        current_output = str(getattr(self, "_current_output", "") or "")
+        return bool(
+            current_output
+            and selected in {"waiting_path", "review_path", "blocked_path"}
+            and current_output in {"waiting_path", "review_path", "blocked_path"}
+            and current_output != selected
+        )
+
+    def route_batch(self) -> Data:
+        result = self._result()
+        if result.get("ok") is not True:
+            selected = "blocked_path"
+        elif result.get("status") == "WAITING_ANSWER":
+            selected = "waiting_path"
+        elif result.get("status") == "READY_FOR_REVIEW":
+            selected = "review_path"
+        else:
+            selected = "blocked_path"
+        self._select_output_route(selected)
+        if self._is_nonselected_group_output(selected):
+            return Data(data={})
         return Data(data=result)
+
+    def build_question_message(self) -> Message:
+        result = self._result()
+        batch = result.get("clarification_batch")
+        if result.get("ok") is not True or result.get("status") != "WAITING_ANSWER" or not isinstance(batch, dict):
+            self.stop("question_message")
+            return Message(text="")
+        questions = batch.get("questions") if isinstance(batch.get("questions"), list) else []
+        lines = [f"업무 정의를 위해 {batch.get('round_number', '?')}차 보완이 필요합니다."]
+        for index, question in enumerate(questions[:FINAL_ROUND_MAX_QUESTIONS], start=1):
+            if not isinstance(question, dict):
+                continue
+            text = str(question.get("text") or "").strip()[:1000]
+            if not text:
+                continue
+            suffix = ""
+            choices = [str(choice).strip()[:200] for choice in question.get("choices", []) if str(choice).strip()]
+            if choices:
+                suffix = " 선택지: " + " / ".join(choices[:20])
+            lines.append(f"{index}. {text}{suffix}")
+        lines.extend(
+            [
+                "",
+                "답변은 Answer Form에서 이 질문 batch에 저장한 뒤 Submit Answers를 선택해 주세요.",
+                "답변을 중단하려면 Cancel을 선택할 수 있습니다.",
+            ]
+        )
+        return Message(text="\n".join(lines)[:8_000])

@@ -10,11 +10,11 @@
     "batch_id": {"type": "string", "minLength": 1, "maxLength": 128},
     "work_definition_id": {"type": "string", "minLength": 1, "maxLength": 128},
     "expected_revision": {"type": "integer", "minimum": 0},
-    "channel_mode": {"enum": ["native_hitl", "playground"]},
+    "channel_mode": {"const": "native_hitl"},
     "questions": {
       "type": "array",
       "minItems": 1,
-      "maxItems": 3,
+      "maxItems": 4,
       "items": {
         "type": "object",
         "additionalProperties": false,
@@ -28,10 +28,9 @@
         }
       }
     },
-    "answers": {"type": "array", "maxItems": 3, "items": {"type": "object"}},
+    "answers": {"type": "array", "maxItems": 4, "items": {"type": "object"}},
     "status": {"enum": ["OPEN", "SUBMITTED", "EXPIRED", "CANCELLED"]},
     "idempotency_key": {"type": ["string", "null"], "maxLength": 256},
-    "action_token_sha256": {"type": ["string", "null"], "pattern": "^(sha256:[0-9a-f]{64})?$"},
     "expires_at": {"type": "string", "format": "date-time"}
   }
 }

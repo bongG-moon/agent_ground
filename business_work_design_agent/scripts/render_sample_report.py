@@ -34,18 +34,19 @@ def _read_json(name: str) -> dict[str, Any]:
 
 
 def build_sample_artifacts() -> tuple[dict[str, Any], dict[str, Any]]:
-    """Execute components 30 -> 31 and return deterministic serializable results."""
+    """Execute the F20 handoff loader, then components 30 -> 31."""
 
-    work_definition = _read_json("approved_work_definition.json")
-    agent_blueprint = _read_json("agent_blueprint_terminal.json")
-    candidate_context = _read_json("candidate_context.json")
+    report_handoff = _read_json("f20_report_handoff.json")
+    handoff_module = _load_module(COMPONENTS_DIR / "33_f30_report_handoff_loader.py")
     view_module = _load_module(COMPONENTS_DIR / "30_report_view_model_builder.py")
     render_module = _load_module(COMPONENTS_DIR / "31_responsive_report_renderer.py")
 
+    handoff = handoff_module.load_f20_report_handoff(report_handoff)
+
     builder = view_module.ReportViewModelBuilderComponent(
-        work_definition=work_definition,
-        agent_blueprint=agent_blueprint,
-        retrieval_trace=candidate_context["retrieval_trace"],
+        work_definition=handoff["work_definition"],
+        agent_blueprint=handoff["agent_blueprint"],
+        retrieval_trace=handoff["retrieval_trace"],
         report_title="주간 업무보고 업무 방식 및 Agent 설계",
         max_nodes=500,
         max_edges=1000,

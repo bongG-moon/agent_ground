@@ -96,8 +96,8 @@ INTERNAL_NODE_IDS = {
 }
 
 COMPONENT_VERSION_OVERRIDES = {
-    # 미지원 형식 skip-safe 처리와 EWS JPG/JPEG Vision 모델 경로를 추가했습니다.
-    "drm_document_text_extractor": "0.6.0",
+    # 미지원 형식 skip-safe 처리와 EWS JPG/JPEG/PNG Vision 모델 경로를 추가했습니다.
+    "drm_document_text_extractor": "0.6.1",
 }
 
 DIRECT_DATA_ACCESS_IDS = {

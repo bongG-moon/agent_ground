@@ -66,6 +66,32 @@ def _items(value: Any, *keys: str) -> list[dict[str, Any]]:
     return [item for item in raw[:MAX_REGISTRY_ITEMS] if isinstance(item, dict)]
 
 
+def _approved_registry_items(value: Any) -> tuple[list[dict[str, Any]], str]:
+    """Accept an explicitly supplied empty registry, but never infer one.
+
+    An empty `skills` list is the valid representation when a team has no
+    approved Skills.  In contrast, an omitted registry, a failed upstream
+    envelope, or a non-list `skills` value must remain fail-closed: treating
+    those as an empty registry would discard an upstream failure.
+    """
+    payload = _payload(value)
+    if isinstance(payload, list):
+        raw = payload
+    elif isinstance(payload, dict):
+        if "ok" in payload and payload.get("ok") is not True:
+            return [], "SKILL_REGISTRY_UPSTREAM_FAILED"
+        if "skills" not in payload:
+            return [], "SKILL_REGISTRY_EMPTY"
+        raw = payload.get("skills")
+    else:
+        return [], "SKILL_REGISTRY_EMPTY"
+    if not isinstance(raw, list):
+        return [], "SKILL_REGISTRY_CONTRACT_INVALID"
+    if len(raw) > MAX_REGISTRY_ITEMS or any(not isinstance(item, dict) for item in raw):
+        return [], "SKILL_REGISTRY_CONTRACT_INVALID"
+    return list(raw), ""
+
+
 def _strings(value: Any, maximum: int = 100) -> list[str]:
     if isinstance(value, str):
         source = re.split(r"[,;\n]", value)
@@ -317,7 +343,7 @@ def resolve_skill_context(
         work = supplied
         acl = _payload(acl_context)
         tenant = str(tenant_id or "").strip()
-    registry = _items(skill_registry, "skills", "items", "rows")
+    registry, registry_error = _approved_registry_items(skill_registry)
     requested = _items(requested_skill_refs, "skills", "items", "requested_skills")
     groups = {item.lower() for item in _strings(acl.get("groups") if isinstance(acl, dict) else [])}
     subject_id = str(acl.get("subject_id") or "") if isinstance(acl, dict) else ""
@@ -327,8 +353,13 @@ def resolve_skill_context(
         return _error(trace_id, "INVALID_WORK_DEFINITION", "업무 정의가 비어 있거나 잘못되었습니다.")
     if not isinstance(acl, dict) or not acl.get("subject_id"):
         return _error(trace_id, "ACL_CONTEXT_MISSING", "검증 가능한 ACL context가 필요합니다.")
-    if not registry:
-        return _error(trace_id, "SKILL_REGISTRY_EMPTY", "승인 Skill registry가 비어 있습니다.")
+    if registry_error:
+        messages = {
+            "SKILL_REGISTRY_EMPTY": "승인 Skill registry가 제공되지 않았습니다.",
+            "SKILL_REGISTRY_UPSTREAM_FAILED": "승인 Skill registry를 제공한 상위 단계가 실패했습니다.",
+            "SKILL_REGISTRY_CONTRACT_INVALID": "승인 Skill registry 형식이 유효하지 않습니다.",
+        }
+        return _error(trace_id, registry_error, messages[registry_error])
 
     max_skills = max(1, min(20, int(max_skills or 8)))
     max_context_chars = max(1000, min(100000, int(max_context_chars or 24000)))

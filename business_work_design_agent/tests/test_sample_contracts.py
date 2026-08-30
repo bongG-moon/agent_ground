@@ -40,6 +40,7 @@ def test_committed_samples_are_exact_deterministic_pipeline_outputs() -> None:
     assert _json(SAMPLES / "approved_agent_blueprint.json") == generated["blueprint"]
     assert _json(SAMPLES / "agent_blueprint_terminal.json") == generated["terminal"]
     assert _json(SAMPLES / "candidate_context.json") == generated["candidate_context"]
+    assert _json(SAMPLES / "f20_report_handoff.json") == generated["report_handoff"]
 
 
 def test_approved_work_definition_matches_schema_and_component17_hash() -> None:
@@ -80,3 +81,26 @@ def test_terminal_envelope_contains_the_schema_validated_nested_blueprint() -> N
     for node in blueprint["nodes"]:
         if node["implementation_source"] == "new_standalone_component":
             assert node["generation_request_ref"] == request_by_node[node["node_id"]]["generation_request_id"]
+
+
+def test_f20_report_handoff_binds_the_sample_artifacts() -> None:
+    handoff = _json(SAMPLES / "f20_report_handoff.json")
+    assert handoff["ok"] is True
+    assert handoff["status"] == "COMPLETED"
+    assert handoff["schema_version"] == "f20-report-handoff/v1"
+    assert handoff["trace_id"] == "trace-sample-f20-report-handoff"
+    approved_work = _json(SAMPLES / "approved_work_definition.json")
+    for field in (
+        "schema_version",
+        "status",
+        "tenant_id",
+        "owner_id",
+        "work_definition_id",
+        "revision",
+        "approved_hash",
+    ):
+        assert handoff["work_definition"][field] == approved_work[field]
+    assert handoff["agent_blueprint"] == _json(SAMPLES / "agent_blueprint_terminal.json")
+    assert handoff["retrieval_trace"] == _json(SAMPLES / "candidate_context.json")["retrieval_trace"]
+    assert handoff["execution_context"]["tenant_id"] == handoff["work_definition"]["tenant_id"]
+    assert handoff["execution_context"]["actor_id"] == handoff["work_definition"]["owner_id"]

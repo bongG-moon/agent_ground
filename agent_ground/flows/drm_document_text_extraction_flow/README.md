@@ -31,7 +31,7 @@ PDF·Office·HWP·텍스트·CSV·일반 이미지 파일을 직접 업로드하
 - 일반 이미지: `.png`, `.jpg`, `.jpeg`, `.bmp`, `.tif`, `.tiff`
 - 미지원 안내 처리: `.zip`, `.rar`, `.7z`, `.tar`, `.gz`
 
-로컬 직접 추출은 `.pdf`, `.docx`, `.pptx`, `.xlsx`, `.txt`, `.csv`를 지원합니다. 구형 Office, HWP/HWPX, RTF와 이미지는 자동 모드에서 DRM API 경로를 사용합니다. ZIP·RAR·7Z·TAR·GZ는 내용을 열지 않고 `skipped_unsupported` 안내로 반환합니다. 이미지의 문자 내용은 DRM API가 OCR 평문을 반환해야 읽을 수 있습니다. JPG/JPEG vLLM 해석은 EWS 메일 Flow의 별도 연결에서 제공됩니다.
+로컬 직접 추출은 `.pdf`, `.docx`, `.pptx`, `.xlsx`, `.txt`, `.csv`를 지원합니다. 구형 Office, HWP/HWPX, RTF와 이미지는 자동 모드에서 DRM API 경로를 사용합니다. ZIP·RAR·7Z·TAR·GZ는 내용을 열지 않고 `skipped_unsupported` 안내로 반환합니다. 이미지의 문자 내용은 DRM API가 OCR 평문을 반환해야 읽을 수 있습니다. JPG/JPEG/PNG vLLM 해석은 EWS 메일 Flow의 별도 연결에서 제공됩니다.
 
 ## 입력값
 

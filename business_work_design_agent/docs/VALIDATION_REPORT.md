@@ -1,6 +1,11 @@
 # 검증 결과
 
-검증 일자: 2026-08-28 (Asia/Seoul)
+검증 대상 일자: 2026-08-31 (Asia/Seoul)  
+상태: `LOCAL_VALIDATION_PASSED` / `PRODUCTION_INFRA_VALIDATION_PENDING`
+
+F00은 파일 로더·결정론적 청커·Embedding Model·MongoDB Writer가 각각 보이는 구조로 유지했다. F10은 최대 세 번의 native HITL 보완을 유지하면서 반복 상태 저장/게이트를 `13`·`39`·`40`·`41` standalone component 안으로 묶고, `42 보완 답변 HITL`이 질문 batch를 Playground의 `node_input` schema 입력칸으로 표시한다. 시작부에는 업무 설명·추가 설계 프롬프트용 Text Input 두 개가 있고 Envelope 화면에는 팀 명·사번만 보이며 session은 Langflow graph runtime에서 자동으로 가져온다. Component 42에는 답변 제출 외에 명시적 **`추가 입력 건너뛰기`** action이 있으며, Component 39가 이를 empty answer로 해석하지 않고 batch skip audit과 WorkDefinition `unresolved`를 기록한 뒤 normal preview/review로 보낸다. `Cancel`은 별개의 terminal action이며 skip은 4차 질문이 아니다. 검토 단계는 Component 18의 `review_and_request_approval` 단일 저장으로 Preview 검증본을 `WAITING_APPROVAL`로 전환한다. 최종 built-in Human Input 뒤의 Component `43`이 선택되지 않은 Component 18 상태 저장 branch를 즉시 Langflow 조건부 제외하고, Component `41`은 넓은 optional fan-in 대신 하나의 event-list만 읽어 실행되지 않은 sibling node를 요청하지 않는다. 승인 경로의 Component `36`은 MongoDB가 복원한 `datetime`을 Data와 F20 strict JSON 모두에서 UTC ISO-8601 문자열로 정규화한다. 외부 Answer Form API는 active F10 경로가 아니다. 승인 경로는 Component 36 권위 재조회→Run Flow(F20)→sealed handoff gate→Run Flow(F30)로 이어진다. F20의 `38`은 승인 WorkDefinition·terminal Blueprint·retrieval trace를 strict `f20-report-handoff/v1` JSON으로 고정하고, F10의 `44`와 F30의 `33`이 hash 및 binding을 이중 검증한다. MongoDB URI 입력은 Langflow Secret Global Variable `MONGO_URL`을 `load_from_db=true`로 자동 참조하며 실제 URI는 export에 포함하지 않는다. 실제 MongoDB/embedding provider 부하와 장애 복구 검증은 별도 운영 항목으로 남아 있다.
+
+아래 수치와 hash는 `추가 입력 건너뛰기` 및 최종 승인 branch 제외 수정을 포함해 다시 생성한 Flow와 이번 변경의 핵심 로컬 회귀 테스트 결과다. 실제 Langflow Playground의 suspend/resume 및 운영 MongoDB·Embedding provider E2E는 별도 운영 검증으로 남아 있다.
 
 ## 고정 런타임
 
@@ -9,64 +14,129 @@
 - `lfx==1.11.5`
 - Python `3.13.14`
 
-검증은 전용 환경 `C:\Users\qkekt\AppData\Local\Temp\business_work_design_lf1111`에서 수행했다. 별도 설치된 Langflow Desktop은 변경하지 않았다.
+검증은 전용 환경 `C:\Users\qkekt\AppData\Local\Temp\business_work_design_lf1111`에서 수행한다. 별도 설치된 Langflow Desktop은 변경하지 않는다.
+
+## 이번 변경의 검증 기준
+
+F00은 다음 구조여야 한다.
+
+```text
+00 Catalog JSON Loader & Normalizer
+  -> 01 Catalog Deterministic Chunker
+  -> 02 MongoDB Catalog Vector Writer
+  -> Data to Message
+  -> Chat Output
+
+Embedding Model
+  -> 02 MongoDB Catalog Vector Writer
+```
+
+- 사용자가 `FileInput`으로 JSON/JSONL/NDJSON 파일 하나를 업로드한다.
+- Loader Canvas에는 `tenant_id`/`catalog_id` 입력이 없다. F00은 내부적으로 `tenant_id=default`, `catalog_id=internal-assets`를 bundle과 MongoDB 문서에 기록한다.
+- `00_catalog_json_loader.py`, `01_catalog_deterministic_chunker.py`, `02_catalog_mongodb_vector_writer.py`는 각자 한 파일에 완결된 Standalone Component다.
+- Loader는 parse·normalize·민감정보 제거·canonical 원문 보존, Chunker는 결정론적 분할과 hash 계약, Writer는 built-in Embedding Model의 `Embeddings` handle을 청크 1개씩 순차 호출(첫 호출 뒤 최소 1초 간격)해 vector를 만들고 MongoDB write batch로 게시한다. 실제 provider/model/API key는 Embedding Model node에만 설정한다. Writer에는 model/version/dimension 입력이 없으며 첫 live vector로 dimension을 얻고, runtime class·해석 가능한 model ID·dimension·SHA-256 fingerprint를 가진 `embedding-runtime-contract/v2`를 저장한다.
+- 다른 Flow나 별도 ingest service를 HTTP API로 호출하지 않는 direct 실행이다.
+- core write 대상은 `catalog_assets`, `catalog_asset_chunks`, `catalog_active_pointers`다.
+- `catalog_assets`는 parent 메타데이터/redacted 원문, `catalog_asset_chunks`는 검색 chunk와 `embedding.vector`, `catalog_active_pointers`는 검증 완료 snapshot 게시 pointer를 담당한다.
+- parent/chunk embedding 저장과 count 검증이 모두 끝난 뒤에만 active pointer를 마지막에 갱신한다. 실패 시 기존 pointer를 유지한다.
+- Writer의 **테스트 실행 (저장하지 않음)**은 내부 `dry_run=true`로 provider와 MongoDB를 호출하지 않으므로 live contract를 추측하지 않고 `embedding_contract.state=DEFERRED`, `snapshot_id=null`을 반환한다.
+- F20/F90은 각각 built-in `Embedding Model → 29 Search Query Embedding Batcher` edge로 query vector를 만들며, F00과 같은 승인 provider/model의 runtime contract가 active pointer와 완전히 일치하지 않으면 retrieval을 차단한다.
+- F00 Flow는 실행 node 6개/edge 5개와 설명용 Sticky Note 2개(Canvas 총 8개)로 구성되고 Human Input을 포함하지 않는다.
+- F10/F20/F30/F90에도 각각 6/4/1/2개의 Sticky Note가 있으며, 모든 Note는 edge가 없는 `noteNode`라서 Langflow 실행 Graph vertex에는 포함되지 않는다.
+- 전체 Standalone Component inventory는 37개다.
+- F10의 각 보완 회차는 `12 완전성 평가 → 질문 LLM → 13 질문 Batch → 42 Playground 답변 카드 → 39 답변 반영`으로 보인다. Component 42는 `schema`를 포함한 native `node_input` pause를 보내고 Playground가 `decision.values` 또는 `skip_additional_input`을 반환하는지 검증 대상이다. 답변 제출은 재평가하고, skip은 audit·`unresolved`를 기록한 뒤 review로 간다. 1·2차는 최대 3문항, 마지막 3차는 최대 4문항이며 skip은 4차 질문이 아니다. `40`은 검토 진입 중 유효한 하나를 합치고 `43`은 최종 Approve/Reject/Cancel 중 선택되지 않은 두 상태 저장 branch를 제외하며, `41`은 선택된 terminal event-list만 안전하게 표시한다.
+- 업무 정의 Flow는 F10 native HITL 하나이고 전체 Flow inventory는 F00/F10/F20/F30/F90 5개다.
+- F10 approve success만 Component 36으로 들어가며 canonical 승인본·authenticated owner/groups·active catalog pointer·active Skill registry를 재검증한다.
+- Component 36 성공 결과 `agent-design-invocation/v1`만 `Run Flow(tool_mode=false)`의 F20 단일 ChatInput에 연결된다. F20 `38`이 만든 sealed handoff는 F10 `44`의 schema/hash 검증을 통과한 경우에만 F30 ChatInput으로 전달되고 F30 ChatOutput이 F10 결과로 돌아온다.
+- Component 36은 canonical/request channel이 모두 정확히 `native_hitl`인 경우만 허용하고, invocation을 Python repr가 아닌 strict JSON `text`로 투영한다.
+- F10의 built-in TypeConverter가 invocation Data를 Message로 변환하며 F20/F30 ChatInput은 `should_store_message=false`라서 권한성 payload를 대화 이력에 저장하지 않는다.
+- 수동 WorkDefinition 재입력, 별도 F20 사용자 실행, 다른 Flow HTTP API 호출이 없다.
+- F00의 FileInput은 배포 가능한 빈 값으로 유지하고 `samples/f00_catalog_assets_example.json`을 사용자가 한 번 업로드한다.
+- F10 시작 Text Input 두 개와 `10 업무 요청 Envelope`는 `samples/f10_work_request_example.json`의 안전한 데모 값으로 채워져 있으며 Component 원본의 범용 기본값은 비어 있다.
+- `samples/skill_registry_example.json`은 runtime Skill 계약과 prompt SHA-256을 통과하며 seed helper는 `--apply` 없이는 MongoDB에 쓰지 않는다.
 
 ## 자동 검증
 
 | 항목 | 결과 |
 | --- | --- |
-| 전체 pytest | `240 passed, 1 skipped, 8 warnings` (`33.04s`) |
-| skip 사유 | Windows host에서 file symlink 생성 불가 시 경계 테스트 1건 skip |
-| Python compile | `components`, `services`, `scripts`, `tests` 통과 |
-| Standalone source build | 37개 전부 Langflow 1.11.1 template build 통과 |
-| Flow `Graph.from_payload` | 6개 Flow, 총 348 node/428 edge 역직렬화·handle 검사 통과 |
-| `lfx validate --level 3` | 6개 Flow 중 6개 통과, 0개 실패 |
-| Flow generator drift | 6개 Flow JSON과 bundle이 현재 source와 일치 |
-| Bundle SHA-256 | `57ca8dee70ec0b67bf5a04bf5868d1f9105467ebdcd989e0b4a28d422b00470e` |
+| 전체 pytest | `307 passed, 8 warnings` — F20 strict JSON handoff→F10 gate→F30 loader→render→Publisher dry-run 및 handoff 변조 차단 포함 |
+| 이번 F10 핵심 회귀 pytest | `96 passed, 7 warnings` — `PYTEST_DISABLE_PLUGIN_AUTOLOAD=1`, 제출·skip·취소·최종 승인 branch gate·상태 저장·invocation loader를 포함 |
+| Component 36 MongoDB datetime → F20 JSON 회귀 pytest | `107 passed, 7 warnings` — WorkDefinition/Skill의 실제 `datetime`을 UTC ISO-8601 문자열로 projection하고 strict JSON text를 검증 |
+| Flow export·예제 계약 pytest | `41 passed, 7 warnings`, 최신 F10 재생성본 기준 |
+| F10 미빌드 sibling 방지 재검증 | `96 passed, 7 warnings` — 12/13/16/17/18/36/39/40/42/43의 선택되지 않은 group output은 조건부 제외되고, 41은 13개 선택 입력 대신 event-list 하나만 읽음 |
+| F10 explicit skip 계약 | `skip_additional_input → branch_skip_additional_input → 39 skip_trigger` 연결, batch audit·`unresolved`·review projection을 회귀 검증함. 실제 Playground E2E는 운영 검증으로 남음 |
+| warning 사유 | 7건: Pydantic/SQLModel upstream deprecation, Starlette `httpx2` 전환 안내, Python metadata deprecation. 제품 계약 실패 없음 |
+| Python compile | `compileall` 통과 |
+| Standalone source build | 37/37 통과, 로컬·상대 import 없음 |
+| F00 visible vector pipeline 단위 테스트 | `14 passed` |
+| 예제 입력/Skill/Mongo 계약 테스트 | `4 passed` |
+| Flow `Graph.from_payload` | 5/5 통과, Sticky Note를 제외한 실행 node/edge 수와 manifest의 Canvas 수가 각각 일치 |
+| `lfx validate F10 --level 3 --skip-credentials` | 성공 (`✓ flows/F10_work_definition_parent.json`, exit 0) |
+| 실제 Langflow Desktop 1.11.0 분기 검증 | final `Reject` 선택 시 approve/cancel Component 18이 `conditionally_excluded_vertices`에 들어가고 reject node만 활성 상태임을 확인 |
+| Flow generator drift | 개별 Flow 5개와 bundle `--check` 통과 |
+| Bundle SHA-256 | `e4debbe51e5d0fd95046b35fa9b37165253ce9dd8d7cc73365ab394f353c5838` |
 
-검증 범위에는 Component subclass 수, 명시적 표준/`lfx` import allowlist, 상대·로컬·private/dynamic import 및 reflection 우회 금지, embedded source byte/hash, 실제 output/input handle 호환성, catalog worker와 F00 decision/trusted-gateway attested activation 분리, HITL 배치·semantic/runtime revision·state 전이, strict answer/deadline, Component 35 fail-closed 결과 분기, 승인 semantic hash 재검증, Skill ACL fail-closed와 7필드 authority projection, design scope/query/candidate allowlist lock, canonical port contract hash와 catalog asset binding, 표시 포트 변조 차단 및 node/detail 포트 동일성, generation request 결정론·1:1 binding, report signed capability, deterministic report identity, schema/reference, tenant/owner 격리, idempotency lease recovery, CSP/hash/XSS가 포함된다. 이 정적 source guard는 Python 보안 sandbox를 대신하지 않는다.
+최종 검증에는 다음 항목을 포함한다.
 
-`lfx validate` verbose 결과에는 현재 CLI가 Flow의 `built with Langflow 1.11.1`을 설치된 `langflow-base 0.11.5`와 비교해 표시하는 version warning, `lfx.interface.utils.initialize_components` registry import warning, generic `other` input에 대한 휴리스틱 edge-type warning이 남는다. 명령 종료 코드는 0이고 6개 모두 `ok=true`다. 이 CLI warning 때문에 별도 runtime validator가 실제 설치 버전(`langflow 1.11.1`, `langflow-base 0.11.5`, `lfx 1.11.5`), 37개 source build, embedded byte/hash, handle, `Graph.from_payload`를 직접 검증한다.
+- Component subclass 수와 전체 inventory 37개 일치
+- 표준 라이브러리, 승인 dependency, `lfx` public import allowlist
+- 상대·형제·로컬·private/dynamic import와 `sys.path` 조작 부재
+- 모든 Component의 Langflow 1.11.1 template 단독 build
+- Flow embedded source byte/hash와 실제 source 일치
+- 실제 output/input handle 호환성과 `Graph.from_payload` 역직렬화
+- F00에는 `00` Loader, `01` Chunker, built-in Embedding Model, `02` Writer, ParseData, ChatOutput만 있고 legacy 일체형 ingest와 Human Input node가 없음
+- JSON object/array/items wrapper/JSONL/NDJSON parse와 입력 상한
+- 민감 key/token/email redaction, 안전한 원문/hash 보존, secret 비노출
+- deterministic snapshot/document ID와 같은 파일 재실행 idempotency
+- F00 Writer와 F20/F90 query batcher의 runtime class/model ID/첫 vector dimension/fingerprint `embedding-runtime-contract/v2`, finite vector, full-contract fail-closed 검사
+- Writer/Query Batcher에 수동 model/version/dimension 또는 HTTP endpoint/token/precomputed-vector 입력이 없는지 검사
+- MongoDB parent/chunk write와 count 검증 후 active pointer last 순서
+- embedding/MongoDB 실패 및 테스트 실행(`dry_run=true`)에서 기존 pointer가 바뀌지 않음
+- F10 native HITL의 `42` schema/decision values 매핑, 대기 중 빈 branch payload, Submit/Skip/Cancel route 상호 배타 판정, skip audit/unresolved/unknown provenance/review projection, Component `43`의 final branch conditional exclusion, Component `41` event-list terminal projection, WorkDefinition revision/state, Component 36 authority reload, F10→F20→F30 direct Run Flow, Skill/검색 ACL, blueprint/readiness, report CSP/XSS 회귀 범위
+- Component 36 strict JSON Message handoff, F20 `38` sealed report handoff, F10 `44` gate, F30 `33` full binding 검증, legacy `playground` channel 차단, F20/F30 ChatInput 비저장 설정
+
+F10의 `lfx validate --level 3 --skip-credentials`는 성공(exit 0)했다. 경고는 Sticky Note의 의도된 orphan/unused 표시, export-version heuristic, 현재 `lfx` CLI의 registry loader 호환 표시, 그리고 custom `Data`/`Message` port를 generic `other`/`str`로 추정하는 type heuristic이다. Runtime Graph는 `noteNode`를 실행 vertex로 해석하지 않으며 별도 contract test가 Note의 무연결 상태를 검증한다. Required input/credential은 import 시 실제 provider·MongoDB configuration을 넣어야 하는 intentional placeholder이므로 이 정적 skeleton 검사에서는 제외했다. 별도 runtime validator는 실제 Langflow 1.11.1 source로 모든 embedded Component를 build하고 `Graph.from_payload` 및 handle 호환성을 확인해 `ok=true`를 반환했다. 또한 Desktop에 설치된 Langflow 1.11.0/LFX 1.11.0에서도 final Reject 선택 후 unselected Component 18 두 개가 조건부 제외되는 것을 구조적으로 검증했다.
+
+정적 build·unit contract 통과만으로 Playground 화면에 text input이 보였다고 결론내리지는 않는다. 실제 Langflow 1.11.1 import 후 질문이 발생하는 예제로 F10을 실행해, `42 보완 답변 HITL` 카드에 `answer_01` 등의 입력칸과 `추가 입력 건너뛰기` action이 보이는지, 입력 후 `Submit Answers`가 `decision.values`를 Component 39까지 전달하는지, skip이 answer value를 만들지 않고 audit/unresolved 뒤 review로 가는지를 별도 E2E로 확인해야 한다. 이 확인 전에는 외부 Answer Form/API가 필요 없다는 UI 동작을 production 승인을 위한 완료 증적으로 취급하지 않는다.
 
 생성 manifest의 Flow별 결과:
 
-| Flow | Node/Edge | SHA-256 |
+| Flow | Canvas / 실행 / Note / Edge | SHA-256 |
 | --- | ---: | --- |
-| F00 | 10 / 10 | `5f6557160e9a82d1a52b0bfae8e50c384840ddb666c405843d2ad9529836b2f8` |
-| F10 | 224 / 286 | `47eefeb131aff2bb409a2dc5e7fec81a1f25bba7633b69cb9c976f4c460d29c4` |
-| F11 | 89 / 103 | `74d7adb6ec223d01dc9d5b598e1d1cbc1d574c14fdd7cd6d0c260dc05362d6c7` |
-| F20 | 16 / 21 | `64c29d4a36a614ffba6bf1c4eb832a17039021d7bd6eb9ef7b512fb4cc2854eb` |
-| F30 | 3 / 2 | `52535dfd5a75b9227046f152327678533cd283529fde4c1774347fb472149ed7` |
-| F90 | 6 / 6 | `b78cd0631ffbbc70895bed5c8eca1a241ba5053392b67310ca5c9c959faba328` |
+| F00 | 8 / 6 / 2 / 5 | `b9751e849390ddbd98ce7523d377009bac1f3245e13e5eb7ed476d72b5b10066` |
+| F10 | 44 / 38 / 6 / 94 | `f3ae73755a06974ff2bd8d3dc1a9f977b99c1009a8438b641fe50bc1fbdac693` |
+| F20 | 26 / 22 / 4 / 30 | `bd7959bdd954450d826b063b56d0c5724220bae804b55aa1b826defe8e2623e3` |
+| F30 | 9 / 8 / 1 / 10 | `4ea1f67b9329fe65576eb8f62432a6ed8f584b42c6a66c325a6e9923f3132caf` |
+| F90 | 9 / 7 / 2 / 7 | `79a066da0983392d6bfacce2d9b75940518b5942e7d7095f06e1de3190c80790` |
 
 ## 브라우저 반응형 QA
 
-자체 생성 샘플 `samples/generated_sample_report.html`을 로컬 HTTP로 열어 확인했다.
+F30 renderer source와 sample report artifact는 변경하지 않았다. 다만 F30 Canvas에는 sealed handoff ChatInput/TypeConverter/Loader/ChatOutput boundary가 추가됐다. renderer 자체의 browser visual QA는 반복하지 않았고, 새 boundary는 component chain·Graph 역직렬화·dry-run 회귀 테스트로 검증했다.
 
-- 1440×900: 문서 `scrollWidth=clientWidth=1425`, 두 graph와 숨겨진 desktop drawer 정상
-- 390×844: 문서 `scrollWidth=clientWidth=375`, drawer가 fixed bottom sheet로 전환
-- 노드 선택: 상세 내용 표시, close focus 이동 정상
-- edge label 선택: source/target/port/mapping 상세 표시
-- 전체 흐름 맞춤과 확대 동작 정상
-- console error/warning 없음
-- JavaScript 사용 시 중복 static fallback 숨김, JavaScript 비활성/인쇄 시 text fallback 유지
-- 알려진 UI 범위: graph `groups` metadata는 보존하지만 현재 renderer는 group overlay·접기/펼치기를 제공하지 않음
+| 항목 | 결과 |
+| --- | --- |
+| 1440×900 desktop layout/overflow | `NOT_RERUN_F30_UNCHANGED` |
+| 390×844 mobile layout/bottom sheet | `NOT_RERUN_F30_UNCHANGED` |
+| node/edge 선택과 상세 drawer | `NOT_RERUN_F30_UNCHANGED` |
+| fit/zoom/keyboard focus | `NOT_RERUN_F30_UNCHANGED` |
+| console error/warning | `NOT_RERUN_F30_UNCHANGED` |
+| JavaScript 비활성·인쇄 fallback | `NOT_RERUN_F30_UNCHANGED` |
 
 ## 실제 인프라에서 남은 검증
 
 아래는 로컬 계약/역직렬화 검증만으로 완료 처리할 수 없다.
 
-- 운영 MongoDB replica set transaction과 Atlas Search index
-- 실제 embedding provider의 model/version/dimension 및 endpoint allowlist
-- 사내 LLM gateway의 구조화 출력
-- Langflow background workflow suspend → pending 검증 → resume E2E
-- 사내 trusted admin gateway의 F00 decision 검증 → attestation 발급 → worker `/activate` E2E
-- 사내 gateway bearer/tenant/actor 주입과 교차 tenant 차단
-- F20 trusted backend의 canonical 승인 WorkDefinition·identity/ACL·snapshot·Skill registry 조립과 caller tweak 위조 차단
+- 운영 MongoDB에서 `catalog_assets`, `catalog_asset_chunks`, `catalog_active_pointers` write와 active pointer last 동작
+- Atlas Vector Search index가 `catalog_asset_chunks.embedding.vector`와 F00 live runtime dimension에 맞는지 확인
+- 실제 F00/F20/F90 built-in Embedding Model provider의 동일 model/runtime contract, timeout·batch 성능과 model ID 해석 가능 여부
+- 사내 원본 catalog 2만~3만 행의 메모리·처리시간·부분 장애·재실행 검증
+- 사내 LLM endpoint의 구조화 출력
+- 실제 Langflow project에서 F10 native HITL suspend/resume와 최대 3회 질문(1·2차 최대 3문항, 3차 최대 4문항) 및 explicit skip E2E
+- Component 36의 canonical 승인 WorkDefinition·authenticated owner/groups·active catalog pointer·active Skill registry 조립과 caller 위조 차단
+- 실제 Langflow project에서 F10 Run Flow direct mode가 F20/F30 동적 입력/출력 port를 해결하고 HTTP 호출·수동 재입력 없이 보고서 결과를 반환하는 E2E
 - Report API 실제 게시, purpose별 signed capability URL browser 조회, tamper/expiry/purpose/header-mix 차단과 교차 tenant 차단
 - Uvicorn/reverse proxy/access analytics의 signed capability query redaction 또는 suppression
 - report metadata/GridFS artifact retention·hold·purge sweeper와 backup/restore
-- 사내 catalog 원본 2만~3만 행의 성능·재시작·장애 주입 검증
 - 만료된 native HITL pending job을 중단하고 terminal runtime event를 기록하는 운영 sweeper
 
-따라서 현재 생성물은 Langflow 1.11.1에서 검증된 구현 및 import artifact이지만, 위 항목을 통과하기 전에는 production-ready로 승격하지 않는다.
+현재 문서 상태는 로컬 자동 검증 통과다. 위 실제 인프라 항목을 모두 완료하기 전에는 production-ready로 승격하지 않는다.

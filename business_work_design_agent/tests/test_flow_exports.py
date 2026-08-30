@@ -17,14 +17,28 @@ from lfx.graph import Graph
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 FLOW_ROOT = PROJECT_ROOT / "flows"
 FLOW_FILES = {
-    "F00": "F00_catalog_ingestion_admin.json",
+    "F00": "F00_catalog_file_vector_ingest.json",
     "F10": "F10_work_definition_parent.json",
-    "F11": "F11_work_definition_chat_turn.json",
     "F20": "F20_agent_blueprint_design.json",
     "F30": "F30_responsive_report.json",
     "F90": "F90_search_evaluation.json",
 }
 BUNDLE_FILE = FLOW_ROOT / "00_business_work_design_ALL_FLOWS.json"
+STICKY_NOTE_COUNTS = {
+    "F00": 2,
+    "F10": 6,
+    "F20": 4,
+    "F30": 1,
+    "F90": 2,
+}
+MONGODB_URI_GLOBAL_VARIABLE = "MONGO_URL"
+MONGODB_URI_NODE_COUNTS = {
+    "F00": 1,
+    "F10": 11,
+    "F20": 1,
+    "F30": 0,
+    "F90": 1,
+}
 
 
 def _load(path: Path) -> dict[str, Any]:
@@ -41,6 +55,20 @@ def flows() -> dict[str, dict[str, Any]]:
 def _nodes(flow: dict[str, Any]) -> dict[str, dict[str, Any]]:
     nodes = flow["data"]["nodes"]
     return {node["id"]: node for node in nodes}
+
+
+def _execution_nodes(flow: dict[str, Any]) -> list[dict[str, Any]]:
+    """Return nodes Langflow treats as executable graph vertices."""
+
+    return [node for node in flow["data"]["nodes"] if node.get("type") != "noteNode"]
+
+
+def _sticky_notes(flow: dict[str, Any]) -> list[dict[str, Any]]:
+    return [
+        node
+        for node in flow["data"]["nodes"]
+        if node.get("type") == "noteNode" and node.get("data", {}).get("type") == "note"
+    ]
 
 
 def _types(flow: dict[str, Any]) -> list[str]:
@@ -112,7 +140,9 @@ def test_langflow_graph_deserializes_every_export(flows: dict[str, dict[str, Any
         flow_name=flow["name"],
         user_id="flow-export-contract-test",
     )
-    assert len(graph.vertices) == len(flow["data"]["nodes"])
+    # Langflow correctly ignores Canvas-only Sticky Notes when materializing
+    # execution vertices, so compare the graph only to generic executable nodes.
+    assert len(graph.vertices) == len(_execution_nodes(flow))
     assert len(graph.edges) == len(flow["data"]["edges"])
 
 
@@ -147,10 +177,42 @@ def test_edges_resolve_to_real_compatible_handles(flows: dict[str, dict[str, Any
         output_types = set(outputs[source_handle["name"]]["types"])
         input_types = set(target_field["input_types"])
         assert output_types.intersection(input_types), edge["id"]
+        # Langflow 1.11.1 removes edges that target advanced inputs while a
+        # Flow is loaded into the Canvas, so such exports are not import-safe.
+        assert target_field.get("advanced") is not True, edge["id"]
         assert source_handle["output_types"] == outputs[source_handle["name"]]["types"]
         assert target_handle["inputTypes"] == target_field["input_types"]
         assert edge["sourceHandle"].startswith("{œdataTypeœ:")
         assert edge["targetHandle"].startswith("{œfieldNameœ:")
+
+
+@pytest.mark.parametrize("flow_key", tuple(FLOW_FILES))
+def test_sticky_notes_describe_stages_without_affecting_execution(
+    flows: dict[str, dict[str, Any]], flow_key: str
+) -> None:
+    flow = flows[flow_key]
+    notes = _sticky_notes(flow)
+    assert len(notes) == STICKY_NOTE_COUNTS[flow_key]
+    note_ids = {note["id"] for note in notes}
+    assert len(note_ids) == len(notes)
+    for note in notes:
+        data = note["data"]
+        node = data["node"]
+        assert data["id"] == note["id"]
+        assert data["type"] == "note"
+        assert node["display_name"] == ""
+        assert node["documentation"] == ""
+        assert node["lf_version"] == "1.11.1"
+        assert node["description"].startswith("## ")
+        assert node["template"]["backgroundColor"] in {"blue", "amber"}
+        assert note["positionAbsolute"] == note["position"]
+        assert note["style"] == {"height": note["height"], "width": note["width"]}
+        assert note["width"] > 0 and note["height"] > 0
+        assert note["dragging"] is False
+        assert note["resizing"] is False
+        assert note["selected"] is False
+    assert all(edge["source"] not in note_ids and edge["target"] not in note_ids for edge in flow["data"]["edges"])
+    assert flow["metadata"]["sticky_note_count"] == len(notes)
 
 
 @pytest.mark.parametrize("flow_key", tuple(FLOW_FILES))
@@ -184,40 +246,103 @@ def test_every_embedded_custom_source_builds_with_langflow_1_11(
 
 
 def test_hitl_is_top_level_only(flows: dict[str, dict[str, Any]]) -> None:
-    assert _types(flows["F00"]).count("HumanInput") == 1
-    # Three bounded answer rounds plus one final approval gate.
-    assert _types(flows["F10"]).count("HumanInput") == 4
-    for flow_key in ("F11", "F20", "F30", "F90"):
+    assert "HumanInput" not in _types(flows["F00"])
+    assert flows["F00"]["metadata"]["contains_native_hitl"] is False
+    # Three bounded answer cards plus one button-only final approval gate.
+    assert _types(flows["F10"]).count("HumanInput") == 1
+    assert len(_node_by_source(flows["F10"], "42_f10_clarification_answer_gate.py")) == 3
+    for flow_key in ("F20", "F30", "F90"):
         assert "HumanInput" not in _types(flows[flow_key])
         assert flows[flow_key]["metadata"]["contains_native_hitl"] is False
 
 
-def test_f00_uses_bounded_worker_and_server_side_activation_after_human_gate(flows: dict[str, dict[str, Any]]) -> None:
+def test_f00_visibly_loads_chunks_embeds_and_writes_mongodb(flows: dict[str, dict[str, Any]]) -> None:
     flow = flows["F00"]
-    expected_files = [
+    assert len(_execution_nodes(flow)) == 6
+    assert len(_sticky_notes(flow)) == 2
+    assert len(flow["data"]["edges"]) == 5
+    assert len(_node_by_source(flow, "00_catalog_json_loader.py")) == 1
+    assert len(_node_by_source(flow, "01_catalog_deterministic_chunker.py")) == 1
+    assert len(_node_by_source(flow, "02_catalog_mongodb_vector_writer.py")) == 1
+    writer = _node_by_source(flow, "02_catalog_mongodb_vector_writer.py")[0]
+    assert writer["data"]["node"]["template"]["dry_run"]["display_name"] == "테스트 실행 (저장하지 않음)"
+    assert writer["data"]["node"]["template"]["mongodb_database"]["value"] == "business_work_design"
+    assert [node["data"]["type"] for node in _execution_nodes(flow)] == [
+        "CatalogJsonLoader",
+        "CatalogDeterministicChunker",
+        "EmbeddingModel",
+        "CatalogMongoDBVectorWriter",
+        "ParseData",
+        "ChatOutput",
+    ]
+    assert _has_edge(flow, "CatalogJsonLoader", "catalog_bundle", "CatalogDeterministicChunker", "catalog_bundle")
+    assert _has_edge(flow, "CatalogDeterministicChunker", "chunk_bundle", "CatalogMongoDBVectorWriter", "chunk_bundle")
+    assert _has_edge(flow, "EmbeddingModel", "embeddings", "CatalogMongoDBVectorWriter", "embedding")
+    assert _has_edge(flow, "CatalogMongoDBVectorWriter", "ingestion_result", "ParseData", "data")
+    assert _has_edge(flow, "ParseData", "text", "ChatOutput", "input_value")
+    assert "activation_handoff_contract" not in flow["metadata"]
+    assert flow["metadata"]["operational_readiness"] == "mongodb_vector_ingestion_configuration_required"
+    required = flow["metadata"]["required_configuration"]
+    assert any("MongoDB" in item for item in required)
+    assert any("embedding" in item for item in required)
+
+    forbidden_sources = {
+        "00_catalog_file_vector_ingest.py",
         "00_catalog_file_intake.py",
         "01_catalog_secret_scanner.py",
         "09_catalog_pipeline_worker_client.py",
-    ]
-    assert all(len(_node_by_source(flow, filename)) == 1 for filename in expected_files)
-    assert not _node_by_source(flow, "33_catalog_activation_approval_client.py")
-    for worker_owned_stage in (
-        "02_catalog_stream_parser.py",
-        "03_catalog_record_normalizer.py",
-        "04_catalog_embedding_text_builder.py",
-        "05_catalog_embedding_batcher.py",
-        "06_mongodb_snapshot_writer.py",
-        "07_catalog_snapshot_validator.py",
-        "08_catalog_snapshot_activator.py",
-    ):
-        assert not _node_by_source(flow, worker_owned_stage)
-    assert _has_edge(flow, "CatalogFileIntake", "job_ref", "CatalogSecretScanner", "job_ref")
-    assert _has_edge(flow, "CatalogSecretScanner", "scanned_job_ref", "CatalogPipelineWorkerClient", "scanned_job_ref")
-    assert _has_edge(flow, "HumanInput", "branch_activate_snapshot", "Prompt Template", "approval_decision")
-    contract = flow["metadata"]["activation_handoff_contract"]
-    assert contract["flow_performs_activation"] is False
-    assert contract["required_attestation"] == "catalog-activation-attestation/v1"
-    assert contract["raw_nonce_in_langflow"] is False
+        "33_catalog_activation_approval_client.py",
+    }
+    assert all(not _node_by_source(flow, filename) for filename in forbidden_sources)
+    serialized = json.dumps(flow, ensure_ascii=False).lower()
+    assert "humaninput" not in serialized
+    assert "worker_server_url" not in serialized
+    assert "activation gateway" not in serialized
+    assert "other flow" not in serialized
+
+
+def test_exported_mongodb_database_defaults_are_unified(flows: dict[str, dict[str, Any]]) -> None:
+    expected_fields = {
+        "F10": {
+            "13_clarification_batch_builder.py": "mongo_database",
+            "18_work_definition_store.py": "mongo_database",
+            "36_approved_design_invocation_loader.py": "mongo_database",
+            "39_f10_answer_commit.py": "mongo_database",
+        },
+        "F20": {"21_catalog_hybrid_retriever.py": "database_name"},
+        "F90": {"21_catalog_hybrid_retriever.py": "database_name"},
+    }
+    for flow_key, source_fields in expected_fields.items():
+        for source_name, field_name in source_fields.items():
+            nodes = _node_by_source(flows[flow_key], source_name)
+            assert nodes, f"{flow_key}:{source_name}"
+            for node in nodes:
+                assert node["data"]["node"]["template"][field_name]["value"] == "business_work_design"
+
+    for source_name in ("13_clarification_batch_builder.py", "39_f10_answer_commit.py"):
+        for node in _node_by_source(flows["F10"], source_name):
+            template = node["data"]["node"]["template"]
+            assert template["mongodb_uri"]["advanced"] is False
+            assert template["mongo_database"]["advanced"] is False
+
+
+def test_all_mongodb_uri_inputs_bind_the_shared_secret_global_variable(
+    flows: dict[str, dict[str, Any]],
+) -> None:
+    """Every active MongoDB node must reuse the same exported secret binding."""
+
+    for flow_key, expected_count in MONGODB_URI_NODE_COUNTS.items():
+        matches: list[tuple[str, dict[str, Any]]] = []
+        for wrapper in _execution_nodes(flows[flow_key]):
+            template = wrapper["data"]["node"].get("template", {})
+            field = template.get("mongodb_uri")
+            if isinstance(field, dict):
+                matches.append((wrapper["id"], field))
+        assert len(matches) == expected_count, flow_key
+        for node_id, field in matches:
+            assert field.get("_input_type") == "SecretStrInput", node_id
+            assert field.get("load_from_db") is True, node_id
+            assert field.get("value") == MONGODB_URI_GLOBAL_VARIABLE, node_id
 
 
 def test_f10_contains_extraction_clarification_merge_preview_and_approval_store(
@@ -229,95 +354,164 @@ def test_f10_contains_extraction_clarification_merge_preview_and_approval_store(
         "11_work_definition_normalizer.py",
         "12_work_completeness_evaluator.py",
         "13_clarification_batch_builder.py",
-        "14_work_answer_loader.py",
-        "15_work_answer_merger.py",
         "16_work_graph_normalizer.py",
         "17_work_preview_hasher.py",
         "18_work_definition_store.py",
-        "27_work_clarification_router.py",
-        "28_work_definition_branch_joiner.py",
-        "34_work_runtime_state_store.py",
-        "35_result_gate.py",
+        "36_approved_design_invocation_loader.py",
+        "44_f10_report_handoff_gate.py",
+            "39_f10_answer_commit.py",
+            "40_f10_review_entry_joiner.py",
+            "41_f10_terminal_result_message.py",
+            "42_f10_clarification_answer_gate.py",
+            "43_f10_final_approval_route_gate.py",
     ):
         assert _node_by_source(flow, filename), filename
-    assert len(_node_by_source(flow, "12_work_completeness_evaluator.py")) == 4
-    assert len(_node_by_source(flow, "13_clarification_batch_builder.py")) == 4
-    assert len(_node_by_source(flow, "14_work_answer_loader.py")) == 3
-    assert len(_node_by_source(flow, "15_work_answer_merger.py")) == 3
+    assert len(_execution_nodes(flow)) == 38
+    assert len(_sticky_notes(flow)) == 6
+    assert len(flow["data"]["edges"]) == 94
+    assert len(_node_by_source(flow, "12_work_completeness_evaluator.py")) == 3
+    assert len(_node_by_source(flow, "13_clarification_batch_builder.py")) == 3
+    assert len(_node_by_source(flow, "39_f10_answer_commit.py")) == 3
     assert len(_node_by_source(flow, "17_work_preview_hasher.py")) == 1
-    assert len(_node_by_source(flow, "27_work_clarification_router.py")) == 4
-    assert len(_node_by_source(flow, "28_work_definition_branch_joiner.py")) == 3
-    assert len(_node_by_source(flow, "34_work_runtime_state_store.py")) == 27
-    assert len(_node_by_source(flow, "35_result_gate.py")) == 21
+    assert len(_node_by_source(flow, "18_work_definition_store.py")) == 4
+    assert _types(flow).count("TextInput") == 2
     assert _types(flow).count("LanguageModel") == 4
+    assert _types(flow).count("HumanInput") == 1
+    assert len(_node_by_source(flow, "42_f10_clarification_answer_gate.py")) == 3
+    assert len(_node_by_source(flow, "43_f10_final_approval_route_gate.py")) == 1
     rounds = {
         node["data"]["node"]["template"]["round_number"]["value"]
         for node in _node_by_source(flow, "13_clarification_batch_builder.py")
     }
-    assert rounds == {1, 2, 3, 4}
-    round_four = _nodes_with_value(flow, "13_clarification_batch_builder.py", "round_number", 4)
-    assert len(round_four) == 1
-    round_four_id = round_four[0]["id"]
-    assert not any(
-        edge["target"] == round_four_id and edge["data"]["targetHandle"]["fieldName"] == "candidate_questions"
+    assert rounds == {1, 2, 3}
+    question_limits = {
+        node["data"]["node"]["template"]["round_number"]["value"]: node["data"]["node"]["template"]["max_questions"]["value"]
+        for node in _node_by_source(flow, "13_clarification_batch_builder.py")
+    }
+    assert question_limits == {1: 3, 2: 3, 3: 4}
+    for round_number in (1, 2, 3):
+        model = _node_by_key(flow, f"clarification_model_r{round_number}")
+        expected_limit = 4 if round_number == 3 else 3
+        assert model["data"]["node"]["template"]["system_message"]["value"] == (
+            f"Return one JSON object with at most {expected_limit} questions."
+        )
+    request_envelope = _node_by_key(flow, "request_envelope")
+    work_text_input = _node_by_key(flow, "work_description_text_input")
+    additional_text_input = _node_by_key(flow, "additional_design_prompt_text_input")
+    assert any(
+        edge["source"] == work_text_input["id"]
+        and edge["target"] == request_envelope["id"]
+        and edge["data"]["sourceHandle"]["name"] == "text"
+        and edge["data"]["targetHandle"]["fieldName"] == "request_text"
         for edge in flow["data"]["edges"]
     )
-
-    initial_stores = [
-        node
-        for node in _nodes_with_value(flow, "18_work_definition_store.py", "command", "save")
-        if node["data"]["node"]["template"]["derive_expected_revision"]["value"] is False
-    ]
-    assert len(initial_stores) == 1
-    answered_stores = [
-        node
-        for node in _nodes_with_value(flow, "18_work_definition_store.py", "command", "save")
-        if node["data"]["node"]["template"]["incoming_revision_is_next"]["value"] is True
-    ]
-    assert len(answered_stores) == 3
-    assert len(_nodes_with_value(flow, "18_work_definition_store.py", "command", "request_approval")) == 1
-    assert _has_edge(flow, "HumanInput", "branch_submit_answers", "WorkAnswerLoader", "human_action")
-    assert _has_edge(flow, "WorkRuntimeStateStore", "success_path", "WorkAnswerLoader", "route_trigger")
-    nodes = _nodes(flow)
-    for edge in flow["data"]["edges"]:
-        if (
-            nodes[edge["source"]]["data"]["type"] == "WorkRuntimeStateStore"
-            and edge["data"]["sourceHandle"]["name"] == "blocked_path"
-        ):
-            assert nodes[edge["target"]]["data"]["type"] not in {"HumanInput", "WorkAnswerLoader"}
-    assert _has_edge(flow, "WorkClarificationRouter", "review_path", "WorkDefinitionBranchJoiner", "review_work_definition")
-    assert _has_edge(flow, "WorkDefinitionBranchJoiner", "joined_work_definition", "ResultGate", "result")
-    assert _has_edge(flow, "ResultGate", "success_path", "WorkGraphNormalizer", "work_definition")
-    assert _has_edge(flow, "WorkPreviewHasher", "preview", "ResultGate", "result")
-    assert _has_edge(flow, "ResultGate", "success_path", "WorkDefinitionStore", "work_definition")
-    assert _has_edge(flow, "HumanInput", "branch_approve", "WorkDefinitionStore", "route_trigger")
-    assert _has_edge(flow, "HumanInput", "branch_reject", "WorkDefinitionStore", "route_trigger")
-
-    assert len(_nodes_with_value(flow, "34_work_runtime_state_store.py", "runtime_status", "MERGING")) == 6
-    assert len(_nodes_with_value(flow, "34_work_runtime_state_store.py", "runtime_status", "READY_FOR_REVIEW")) == 1
-    assert len(_nodes_with_value(flow, "34_work_runtime_state_store.py", "runtime_status", "WAITING_APPROVAL")) == 1
-    assert len(_nodes_with_value(flow, "34_work_runtime_state_store.py", "runtime_status", "CANCELLED")) == 4
+    assert any(
+        edge["source"] == additional_text_input["id"]
+        and edge["target"] == request_envelope["id"]
+        and edge["data"]["sourceHandle"]["name"] == "text"
+        and edge["data"]["targetHandle"]["fieldName"] == "additional_prompt"
+        for edge in flow["data"]["edges"]
+    )
+    assert len(_nodes_with_value(flow, "18_work_definition_store.py", "command", "review_and_request_approval")) == 1
     for round_number in (1, 2, 3):
-        store_gate = _node_by_key(flow, f"answered_store_r{round_number}_result_gate")
-        checkpoint = _node_by_key(flow, f"answered_store_r{round_number}_reconciled_runtime_state")
+        planner = _node_by_key(flow, f"clarification_planner_r{round_number}")
+        batch = _node_by_key(flow, f"clarification_batch_r{round_number}")
+        gate = _node_by_key(flow, f"answer_gate_r{round_number}")
+        commit = _node_by_key(flow, f"answer_commit_r{round_number}")
         assert any(
-            edge["source"] == store_gate["id"]
-            and edge["target"] == checkpoint["id"]
-            and edge["data"]["sourceHandle"]["name"] == "success_path"
+            edge["source"] == planner["id"]
+            and edge["target"] == batch["id"]
+            and edge["data"]["sourceHandle"]["name"] == "clarification_path"
             and edge["data"]["targetHandle"]["fieldName"] == "work_definition"
             for edge in flow["data"]["edges"]
         )
-    ready_runtime = _node_by_key(flow, "review_ready_runtime_state")
-    request_approval_store = _node_by_key(flow, "request_approval_store")
+        assert any(
+            edge["source"] == batch["id"]
+            and edge["target"] == gate["id"]
+            and edge["data"]["sourceHandle"]["name"] == "waiting_path"
+            and edge["data"]["targetHandle"]["fieldName"] == "clarification_batch"
+            for edge in flow["data"]["edges"]
+        )
+        assert any(
+            edge["source"] == gate["id"]
+            and edge["target"] == commit["id"]
+            and edge["data"]["sourceHandle"]["name"] == "answer_submission"
+            and edge["data"]["targetHandle"]["fieldName"] == "native_answer_submission"
+            for edge in flow["data"]["edges"]
+        )
+        assert any(
+            edge["source"] == gate["id"]
+            and edge["target"] == commit["id"]
+            and edge["data"]["sourceHandle"]["name"] == "branch_submit_answers"
+            and edge["data"]["targetHandle"]["fieldName"] == "submit_trigger"
+            for edge in flow["data"]["edges"]
+        )
+        assert any(
+            edge["source"] == gate["id"]
+            and edge["target"] == commit["id"]
+            and edge["data"]["sourceHandle"]["name"] == "branch_skip_additional_input"
+            and edge["data"]["targetHandle"]["fieldName"] == "skip_trigger"
+            for edge in flow["data"]["edges"]
+        )
+        # Skip is a deliberate review entry, not a silent cancel, a fourth
+        # question round, or a direct approval bypass.  Component 39 owns the
+        # persisted skip audit and emits its existing review_path.
+        assert any(
+            edge["source"] == commit["id"]
+            and edge["target"] == _node_by_key(flow, "review_entry_joiner")["id"]
+            and edge["data"]["sourceHandle"]["name"] == "review_path"
+            and edge["data"]["targetHandle"]["fieldName"] == f"round{round_number}_answer_review"
+            for edge in flow["data"]["edges"]
+        )
+        assert any(
+            edge["source"] == gate["id"]
+            and edge["target"] == _node_by_key(flow, "terminal_result_message")["id"]
+            and edge["data"]["sourceHandle"]["name"] == "blocked_path"
+            and edge["data"]["targetHandle"]["fieldName"] == "terminal_events"
+            for edge in flow["data"]["edges"]
+        )
+
+    assert not _node_by_source(flow, "14_work_answer_loader.py")
+    assert not _node_by_source(flow, "15_work_answer_merger.py")
+    assert not _node_by_source(flow, "27_work_clarification_router.py")
+    assert not _node_by_source(flow, "28_work_definition_branch_joiner.py")
+    assert not _node_by_source(flow, "34_work_runtime_state_store.py")
+    assert not _node_by_source(flow, "35_result_gate.py")
+
+    assert _has_edge(flow, "F10ReviewEntryJoiner", "review_work_definition", "WorkGraphNormalizer", "work_definition")
+    assert _has_edge(flow, "WorkGraphNormalizer", "success_path", "WorkPreviewHasher", "work_definition")
+    assert _has_edge(flow, "WorkPreviewHasher", "success_path", "WorkDefinitionStore", "work_definition")
+    review_approval_store = _node_by_key(flow, "review_approval_store")
+    assert review_approval_store["data"]["node"]["display_name"] == "18 업무 정의 상태 저장"
+    assert review_approval_store["data"]["node"]["template"]["command"]["value"] == "review_and_request_approval"
     assert any(
-        edge["source"] == ready_runtime["id"]
-        and edge["target"] == request_approval_store["id"]
+        edge["source"] == _node_by_key(flow, "preview")["id"]
+        and edge["target"] == review_approval_store["id"]
         and edge["data"]["sourceHandle"]["name"] == "success_path"
         and edge["data"]["targetHandle"]["fieldName"] == "work_definition"
         for edge in flow["data"]["edges"]
     )
-
-    request_store_gate = _node_by_key(flow, "request_approval_store_result_gate")
+    review_template = review_approval_store["data"]["node"]["template"]
+    assert review_template["expected_revision"]["advanced"] is True
+    assert review_template["expected_revision"]["required"] is False
+    assert review_template["idempotency_key"]["advanced"] is True
+    assert "work_collection" not in review_template
+    assert "event_collection" not in review_template
+    guide = next(note for note in _sticky_notes(flow) if note["id"] == "note-f10-03a-review-save-approval-input-guide")
+    assert "자동값" in guide["data"]["node"]["description"]
+    assert "work_definition_events" in guide["data"]["node"]["description"]
+    hitl_example_note = next(note for note in _sticky_notes(flow) if note["id"] == "note-f10-02-three-round-hitl")
+    hitl_example_text = hitl_example_note["data"]["node"]["description"]
+    assert "질문 카드에 넣을 답변 예시" in hitl_example_text
+    assert "추가 입력 건너뛰기" in hitl_example_text
+    assert "Cancel" in hitl_example_text
+    example = json.loads((PROJECT_ROOT / "samples" / "f10_work_request_example.json").read_text(encoding="utf-8"))
+    for item in example["clarification_answer_examples"]:
+        assert item["topic"] in hitl_example_text
+        assert item["likely_question"] in hitl_example_text
+        assert item["answer_to_enter"] in hitl_example_text
+    for value in example["clarification_skip_guidance"].values():
+        assert value in hitl_example_text
     for command, branch in (
         ("approve", "branch_approve"),
         ("reject", "branch_reject"),
@@ -332,9 +526,15 @@ def test_f10_contains_extraction_clarification_merge_preview_and_approval_store(
         assert target["data"]["node"]["template"]["command"]["value"] == command
         incoming = [edge for edge in flow["data"]["edges"] if edge["target"] == target["id"]]
         assert any(
-            edge["source"] == request_store_gate["id"]
+            edge["source"] == review_approval_store["id"]
             and edge["data"]["sourceHandle"]["name"] == "success_path"
             and edge["data"]["targetHandle"]["fieldName"] == "work_definition"
+            for edge in incoming
+        )
+        assert any(
+            edge["source"] == _node_by_key(flow, "final_approval_route_gate")["id"]
+            and edge["data"]["sourceHandle"]["name"] == branch
+            and edge["data"]["targetHandle"]["fieldName"] == "route_trigger"
             for edge in incoming
         )
         assert any(
@@ -342,94 +542,149 @@ def test_f10_contains_extraction_clarification_merge_preview_and_approval_store(
             and edge["data"]["targetHandle"]["fieldName"] == "route_trigger"
             for edge in incoming
         )
-
-
-def test_f11_is_explicit_playground_turn_without_native_pause(flows: dict[str, dict[str, Any]]) -> None:
-    flow = flows["F11"]
-    assert _types(flow).count("ChatInput") == 1
-    assert _types(flow).count("ConditionalRouter") == 0
-    assert _types(flow).count("ChatOutput") == 21
-    assert "HumanInput" not in _types(flow)
-    assert flow["metadata"]["operational_readiness"] == "structured_command_external_state_required"
-    contract = flow["metadata"]["playground_turn_contract"]
-    assert contract["schema_version"] == "playground-structured-command/v1"
-    assert contract["commands"] == ["start", "submit_answers", "approve", "reject", "cancel"]
-    assert contract["follow_up_state_source"] == "explicit_node_tweaks"
-    assert contract["silent_state_fallback"] is False
-    assert contract["native_hitl"] is False
-    assert _node_by_key(flow, "existing_work_input")["id"] == contract["existing_work_input_node_id"]
-    assert _node_by_key(flow, "existing_batch_input")["id"] == contract["existing_batch_input_node_id"]
-    assert _node_by_key(flow, "answer_clarification_batch")["id"] == contract["round_number_node_id"]
-    assert contract["round_number_mode"] == "derived_from_processed_answer_batches"
-    assert contract["top_level_command_only"] is True
-    assert contract["duplicate_json_keys_rejected"] is True
-    command_router = _node_by_key(flow, "command_router")
-    assert command_router["id"] == contract["command_parser_node_id"]
-    assert command_router["data"]["type"] == "PlaygroundCommandRouter"
-    assert len(_node_by_source(flow, "36_playground_command_router.py")) == 1
-    assert _node_by_key(flow, "answer_clarification_batch")["data"]["node"]["template"]["round_number"]["value"] == 0
-    loaders = _node_by_source(flow, "14_work_answer_loader.py")
-    assert len(loaders) == 1
-    template = loaders[0]["data"]["node"]["template"]
-    assert template["channel_mode"]["value"] == "playground"
-    assert template["answer_source_mode"]["value"] == "direct_payload"
-    chat_input = _node_by_key(flow, "chat_input")
-    chat_edges = [edge for edge in flow["data"]["edges"] if edge["source"] == chat_input["id"]]
-    assert len(chat_edges) == 1
-    assert _nodes(flow)[chat_edges[0]["target"]]["data"]["type"] == "PlaygroundCommandRouter"
-    assert _has_edge(flow, "PlaygroundCommandRouter", "submit_answers_path", "WorkAnswerLoader", "playground_payload")
-    assert _has_edge(flow, "PlaygroundCommandRouter", "start_path", "WorkRequestEnvelope", "request_text")
-    assert _has_edge(flow, "TypeConverter", "data_output", "WorkAnswerLoader", "work_definition")
-    assert _has_edge(flow, "TypeConverter", "data_output", "WorkAnswerMerger", "work_definition")
-    assert len(_node_by_source(flow, "27_work_clarification_router.py")) == 2
-    assert len(_node_by_source(flow, "28_work_definition_branch_joiner.py")) == 1
-    assert len(_node_by_source(flow, "35_result_gate.py")) == 12
-    assert len(_nodes_with_value(flow, "18_work_definition_store.py", "command", "request_approval")) == 1
-    for command in ("approve", "reject", "cancel"):
-        action_store = _node_by_key(flow, f"action_{command}_store")
-        assert action_store["id"] == contract["action_store_node_ids"][command]
-        assert action_store["data"]["node"]["template"]["command"]["value"] == command
-        expected_output = f"{command}_path"
         assert any(
-            edge["target"] == action_store["id"]
-            and edge["source"] == command_router["id"]
-            and edge["data"]["sourceHandle"]["name"] == expected_output
-            and edge["data"]["targetHandle"]["fieldName"] == "route_trigger"
+            edge["source"] == request_envelope["id"]
+            and edge["data"]["sourceHandle"]["name"] == "employee_actor_id"
+            and edge["data"]["targetHandle"]["fieldName"] == "actor_id"
+            for edge in incoming
+        )
+
+    approval_gate = _node_by_key(flow, "approval_gate")
+    final_route_gate = _node_by_key(flow, "final_approval_route_gate")
+    assert final_route_gate["data"]["node"]["template"]["approval_triggers"]["list"] is True
+    for branch in ("branch_approve", "branch_reject", "branch_cancel"):
+        assert any(
+            edge["source"] == approval_gate["id"]
+            and edge["target"] == final_route_gate["id"]
+            and edge["data"]["sourceHandle"]["name"] == branch
+            and edge["data"]["targetHandle"]["fieldName"] == "approval_triggers"
             for edge in flow["data"]["edges"]
         )
 
+    terminal = _node_by_key(flow, "terminal_result_message")
+    assert terminal["data"]["node"]["template"]["terminal_events"]["list"] is True
+    terminal_incoming = [edge for edge in flow["data"]["edges"] if edge["target"] == terminal["id"]]
+    assert len(terminal_incoming) == 14
+    assert {edge["data"]["targetHandle"]["fieldName"] for edge in terminal_incoming} == {"terminal_events"}
 
-def test_f10_and_f11_result_gates_are_fail_closed(flows: dict[str, dict[str, Any]]) -> None:
-    forbidden_blocked_targets = {
-        "HumanInput",
-        "LanguageModel",
-        "WorkAnswerLoader",
-        "WorkAnswerMerger",
-        "WorkDefinitionStore",
-        "WorkGraphNormalizer",
-        "WorkPreviewHasher",
-    }
-    for flow_key in ("F10", "F11"):
-        flow = flows[flow_key]
-        nodes = _nodes(flow)
-        gates = _node_by_source(flow, "35_result_gate.py")
-        assert gates
-        for gate in gates:
-            blocked_edges = [
-                edge
-                for edge in flow["data"]["edges"]
-                if edge["source"] == gate["id"] and edge["data"]["sourceHandle"]["name"] == "blocked_path"
-            ]
-            assert len(blocked_edges) == 1
-            assert nodes[blocked_edges[0]["target"]]["data"]["type"] not in forbidden_blocked_targets
-        for edge in flow["data"]["edges"]:
-            if nodes[edge["source"]]["data"]["type"] in {
-                "WorkAnswerLoader",
-                "WorkAnswerMerger",
-                "WorkGraphNormalizer",
-                "WorkPreviewHasher",
-            }:
-                assert nodes[edge["target"]]["data"]["type"] == "ResultGate"
+
+def test_f10_approve_path_runs_f20_then_f30_directly_without_http(flows: dict[str, dict[str, Any]]) -> None:
+    f10 = flows["F10"]
+    f20 = flows["F20"]
+    f30 = flows["F30"]
+    run_f20 = _node_by_key(f10, "run_agent_blueprint_design")
+    run_f30 = _node_by_key(f10, "run_responsive_report")
+    invocation_loader = _node_by_key(f10, "design_invocation_loader")
+    invocation_message = _node_by_key(f10, "design_invocation_message")
+    handoff_gate = _node_by_key(f10, "report_handoff_gate")
+    approved_store = _node_by_key(f10, "approved_work_store")
+
+    assert run_f20["data"]["type"] == "RunFlow"
+    assert run_f30["data"]["type"] == "RunFlow"
+    assert run_f20["data"]["node"]["tool_mode"] is False
+    assert run_f30["data"]["node"]["tool_mode"] is False
+    f20_template = run_f20["data"]["node"]["template"]
+    f30_template = run_f30["data"]["node"]["template"]
+    assert f20_template["flow_name_selected"]["value"] == f20["name"]
+    assert f20_template["flow_id_selected"]["value"] == f20["id"]
+    assert f30_template["flow_name_selected"]["value"] == f30["name"]
+    assert f30_template["flow_id_selected"]["value"] == f30["id"]
+    assert len(_node_by_source(f10, "36_approved_design_invocation_loader.py")) == 1
+    assert len(_node_by_source(f10, "44_f10_report_handoff_gate.py")) == 1
+    assert any(
+        edge["source"] == approved_store["id"]
+        and edge["target"] == invocation_loader["id"]
+        and edge["data"]["sourceHandle"]["name"] == "success_path"
+        and edge["data"]["targetHandle"]["fieldName"] == "approval_result"
+        for edge in f10["data"]["edges"]
+    )
+    request_envelope = _node_by_key(f10, "request_envelope")
+    assert any(
+        edge["source"] == request_envelope["id"]
+        and edge["target"] == invocation_loader["id"]
+        and edge["data"]["sourceHandle"]["name"] == "employee_actor_id"
+        and edge["data"]["targetHandle"]["fieldName"] == "authenticated_subject_id"
+        for edge in f10["data"]["edges"]
+    )
+    f20_input_field = f"{f20['metadata']['design_invocation_input_node_id']}~input_value"
+    f20_handoff_output = f"{f20['metadata']['report_handoff_output_node_id']}~message"
+    f30_input_field = f"{f30['metadata']['report_handoff_input_node_id']}~input_value"
+    f30_output = f"{f30['metadata']['report_output_node_id']}~message"
+    assert f20_input_field in f20_template
+    assert f30_input_field in f30_template
+    assert any(item["name"] == f20_handoff_output for item in run_f20["data"]["node"]["outputs"])
+    assert any(item["name"] == f30_output for item in run_f30["data"]["node"]["outputs"])
+    assert any(
+        edge["source"] == invocation_loader["id"]
+        and edge["target"] == invocation_message["id"]
+        and edge["data"]["sourceHandle"]["name"] == "success_path"
+        and edge["data"]["targetHandle"]["fieldName"] == "input_data"
+        for edge in f10["data"]["edges"]
+    )
+    assert invocation_message["data"]["node"]["template"]["output_type"]["value"] == "Message"
+    assert any(
+        edge["source"] == invocation_message["id"]
+        and edge["target"] == run_f20["id"]
+        and edge["data"]["sourceHandle"]["name"] == "message_output"
+        and edge["data"]["targetHandle"]["fieldName"] == f20_input_field
+        for edge in f10["data"]["edges"]
+    )
+    assert any(
+        edge["source"] == run_f20["id"]
+        and edge["target"] == handoff_gate["id"]
+        and edge["data"]["sourceHandle"]["name"] == f20_handoff_output
+        and edge["data"]["targetHandle"]["fieldName"] == "f20_report_handoff"
+        for edge in f10["data"]["edges"]
+    )
+    assert any(
+        edge["source"] == handoff_gate["id"]
+        and edge["target"] == run_f30["id"]
+        and edge["data"]["sourceHandle"]["name"] == "success_message"
+        and edge["data"]["targetHandle"]["fieldName"] == f30_input_field
+        for edge in f10["data"]["edges"]
+    )
+    assert any(
+        edge["source"] == run_f30["id"]
+        and edge["data"]["sourceHandle"]["name"] == f30_output
+        and _nodes(f10)[edge["target"]]["data"]["type"] == "ChatOutput"
+        for edge in f10["data"]["edges"]
+    )
+    assert not any(
+        edge["source"] == handoff_gate["id"]
+        and edge["target"] == run_f30["id"]
+        and edge["data"]["sourceHandle"]["name"] == "blocked_path"
+        for edge in f10["data"]["edges"]
+    )
+    serialized = json.dumps(f10, ensure_ascii=False).lower()
+    assert "/api/v1/run" not in serialized
+    assert "http://" not in json.dumps(run_f20, ensure_ascii=False).lower()
+    assert "http://" not in json.dumps(run_f30, ensure_ascii=False).lower()
+
+
+def test_f10_compact_route_outputs_are_fail_closed(flows: dict[str, dict[str, Any]]) -> None:
+    flow = flows["F10"]
+    nodes = _nodes(flow)
+    assert not _node_by_source(flow, "35_result_gate.py")
+
+    # The compact components own their success/blocked routing.  A blocked
+    # graph/preview/store outcome must not feed a later state-changing node.
+    for key in ("graph_normalizer", "preview", "review_approval_store"):
+        node = _node_by_key(flow, key)
+        outgoing = [edge for edge in flow["data"]["edges"] if edge["source"] == node["id"]]
+        assert all(edge["data"]["sourceHandle"]["name"] != "blocked_path" for edge in outgoing)
+        assert all(edge["data"]["sourceHandle"]["name"] != "normalized_graph" for edge in outgoing)
+        assert all(edge["data"]["sourceHandle"]["name"] != "preview" for edge in outgoing)
+
+    forbidden = {"HumanInput", "LanguageModel", "WorkDefinitionStore", "WorkGraphNormalizer", "WorkPreviewHasher"}
+    for round_number in (1, 2, 3):
+        commit = _node_by_key(flow, f"answer_commit_r{round_number}")
+        blocked_edges = [
+            edge
+            for edge in flow["data"]["edges"]
+            if edge["source"] == commit["id"] and edge["data"]["sourceHandle"]["name"] == "blocked_path"
+        ]
+        assert len(blocked_edges) == 1
+        assert nodes[blocked_edges[0]["target"]]["data"]["type"] not in forbidden
 
 
 def test_f20_search_and_blueprint_chain_is_fail_closed(flows: dict[str, dict[str, Any]]) -> None:
@@ -448,41 +703,98 @@ def test_f20_search_and_blueprint_chain_is_fail_closed(flows: dict[str, dict[str
         "24_port_contract_validator.py",
         "25_blueprint_readiness_classifier.py",
         "26_component_generation_prompt_builder.py",
+        "38_f20_report_handoff_builder.py",
     ):
         assert len(_node_by_source(flow, filename)) == 1, filename
     assert _has_edge(flow, "SearchQueryPlanner", "query_plan", "SearchQueryEmbeddingBatcher", "query_plan")
-    assert _has_edge(flow, "ChatInput", "message", "SearchQueryPlanner", "design_prompt")
+    assert _types(flow).count("EmbeddingModel") == 1
+    assert _has_edge(flow, "EmbeddingModel", "embeddings", "SearchQueryEmbeddingBatcher", "embedding")
+    assert _has_edge(flow, "ChatInput", "message", "TypeConverter", "input_data")
+    assert _has_edge(flow, "TypeConverter", "data_output", "SearchQueryPlanner", "design_invocation")
     assert _has_edge(flow, "SearchQueryPlanner", "design_scope", "SkillContextResolver", "design_scope")
+    assert _has_edge(flow, "SearchQueryPlanner", "approved_skill_registry", "SkillContextResolver", "skill_registry")
     assert _has_edge(flow, "SearchQueryPlanner", "design_scope", "AgentBlueprintNormalizer", "design_scope")
     assert _has_edge(flow, "SearchQueryEmbeddingBatcher", "query_vectors", "CatalogHybridRetriever", "query_vectors")
     assert _has_edge(flow, "CatalogHybridRetriever", "retrieval_result", "CandidateContextBuilder", "retrieval_result")
     assert _has_edge(flow, "AgentBlueprintNormalizer", "normalized_blueprint", "PortContractValidator", "normalized_blueprint")
     assert _has_edge(flow, "PortContractValidator", "validated_blueprint", "BlueprintReadinessClassifier", "validated_blueprint")
     assert _has_edge(flow, "BlueprintReadinessClassifier", "classified_blueprint", "ComponentGenerationPromptBuilder", "classified_blueprint")
+    assert _has_edge(flow, "ComponentGenerationPromptBuilder", "generation_request", "ParseData", "data")
+    assert _has_edge(flow, "ParseData", "text", "ChatOutput", "input_value")
+    assert _types(flow).count("ChatOutput") == 2
+    assert _has_edge(flow, "SearchQueryPlanner", "design_scope", "F20ReportHandoffBuilder", "design_scope")
+    assert _has_edge(flow, "CandidateContextBuilder", "candidate_context", "F20ReportHandoffBuilder", "candidate_context")
+    assert _has_edge(flow, "ComponentGenerationPromptBuilder", "generation_request", "F20ReportHandoffBuilder", "terminal_blueprint")
+    assert _has_edge(flow, "F20ReportHandoffBuilder", "report_handoff_message", "ChatOutput", "input_value")
     contract = flow["metadata"]["design_input_contract"]
-    assert contract["schema_version"] == "agent-design-scope/v1"
+    assert contract["schema_version"] == "agent-design-invocation/v1"
     assert contract["independent_downstream_scope_tweaks"] is False
+    invocation_input = _node_by_key(flow, "design_invocation_input")
+    assert invocation_input["id"] == contract["single_input_node_id"]
+    assert invocation_input["data"]["node"]["template"]["should_store_message"]["value"] is False
     query_plan = _node_by_source(flow, "20_search_query_planner.py")[0]
-    assert query_plan["id"] == contract["single_scope_node_id"]
+    planner_outputs = {item["name"]: item for item in query_plan["data"]["node"]["outputs"]}
+    assert set(planner_outputs) == {"design_scope", "query_plan", "approved_skill_registry"}
+    assert all(item["group_outputs"] is True for item in planner_outputs.values())
     scope_consumers = {
         edge["target"]
         for edge in flow["data"]["edges"]
         if edge["source"] == query_plan["id"] and edge["data"]["sourceHandle"]["name"] == "design_scope"
     }
-    assert len(scope_consumers) == 3
+    assert len(scope_consumers) == 4
+    assert _node_by_key(flow, "report_handoff_builder")["id"] in scope_consumers
+    assert flow["metadata"]["design_output_node_id"] == _node_by_key(flow, "design_output")["id"]
+    assert flow["metadata"]["report_handoff_output_node_id"] == _node_by_key(flow, "report_handoff_output")["id"]
+    assert flow["metadata"]["report_handoff_contract"] == {
+        "schema_version": "f20-report-handoff/v1",
+        "work_definition_source": "query_plan.design_scope",
+        "retrieval_trace_source": "candidate_context.retrieval_trace",
+        "blueprint_source": "generation_prompt.generation_request",
+    }
 
 
-def test_f30_is_exact_report_chain_without_hitl(flows: dict[str, dict[str, Any]]) -> None:
+def test_f30_is_sealed_handoff_report_chain_without_hitl(flows: dict[str, dict[str, Any]]) -> None:
     flow = flows["F30"]
-    assert len(flow["data"]["nodes"]) == 3
-    assert len(flow["data"]["edges"]) == 2
+    assert len(_sticky_notes(flow)) == 1
+    assert "HumanInput" not in _types(flow)
+    assert _types(flow).count("ChatInput") == 1
+    assert _types(flow).count("ChatOutput") == 1
+    assert _types(flow).count("TypeConverter") == 1
+    assert _types(flow).count("ParseData") == 1
+    assert len(_node_by_source(flow, "33_f30_report_handoff_loader.py")) == 1
+    handoff_input = _node_by_key(flow, "report_handoff_input")
+    handoff_json = _node_by_key(flow, "report_handoff_json")
+    handoff_loader = _node_by_key(flow, "report_handoff_loader")
+    report_output = _node_by_key(flow, "report_output")
+    assert handoff_input["data"]["node"]["template"]["should_store_message"]["value"] is False
+    assert handoff_json["data"]["node"]["template"]["auto_parse"]["value"] is True
+    assert handoff_json["data"]["node"]["template"]["output_type"]["value"] == "JSON"
+    assert _has_edge(flow, "ChatInput", "message", "TypeConverter", "input_data")
+    assert _has_edge(flow, "TypeConverter", "data_output", "F30ReportHandoffLoader", "report_handoff")
+    assert _has_edge(flow, "F30ReportHandoffLoader", "work_definition", "ReportViewModelBuilder", "work_definition")
+    assert _has_edge(flow, "F30ReportHandoffLoader", "agent_blueprint", "ReportViewModelBuilder", "agent_blueprint")
+    assert _has_edge(flow, "F30ReportHandoffLoader", "retrieval_trace", "ReportViewModelBuilder", "retrieval_trace")
     assert _has_edge(flow, "ReportViewModelBuilder", "report_view_model", "ResponsiveReportRenderer", "report_view_model")
     assert _has_edge(flow, "ResponsiveReportRenderer", "render_result", "ReportPublisher", "render_result")
+    assert _has_edge(flow, "F30ReportHandoffLoader", "report_context", "ReportPublisher", "report_context")
+    assert _has_edge(flow, "ReportPublisher", "publish_result", "ParseData", "data")
+    assert _has_edge(flow, "ParseData", "text", "ChatOutput", "input_value")
+    assert flow["metadata"]["report_input_contract"] == {
+        "schema_version": "f20-report-handoff/v1",
+        "single_input_node_id": handoff_input["id"],
+        "single_input_field": "input_value",
+        "should_store_message": False,
+    }
+    assert flow["metadata"]["report_handoff_input_node_id"] == handoff_input["id"]
+    assert flow["metadata"]["report_output_node_id"] == report_output["id"]
     publishers = _node_by_source(flow, "32_report_publisher.py")
     assert len(publishers) == 1
     publisher_inputs = publishers[0]["data"]["node"]["template"]
     assert publisher_inputs["report_api_url"]["value"] == "http://127.0.0.1:8091/api"
+    assert publisher_inputs["tenant_id"]["value"] == ""
+    assert publisher_inputs["actor_id"]["value"] == ""
     assert publisher_inputs["dry_run"]["value"] is True
+    assert publisher_inputs["dry_run"]["display_name"] == "테스트 실행 (저장하지 않음)"
 
 
 def test_f90_is_hybrid_search_evaluation_surface(flows: dict[str, dict[str, Any]]) -> None:
@@ -495,17 +807,23 @@ def test_f90_is_hybrid_search_evaluation_surface(flows: dict[str, dict[str, Any]
         "22_candidate_context_builder.py",
     ):
         assert len(_node_by_source(flow, filename)) == 1
+    assert _types(flow).count("EmbeddingModel") == 1
+    assert _has_edge(flow, "EmbeddingModel", "embeddings", "SearchQueryEmbeddingBatcher", "embedding")
     assert _types(flow)[-1] == "ChatOutput"
 
 
 def test_no_secret_values_are_baked_into_exports(flows: dict[str, dict[str, Any]]) -> None:
     for flow in flows.values():
         for wrapper in flow["data"]["nodes"]:
-            for field in wrapper["data"]["node"]["template"].values():
+            for field_name, field in wrapper["data"]["node"]["template"].items():
                 if not isinstance(field, dict):
                     continue
                 if field.get("password") is True or field.get("_input_type") == "SecretStrInput":
-                    assert field.get("value") in (None, ""), (wrapper["id"], field.get("name"))
+                    if field_name == "mongodb_uri":
+                        assert field.get("value") == MONGODB_URI_GLOBAL_VARIABLE, wrapper["id"]
+                        assert field.get("load_from_db") is True, wrapper["id"]
+                    else:
+                        assert field.get("value") in (None, ""), (wrapper["id"], field.get("name"))
 
 
 def test_bundle_contains_byte_equivalent_individual_flows(flows: dict[str, dict[str, Any]]) -> None:
@@ -539,4 +857,4 @@ def test_generator_check_mode_reports_no_drift() -> None:
         timeout=180,
     )
     assert result.returncode == 0, result.stdout + result.stderr
-    assert "Verified 6 Flow JSON files" in result.stdout
+    assert "Verified 5 Flow JSON files" in result.stdout

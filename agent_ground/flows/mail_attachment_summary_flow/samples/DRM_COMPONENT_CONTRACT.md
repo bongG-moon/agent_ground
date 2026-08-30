@@ -19,7 +19,7 @@ timeout: 180초
 - `자동(로컬 우선)`: 일반 파일은 원본 경로 통과, 로컬 판별 실패 파일만 API 처리
 - `항상 DRM API`: API가 반환한 평문을 별도 UTF-8 TXT 작업 파일로 저장
 - `DRM 미사용`: API 호출 없이 모든 첨부의 원본 경로 통과
-- JPG/JPEG: 연결된 `LanguageModel`에 멀티모달 Data URL로 전달하고 UTF-8 TXT 생성
+- JPG/JPEG/PNG: 연결된 `LanguageModel`에 실제 MIME의 멀티모달 Data URL로 전달하고 UTF-8 TXT 생성
 - ZIP·RAR·7Z·TAR·GZ 등 미지원 형식: 압축을 열지 않고 안내 TXT 생성
 - 출력 경로: `original_file`, `drm_api`, `vision_model`, `vision_failed`, `skipped_unsupported`
 - 출력 상태: `not_required`, `bypassed_by_mode`, `text_extracted`, `not_applicable`

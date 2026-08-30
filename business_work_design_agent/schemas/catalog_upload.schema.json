@@ -1,17 +1,89 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://internal.example/schemas/catalog_upload.schema.json",
-  "title": "Catalog Upload Envelope",
-  "type": "object",
-  "additionalProperties": false,
-  "required": ["tenant_id", "file_name", "format"],
-  "properties": {
-    "tenant_id": {"type": "string", "minLength": 1, "maxLength": 128},
-    "file_name": {"type": "string", "minLength": 1, "maxLength": 255},
-    "format": {"enum": ["json_array", "json_items", "jsonl"]},
-    "content_sha256": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
-    "expected_record_count": {"type": "integer", "minimum": 0, "maximum": 1000000},
-    "source_ref": {"type": ["string", "null"], "maxLength": 2048},
-    "metadata": {"type": "object", "maxProperties": 50}
+  "title": "F00 Direct Catalog File",
+  "description": "JSON object, JSON array, or {items:[...]} form accepted by 00_catalog_json_loader.py. For JSONL/NDJSON, each non-empty line must match $defs/catalogRecord.",
+  "oneOf": [
+    {"$ref": "#/$defs/catalogRecord"},
+    {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 50000,
+      "items": {"$ref": "#/$defs/catalogRecord"}
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["items"],
+      "properties": {
+        "items": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 50000,
+          "items": {"$ref": "#/$defs/catalogRecord"}
+        }
+      }
+    }
+  ],
+  "$defs": {
+    "catalogRecord": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": ["title"],
+      "properties": {
+        "id": {"type": "string", "minLength": 1, "maxLength": 256},
+        "asset_id": {"type": "string", "minLength": 1, "maxLength": 256},
+        "title": {"type": "string", "minLength": 1, "maxLength": 1000},
+        "type": {"enum": ["py", "component", "json", "flow"]},
+        "asset_type": {"enum": ["py", "component", "json", "flow"]},
+        "version": {"type": "string", "minLength": 1, "maxLength": 100},
+        "description": {"type": "string"},
+        "category": {"type": "string"},
+        "readme": {"type": "string"},
+        "aliases": {"type": "array", "maxItems": 32, "items": {"type": "string", "maxLength": 128}},
+        "stars_count": {"type": ["integer", "string"]},
+        "downloads_count": {"type": ["integer", "string"]},
+        "created_at": {"type": ["string", "null"]},
+        "updated_at": {"type": ["string", "null"]},
+        "technical_contract_status": {"enum": ["metadata_only", "ports_extracted", "flow_graph_extracted", "verified_runtime"]},
+        "technical_contract": {"$ref": "#/$defs/technicalContract"},
+        "ports": {"$ref": "#/$defs/ports"},
+        "relations": {"type": "array", "maxItems": 1000, "items": {"type": "object"}},
+        "acl": {"$ref": "#/$defs/acl"}
+      },
+      "allOf": [
+        {"anyOf": [{"required": ["id"]}, {"required": ["asset_id"]}]},
+        {"anyOf": [{"required": ["type"]}, {"required": ["asset_type"]}]}
+      ]
+    },
+    "ports": {
+      "type": "object",
+      "additionalProperties": true,
+      "properties": {
+        "inputs": {"type": "array", "maxItems": 500, "items": {"type": "object"}},
+        "outputs": {"type": "array", "maxItems": 500, "items": {"type": "object"}}
+      }
+    },
+    "technicalContract": {
+      "type": "object",
+      "additionalProperties": true,
+      "properties": {
+        "status": {"enum": ["metadata_only", "ports_extracted", "flow_graph_extracted", "verified_runtime"]},
+        "inputs": {"type": "array", "maxItems": 500, "items": {"type": "object"}},
+        "outputs": {"type": "array", "maxItems": 500, "items": {"type": "object"}},
+        "dependencies": {"type": "array", "maxItems": 500, "items": {}},
+        "verified_at": {"type": ["string", "null"]}
+      }
+    },
+    "acl": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["visibility"],
+      "properties": {
+        "visibility": {"enum": ["tenant", "group", "private"]},
+        "groups": {"type": "array", "maxItems": 100, "items": {"type": "string", "maxLength": 128}},
+        "subjects": {"type": "array", "maxItems": 100, "items": {"type": "string", "maxLength": 128}}
+      }
+    }
   }
 }

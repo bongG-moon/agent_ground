@@ -1,6 +1,6 @@
 {
   "schema_version": "work-definition/v1",
-  "tenant_id": "tenant-demo",
+  "tenant_id": "default",
   "owner_id": "employee-demo",
   "session_id": "session-weekly-email-report",
   "channel_mode": "native_hitl",

@@ -19,7 +19,7 @@ from pymongo import MongoClient
 from pymongo.errors import PyMongoError
 
 
-ALLOWED_CHANNELS = {"native_hitl", "playground"}
+ALLOWED_CHANNELS = {"native_hitl"}
 ALLOWED_ANSWER_TYPES = {"text", "single_choice", "single_choice_with_text", "multi_choice", "boolean", "number"}
 MAX_ANSWER_VALUE_BYTES = 64 * 1024
 MAX_FREE_TEXT_CHARS = 16_000
@@ -137,7 +137,6 @@ def load_work_answers(
     *,
     channel_mode: Any,
     native_form_payload: Any = None,
-    playground_payload: Any = None,
     human_action: Any = "",
     now_utc: Any = "",
 ) -> dict[str, Any]:
@@ -146,7 +145,6 @@ def load_work_answers(
         work = _named(work_value, "work_definition")
         batch = _named(batch_value, "clarification_batch")
         native = _payload(native_form_payload)
-        playground = _payload(playground_payload)
         now = _utc(now_utc)
     except (TypeError, ValueError, json.JSONDecodeError):
         return _failure("ANSWER_PAYLOAD_INVALID", "답변 payload를 해석할 수 없습니다.", trace_id)
@@ -154,25 +152,19 @@ def load_work_answers(
     channel = str(channel_mode or "").strip().lower()
     if channel not in ALLOWED_CHANNELS:
         return _failure("ANSWER_CHANNEL_INVALID", "지원하지 않는 답변 channel입니다.", trace_id, {"allowed": sorted(ALLOWED_CHANNELS)})
-    native_present = bool(native)
-    playground_present = bool(playground)
-    if native_present and playground_present:
-        return _failure("ANSWER_CHANNEL_MIXED", "F10 form 답변과 F11 Playground 답변을 한 실행에서 함께 사용할 수 없습니다.", trace_id)
-    if (channel == "native_hitl" and not native_present) or (channel == "playground" and not playground_present):
+    if not native:
         return _failure("ANSWER_CHANNEL_PAYLOAD_MISSING", "선택한 channel의 답변 payload가 없습니다.", trace_id)
-    if (channel == "native_hitl" and playground_present) or (channel == "playground" and native_present):
-        return _failure("ANSWER_CHANNEL_MISMATCH", "답변 payload가 WorkDefinition channel과 일치하지 않습니다.", trace_id)
     if any(str(work.get(key, "")) != str(batch.get(key, "")) for key in ("work_definition_id", "tenant_id", "owner_id", "session_id", "channel_mode")):
         return _failure("ANSWER_BATCH_IDENTITY_MISMATCH", "질문 batch와 WorkDefinition 식별자 또는 channel이 다릅니다.", trace_id)
     if str(work.get("channel_mode")) != channel:
         return _failure("ANSWER_WORK_CHANNEL_MISMATCH", "기존 작업의 channel을 다른 channel로 전환할 수 없습니다.", trace_id)
 
-    selected = native if channel == "native_hitl" else playground
+    selected = native
     selected_channel = str(selected.get("channel_mode") or channel).strip().lower()
     command = str(selected.get("command") or selected.get("action") or human_action or "").strip().lower()
     if selected_channel != channel or command != "submit_answers":
         return _failure("ANSWER_ACTION_INVALID", "답변 제출은 현재 channel의 submit_answers action이어야 합니다.", trace_id, {"command": command})
-    if channel == "native_hitl" and str(human_action or "").strip().lower() != "submit_answers":
+    if str(human_action or "").strip().lower() != "submit_answers":
         return _failure("ANSWER_HITL_ACTION_REQUIRED", "F10에서는 Human Input의 submit_answers action 확인이 필요합니다.", trace_id)
 
     expected_identity = {
@@ -209,7 +201,7 @@ def load_work_answers(
         if durable_submitted_at >= answer_deadline:
             return _failure("ANSWER_BATCH_EXPIRED", "답변이 질문 batch 마감 이후 제출되었습니다.", trace_id)
     elif now >= answer_deadline:
-        # Direct-payload mode is intentionally test/Playground-only and cannot
+        # Direct-payload mode is intentionally test-only and cannot
         # backdate an untrusted submitted_at value to bypass the deadline.
         return _failure("ANSWER_BATCH_EXPIRED", "질문 batch가 만료되었습니다.", trace_id)
 
@@ -293,7 +285,6 @@ def _validate_loaded_batch(
     *,
     channel_mode: Any,
     native_form_payload: Any,
-    playground_payload: Any,
     human_action: Any,
     now_utc: Any,
     source: str,
@@ -307,40 +298,37 @@ def _validate_loaded_batch(
         canonical_batch.get("answer_deadline_at") or canonical_batch.get("expires_at") or ""
     )
     channel = str(channel_mode or "").lower()
-    if channel == "native_hitl":
-        if str(canonical_batch.get("status")) != "ANSWERED" or canonical_batch.get("answers") is None:
-            return _failure("ANSWER_FORM_NOT_SUBMITTED", "Answer Form의 자유서술 답변이 아직 저장되지 않았습니다.", trace_id)
-        try:
-            supplied_ref = _payload(native_form_payload)
-        except (TypeError, ValueError, json.JSONDecodeError):
-            return _failure("ANSWER_FORM_REFERENCE_INVALID", "Answer Form 참조 payload를 해석할 수 없습니다.", trace_id)
-        native_payload = {
-            "channel_mode": "native_hitl",
-            "command": "submit_answers",
-            "work_definition_id": work["work_definition_id"],
-            "batch_id": canonical_batch.get("batch_id"),
-            "session_id": work["session_id"],
-            "expected_revision": canonical_batch.get("revision"),
-            "idempotency_key": canonical_batch.get("answer_idempotency_key"),
-            "answers": copy.deepcopy(canonical_batch.get("answers")),
-            "submitted_at": str(canonical_batch.get("answered_at") or ""),
-            "turn_id": str(canonical_batch.get("answer_turn_id") or supplied_ref.get("turn_id") or ""),
-        }
-        playground_payload = None
-    else:
-        native_payload = None
+    if channel != "native_hitl":
+        return _failure("ANSWER_CHANNEL_INVALID", "지원하지 않는 답변 channel입니다.", trace_id, {"allowed": sorted(ALLOWED_CHANNELS)})
+    if str(canonical_batch.get("status")) != "ANSWERED" or canonical_batch.get("answers") is None:
+        return _failure("ANSWER_FORM_NOT_SUBMITTED", "Answer Form의 자유서술 답변이 아직 저장되지 않았습니다.", trace_id)
+    try:
+        supplied_ref = _payload(native_form_payload)
+    except (TypeError, ValueError, json.JSONDecodeError):
+        return _failure("ANSWER_FORM_REFERENCE_INVALID", "Answer Form 참조 payload를 해석할 수 없습니다.", trace_id)
+    native_payload = {
+        "channel_mode": "native_hitl",
+        "command": "submit_answers",
+        "work_definition_id": work["work_definition_id"],
+        "batch_id": canonical_batch.get("batch_id"),
+        "session_id": work["session_id"],
+        "expected_revision": canonical_batch.get("revision"),
+        "idempotency_key": canonical_batch.get("answer_idempotency_key"),
+        "answers": copy.deepcopy(canonical_batch.get("answers")),
+        "submitted_at": str(canonical_batch.get("answered_at") or ""),
+        "turn_id": str(canonical_batch.get("answer_turn_id") or supplied_ref.get("turn_id") or ""),
+    }
     # Human Input branch outputs carry the rendered prompt, not the action_id.
     # Reaching this store/API loader through a non-empty connected branch is the
     # execution proof; the persisted payload itself is forced to
     # command=submit_answers above. Direct-payload mode does not pass through
     # this adapter and still requires the literal action_id.
-    canonical_human_action = "submit_answers" if channel == "native_hitl" and str(human_action or "").strip() else human_action
+    canonical_human_action = "submit_answers" if str(human_action or "").strip() else human_action
     result = load_work_answers(
         work,
         canonical_batch,
         channel_mode=channel,
         native_form_payload=native_payload,
-        playground_payload=playground_payload,
         human_action=canonical_human_action,
         now_utc=now_utc,
     )
@@ -377,7 +365,6 @@ def load_work_answers_from_companion_api(
     *,
     channel_mode: Any,
     native_form_payload: Any = None,
-    playground_payload: Any = None,
     human_action: Any = "",
     now_utc: Any = "",
     answer_api_base_url: Any,
@@ -440,7 +427,6 @@ def load_work_answers_from_companion_api(
             stored,
             channel_mode=channel_mode,
             native_form_payload=native_form_payload,
-            playground_payload=playground_payload,
             human_action=human_action,
             now_utc=now_utc,
             source="companion_api",
@@ -460,7 +446,6 @@ def load_work_answers_from_store(
     *,
     channel_mode: Any,
     native_form_payload: Any = None,
-    playground_payload: Any = None,
     human_action: Any = "",
     now_utc: Any = "",
     mongodb_uri: Any,
@@ -497,7 +482,6 @@ def load_work_answers_from_store(
             _batch_from_api_payload(stored),
             channel_mode=channel_mode,
             native_form_payload=native_form_payload,
-            playground_payload=playground_payload,
             human_action=human_action,
             now_utc=now_utc,
             source="clarification_batches",
@@ -511,7 +495,7 @@ def load_work_answers_from_store(
 
 class WorkAnswerLoaderComponent(Component):
     display_name = "14 업무 답변 Loader"
-    description = "MongoDB 또는 인증된 companion API에서 F10 form 답변을 다시 읽고, F11 payload와 함께 batch/session/revision/channel 계약을 검증합니다."
+    description = "MongoDB 또는 인증된 companion API에서 F10 form 답변을 다시 읽고 batch/session/revision/native HITL 계약을 검증합니다."
     icon = "Import"
     name = "WorkAnswerLoader"
 
@@ -523,17 +507,18 @@ class WorkAnswerLoaderComponent(Component):
             display_name="Runtime State Persist Trigger",
             input_types=["Data", "JSON"],
             required=False,
-            advanced=True,
+            # Langflow 1.11.1 removes a saved edge when its target input is
+            # marked advanced during Flow import.  This is an execution
+            # dependency in F10, so it must remain a normal connectable input.
+            advanced=False,
             info="F10에서 MERGING runtime state 저장 완료를 보장하는 실행 의존성입니다.",
         ),
-        DropdownInput(name="channel_mode", display_name="답변 Channel", options=["native_hitl", "playground"], value="native_hitl"),
         DataInput(name="native_form_payload", display_name="F10 Answer Form Payload", input_types=["Data", "JSON"], required=False),
-        DataInput(name="playground_payload", display_name="F11 Playground Payload", input_types=["Data", "Message", "JSON"], required=False),
         MessageTextInput(name="human_action", display_name="F10 Human Input Action", value="", required=False),
         MessageTextInput(name="now_utc", display_name="검증 기준 시각", value="", advanced=True),
         DropdownInput(name="answer_source_mode", display_name="답변 조회 Source", options=["mongodb", "companion_api", "direct_payload"], value="mongodb", info="direct_payload는 자동 fallback이 아닌 Flow contract test용 명시 모드입니다."),
         SecretStrInput(name="mongodb_uri", display_name="MongoDB URI", required=False),
-        MessageTextInput(name="mongo_database", display_name="MongoDB Database", value="", required=False),
+        MessageTextInput(name="mongo_database", display_name="MongoDB Database", value="business_work_design", required=False),
         MessageTextInput(name="collection_name", display_name="질문 Batch Collection", value="clarification_batches", advanced=True),
         IntInput(name="timeout_ms", display_name="MongoDB Timeout(ms)", value=5000, advanced=True),
         MessageTextInput(name="answer_api_base_url", display_name="Answer Form API HTTPS Base URL", value="", required=False),
@@ -545,9 +530,8 @@ class WorkAnswerLoaderComponent(Component):
 
     def build_submission(self) -> Data:
         common = {
-            "channel_mode": getattr(self, "channel_mode", "native_hitl"),
+            "channel_mode": "native_hitl",
             "native_form_payload": getattr(self, "native_form_payload", None),
-            "playground_payload": getattr(self, "playground_payload", None),
             "human_action": getattr(self, "human_action", ""),
             "now_utc": getattr(self, "now_utc", ""),
         }
@@ -582,5 +566,5 @@ class WorkAnswerLoaderComponent(Component):
                 timeout_ms=getattr(self, "timeout_ms", 5000),
                 client_factory=MongoClient,
             )
-        self.status = {"ok": result["ok"], "status": result["status"], "channel_mode": getattr(self, "channel_mode", "native_hitl")}
+        self.status = {"ok": result["ok"], "status": result["status"], "channel_mode": "native_hitl"}
         return Data(data=result)

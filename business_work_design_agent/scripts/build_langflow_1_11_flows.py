@@ -22,20 +22,22 @@ from typing import Any
 
 from lfx.custom.custom_component.component import Component
 from lfx.custom.utils import build_custom_component_template
+from lfx.graph.graph.base import Graph
 
 
 LANGFLOW_VERSION = "1.11.1"
 LFX_VERSION = "1.11.5"
 BUNDLE_SCHEMA_VERSION = "business-work-design-flow-bundle/v1"
+MONGODB_URI_GLOBAL_VARIABLE = "MONGO_URL"
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 COMPONENT_ROOT = PROJECT_ROOT / "components"
 PROMPT_ROOT = PROJECT_ROOT / "prompts"
+SAMPLE_ROOT = PROJECT_ROOT / "samples"
 FLOW_ROOT = PROJECT_ROOT / "flows"
 
 FLOW_FILES = {
-    "F00": "F00_catalog_ingestion_admin.json",
+    "F00": "F00_catalog_file_vector_ingest.json",
     "F10": "F10_work_definition_parent.json",
-    "F11": "F11_work_definition_chat_turn.json",
     "F20": "F20_agent_blueprint_design.json",
     "F30": "F30_responsive_report.json",
     "F90": "F90_search_evaluation.json",
@@ -44,27 +46,24 @@ BUNDLE_FILE = "00_business_work_design_ALL_FLOWS.json"
 MANIFEST_FILE = "build_manifest.json"
 
 FLOW_NAMES = {
-    "F00": "F00_catalog_ingestion_admin",
+    "F00": "F00_catalog_file_vector_ingest",
     "F10": "F10_work_definition_parent",
-    "F11": "F11_work_definition_chat_turn",
     "F20": "F20_agent_blueprint_design",
     "F30": "F30_responsive_report",
     "F90": "F90_search_evaluation",
 }
 
 FLOW_DESCRIPTIONS = {
-    "F00": "관리자 전용 catalog ingest를 bounded worker로 실행하고 검증·HITL 결정을 trusted gateway activation handoff로 반환하는 Flow.",
-    "F10": "자연어 업무 추출, 최대 3문항 HITL 보완, graph preview와 최종 승인 저장을 수행하는 top-level Flow.",
-    "F11": "Human Input 없이 structured command와 외부 existing-state/batch 계약으로 시작·답변·승인 action을 분리하는 Playground Flow.",
-    "F20": "trusted backend가 봉인한 승인 업무·ACL·Skill scope와 hybrid catalog 근거로 Agent Blueprint를 설계하는 backend-only Flow.",
-    "F30": "승인된 업무 정의와 Agent Blueprint를 반응형 HTML report로 만들고 저장 API에 발행하는 child-safe Flow.",
-    "F90": "고정 평가 입력으로 query 계획, embedding, hybrid retrieval과 bounded context를 점검하는 검색 QA Flow.",
+    "F00": "파일 로더, deterministic chunker, Embedding Model, MongoDB Vector Writer가 Canvas에 분리되어 보이는 catalog 적재 Flow.",
+    "F10": "자연어 업무 추출, 최대 3회 HITL 보완, 최종 승인 후 trusted F20 설계와 F30 반응형 report 생성을 직접 실행하는 top-level Flow.",
+    "F20": "trusted invocation의 승인 업무·ACL·Skill scope와 Canvas Embedding Model 기반 hybrid catalog 근거로 Agent Blueprint와 sealed F30 handoff를 만드는 child-safe Flow.",
+    "F30": "F20의 sealed handoff를 검증해 반응형 HTML report를 만들고 저장 API에 발행 또는 dry-run 결과를 반환하는 child-safe Flow.",
+    "F90": "고정 평가 입력과 Canvas Embedding Model로 query 계획, embedding, hybrid retrieval과 bounded context를 점검하는 검색 QA Flow.",
 }
 
 FLOW_READINESS = {
-    "F00": "trusted_admin_gateway_required",
+    "F00": "mongodb_vector_ingestion_configuration_required",
     "F10": "configuration_required",
-    "F11": "structured_command_external_state_required",
     "F20": "trusted_backend_only_configuration_required",
     "F30": "configuration_required",
     "F90": "evaluation_configuration_required",
@@ -72,26 +71,20 @@ FLOW_READINESS = {
 
 FLOW_REQUIRED_CONFIG = {
     "F00": [
-        "catalog file",
-        "allowed upload root",
-        "tenant/uploader identifiers",
-        "MongoDB URI",
-        "approved embedding endpoint/model/version/dimension",
-        "Catalog Worker URL/allowlist/bearer token",
-        "trusted admin gateway activation attestation signer",
+        "one catalog JSON file",
+        "Langflow Secret Global Variable MONGO_URL, prefilled business_work_design database, and canonical catalog collections",
+        "configured Langflow Embedding Model provider/model/API credential",
+        "the writer derives its runtime embedding identity and vector dimension from the connected Embedding Model",
+        "MongoDB Atlas Vector Search index",
     ],
     "F10": [
-        "tenant/owner/session",
+        "팀 명·사번 입력과 Langflow가 자동 제공하는 실행별 run ID (새 실행마다 새 WorkDefinition 생성)",
         "approved extraction and clarification language models",
-        "MongoDB URI",
-        "trusted HITL answer form backend",
-    ],
-    "F11": [
-        "canonical JSON command: start, submit_answers, approve, reject, or cancel",
-        "existing WorkDefinition and clarification batch node tweaks for follow-up turns",
-        "approved extraction and clarification language models",
-        "MongoDB URI",
-        "one-time action token for approval commands",
+        "Langflow Secret Global Variable MONGO_URL (Database는 business_work_design으로 미리 지정)",
+        "Langflow Playground의 native HITL 질문 카드 입력칸 또는 명시적 추가 입력 건너뛰기 (외부 Answer Form/API 불필요)",
+        "authenticated owner identity and groups for approved F20 invocation",
+        "F20 in the same Langflow project/folder; import 뒤에는 F10 Run Flow에서 F20을 다시 선택해 동적 포트를 갱신",
+        "F30 in the same Langflow project/folder with the exported flow UUID preserved and its Report API configuration",
     ],
     "F20": [
         "trusted backend scope assembler; do not expose raw node tweaks to end users",
@@ -99,14 +92,13 @@ FLOW_REQUIRED_CONFIG = {
         "ACL context",
         "approved immutable Skill registry",
         "tenant and active catalog snapshot",
-        "embedding endpoint/model/version/dimension",
-        "MongoDB URI and search indexes",
+        "configured Langflow Embedding Model provider/model/API credential matching the active catalog snapshot",
+        "Langflow Secret Global Variable MONGO_URL, prefilled business_work_design database, and search indexes",
         "approved blueprint language model",
         "target new-custom node id",
     ],
     "F30": [
-        "approved WorkDefinition",
-        "validated Agent Blueprint",
+        "F20 sealed report handoff (`f20-report-handoff/v1`)",
         "Report API URL/tenant/actor",
         "bearer token for non-loopback publication",
         "report view signing secret and short capability TTL",
@@ -114,8 +106,8 @@ FLOW_REQUIRED_CONFIG = {
     "F90": [
         "evaluation WorkDefinition/ACL",
         "tenant and active catalog snapshot",
-        "embedding endpoint/model/version/dimension",
-        "MongoDB URI and search indexes",
+        "configured Langflow Embedding Model provider/model/API credential matching the active catalog snapshot",
+        "Langflow Secret Global Variable MONGO_URL, prefilled business_work_design database, and search indexes",
     ],
 }
 
@@ -128,7 +120,10 @@ BUILTINS = {
     "MessageToData": ("lfx.components.processing.message_to_data", "MessagetoData"),
     "TypeConverter": ("lfx.components.processing.converter", "TypeConverter"),
     "ChatInput": ("lfx.components.input_output.chat", "ChatInput"),
+    "TextInput": ("lfx.components.input_output.text", "TextInput"),
     "ChatOutput": ("lfx.components.input_output.chat_output", "ChatOutput"),
+    "RunFlow": ("lfx.components.flow_controls.run_flow", "RunFlow"),
+    "EmbeddingModel": ("lfx.components.models_and_agents.embedding_model", "EmbeddingModel"),
 }
 DYNAMIC_IMPORT_ROOTS = {
     "builtins", "ctypes", "importlib", "marshal", "pickle", "pkgutil", "pydoc",
@@ -146,7 +141,7 @@ FORBIDDEN_INTROSPECTION_ATTRIBUTES = {
 ALLOWED_IMPORT_ROOTS = {
     "__future__", "base64", "bson", "codecs", "collections", "copy", "datetime",
     "gridfs", "hashlib", "hmac", "html", "httpx", "json", "lfx", "math", "numpy",
-    "pathlib", "pymongo", "re", "requests", "socket", "typing", "unicodedata",
+    "pathlib", "pymongo", "re", "requests", "socket", "time", "typing", "unicodedata",
     "urllib", "uuid",
 }
 
@@ -307,6 +302,27 @@ def _set_value(node_template: dict[str, Any], field_name: str, value: Any) -> No
     field["value"] = value
 
 
+def _bind_mongodb_uri_global_variable(node_template: dict[str, Any]) -> None:
+    """Bind every MongoDB URI input to the shared Langflow Secret variable.
+
+    Langflow 1.11 serializes a Global Variable binding by keeping the variable
+    name in ``value`` and setting ``load_from_db``.  The actual connection
+    string must never be written into a Flow export.
+    """
+
+    field = node_template.get("template", {}).get("mongodb_uri")
+    if field is None:
+        return
+    if not isinstance(field, dict):
+        raise TypeError(f"Invalid mongodb_uri template on {node_template.get('display_name')!r}")
+    if field.get("_input_type") != "SecretStrInput":
+        raise ValueError(
+            f"MongoDB URI input on {node_template.get('display_name')!r} must be a SecretStrInput"
+        )
+    field["value"] = MONGODB_URI_GLOBAL_VARIABLE
+    field["load_from_db"] = True
+
+
 def _serializable_output(
     *,
     name: str,
@@ -349,7 +365,71 @@ class FlowBuilder:
     def __init__(self, flow_key: str) -> None:
         self.flow_key = flow_key
         self.nodes: dict[str, NodeRef] = {}
+        # Sticky Notes are Canvas-only annotations.  Keep them separate from
+        # executable nodes so they can never become an edge endpoint or affect
+        # flow-level handle validation.
+        self.notes: list[dict[str, Any]] = []
         self.edges: list[dict[str, Any]] = []
+
+    def note(
+        self,
+        key: str,
+        description: str,
+        position: tuple[float, float],
+        *,
+        width: float,
+        height: float,
+        background_color: str = "blue",
+    ) -> None:
+        """Add a Langflow 1.11 Canvas-only Sticky Note.
+
+        The shape deliberately follows Langflow's exported ``noteNode``
+        wrapper rather than a generic component wrapper.  Notes have no ports
+        and must remain detached from executable graph edges.
+        """
+
+        if not key.strip():
+            raise ValueError(f"{self.flow_key}: Sticky Note key must not be empty")
+        if not description.strip():
+            raise ValueError(f"{self.flow_key}: Sticky Note {key!r} must have a description")
+        if background_color not in {"blue", "amber"}:
+            raise ValueError(f"{self.flow_key}: unsupported Sticky Note color {background_color!r}")
+        if width <= 0 or height <= 0:
+            raise ValueError(f"{self.flow_key}: Sticky Note dimensions must be positive")
+
+        node_id = f"note-{self.flow_key.lower()}-{key.strip().lower()}"
+        if any(note["id"] == node_id for note in self.notes):
+            raise ValueError(f"{self.flow_key}: duplicate Sticky Note key {key!r}")
+        if any(node.node_id == node_id for node in self.nodes.values()):
+            raise ValueError(f"{self.flow_key}: Sticky Note id conflicts with executable node {node_id!r}")
+
+        x, y = float(position[0]), float(position[1])
+        canvas_width, canvas_height = float(width), float(height)
+        self.notes.append(
+            {
+                "data": {
+                    "id": node_id,
+                    "node": {
+                        "description": description.strip(),
+                        "display_name": "",
+                        "documentation": "",
+                        "template": {"backgroundColor": background_color},
+                        "lf_version": LANGFLOW_VERSION,
+                    },
+                    "type": "note",
+                },
+                "dragging": False,
+                "height": canvas_height,
+                "id": node_id,
+                "position": {"x": x, "y": y},
+                "positionAbsolute": {"x": x, "y": y},
+                "resizing": False,
+                "selected": False,
+                "style": {"height": canvas_height, "width": canvas_width},
+                "type": "noteNode",
+                "width": canvas_width,
+            }
+        )
 
     def _wrap(
         self,
@@ -417,6 +497,7 @@ class FlowBuilder:
         template, instance = _component_template(source)
         for field_name, value in (values or {}).items():
             _set_value(template, field_name, value)
+        _bind_mongodb_uri_global_variable(template)
         relative_path = path.relative_to(PROJECT_ROOT).as_posix()
         source_sha256 = _sha256_text(source)
         type_name = str(getattr(instance, "name", "") or type(instance).__name__.removesuffix("Component"))
@@ -442,6 +523,45 @@ class FlowBuilder:
         template, _instance = _component_template(source)
         for field_name, value in (values or {}).items():
             _set_value(template, field_name, value)
+        return self._wrap(key=key, node_template=template, type_name=type_name, position=position)
+
+    def run_flow(
+        self,
+        key: str,
+        position: tuple[float, float],
+        child_flow: dict[str, Any],
+    ) -> NodeRef:
+        """Serialize Langflow 1.11.1 Run Flow in direct (non-tool) mode.
+
+        Run Flow stores its selected child inputs and outputs as dynamic
+        ``<child-node-id>~<field>`` ports.  Materializing those ports here makes
+        the generated F10 export deterministic and connectable without an HTTP
+        call or an Agent-selected tool invocation.
+        """
+
+        source, type_name = _builtin_source("RunFlow")
+        template, instance = _component_template(source)
+        graph = Graph.from_payload(
+            payload=child_flow["data"],
+            flow_id=child_flow["id"],
+            flow_name=child_flow["name"],
+        )
+        instance.update_build_config_from_graph(template["template"], graph)
+        dynamic_outputs = instance._format_flow_outputs(graph)  # noqa: SLF001 - Langflow's serialization contract
+        template["outputs"] = [output.model_dump() for output in dynamic_outputs]
+        _set_value(template, "flow_name_selected", child_flow["name"])
+        _set_value(template, "flow_id_selected", child_flow["id"])
+        _set_value(template, "cache_flow", False)
+        flow_name_field = template["template"]["flow_name_selected"]
+        flow_name_field["options"] = [child_flow["name"]]
+        flow_name_field["options_metadata"] = [
+            {"id": child_flow["id"], "updated_at": "1970-01-01T00:00:00+00:00"}
+        ]
+        flow_name_field["selected_metadata"] = {
+            "id": child_flow["id"],
+            "updated_at": "1970-01-01T00:00:00+00:00",
+        }
+        template["tool_mode"] = False
         return self._wrap(key=key, node_template=template, type_name=type_name, position=position)
 
     def prompt(
@@ -560,7 +680,7 @@ class FlowBuilder:
         result = {
             "data": {
                 "edges": self.edges,
-                "nodes": [item.wrapper for item in self.nodes.values()],
+                "nodes": [*self.notes, *(item.wrapper for item in self.nodes.values())],
                 "viewport": {"x": 80, "y": 80, "zoom": 0.55},
             },
             "description": FLOW_DESCRIPTIONS[self.flow_key],
@@ -583,6 +703,7 @@ class FlowBuilder:
                 "required_configuration": FLOW_REQUIRED_CONFIG[self.flow_key],
                 "contains_native_hitl": any(node.type_name == "HumanInput" for node in self.nodes.values()),
                 "custom_sources_embedded": True,
+                "sticky_note_count": len(self.notes),
             },
         }
         _validate_flow_contract(result, self.flow_key)
@@ -593,73 +714,99 @@ def _read_prompt(filename: str) -> str:
     return (PROMPT_ROOT / filename).read_text(encoding="utf-8")
 
 
+def _read_work_request_example() -> dict[str, Any]:
+    path = SAMPLE_ROOT / "f10_work_request_example.json"
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    if not isinstance(payload, dict):
+        raise TypeError(f"{path}: expected one JSON object")
+    required = ("request_text", "additional_prompt", "team_name", "employee_id")
+    values: dict[str, Any] = {}
+    for field in required:
+        value = payload.get(field)
+        if not isinstance(value, str) or (field != "additional_prompt" and not value.strip()):
+            raise ValueError(f"{path}: {field} must be a non-empty string")
+        values[field] = value
+    answer_examples = payload.get("clarification_answer_examples")
+    if not isinstance(answer_examples, list) or not 3 <= len(answer_examples) <= 4:
+        raise ValueError(f"{path}: clarification_answer_examples must contain three or four examples")
+    normalized_answer_examples: list[dict[str, str]] = []
+    for index, item in enumerate(answer_examples, start=1):
+        if not isinstance(item, dict):
+            raise ValueError(f"{path}: clarification_answer_examples[{index}] must be an object")
+        normalized: dict[str, str] = {}
+        for field in ("topic", "likely_question", "answer_to_enter"):
+            value = item.get(field)
+            if not isinstance(value, str) or not value.strip() or len(value) > 1_000:
+                raise ValueError(f"{path}: clarification_answer_examples[{index}].{field} must be a bounded non-empty string")
+            normalized[field] = value.strip()
+        normalized_answer_examples.append(normalized)
+    values["clarification_answer_examples"] = normalized_answer_examples
+    skip_guidance = payload.get("clarification_skip_guidance")
+    if not isinstance(skip_guidance, dict):
+        raise ValueError(f"{path}: clarification_skip_guidance must be an object")
+    normalized_skip_guidance: dict[str, str] = {}
+    for field in ("action_label", "when_to_use", "result"):
+        value = skip_guidance.get(field)
+        if not isinstance(value, str) or not value.strip() or len(value) > 1_000:
+            raise ValueError(f"{path}: clarification_skip_guidance.{field} must be a bounded non-empty string")
+        normalized_skip_guidance[field] = value.strip()
+    values["clarification_skip_guidance"] = normalized_skip_guidance
+    return values
+
+
 def _build_f00() -> dict[str, Any]:
     flow = FlowBuilder("F00")
-    flow.custom("intake", "00_catalog_file_intake.py", (0, 0), {"dry_run": False})
-    flow.custom("secret_scan", "01_catalog_secret_scanner.py", (380, 0))
-    flow.custom(
-        "pipeline_worker",
-        "09_catalog_pipeline_worker_client.py",
-        (760, 0),
-        {"worker_server_url": "http://127.0.0.1:8092/api", "max_stage_invocations": 400},
-    )
-    flow.data_to_message("validation_message", (1140, -260))
-    flow.human("activation_gate", (1520, -260), ["Activate Snapshot", "Reject"])
-    flow.prompt(
-        "activation_handoff",
-        (1900, -260),
-        (
-            "CATALOG_ACTIVATION_GATEWAY_HANDOFF\n"
-            "The snapshot remains inactive. A trusted admin gateway must verify this completed "
-            "Langflow job/request/decision, issue a short-lived catalog-activation-attestation/v1 "
-            "claim, and call the Catalog Worker /activate endpoint."
-        ),
-        ["validation_report", "approval_decision"],
-    )
-    flow.builtin("activation_handoff_output", "ChatOutput", (2280, -520))
-    flow.data_to_message("worker_blocked_message", (1140, 420))
-    flow.builtin("worker_blocked_output", "ChatOutput", (1520, 420))
-    flow.builtin("activation_rejected_output", "ChatOutput", (1900, 520))
+    flow.note(
+        "01-upload-normalize-chunk",
+        """## ① 파일 업로드·정규화·청킹
 
-    flow.connect("intake", "job_ref", "secret_scan", "job_ref")
-    flow.connect("secret_scan", "scanned_job_ref", "pipeline_worker", "scanned_job_ref")
-    flow.connect("pipeline_worker", "activation_path", "validation_message", "data")
-    flow.connect("validation_message", "text", "activation_gate", "prompt")
-    flow.connect("validation_message", "text", "activation_handoff", "validation_report")
-    flow.connect("activation_gate", "branch_activate_snapshot", "activation_handoff", "approval_decision")
-    flow.connect("activation_handoff", "prompt", "activation_handoff_output", "input_value")
-    flow.connect("pipeline_worker", "blocked_path", "worker_blocked_message", "data")
-    flow.connect("worker_blocked_message", "text", "worker_blocked_output", "input_value")
-    flow.connect("activation_gate", "branch_reject", "activation_rejected_output", "input_value")
-    result = flow.build()
-    result["metadata"]["activation_handoff_contract"] = {
-        "schema_version": "catalog-activation-gateway-handoff/v1",
-        "flow_performs_activation": False,
-        "required_attestation": "catalog-activation-attestation/v1",
-        "attestation_issuer": "trusted_admin_gateway",
-        "raw_nonce_in_langflow": False,
-        "activation_client_component": "33_catalog_activation_approval_client.py",
-    }
-    return result
+- JSON/JSONL/NDJSON 카탈로그 파일 하나를 업로드합니다.
+- Loader가 스키마를 검사하고 민감정보를 제거한 canonical 원문을 만듭니다.
+- Chunker가 검색 가능한 텍스트 조각과 hash를 결정론적으로 생성합니다.""",
+        (-80, -960),
+        width=800,
+        height=330,
+    )
+    flow.note(
+        "02-embed-store-publish",
+        """## ② 임베딩·MongoDB 저장·게시
+
+- Embedding Model은 chunk 하나씩 vector를 생성하고, Writer는 다음 호출 전 최소 1초를 기다립니다.
+- Writer가 parent와 `catalog_asset_chunks.embedding.vector`를 묶어서 저장합니다.
+- MongoDB Database는 `business_work_design`으로 미리 채워져 있으며 URI만 환경에 맞게 설정합니다.
+- 검증이 모두 성공한 경우에만 active pointer를 갱신합니다.""",
+        (760, -960),
+        width=1200,
+        height=330,
+        background_color="amber",
+    )
+    flow.custom("catalog_loader", "00_catalog_json_loader.py", (0, 0))
+    flow.custom("catalog_chunker", "01_catalog_deterministic_chunker.py", (420, 0))
+    flow.builtin("embedding_model", "EmbeddingModel", (840, -380))
+    flow.custom("mongodb_vector_writer", "02_catalog_mongodb_vector_writer.py", (840, 0))
+    flow.data_to_message("ingestion_message", (1260, 0))
+    flow.builtin("ingestion_output", "ChatOutput", (1680, 0))
+
+    flow.connect("catalog_loader", "catalog_bundle", "catalog_chunker", "catalog_bundle")
+    flow.connect("catalog_chunker", "chunk_bundle", "mongodb_vector_writer", "chunk_bundle")
+    flow.connect("embedding_model", "embeddings", "mongodb_vector_writer", "embedding")
+    flow.connect("mongodb_vector_writer", "ingestion_result", "ingestion_message", "data")
+    flow.connect("ingestion_message", "text", "ingestion_output", "input_value")
+    return flow.build()
 
 
 def _add_work_extraction_nodes(
     flow: FlowBuilder,
     *,
-    chat_input: bool,
     durable_initial_store: bool = False,
     y: float = 0,
 ) -> tuple[str, str]:
-    if chat_input:
-        flow.builtin("chat_input", "ChatInput", (0, y))
-        request_x = 380
-    else:
-        request_x = 0
+    request_x = 0
     flow.custom(
         "request_envelope",
         "10_work_request_envelope.py",
         (request_x, y),
-        {"channel_mode": "playground" if chat_input else "native_hitl"},
+        _read_work_request_example(),
     )
     flow.data_to_message("request_message", (request_x + 380, y - 280))
     flow.prompt(
@@ -723,8 +870,6 @@ def _add_work_extraction_nodes(
         {"round_number": 1},
     )
 
-    if chat_input:
-        flow.connect("chat_input", "message", "request_envelope", "request_text")
     flow.connect("request_envelope", "request_envelope", "request_message", "data")
     flow.connect("request_message", "text", "extraction_prompt", "request_envelope")
     flow.connect("extraction_prompt", "prompt", "extraction_model", "input_value")
@@ -747,11 +892,89 @@ def _add_work_extraction_nodes(
     return work_source_key, work_source_output
 
 
-def _build_f10() -> dict[str, Any]:
+def _build_f10_legacy(f20_flow: dict[str, Any]) -> dict[str, Any]:
     flow = FlowBuilder("F10")
+    flow.note(
+        "01-extract-initial-store",
+        """## ① 업무 설명 추출·초기 저장
+
+- 자연어 업무 설명과 추가 요구를 WorkDefinition으로 정규화합니다.
+- 최초 revision을 MongoDB에 저장한 뒤 부족한 항목을 평가합니다.
+- 오류·누락 결과는 Result Gate에서 다음 단계로 전달하지 않습니다.""",
+        (-120, -2200),
+        width=3650,
+        height=500,
+    )
+    flow.note(
+        "02-hitl-round-one",
+        """## ② 1차 HITL 보완
+
+- 완성도가 부족하면 최대 세 개의 명확화 질문을 만듭니다.
+- Human Input 답변을 로드·병합·저장하고 runtime state를 남깁니다.
+- 취소 또는 저장 실패는 안전하게 이 경로를 중단합니다.""",
+        (3650, -2200),
+        width=3100,
+        height=500,
+    )
+    flow.note(
+        "03-hitl-round-two",
+        """## ③ 2차 HITL 보완
+
+- 갱신된 WorkDefinition을 다시 평가해 필요한 질문만 이어서 제시합니다.
+- 답변과 merge 결과는 revision·idempotency 검사를 통과해야 저장됩니다.
+- 차단 결과는 Human Input 또는 후속 LLM으로 진행하지 않습니다.""",
+        (6750, -2200),
+        width=4550,
+        height=500,
+    )
+    flow.note(
+        "04-hitl-round-three-limit",
+        """## ④ 3차 HITL 보완·완성도 상한
+
+- 세 번째 답변까지 같은 저장·검증 절차를 적용합니다.
+- 네 번째 평가는 질문을 추가로 만들지 않고 review 또는 round-limit 차단을 결정합니다.
+- 따라서 무한 재질문 없이 bounded HITL로 업무 정의를 확정합니다.""",
+        (11300, -2200),
+        width=4500,
+        height=500,
+        background_color="amber",
+    )
+    flow.note(
+        "05-review-join",
+        """## ⑤ 검토 경로 결합
+
+- 각 라운드의 review path를 최신 WorkDefinition 하나로 결합합니다.
+- 업무 graph와 preview를 생성·검증한 revision만 승인 대기로 보냅니다.""",
+        (15800, -2200),
+        width=2200,
+        height=500,
+        background_color="amber",
+    )
+    flow.note(
+        "06-final-approval",
+        """## ⑥ 최종 Human 승인
+
+- Preview를 보고 Approve / Reject / Cancel을 선택합니다.
+- 선택 결과는 canonical 상태와 runtime event에 기록됩니다.
+- 승인 성공 경로만 다음 설계 단계로 전달됩니다.""",
+        (18000, -2200),
+        width=3500,
+        height=500,
+        background_color="amber",
+    )
+    flow.note(
+        "07-f20-direct-run",
+        """## ⑦ F20 direct 실행
+
+- 승인 receipt를 다시 검증해 trusted invocation 하나를 만듭니다.
+- Run Flow direct mode로 F20을 실행하며 다른 Flow HTTP API를 호출하지 않습니다.""",
+        (21500, -2200),
+        width=1500,
+        height=500,
+        background_color="amber",
+    )
     work_source_key, work_source_output = _add_work_extraction_nodes(
         flow,
-        chat_input=False,
         durable_initial_store=True,
     )
 
@@ -913,7 +1136,7 @@ def _build_f10() -> dict[str, Any]:
             loader_key,
             "14_work_answer_loader.py",
             (x + 1520, -440),
-            {"channel_mode": "native_hitl", "answer_source_mode": "mongodb"},
+            {"answer_source_mode": "mongodb"},
         )
         flow.custom(merger_key, "15_work_answer_merger.py", (x + 1900, -440))
         flow.custom(
@@ -1216,23 +1439,24 @@ def _build_f10() -> dict[str, Any]:
             x=20900,
             y=store_y,
         )
-        success_message_key = f"final_{command}_success_message"
-        success_output_key = f"final_{command}_success_output"
-        success_source = (final_gate_key, final_gate_output)
-        if command == "cancel":
-            success_source = add_runtime_checkpoint(
-                "final_cancelled",
-                work_source=(final_gate_key, final_gate_output),
-                trigger_source=(final_gate_key, final_gate_output),
-                runtime_status="CANCELLED",
-                phase="approval_cancelled",
-                x=21280,
-                y=store_y,
-            )
-        flow.data_to_message(success_message_key, (21660, store_y))
-        flow.builtin(success_output_key, "ChatOutput", (22040, store_y))
-        flow.connect(success_source[0], success_source[1], success_message_key, "data")
-        flow.connect(success_message_key, "text", success_output_key, "input_value")
+        if command != "approve":
+            success_message_key = f"final_{command}_success_message"
+            success_output_key = f"final_{command}_success_output"
+            success_source = (final_gate_key, final_gate_output)
+            if command == "cancel":
+                success_source = add_runtime_checkpoint(
+                    "final_cancelled",
+                    work_source=(final_gate_key, final_gate_output),
+                    trigger_source=(final_gate_key, final_gate_output),
+                    runtime_status="CANCELLED",
+                    phase="approval_cancelled",
+                    x=21280,
+                    y=store_y,
+                )
+            flow.data_to_message(success_message_key, (21660, store_y))
+            flow.builtin(success_output_key, "ChatOutput", (22040, store_y))
+            flow.connect(success_source[0], success_source[1], success_message_key, "data")
+            flow.connect(success_message_key, "text", success_output_key, "input_value")
         final_gate_specs.append((key, command, final_gate_key))
 
     flow.connect(join_gate_key, join_gate_output, "graph_normalizer", "work_definition")
@@ -1244,258 +1468,307 @@ def _build_f10() -> dict[str, Any]:
     for key, command, _final_gate_key in final_gate_specs:
         flow.connect(approval_store_gate_key, approval_store_gate_output, key, "work_definition")
         flow.connect("approval_gate", f"branch_{command}", key, "route_trigger")
+
+    # Approval is the only path allowed to invoke F20.  Component 36 re-reads
+    # the canonical approved revision, active catalog pointer, and approved
+    # Skill registry from MongoDB before emitting one bounded child input.
+    approved_gate_key = next(
+        gate_key for _store_key, command, gate_key in final_gate_specs if command == "approve"
+    )
+    flow.custom(
+        "design_invocation_loader",
+        "36_approved_design_invocation_loader.py",
+        (21660, -760),
+    )
+    flow.builtin(
+        "design_invocation_message",
+        "TypeConverter",
+        (22040, -760),
+        {"auto_parse": False, "output_type": "Message"},
+    )
+    flow.run_flow("run_agent_blueprint_design", (22420, -760), f20_flow)
+    flow.builtin("final_approve_design_output", "ChatOutput", (22800, -760))
+    flow.builtin("design_invocation_blocked_output", "ChatOutput", (22040, -1120))
+
+    invocation_input_field = f"{f20_flow['metadata']['design_invocation_input_node_id']}~input_value"
+    design_output_name = f"{f20_flow['metadata']['design_output_node_id']}~message"
+    flow.connect(approved_gate_key, "success_path", "design_invocation_loader", "approval_result")
+    flow.connect("request_envelope", "request_envelope", "design_invocation_loader", "request_envelope")
+    flow.connect("design_invocation_loader", "success_path", "design_invocation_message", "input_data")
+    flow.connect("design_invocation_message", "message_output", "run_agent_blueprint_design", invocation_input_field)
+    flow.connect("run_agent_blueprint_design", design_output_name, "final_approve_design_output", "input_value")
+    flow.connect("design_invocation_loader", "blocked_path", "design_invocation_blocked_output", "input_value")
     return flow.build()
 
 
-def _build_f11() -> dict[str, Any]:
-    flow = FlowBuilder("F11")
+def _build_f10(f20_flow: dict[str, Any], f30_flow: dict[str, Any]) -> dict[str, Any]:
+    """Build the compact, bounded native-HITL parent Flow.
 
-    def add_result_gate(
-        prefix: str,
-        source_key: str,
-        source_output: str,
-        *,
-        required_field: str,
-        x: int,
-        y: int,
-    ) -> tuple[str, str]:
-        gate_key = f"{prefix}_result_gate"
-        message_key = f"{prefix}_blocked_message"
-        output_key = f"{prefix}_blocked_output"
-        flow.custom(gate_key, "35_result_gate.py", (x, y), {"required_field": required_field})
-        flow.data_to_message(message_key, (x + 380, y + 260))
-        flow.builtin(output_key, "ChatOutput", (x + 760, y + 260))
-        flow.connect(source_key, source_output, gate_key, "result")
-        flow.connect(gate_key, "blocked_path", message_key, "data")
-        flow.connect(message_key, "text", output_key, "input_value")
-        return gate_key, "success_path"
+    The old expanded graph is intentionally retained above as an implementation
+    history reference, but is no longer exported.  Its state-store, result
+    gate, message conversion, and answer-loader plumbing now live inside a
+    few standalone components.  The Canvas keeps the three native question
+    cards visible while staying readable at normal zoom.  Each card renders
+    its own text fields in the Playground; no companion Answer Form/API is
+    required.
+    """
 
-    flow.builtin("chat_input", "ChatInput", (-1900, 0))
-    flow.custom("command_router", "36_playground_command_router.py", (-1520, 0))
-    flow.connect("chat_input", "message", "command_router", "input_text")
+    flow = FlowBuilder("F10")
+    example = _read_work_request_example()
+    employee_id = example["employee_id"]
+    answer_examples = example["clarification_answer_examples"]
+    skip_guidance = example["clarification_skip_guidance"]
+    clarification_example_lines = [
+        "### 이 데모에서 질문 카드에 넣을 답변 예시",
+        "- 실제 질문의 문구와 순서는 LLM 결과에 따라 달라질 수 있습니다. 아래에서 **의미가 같은 항목**을 해당 `answer_01`/`answer_02` 입력칸에 넣으세요.",
+    ]
+    for index, item in enumerate(answer_examples, start=1):
+        clarification_example_lines.extend(
+            [
+                f"{index}. **{item['topic']}**",
+                f"   - 예상 질문: {item['likely_question']}",
+                f"   - 입력값 예시: {item['answer_to_enter']}",
+            ]
+        )
+    clarification_example_note = "\n".join(clarification_example_lines)
 
-    # Start lane. It is reached only by command=start and persists the initial
-    # definition before any question batch can be returned.
-    start_work_key, start_work_output = _add_work_extraction_nodes(
-        flow,
-        chat_input=False,
-        durable_initial_store=True,
-        y=-900,
+    flow.note(
+        "01-intake-and-extract",
+        """## ① 업무 설명 입력·추출
+
+- 직접 입력: 업무 설명 원문, 추가 설계 프롬프트, 팀 명, 사번입니다.
+- 자동·내부: 실행별 run ID/session, WorkDefinition ID, 기준 시각, catalog scope(`default`)입니다. 입력하지 않습니다. 새 전체 실행은 새 WorkDefinition과 질문 Batch를 만듭니다.
+- Canvas의 왼쪽 Text Input 두 개에는 주간 메일 업무보고 데모 원문과 설계 프롬프트가 이미 채워져 있습니다. 팀 명은 `업무자동화팀`, 사번은 `employee-demo`입니다.
+- 실제 긴 문장은 `samples/f10_work_request_example.json`과 각 Text Input 필드에서 그대로 확인·수정합니다.
+- 첫 질문이 필요한 경우에만 질문 Batch가 revision 0 WorkDefinition을 준비합니다.""",
+        (-100, -850),
+        width=1780,
+        height=390,
     )
-    _set_value(flow.nodes["request_envelope"].node, "channel_mode", "playground")
-    flow.connect("command_router", "start_path", "request_envelope", "request_text")
-    flow.connect("command_router", "start_path", "request_envelope", "additional_prompt")
-    flow.custom("start_clarification_router", "27_work_clarification_router.py", (3800, -900))
-    flow.connect(start_work_key, start_work_output, "start_clarification_router", "work_definition")
-    flow.connect("clarification_batch", "clarification_batch", "start_clarification_router", "clarification_result")
-    flow.data_to_message("start_question_message", (4180, -1220))
-    flow.builtin("start_question_output", "ChatOutput", (4560, -1220))
-    flow.connect("start_clarification_router", "clarification_path", "start_question_message", "data")
-    flow.connect("start_question_message", "text", "start_question_output", "input_value")
-    flow.data_to_message("start_router_blocked_message", (4180, -620))
-    flow.builtin("start_router_blocked_output", "ChatOutput", (4560, -620))
-    flow.connect("start_clarification_router", "blocked_path", "start_router_blocked_message", "data")
-    flow.connect("start_router_blocked_message", "text", "start_router_blocked_output", "input_value")
+    flow.note(
+        "02-three-round-hitl",
+        f"""## ② 최대 3회 HITL 보완
 
-    # External state hubs are intentionally unconnected inputs. Follow-up API
-    # callers must provide the same persisted WorkDefinition and pending batch
-    # by node tweak; the Flow never fabricates or silently falls back to state.
+- 각 회차는 완전성 평가 → 질문 생성 → 질문 카드 입력 → 답변 반영 순서입니다.
+- 질문 카드 안의 입력칸에 답변한 뒤 Submit Answers를 선택합니다. Batch·Context·사번·실행 신호·revision은 자동 연결됩니다.
+- **{skip_guidance['action_label']}**: {skip_guidance['when_to_use']}
+- 동작: {skip_guidance['result']}
+- 13/39 노드의 MongoDB URI는 공통 Langflow Secret `MONGO_URL`에 자동 연결됩니다. Database는 `business_work_design`으로 미리 채워져 있고, 세 회차에 같은 값을 사용합니다.
+- `clarification_batches`는 질문·답변 이력을 보관하는 내부 MongoDB 컬렉션입니다. 별도 Answer Form이나 API는 사용하지 않습니다.
+- 1·2차 질문 카드는 최대 3개 입력칸이고, 마지막 3차 카드는 누락된 기준까지 확인할 수 있도록 최대 4개 입력칸입니다. HITL 보완 회차는 여전히 최대 3회입니다.
+- 세 번째 답변 뒤에도 필수 정보가 남으면 추가 질문 없이 차단합니다.
+
+{clarification_example_note}""",
+        (1750, -850),
+        width=5350,
+        height=650,
+        background_color="amber",
+    )
+    flow.note(
+        "03-review-preview",
+        """## ③ 업무 Graph·Preview 검토
+
+- 유효한 검토 진입 결과 하나만 합칩니다.
+- Joiner의 여러 입력은 각 회차 결과가 자동으로 한 경로만 들어오는 연결입니다. 직접 입력하지 않습니다.
+- AS-IS Graph와 Preview hash를 검증한 뒤, 하나의 저장 노드에서 승인 대기로 전환합니다.""",
+        (7160, -850),
+        width=1650,
+        height=320,
+    )
+    flow.note(
+        "03a-review-save-approval-input-guide",
+        """## ③-1 검토 저장·승인 요청: 입력 안내
+
+- 역할: 검증된 업무 정의를 저장하고 `WAITING_APPROVAL`로 전환합니다.
+- 자동 연결(환경): MongoDB URI는 공통 Secret `MONGO_URL`입니다. Database는 `business_work_design`으로 미리 채워져 있습니다.
+- 자동 연결: WorkDefinition, 사번, 실행 신호입니다.
+- 자동값: Revision(동시 수정 덮어쓰기 방지), 중복 실행 방지 키(재시도 중복 저장 방지)입니다.
+- 내부 고정: `work_definitions`(현재 업무 정의), `work_definition_events`(변경 이력), 처리 명령·Transaction·Timeout입니다.""",
+        (8550, -520),
+        width=1780,
+        height=440,
+        background_color="amber",
+    )
+    flow.note(
+        "04-final-approval",
+        """## ④ 최종 Human 승인
+
+- Preview를 검토하고 Approve / Reject / Cancel을 선택합니다.
+- 사용자는 세 선택지 중 하나만 선택합니다. 후속 상태 저장의 사번·revision·중복 방지 키는 자동 처리됩니다.
+- `43 최종 승인 경로 Gate`는 선택하지 않은 두 저장 경로를 즉시 제외합니다. Human Input의 버튼을 누른 뒤에는 이 노드에 값을 입력하지 않습니다.
+- 승인 성공 경로만 F20 설계 실행으로 연결됩니다.""",
+        (8860, -850),
+        width=1680,
+        height=320,
+        background_color="amber",
+    )
+    flow.note(
+        "05-direct-f20-f30",
+        """## ⑤ F20 설계 → F30 보고서 직접 실행
+
+- 승인본을 MongoDB에서 다시 검증해 strict JSON invocation으로 만듭니다.
+- 승인 결과·업무 요청·사번은 자동 연결됩니다. 활성 catalog pointer·Skill Registry 컬렉션은 내부 고정입니다.
+- Component 36의 MongoDB URI도 앞 저장 노드와 같은 공통 Secret `MONGO_URL`에 자동 연결되며, Database는 `business_work_design` 기본값을 사용합니다.
+- F20은 Blueprint·검색 trace·승인 WorkDefinition을 sealed handoff로 만들고, F10 Gate가 무결성을 확인한 경우에만 F30을 직접 실행합니다.
+- F30은 반응형 HTML을 생성합니다. 기본값은 **테스트 실행(저장하지 않음)**이며, 실제 게시에는 F30의 Report API 설정과 명시적 dry-run 해제가 필요합니다.
+- 두 Run Flow 모두 HTTP API나 Agent Tool Call 없이 직접 실행합니다.""",
+        (10600, -850),
+        width=1560,
+        height=320,
+        background_color="amber",
+    )
+
+    # ① Intake / extract.  When round 1 actually needs a question, Component
+    # 13 atomically/idempotently prepares the revision-0 WorkDefinition that
+    # the native Playground answer card uses.  A no-question path
+    # creates revision 0 later at the review save, avoiding an extra Canvas
+    # storage node.
     flow.builtin(
-        "existing_work_input",
-        "TypeConverter",
-        (-760, 900),
-        {"input_data": {}, "auto_parse": True, "output_type": "JSON"},
+        "work_description_text_input",
+        "TextInput",
+        (-760, -180),
+        {"input_value": example["request_text"], "use_global_variable": False},
     )
     flow.builtin(
-        "existing_batch_input",
-        "TypeConverter",
-        (-380, 1200),
-        {"input_data": {}, "auto_parse": True, "output_type": "JSON"},
+        "additional_design_prompt_text_input",
+        "TextInput",
+        (-760, 180),
+        {"input_value": example["additional_prompt"], "use_global_variable": False},
     )
     flow.custom(
-        "answer_loader",
-        "14_work_answer_loader.py",
-        (0, 900),
-        {"channel_mode": "playground", "answer_source_mode": "direct_payload"},
+        "request_envelope",
+        "10_work_request_envelope.py",
+        (0, 0),
+        {"team_name": example["team_name"], "employee_id": employee_id, "catalog_scope_id": "default"},
     )
-    flow.custom("answer_merger", "15_work_answer_merger.py", (380, 900))
-    flow.custom(
-        "answered_work_store",
-        "18_work_definition_store.py",
-        (760, 900),
-        {
-            "command": "save",
-            "derive_expected_revision": True,
-            "incoming_revision_is_next": True,
-            "derive_idempotency_key": True,
-            "require_transactions": True,
-        },
-    )
-    answer_loader_gate_key, answer_loader_gate_output = add_result_gate(
-        "answer_loader",
-        "answer_loader",
-        "answer_submission",
-        required_field="answer_submission",
-        x=190,
-        y=1220,
-    )
-    answer_merger_gate_key, answer_merger_gate_output = add_result_gate(
-        "answer_merger",
-        "answer_merger",
-        "merged_work_definition",
-        required_field="work_definition",
-        x=570,
-        y=1220,
-    )
-    answered_store_gate_key, answered_store_gate_output = add_result_gate(
-        "answered_store",
-        "answered_work_store",
-        "stored_work_definition",
-        required_field="work_definition",
-        x=950,
-        y=1220,
-    )
-    flow.connect("existing_work_input", "data_output", "answer_loader", "work_definition")
-    flow.connect("existing_batch_input", "data_output", "answer_loader", "clarification_batch")
-    flow.connect("command_router", "submit_answers_path", "answer_loader", "playground_payload")
-    flow.connect("existing_work_input", "data_output", "answer_merger", "work_definition")
-    flow.connect(answer_loader_gate_key, answer_loader_gate_output, "answer_merger", "answer_submission")
-    flow.connect(answer_merger_gate_key, answer_merger_gate_output, "answered_work_store", "work_definition")
-
-    flow.custom("answer_completeness", "12_work_completeness_evaluator.py", (1140, 900))
-    flow.data_to_message("answer_work_message", (1140, 500))
-    flow.data_to_message("answer_completeness_message", (1140, 1300))
-    flow.prompt(
-        "answer_clarification_prompt",
-        (1520, 700),
-        _read_prompt("clarification_planner.md"),
-        ["work_definition", "completeness"],
-    )
+    flow.prompt("extraction_prompt", (380, -260), _read_prompt("work_extraction.md"), ["request_envelope"])
     flow.builtin(
-        "answer_clarification_model",
+        "extraction_model",
         "LanguageModel",
-        (1900, 700),
-        {"system_message": "Return one JSON object with at most three questions.", "stream": False, "temperature": 0.0},
+        (760, -260),
+        {"system_message": "Return exactly one JSON object. Do not execute tools.", "stream": False, "temperature": 0.0},
     )
-    flow.custom(
-        "answer_clarification_batch",
-        "13_clarification_batch_builder.py",
-        (2280, 900),
-        {"round_number": 0},
-    )
-    flow.custom("answer_clarification_router", "27_work_clarification_router.py", (2660, 900))
-    flow.connect(answered_store_gate_key, answered_store_gate_output, "answer_completeness", "work_definition")
-    flow.connect(answered_store_gate_key, answered_store_gate_output, "answer_work_message", "data")
-    flow.connect("answer_completeness", "completeness", "answer_completeness_message", "data")
-    flow.connect("answer_work_message", "text", "answer_clarification_prompt", "work_definition")
-    flow.connect("answer_completeness_message", "text", "answer_clarification_prompt", "completeness")
-    flow.connect("answer_clarification_prompt", "prompt", "answer_clarification_model", "input_value")
-    flow.connect(answered_store_gate_key, answered_store_gate_output, "answer_clarification_batch", "work_definition")
-    flow.connect("answer_completeness", "completeness", "answer_clarification_batch", "completeness")
-    flow.connect("answer_clarification_model", "text_output", "answer_clarification_batch", "candidate_questions")
-    flow.connect(answered_store_gate_key, answered_store_gate_output, "answer_clarification_router", "work_definition")
-    flow.connect("answer_clarification_batch", "clarification_batch", "answer_clarification_router", "clarification_result")
-    flow.data_to_message("answer_question_message", (3040, 620))
-    flow.builtin("answer_question_output", "ChatOutput", (3420, 620))
-    flow.connect("answer_clarification_router", "clarification_path", "answer_question_message", "data")
-    flow.connect("answer_question_message", "text", "answer_question_output", "input_value")
-    flow.data_to_message("answer_router_blocked_message", (3040, 1180))
-    flow.builtin("answer_router_blocked_output", "ChatOutput", (3420, 1180))
-    flow.connect("answer_clarification_router", "blocked_path", "answer_router_blocked_message", "data")
-    flow.connect("answer_router_blocked_message", "text", "answer_router_blocked_output", "input_value")
+    flow.custom("work_normalizer", "11_work_definition_normalizer.py", (1140, 0))
+    flow.connect("work_description_text_input", "text", "request_envelope", "request_text")
+    flow.connect("additional_design_prompt_text_input", "text", "request_envelope", "additional_prompt")
+    flow.connect("request_envelope", "request_message", "extraction_prompt", "request_envelope")
+    flow.connect("extraction_prompt", "prompt", "extraction_model", "input_value")
+    flow.connect("extraction_model", "text_output", "work_normalizer", "candidate")
+    flow.connect("request_envelope", "request_envelope", "work_normalizer", "request_envelope")
 
-    # Start and answer review exits are mutually exclusive command branches.
-    flow.custom("review_branch_joiner", "28_work_definition_branch_joiner.py", (4940, 0))
-    flow.connect("answer_clarification_router", "review_path", "review_branch_joiner", "answered_work_definition")
-    flow.connect("start_clarification_router", "review_path", "review_branch_joiner", "review_work_definition")
-    flow.custom("graph_normalizer", "16_work_graph_normalizer.py", (5320, 0))
-    flow.custom("preview", "17_work_preview_hasher.py", (5700, 0))
+    # ② Three visible, bounded clarification rounds.  Component 42 creates a
+    # native node_input pause with actual Playground text fields; Component 39
+    # records that submitted data, merges it, CAS-saves, and rechecks.
+    def add_round(
+        round_number: int,
+        *,
+        work_source_key: str,
+        work_source_output: str,
+        x: int,
+        max_questions: int = 3,
+    ) -> dict[str, str]:
+        suffix = f"r{round_number}"
+        planner = f"clarification_planner_{suffix}"
+        model = f"clarification_model_{suffix}"
+        batch = f"clarification_batch_{suffix}"
+        gate = f"answer_gate_{suffix}"
+        commit = f"answer_commit_{suffix}"
+        flow.custom(planner, "12_work_completeness_evaluator.py", (x, 0), {"round_number": round_number})
+        flow.builtin(
+            model,
+            "LanguageModel",
+            (x + 380, -280),
+            {"system_message": f"Return one JSON object with at most {max_questions} questions.", "stream": False, "temperature": 0.0},
+        )
+        flow.custom(batch, "13_clarification_batch_builder.py", (x + 760, 0), {"round_number": round_number, "max_questions": max_questions})
+        flow.custom(gate, "42_f10_clarification_answer_gate.py", (x + 1140, -10))
+        flow.custom(commit, "39_f10_answer_commit.py", (x + 1520, 0))
+
+        flow.connect(work_source_key, work_source_output, planner, "work_definition")
+        flow.connect(planner, "clarification_prompt", model, "input_value")
+        flow.connect(planner, "clarification_path", batch, "work_definition")
+        flow.connect(planner, "clarification_path", batch, "completeness")
+        flow.connect(model, "text_output", batch, "candidate_questions")
+        flow.connect(batch, "waiting_path", gate, "clarification_batch")
+        flow.connect(planner, "clarification_path", commit, "clarification_context")
+        flow.connect(batch, "waiting_path", commit, "clarification_batch")
+        flow.connect(gate, "answer_submission", commit, "native_answer_submission")
+        flow.connect(gate, "branch_submit_answers", commit, "submit_trigger")
+        flow.connect(gate, "branch_skip_additional_input", commit, "skip_trigger")
+        flow.connect(gate, "branch_cancel", commit, "cancel_trigger")
+        flow.connect("request_envelope", "employee_actor_id", commit, "actor_id")
+        return {"planner": planner, "batch": batch, "gate": gate, "commit": commit}
+
+    round1 = add_round(
+        1,
+        work_source_key="work_normalizer",
+        work_source_output="work_definition",
+        x=1520,
+    )
+    round2 = add_round(
+        2,
+        work_source_key=round1["commit"],
+        work_source_output="next_round_path",
+        x=3800,
+    )
+    round3 = add_round(
+        3,
+        work_source_key=round2["commit"],
+        work_source_output="next_round_path",
+        x=5700,
+        max_questions=4,
+    )
+
+    # ③ Combine every mutually-exclusive review exit, validate the graph and
+    # preview, then atomically create/update the durable approval request.
+    flow.custom("review_entry_joiner", "40_f10_review_entry_joiner.py", (7600, 0))
+    flow.custom("graph_normalizer", "16_work_graph_normalizer.py", (7980, 0))
+    flow.custom("preview", "17_work_preview_hasher.py", (8360, 0))
     flow.custom(
-        "review_work_store",
+        "review_approval_store",
         "18_work_definition_store.py",
-        (6080, 0),
+        (8740, 0),
         {
-            "command": "save",
+            "command": "review_and_request_approval",
             "derive_expected_revision": True,
             "derive_idempotency_key": True,
             "require_transactions": True,
         },
     )
-    flow.custom(
-        "request_approval_store",
-        "18_work_definition_store.py",
-        (6460, 0),
-        {
-            "command": "request_approval",
-            "derive_expected_revision": True,
-            "derive_idempotency_key": True,
-            "require_transactions": True,
-        },
-    )
-    review_join_gate_key, review_join_gate_output = add_result_gate(
-        "review_join",
-        "review_branch_joiner",
-        "joined_work_definition",
-        required_field="work_definition",
-        x=5130,
-        y=360,
-    )
-    review_graph_gate_key, review_graph_gate_output = add_result_gate(
-        "review_graph",
-        "graph_normalizer",
-        "normalized_graph",
-        required_field="work_definition",
-        x=5510,
-        y=360,
-    )
-    review_preview_gate_key, review_preview_gate_output = add_result_gate(
-        "review_preview",
-        "preview",
-        "preview",
-        required_field="work_definition.preview_hash",
-        x=5890,
-        y=360,
-    )
-    review_store_gate_key, review_store_gate_output = add_result_gate(
-        "review_store",
-        "review_work_store",
-        "stored_work_definition",
-        required_field="work_definition",
-        x=6270,
-        y=360,
-    )
-    approval_store_gate_key, approval_store_gate_output = add_result_gate(
-        "approval_store",
-        "request_approval_store",
-        "stored_work_definition",
-        required_field="work_definition",
-        x=6650,
-        y=360,
-    )
-    flow.data_to_message("preview_message", (6840, 0))
-    flow.builtin("preview_output", "ChatOutput", (7220, 0))
-    flow.connect(review_join_gate_key, review_join_gate_output, "graph_normalizer", "work_definition")
-    flow.connect(review_graph_gate_key, review_graph_gate_output, "preview", "work_definition")
-    flow.connect(review_preview_gate_key, review_preview_gate_output, "review_work_store", "work_definition")
-    flow.connect(review_store_gate_key, review_store_gate_output, "request_approval_store", "work_definition")
-    flow.connect(approval_store_gate_key, approval_store_gate_output, "preview_message", "data")
-    flow.connect("preview_message", "text", "preview_output", "input_value")
+    flow.human("approval_gate", (9120, 0), ["Approve", "Reject", "Cancel"])
+    flow.custom("final_approval_route_gate", "43_f10_final_approval_route_gate.py", (9500, 0))
 
-    # Structured approval actions use explicit static Store commands.  The
-    # existing state and one-time action token remain external required tweaks.
-    action_specs = (
-        ("approve_path", "approve", 1400),
-        ("reject_path", "reject", 1880),
-        ("cancel_path", "cancel", 2360),
+    flow.connect(round1["planner"], "review_path", "review_entry_joiner", "initial_review")
+    flow.connect(round1["batch"], "review_path", "review_entry_joiner", "round1_review")
+    flow.connect(round2["planner"], "review_path", "review_entry_joiner", "round2_planner_review")
+    flow.connect(round2["batch"], "review_path", "review_entry_joiner", "round2_review")
+    flow.connect(round3["planner"], "review_path", "review_entry_joiner", "round3_planner_review")
+    flow.connect(round3["batch"], "review_path", "review_entry_joiner", "round3_review")
+    flow.connect(round1["commit"], "review_path", "review_entry_joiner", "round1_answer_review")
+    flow.connect(round2["commit"], "review_path", "review_entry_joiner", "round2_answer_review")
+    flow.connect(round3["commit"], "review_path", "review_entry_joiner", "round3_answer_review")
+    flow.connect("review_entry_joiner", "review_work_definition", "graph_normalizer", "work_definition")
+    flow.connect("graph_normalizer", "success_path", "preview", "work_definition")
+    flow.connect("preview", "success_path", "review_approval_store", "work_definition")
+    flow.connect("review_approval_store", "stored_work_message", "approval_gate", "prompt")
+    flow.connect("request_envelope", "employee_actor_id", "review_approval_store", "actor_id")
+    for command in ("approve", "reject", "cancel"):
+        flow.connect("approval_gate", f"branch_{command}", "final_approval_route_gate", "approval_triggers")
+
+    # ④ The native Human Input owns the visible final decision.  The small
+    # standalone route gate directly after it persistently excludes the two
+    # non-selected MongoDB stores in the same resumed run.  No branch other
+    # than approve can reach the F20 Run Flow.
+    final_store_specs = (
+        ("approved_work_store", "approve", -420),
+        ("rejected_work_store", "reject", 0),
+        ("final_cancel_store", "cancel", 420),
     )
-    for route_output, command, action_y in action_specs:
-        store_key = f"action_{command}_store"
-        message_key = f"action_{command}_message"
-        output_key = f"action_{command}_output"
+    for key, command, y in final_store_specs:
         flow.custom(
-            store_key,
+            key,
             "18_work_definition_store.py",
-            (380, action_y),
+            (9880, y),
             {
                 "command": command,
                 "derive_expected_revision": True,
@@ -1503,49 +1776,57 @@ def _build_f11() -> dict[str, Any]:
                 "require_transactions": True,
             },
         )
-        flow.data_to_message(message_key, (760, action_y))
-        flow.builtin(output_key, "ChatOutput", (1140, action_y))
-        action_gate_key, action_gate_output = add_result_gate(
-            f"action_{command}",
-            store_key,
-            "stored_work_definition",
-            required_field="work_definition",
-            x=570,
-            y=action_y + 240,
-        )
-        flow.connect("existing_work_input", "data_output", store_key, "work_definition")
-        flow.connect("command_router", route_output, store_key, "route_trigger")
-        flow.connect(action_gate_key, action_gate_output, message_key, "data")
-        flow.connect(message_key, "text", output_key, "input_value")
+        flow.connect("review_approval_store", "success_path", key, "work_definition")
+        flow.connect("final_approval_route_gate", f"branch_{command}", key, "route_trigger")
+        flow.connect("request_envelope", "employee_actor_id", key, "actor_id")
 
-    flow.data_to_message("invalid_command_message", (380, -100))
-    flow.builtin("invalid_command_output", "ChatOutput", (760, -100))
-    flow.connect("command_router", "blocked_path", "invalid_command_message", "data")
-    flow.connect("invalid_command_message", "text", "invalid_command_output", "input_value")
-    result = flow.build()
-    result["metadata"]["playground_turn_contract"] = {
-        "schema_version": "playground-structured-command/v1",
-        "commands": ["start", "submit_answers", "approve", "reject", "cancel"],
-        "command_parser_node_key": "command_router",
-        "command_parser_node_id": flow.nodes["command_router"].node_id,
-        "top_level_command_only": True,
-        "duplicate_json_keys_rejected": True,
-        "follow_up_state_source": "explicit_node_tweaks",
-        "existing_work_input_node_key": "existing_work_input",
-        "existing_work_input_node_id": flow.nodes["existing_work_input"].node_id,
-        "existing_batch_input_node_key": "existing_batch_input",
-        "existing_batch_input_node_id": flow.nodes["existing_batch_input"].node_id,
-        "round_number_node_key": "answer_clarification_batch",
-        "round_number_node_id": flow.nodes["answer_clarification_batch"].node_id,
-        "round_number_mode": "derived_from_processed_answer_batches",
-        "action_store_node_ids": {
-            command: flow.nodes[f"action_{command}_store"].node_id
-            for command in ("approve", "reject", "cancel")
-        },
-        "silent_state_fallback": False,
-        "native_hitl": False,
-    }
-    return result
+    # ⑤ Trust boundary and direct child Flow invocation.  F20 creates one
+    # sealed report handoff; F10 verifies its envelope before F30 runs.
+    # Neither child is invoked through a Flow HTTP endpoint or tool wrapper.
+    flow.custom("design_invocation_loader", "36_approved_design_invocation_loader.py", (10260, -430))
+    flow.builtin("design_invocation_message", "TypeConverter", (10640, -430), {"auto_parse": False, "output_type": "Message"})
+    flow.run_flow("run_agent_blueprint_design", (11020, -430), f20_flow)
+    flow.custom("report_handoff_gate", "44_f10_report_handoff_gate.py", (11400, -430))
+    flow.run_flow("run_responsive_report", (11780, -430), f30_flow)
+    flow.builtin("final_approve_design_output", "ChatOutput", (12160, -430))
+    invocation_input_field = f"{f20_flow['metadata']['design_invocation_input_node_id']}~input_value"
+    report_handoff_output_name = f"{f20_flow['metadata']['report_handoff_output_node_id']}~message"
+    report_input_field = f"{f30_flow['metadata']['report_handoff_input_node_id']}~input_value"
+    report_output_name = f"{f30_flow['metadata']['report_output_node_id']}~message"
+    flow.connect("approved_work_store", "success_path", "design_invocation_loader", "approval_result")
+    flow.connect("request_envelope", "request_envelope", "design_invocation_loader", "request_envelope")
+    flow.connect("request_envelope", "employee_actor_id", "design_invocation_loader", "authenticated_subject_id")
+    flow.connect("design_invocation_loader", "success_path", "design_invocation_message", "input_data")
+    flow.connect("design_invocation_message", "message_output", "run_agent_blueprint_design", invocation_input_field)
+    flow.connect("run_agent_blueprint_design", report_handoff_output_name, "report_handoff_gate", "f20_report_handoff")
+    flow.connect("report_handoff_gate", "success_message", "run_responsive_report", report_input_field)
+    flow.connect("run_responsive_report", report_output_name, "final_approve_design_output", "input_value")
+
+    # One compact terminal presenter handles the user-visible non-success
+    # outcomes that may arise after a Human decision.  Lower-level Mongo/graph
+    # failures remain fail-closed on their source node without opening a new
+    # conversational branch.
+    flow.custom("terminal_result_message", "41_f10_terminal_result_message.py", (10260, 670))
+    flow.builtin("terminal_result_output", "ChatOutput", (10640, 670))
+    for source_key, output_name in (
+        (round1["commit"], "cancelled_path"),
+        (round2["commit"], "cancelled_path"),
+        (round3["commit"], "cancelled_path"),
+        (round1["gate"], "blocked_path"),
+        (round2["gate"], "blocked_path"),
+        (round3["gate"], "blocked_path"),
+        (round1["commit"], "blocked_path"),
+        (round2["commit"], "blocked_path"),
+        (round3["commit"], "blocked_path"),
+        ("review_entry_joiner", "blocked_path"),
+        ("rejected_work_store", "success_path"),
+        ("final_cancel_store", "success_path"),
+        ("design_invocation_loader", "blocked_path"),
+        ("report_handoff_gate", "blocked_path"),
+    ):
+        flow.connect(source_key, output_name, "terminal_result_message", "terminal_events")
+    flow.connect("terminal_result_message", "message", "terminal_result_output", "input_value")
+    return flow.build()
 
 
 def _add_search_pipeline(flow: FlowBuilder, *, y: float = 0, include_skill: bool) -> None:
@@ -1555,12 +1836,11 @@ def _add_search_pipeline(flow: FlowBuilder, *, y: float = 0, include_skill: bool
     else:
         planner_x = 0
     flow.custom("query_plan", "20_search_query_planner.py", (planner_x, y))
-    flow.custom(
-        "query_embedding",
-        "29_search_query_embedding_batcher.py",
-        (planner_x + 380, y),
-        {"provider_mode": "http_json", "allow_insecure_loopback": False},
-    )
+    # The same provider/model must be selected here as for F00.  Component 29
+    # derives and carries the concrete runtime contract; it does not expose a
+    # second endpoint/model/version/dimension configuration surface.
+    flow.builtin("search_embedding_model", "EmbeddingModel", (planner_x + 380, y - 380))
+    flow.custom("query_embedding", "29_search_query_embedding_batcher.py", (planner_x + 380, y))
     flow.custom(
         "hybrid_retrieval",
         "21_catalog_hybrid_retriever.py",
@@ -1569,6 +1849,7 @@ def _add_search_pipeline(flow: FlowBuilder, *, y: float = 0, include_skill: bool
     )
     flow.custom("candidate_context", "22_candidate_context_builder.py", (planner_x + 1140, y))
     flow.connect("query_plan", "query_plan", "query_embedding", "query_plan")
+    flow.connect("search_embedding_model", "embeddings", "query_embedding", "embedding")
     flow.connect("query_plan", "query_plan", "hybrid_retrieval", "query_plan")
     flow.connect("query_embedding", "query_vectors", "hybrid_retrieval", "query_vectors")
     flow.connect("hybrid_retrieval", "retrieval_result", "candidate_context", "retrieval_result")
@@ -1576,8 +1857,63 @@ def _add_search_pipeline(flow: FlowBuilder, *, y: float = 0, include_skill: bool
 
 def _build_f20() -> dict[str, Any]:
     flow = FlowBuilder("F20")
+    flow.note(
+        "01-trusted-invocation",
+        """## ① 승인된 설계 요청·Skill 문맥
+
+- F10 승인 경로의 trusted invocation만 입력으로 받습니다.
+- TypeConverter가 strict JSON으로 파싱하고, ChatInput은 대화 이력에 저장하지 않습니다.
+- Query Planner가 권한·활성 snapshot·설계 범위를 고정합니다.""",
+        (-840, -1350),
+        width=1250,
+        height=360,
+    )
+    flow.note(
+        "02-hybrid-search",
+        """## ② 하이브리드 카탈로그 검색
+
+- query plan에서 검색 문장을 만들고 같은 승인 Embedding Model로 벡터를 생성합니다.
+- lexical/vector 후보를 결합하고 active snapshot·ACL·embedding 계약을 재검증합니다.""",
+        (460, -1350),
+        width=1250,
+        height=360,
+    )
+    flow.note(
+        "03-blueprint-normalize-validate",
+        """## ③ Agent Blueprint 생성·검증
+
+- 후보 컴포넌트/Flow와 승인 Skill 문맥을 LLM prompt에 넣어 Blueprint JSON을 생성합니다.
+- Normalizer, port contract, readiness 단계가 불완전하거나 위험한 설계를 fail-closed 처리합니다.
+- 검색된 원문은 실행 지시가 아니라 참고 메타정보로만 사용합니다.""",
+        (1740, -1350),
+        width=2400,
+        height=360,
+        background_color="amber",
+    )
+    flow.note(
+        "04-generation-output",
+        """## ④ 구현 요청 출력
+
+- 검증된 Blueprint를 Component 생성 요청과 구현 가이드로 변환합니다.
+- 최종 결과는 Chat Output으로 반환하며 자동 코드 배포는 수행하지 않습니다.""",
+        (4170, -1350),
+        width=1150,
+        height=360,
+        background_color="amber",
+    )
     _add_search_pipeline(flow, include_skill=True)
-    flow.builtin("design_prompt_input", "ChatInput", (-420, -760))
+    flow.builtin(
+        "design_invocation_input",
+        "ChatInput",
+        (-760, -760),
+        {"should_store_message": False},
+    )
+    flow.builtin(
+        "design_invocation_json",
+        "TypeConverter",
+        (-380, -760),
+        {"auto_parse": True, "output_type": "JSON"},
+    )
     flow.data_to_message("design_scope_message", (1520, -560))
     flow.data_to_message("skill_message", (1520, -180))
     flow.data_to_message("candidate_message", (1520, 200))
@@ -1603,10 +1939,16 @@ def _build_f20() -> dict[str, Any]:
     flow.custom("port_validator", "24_port_contract_validator.py", (3420, 0))
     flow.custom("readiness", "25_blueprint_readiness_classifier.py", (3800, 0))
     flow.custom("generation_prompt", "26_component_generation_prompt_builder.py", (4180, 0))
+    flow.data_to_message("generation_message", (4560, 0))
+    flow.builtin("design_output", "ChatOutput", (4940, 0))
+    flow.custom("report_handoff_builder", "38_f20_report_handoff_builder.py", (4560, 380))
+    flow.builtin("report_handoff_output", "ChatOutput", (4940, 380))
 
+    flow.connect("design_invocation_input", "message", "design_invocation_json", "input_data")
+    flow.connect("design_invocation_json", "data_output", "query_plan", "design_invocation")
     flow.connect("candidate_context", "candidate_context", "candidate_message", "data")
-    flow.connect("design_prompt_input", "message", "query_plan", "design_prompt")
     flow.connect("query_plan", "design_scope", "skill_context", "design_scope")
+    flow.connect("query_plan", "approved_skill_registry", "skill_context", "skill_registry")
     flow.connect("query_plan", "design_scope", "design_scope_message", "data")
     flow.connect("skill_context", "skill_context", "skill_message", "data")
     flow.connect("design_scope_message", "text", "blueprint_prompt", "design_scope")
@@ -1621,35 +1963,106 @@ def _build_f20() -> dict[str, Any]:
     flow.connect("blueprint_normalizer", "normalized_blueprint", "port_validator", "normalized_blueprint")
     flow.connect("port_validator", "validated_blueprint", "readiness", "validated_blueprint")
     flow.connect("readiness", "classified_blueprint", "generation_prompt", "classified_blueprint")
+    flow.connect("generation_prompt", "generation_request", "generation_message", "data")
+    flow.connect("generation_message", "text", "design_output", "input_value")
+    flow.connect("query_plan", "design_scope", "report_handoff_builder", "design_scope")
+    flow.connect("candidate_context", "candidate_context", "report_handoff_builder", "candidate_context")
+    flow.connect("generation_prompt", "generation_request", "report_handoff_builder", "terminal_blueprint")
+    flow.connect("report_handoff_builder", "report_handoff_message", "report_handoff_output", "input_value")
 
     result = flow.build()
     result["metadata"]["design_input_contract"] = {
-        "schema_version": "agent-design-scope/v1",
-        "single_scope_node_id": flow.nodes["query_plan"].node_id,
-        "additional_design_prompt_node_id": flow.nodes["design_prompt_input"].node_id,
+        "schema_version": "agent-design-invocation/v1",
+        "single_input_node_id": flow.nodes["design_invocation_input"].node_id,
+        "single_input_field": "input_value",
         "downstream_scope_source": "query_plan.design_scope",
         "independent_downstream_scope_tweaks": False,
+    }
+    result["metadata"]["design_invocation_input_node_id"] = flow.nodes["design_invocation_input"].node_id
+    result["metadata"]["design_output_node_id"] = flow.nodes["design_output"].node_id
+    result["metadata"]["report_handoff_output_node_id"] = flow.nodes["report_handoff_output"].node_id
+    result["metadata"]["report_handoff_contract"] = {
+        "schema_version": "f20-report-handoff/v1",
+        "work_definition_source": "query_plan.design_scope",
+        "retrieval_trace_source": "candidate_context.retrieval_trace",
+        "blueprint_source": "generation_prompt.generation_request",
     }
     return result
 
 
 def _build_f30() -> dict[str, Any]:
     flow = FlowBuilder("F30")
-    flow.custom("view_model", "30_report_view_model_builder.py", (0, 0))
-    flow.custom("renderer", "31_responsive_report_renderer.py", (420, 0))
+    flow.note(
+        "01-view-render-publish",
+        """## ① F20 handoff → View Model → 반응형 HTML → 게시
+
+- F10/F20의 sealed handoff만 Chat Input으로 받고, WorkDefinition·Blueprint·retrieval trace의 같은 승인 범위를 재검증합니다.
+- 업무 정의와 Agent Blueprint를 보고서용 view model로 변환합니다.
+- 노드·연결선·상세 업무 방식이 있는 반응형 HTML을 렌더링합니다.
+- Publisher가 권한 있는 Report API로 발행하거나 테스트 실행 결과를 반환합니다.""",
+        (-760, -700),
+        width=2500,
+        height=350,
+        background_color="amber",
+    )
+    flow.builtin("report_handoff_input", "ChatInput", (-760, 0), {"should_store_message": False})
+    flow.builtin("report_handoff_json", "TypeConverter", (-380, 0), {"auto_parse": True, "output_type": "JSON"})
+    flow.custom("report_handoff_loader", "33_f30_report_handoff_loader.py", (0, 0))
+    flow.custom("view_model", "30_report_view_model_builder.py", (420, 0))
+    flow.custom("renderer", "31_responsive_report_renderer.py", (800, 0))
     flow.custom(
         "publisher",
         "32_report_publisher.py",
-        (840, 0),
-        {"report_api_url": "http://127.0.0.1:8091/api", "dry_run": True},
+        (1180, 0),
+        {"report_api_url": "http://127.0.0.1:8091/api", "tenant_id": "", "actor_id": "", "dry_run": True},
     )
+    flow.data_to_message("publish_result_message", (1560, 0))
+    flow.builtin("report_output", "ChatOutput", (1940, 0))
+    flow.connect("report_handoff_input", "message", "report_handoff_json", "input_data")
+    flow.connect("report_handoff_json", "data_output", "report_handoff_loader", "report_handoff")
+    flow.connect("report_handoff_loader", "work_definition", "view_model", "work_definition")
+    flow.connect("report_handoff_loader", "agent_blueprint", "view_model", "agent_blueprint")
+    flow.connect("report_handoff_loader", "retrieval_trace", "view_model", "retrieval_trace")
     flow.connect("view_model", "report_view_model", "renderer", "report_view_model")
     flow.connect("renderer", "render_result", "publisher", "render_result")
-    return flow.build()
+    flow.connect("report_handoff_loader", "report_context", "publisher", "report_context")
+    flow.connect("publisher", "publish_result", "publish_result_message", "data")
+    flow.connect("publish_result_message", "text", "report_output", "input_value")
+    result = flow.build()
+    result["metadata"]["report_input_contract"] = {
+        "schema_version": "f20-report-handoff/v1",
+        "single_input_node_id": flow.nodes["report_handoff_input"].node_id,
+        "single_input_field": "input_value",
+        "should_store_message": False,
+    }
+    result["metadata"]["report_handoff_input_node_id"] = flow.nodes["report_handoff_input"].node_id
+    result["metadata"]["report_output_node_id"] = flow.nodes["report_output"].node_id
+    return result
 
 
 def _build_f90() -> dict[str, Any]:
     flow = FlowBuilder("F90")
+    flow.note(
+        "01-query-plan-embedding",
+        """## ① 검색 계획·쿼리 임베딩
+
+- 평가용 검색 조건을 query plan으로 고정합니다.
+- 승인 Embedding Model과 Batcher가 검색 문장별 vector 및 runtime 계약을 만듭니다.""",
+        (-80, -1050),
+        width=1150,
+        height=350,
+    )
+    flow.note(
+        "02-retrieve-candidate-output",
+        """## ② 검색·후보 문맥 출력
+
+- Hybrid Retriever가 lexical/vector 후보를 결합하고 active snapshot을 검증합니다.
+- Candidate Context를 Chat Output으로 반환해 검색 품질과 선택 후보를 점검합니다.""",
+        (1050, -1050),
+        width=1350,
+        height=350,
+        background_color="amber",
+    )
     _add_search_pipeline(flow, include_skill=False)
     flow.data_to_message("evaluation_message", (1520, 0))
     flow.builtin("evaluation_output", "ChatOutput", (1900, 0))
@@ -1671,9 +2084,34 @@ def _validate_flow_contract(flow: dict[str, Any], flow_key: str) -> None:
     node_by_id = {node.get("id"): node for node in nodes}
     if len(node_by_id) != len(nodes) or None in node_by_id:
         raise ValueError(f"{flow_key}: duplicate or missing node id")
+    note_nodes = [
+        wrapper
+        for wrapper in nodes
+        if wrapper.get("type") == "noteNode" and wrapper.get("data", {}).get("type") == "note"
+    ]
+    note_ids = {wrapper["id"] for wrapper in note_nodes}
+    for wrapper in note_nodes:
+        data_node = wrapper.get("data", {}).get("node")
+        if not isinstance(data_node, dict):
+            raise ValueError(f"{flow_key}: Sticky Note {wrapper['id']} is missing its note data")
+        if not isinstance(data_node.get("description"), str) or not data_node["description"].strip():
+            raise ValueError(f"{flow_key}: Sticky Note {wrapper['id']} has no description")
+        if data_node.get("lf_version") != LANGFLOW_VERSION:
+            raise ValueError(f"{flow_key}: Sticky Note {wrapper['id']} has an incompatible Langflow version")
+        template = data_node.get("template")
+        if not isinstance(template, dict) or template.get("backgroundColor") not in {"blue", "amber"}:
+            raise ValueError(f"{flow_key}: Sticky Note {wrapper['id']} has an invalid background color")
+        if wrapper.get("data", {}).get("id") != wrapper["id"]:
+            raise ValueError(f"{flow_key}: Sticky Note {wrapper['id']} has inconsistent data id")
+        if wrapper.get("positionAbsolute") != wrapper.get("position"):
+            raise ValueError(f"{flow_key}: Sticky Note {wrapper['id']} must use an absolute Canvas position")
+        if not isinstance(wrapper.get("width"), (int, float)) or not isinstance(wrapper.get("height"), (int, float)):
+            raise ValueError(f"{flow_key}: Sticky Note {wrapper['id']} must have numeric dimensions")
     for edge in edges:
         if edge.get("source") not in node_by_id or edge.get("target") not in node_by_id:
             raise ValueError(f"{flow_key}: dangling edge {edge.get('id')}")
+        if edge.get("source") in note_ids or edge.get("target") in note_ids:
+            raise ValueError(f"{flow_key}: Sticky Note {edge.get('source')} or {edge.get('target')} must not have an edge")
         source_handle = edge.get("data", {}).get("sourceHandle", {})
         target_handle = edge.get("data", {}).get("targetHandle", {})
         source_node = node_by_id[edge["source"]]["data"]["node"]
@@ -1684,6 +2122,14 @@ def _validate_flow_contract(flow: dict[str, Any], flow_key: str) -> None:
         target = target_fields.get(target_handle.get("fieldName"))
         if not isinstance(output, dict) or not isinstance(target, dict):
             raise ValueError(f"{flow_key}: edge handle does not resolve for {edge.get('id')}")
+        # Langflow 1.11.1's Canvas loader prunes a connection when its target
+        # input is marked advanced.  Fail at generation time instead of
+        # exporting a Flow that silently loses a runtime dependency on import.
+        if target.get("advanced") is True:
+            raise ValueError(
+                f"{flow_key}: edge {edge.get('id')} targets advanced input "
+                f"{target_handle.get('fieldName')!r}; Langflow 1.11.1 will remove it on import"
+            )
         if not set(output.get("types") or []).intersection(target.get("input_types") or []):
             raise TypeError(f"{flow_key}: edge types are incompatible for {edge.get('id')}")
     custom_nodes = []
@@ -1703,10 +2149,10 @@ def _validate_flow_contract(flow: dict[str, Any], flow_key: str) -> None:
                 raise ValueError(f"{flow_key}: embedded source mismatch for {source_path}")
     if not custom_nodes:
         raise ValueError(f"{flow_key}: expected at least one custom component")
-    if flow_key in {"F20", "F30", "F90", "F11"} and hitl_nodes:
-        raise ValueError(f"{flow_key}: child/playground/evaluation Flow must not contain HumanInput")
-    if flow_key in {"F00", "F10"} and not hitl_nodes:
-        raise ValueError(f"{flow_key}: top-level Flow requires a HumanInput gate")
+    if flow_key in {"F20", "F30", "F90"} and hitl_nodes:
+        raise ValueError(f"{flow_key}: child/evaluation Flow must not contain HumanInput")
+    if flow_key == "F10" and not hitl_nodes:
+        raise ValueError(f"{flow_key}: top-level HITL Flow requires a HumanInput gate")
     if flow_key == "F20" and flow.get("metadata", {}).get("operational_readiness") == "import_ready":
         raise ValueError("F20 must remain fail-closed until external contracts are configured and validated")
 
@@ -1720,15 +2166,15 @@ def build_all() -> dict[str, dict[str, Any]]:
             f"(langflow=={LANGFLOW_VERSION}, lfx=={LFX_VERSION}); found "
             f"langflow=={installed_langflow}, lfx=={installed_lfx}"
         )
-    builders = {
-        "F00": _build_f00,
-        "F10": _build_f10,
-        "F11": _build_f11,
-        "F20": _build_f20,
-        "F30": _build_f30,
-        "F90": _build_f90,
+    f20_flow = _build_f20()
+    f30_flow = _build_f30()
+    return {
+        "F00": _build_f00(),
+        "F10": _build_f10(f20_flow, f30_flow),
+        "F20": f20_flow,
+        "F30": f30_flow,
+        "F90": _build_f90(),
     }
-    return {flow_key: builder() for flow_key, builder in builders.items()}
 
 
 def _json_bytes(value: Any) -> bytes:

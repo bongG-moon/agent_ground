@@ -3,11 +3,11 @@
   "name_ko": "EWS·DRM Outlook 메일 요약 Flow",
   "asset_type": "flow",
   "status": "user_testing",
-  "version": "0.7.2",
+  "version": "0.7.3",
   "source_export_version": "1.9.2",
-  "summary_ko": "사내 EWS로 메일을 읽고 일반 문서는 로컬 파싱, 보호 문서는 DRM API, JPG/JPEG는 vLLM Vision 모델로 처리하며 미지원 형식은 건너뛴 뒤 전체 요약을 생성합니다.",
+  "summary_ko": "사내 EWS로 메일을 읽고 일반 문서는 로컬 파싱, 보호 문서는 DRM API, JPG/JPEG/PNG는 vLLM Vision 모델로 처리하며 미지원 형식은 건너뛴 뒤 전체 요약을 생성합니다.",
   "categories": ["mail", "ews", "ntlm", "attachment", "drm", "document", "vision", "vllm", "summary", "on-prem"],
-  "trigger_signals": ["EWS 메일 읽기", "Outlook 받은 편지함", "NTLM", "DRM 해제", "JPG 이미지 해석", "미지원 ZIP 건너뛰기", "첨부 문서 요약"],
+  "trigger_signals": ["EWS 메일 읽기", "Outlook 받은 편지함", "NTLM", "DRM 해제", "JPG PNG 이미지 해석", "미지원 ZIP 건너뛰기", "첨부 문서 요약"],
   "flow_file": "mail_attachment_summary_flow.json",
   "subflow_files": ["mail_attachment_summary_dummy_flow.json"],
   "test_flow_file": "mail_attachment_summary_dummy_flow.json",
@@ -43,7 +43,7 @@
     "Configure the approved DRM text API URL, Bearer token, and employee number when DRM calls may occur.",
     "For an HTTP-only closed test network, explicitly enable insecure HTTP after security approval.",
     "Confirm the DRM API text extraction coverage for PDF, Office, HWP, text, CSV, and non-JPEG image attachments.",
-    "Configure the JPG/JPEG Language Model node with an approved vLLM-compatible multimodal model.",
+    "Configure the JPG/JPEG/PNG Language Model node with an approved vLLM-compatible multimodal model.",
     "Select the same approved internal or local model in both summary Language Model nodes."
   ]
 }
