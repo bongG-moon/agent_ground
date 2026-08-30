@@ -829,12 +829,68 @@ def retrieve_catalog_candidates(
         f"vector:{query_id}": QUERY_KIND_WEIGHTS.get(kind, 1.0)
         for query_id, kind in query_kind_by_id.items()
     }
+
+    def completed_result(
+        selected_candidates: list[dict[str, Any]],
+        rejected_counts: dict[str, int],
+        *,
+        empty_result_reason: str | None = None,
+    ) -> dict[str, Any]:
+        """Return a sealed retrieval result, including a valid empty result.
+
+        An empty *authorized* result is not a backend failure.  Downstream
+        blueprint generation can safely continue as long as it receives an
+        explicit empty allowlist: it must then avoid all catalog references.
+        Connection, snapshot, embedding-contract, and query validation errors
+        are handled before this point and remain fail-closed.
+        """
+        retrieval_trace: dict[str, Any] = {
+            "tenant_id": tenant,
+            "snapshot_id": snapshot,
+            "work_definition_id": str(plan["work_definition_id"]),
+            "work_definition_revision": plan["work_definition_revision"],
+            "approved_hash": str(plan["approved_hash"]),
+            "design_scope_sha256": str(plan["design_scope_sha256"]),
+            "query_plan_sha256": str(plan.get("query_plan_sha256") or ""),
+            "source_counts": {key: len(value) for key, value in source_results.items() if isinstance(value, list)},
+            "post_filter_rejected": rejected_counts,
+            "returned_count": len(selected_candidates),
+            "rrf_k": 60,
+            "query_kind_weights": {
+                query_id: QUERY_KIND_WEIGHTS.get(kind, 1.0)
+                for query_id, kind in sorted(query_kind_by_id.items())
+            },
+            "silent_fallback_used": False,
+            "missing_parent_count": int(backend_result.get("missing_parent_count") or 0),
+        }
+        if empty_result_reason:
+            retrieval_trace["empty_result_reason"] = empty_result_reason
+        return {
+            "ok": True,
+            "status": "COMPLETED",
+            "tenant_id": tenant,
+            "snapshot_id": snapshot,
+            "work_definition_id": str(plan["work_definition_id"]),
+            "work_definition_revision": plan["work_definition_revision"],
+            "approved_hash": str(plan["approved_hash"]),
+            "design_scope_sha256": str(plan["design_scope_sha256"]),
+            "query_plan_sha256": str(plan.get("query_plan_sha256") or ""),
+            "provider_mode": mode,
+            "candidates": selected_candidates,
+            "retrieval_trace": retrieval_trace,
+            "trace_id": trace_id,
+        }
+
     fused = _rrf(
         {key: value for key, value in source_results.items() if isinstance(value, list)},
         source_weights=source_weights,
     )
     if not fused:
-        return _error(trace_id, "NO_CANDIDATES", "권한과 검색 조건을 만족하는 catalog 후보가 없습니다.")
+        return completed_result(
+            [],
+            {"scope_or_acl": 0, "invalid_identity": 0},
+            empty_result_reason="NO_CANDIDATES",
+        )
 
     candidates: list[dict[str, Any]] = []
     rejected_counts = {"scope_or_acl": 0, "invalid_identity": 0}
@@ -885,40 +941,12 @@ def retrieve_catalog_candidates(
         if len(candidates) >= top_n:
             break
     if not candidates:
-        return _error(trace_id, "NO_AUTHORIZED_CANDIDATES", "후보 재검증 후 권한이 확인된 자산이 없습니다.")
-    return {
-        "ok": True,
-        "status": "COMPLETED",
-        "tenant_id": tenant,
-        "snapshot_id": snapshot,
-        "work_definition_id": str(plan["work_definition_id"]),
-        "work_definition_revision": plan["work_definition_revision"],
-        "approved_hash": str(plan["approved_hash"]),
-        "design_scope_sha256": str(plan["design_scope_sha256"]),
-        "query_plan_sha256": str(plan.get("query_plan_sha256") or ""),
-        "provider_mode": mode,
-        "candidates": candidates,
-        "retrieval_trace": {
-            "tenant_id": tenant,
-            "snapshot_id": snapshot,
-            "work_definition_id": str(plan["work_definition_id"]),
-            "work_definition_revision": plan["work_definition_revision"],
-            "approved_hash": str(plan["approved_hash"]),
-            "design_scope_sha256": str(plan["design_scope_sha256"]),
-            "query_plan_sha256": str(plan.get("query_plan_sha256") or ""),
-            "source_counts": {key: len(value) for key, value in source_results.items() if isinstance(value, list)},
-            "post_filter_rejected": rejected_counts,
-            "returned_count": len(candidates),
-            "rrf_k": 60,
-            "query_kind_weights": {
-                query_id: QUERY_KIND_WEIGHTS.get(kind, 1.0)
-                for query_id, kind in sorted(query_kind_by_id.items())
-            },
-            "silent_fallback_used": False,
-            "missing_parent_count": int(backend_result.get("missing_parent_count") or 0),
-        },
-        "trace_id": trace_id,
-    }
+        return completed_result(
+            [],
+            rejected_counts,
+            empty_result_reason="NO_AUTHORIZED_CANDIDATES",
+        )
+    return completed_result(candidates, rejected_counts)
 
 
 def _error(
@@ -941,7 +969,7 @@ def _error(
 
 class CatalogHybridRetrieverComponent(Component):
     display_name = "21 Catalog Hybrid Retriever"
-    description = "활성 snapshot에서 tenant/ACL을 적용한 exact, lexical, vector 후보를 명시적 provider mode로 결합합니다."
+    description = "활성 snapshot에서 tenant/ACL을 적용한 exact, lexical, vector 후보를 결합합니다. 정상 검색 결과가 없으면 빈 allowlist용 완료 결과를 반환해 catalog 재사용 없이 설계를 계속합니다."
     icon = "SearchCheck"
     name = "CatalogHybridRetriever"
 

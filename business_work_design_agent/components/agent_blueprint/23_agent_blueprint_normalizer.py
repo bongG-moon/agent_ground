@@ -99,6 +99,31 @@ def _payload(value: Any) -> dict[str, Any]:
     return {}
 
 
+def _blueprint_draft_payload(value: Any) -> dict[str, Any]:
+    """Read a direct Blueprint object or a single JSON/fenced-JSON model reply.
+
+    The upstream Type Convert node normally supplies a dictionary.  Some model
+    providers, however, keep a valid JSON answer under ``text`` or wrap it in
+    one Markdown JSON fence.  Accept only that narrow representation rather
+    than extracting arbitrary text from a model response.
+    """
+    payload = _payload(value)
+    text = payload.get("text") if isinstance(payload, dict) else None
+    if not isinstance(text, str):
+        return payload
+    normalized = text.strip()
+    if not normalized or len(normalized) > 500_000:
+        return payload
+    fenced = re.fullmatch(r"```(?:json)?\s*(.*?)\s*```", normalized, flags=re.IGNORECASE | re.DOTALL)
+    if fenced:
+        normalized = fenced.group(1).strip()
+    try:
+        parsed = json.loads(normalized)
+    except json.JSONDecodeError:
+        return payload
+    return parsed if isinstance(parsed, dict) else payload
+
+
 def _safe(value: Any, maximum: int = 1000) -> str:
     return re.sub(r"[\x00-\x1f]", " ", str(value or "")).strip()[:maximum]
 
@@ -351,7 +376,7 @@ def normalize_agent_blueprint(
     max_edges: int = 600,
 ) -> dict[str, Any]:
     trace_id = str(uuid.uuid4())
-    draft = _payload(blueprint_draft)
+    draft = _blueprint_draft_payload(blueprint_draft)
     work = _payload(work_definition)
     candidates = _payload(candidate_context)
     skill_context = _payload(applied_skill_context)
@@ -387,7 +412,10 @@ def normalize_agent_blueprint(
     if candidates.get("tenant_id") != tenant or candidates.get("snapshot_id") != snapshot:
         return _error(trace_id, "CANDIDATE_SCOPE_MISMATCH", "candidate context의 tenant 또는 snapshot이 다릅니다.")
 
-    allowlist_items = candidates.get("candidate_allowlist") if isinstance(candidates.get("candidate_allowlist"), list) else []
+    raw_allowlist = candidates.get("candidate_allowlist")
+    if not isinstance(raw_allowlist, list):
+        return _error(trace_id, "CANDIDATE_ALLOWLIST_INVALID", "candidate allowlist는 list여야 합니다.")
+    allowlist_items = raw_allowlist
     asset_allowlist: dict[tuple[str, str], dict[str, Any]] = {}
     allowlist_projection: list[dict[str, str]] = []
     for item in allowlist_items:
@@ -426,8 +454,7 @@ def normalize_agent_blueprint(
         )})
     candidate_allowlist_sha256 = str(candidates.get("candidate_allowlist_sha256") or "")
     if (
-        not allowlist_projection
-        or not re.fullmatch(r"sha256:[0-9a-f]{64}", candidate_allowlist_sha256)
+        not re.fullmatch(r"sha256:[0-9a-f]{64}", candidate_allowlist_sha256)
         or not hmac.compare_digest(candidate_allowlist_sha256, _canonical_hash(allowlist_projection))
     ):
         return _error(trace_id, "CANDIDATE_ALLOWLIST_INVALID", "candidate allowlist hash가 asset/port 계약과 일치하지 않습니다.")
@@ -761,7 +788,7 @@ def normalize_agent_blueprint_from_scope(
     scope = _payload(design_scope)
     candidates = _payload(candidate_context)
     skills = _payload(applied_skill_context)
-    draft = _payload(blueprint_draft)
+    draft = _blueprint_draft_payload(blueprint_draft)
     required = (
         "tenant_id",
         "catalog_snapshot_id",
@@ -788,10 +815,24 @@ def normalize_agent_blueprint_from_scope(
         "approved_hash": str(scope["approved_hash"]),
         "design_scope_sha256": str(scope["design_scope_sha256"]),
     }
+    # The trusted scope owns these values.  A model may omit identity locks
+    # despite the prompt contract; attach only absent values and keep an
+    # explicit conflicting value fail-closed below.
+    if draft:
+        draft = dict(draft)
+        for field, expected_value in {
+            "catalog_snapshot_id": expected["snapshot_id"],
+            "work_definition_id": expected["work_definition_id"],
+            "work_definition_revision": scope["work_definition_revision"],
+            "approved_hash": expected["approved_hash"],
+        }.items():
+            if draft.get(field) in (None, ""):
+                draft[field] = expected_value
     query_plan_sha256 = str(candidates.get("query_plan_sha256") or "")
-    allowlist_items = candidates.get("candidate_allowlist") if isinstance(candidates.get("candidate_allowlist"), list) else []
+    raw_allowlist = candidates.get("candidate_allowlist")
+    allowlist_items = raw_allowlist if isinstance(raw_allowlist, list) else []
     allowlist_projection: list[dict[str, str]] = []
-    allowlist_valid = bool(allowlist_items)
+    allowlist_valid = isinstance(raw_allowlist, list)
     seen_allowlist: set[tuple[str, str]] = set()
     for item in allowlist_items:
         if not isinstance(item, dict):

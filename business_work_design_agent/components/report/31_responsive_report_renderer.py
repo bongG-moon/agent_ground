@@ -441,8 +441,6 @@ def _validate_closed_shape(view_model: dict[str, Any]) -> None:
         "report_view_model.retrieval_trace.candidate_allowlist",
         maximum=50,
     )
-    if not allowlist:
-        raise ValueError("report_view_model.retrieval_trace.candidate_allowlist must not be empty")
     allowlist_projection: list[dict[str, str]] = []
     allowlist_bindings: dict[tuple[str, str, str, str], str] = {}
     seen_allowlist: set[tuple[str, str]] = set()

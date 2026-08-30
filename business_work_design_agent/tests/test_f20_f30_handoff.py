@@ -169,6 +169,73 @@ def test_f20_handoff_json_roundtrips_through_f10_f30_and_dry_run_report(
     assert published["report_id"] == rendered["report_id"]
 
 
+def test_f20_f30_roundtrip_accepts_a_sealed_empty_catalog_allowlist(
+    modules: dict[str, ModuleType],
+) -> None:
+    """No search hit may continue, but it must not authorize a catalog node."""
+
+    work_definition = _read_sample("approved_work_definition.json")
+    candidate_context = _read_sample("candidate_context.json")
+    terminal_blueprint = _read_sample("agent_blueprint_terminal.json")
+    empty_allowlist_hash = modules["handoff_builder"]._canonical_hash([])
+    candidate_context.update(
+        candidate_items=[],
+        candidate_allowlist=[],
+        candidate_allowlist_sha256=empty_allowlist_hash,
+        untrusted_candidate_context="",
+        context_char_count=0,
+        catalog_reference_policy="deny_all_catalog_assets",
+        catalog_candidate_status="none_available",
+    )
+    candidate_context["retrieval_trace"].update(
+        candidate_allowlist=[],
+        candidate_allowlist_sha256=empty_allowlist_hash,
+        empty_result_reason="NO_CANDIDATES",
+        catalog_reference_policy="deny_all_catalog_assets",
+        catalog_candidate_status="none_available",
+    )
+    terminal_blueprint["blueprint"]["candidate_allowlist_sha256"] = empty_allowlist_hash
+    assert all(
+        node["implementation_source"] not in {"catalog_component", "catalog_flow"}
+        for node in terminal_blueprint["blueprint"]["nodes"]
+    )
+
+    handoff = modules["handoff_builder"].build_f20_report_handoff(
+        _sealed_scope(modules, work_definition),
+        candidate_context,
+        terminal_blueprint,
+    )
+    assert handoff["ok"] is True
+    assert modules["handoff_gate"].validate_f20_report_handoff(handoff)["status"] == "READY_FOR_REPORT"
+
+    loaded = modules["handoff_loader"].load_f20_report_handoff(json.dumps(handoff, ensure_ascii=False))
+    view_model = dict(
+        modules["view_model"].ReportViewModelBuilderComponent(
+            work_definition=loaded["work_definition"],
+            agent_blueprint=loaded["agent_blueprint"],
+            retrieval_trace=loaded["retrieval_trace"],
+            report_title="카탈로그 후보 없는 업무 설계",
+            max_nodes=500,
+            max_edges=1000,
+        ).build_report_view_model().data
+    )
+    assert view_model["retrieval_trace"]["candidate_allowlist"] == []
+    catalog_section = next(section for section in view_model["sections"] if section["section_id"] == "catalog_reuse")
+    assert catalog_section["items"][0]["status"] == "no_authorized_candidates"
+    rendered = dict(
+        modules["renderer"].ResponsiveReportRendererComponent(
+            report_view_model=view_model,
+            renderer_version="business-report-renderer.v1",
+            allowed_hosts_json='["localhost"]',
+            max_nodes=500,
+            max_edges=1000,
+            max_html_bytes=10_000_000,
+        ).render_report().data
+    )
+    assert rendered["ok"] is True
+    assert rendered["status"] == "RENDERED"
+
+
 def test_tampered_handoff_is_blocked_by_f10_or_f30_binding_validation(
     modules: dict[str, ModuleType],
 ) -> None:

@@ -1222,7 +1222,9 @@
         "port_contract_sha256": "sha256:cc720a324af5727c74f00b41fb209465e50885fadb5f14831028fa4b418d3ccc"
       }
     ],
-    "candidate_allowlist_sha256": "sha256:9394d3730e4a8f757a3b01851613215d69cde12d0bfc257a8cb9bc88273e1f9d"
+    "candidate_allowlist_sha256": "sha256:9394d3730e4a8f757a3b01851613215d69cde12d0bfc257a8cb9bc88273e1f9d",
+    "catalog_reference_policy": "allow_candidate_allowlist",
+    "catalog_candidate_status": "available"
   },
   "execution_context": {
     "tenant_id": "default",
@@ -1234,6 +1236,6 @@
   "design_scope_sha256": "sha256:ff82e47e8bc30d9b98b643703ff0395a62493a2c9c61c1149ff7480a7055fbb6",
   "query_plan_sha256": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
   "candidate_allowlist_sha256": "sha256:9394d3730e4a8f757a3b01851613215d69cde12d0bfc257a8cb9bc88273e1f9d",
-  "handoff_sha256": "sha256:52806ce978f0fcf374ada2acf0f9264778ecb276cc5ced60fb60aa5aa8f66f4e",
+  "handoff_sha256": "sha256:f66016f6f6526e309fca9bf1bfb5a904c4f990a719a047d278c9acc390df33e1",
   "trace_id": "trace-sample-f20-report-handoff"
 }

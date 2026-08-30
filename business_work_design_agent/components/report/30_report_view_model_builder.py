@@ -152,6 +152,18 @@ SEMANTIC_FIELDS = (
     "unresolved",
     "as_is_graph",
 )
+WORK_SOURCE_IDENTITY_FIELDS = (
+    "schema_version",
+    "work_definition_id",
+    "tenant_id",
+    "owner_id",
+    "session_id",
+    "channel_mode",
+    "revision",
+    "status",
+    "approved_hash",
+    "preview_hash",
+)
 UNORDERED_LIST_KEYS = {
     "scope_in", "scope_out", "actors", "systems", "inputs", "outputs", "pains", "risks_controls",
     "constraints", "success_criteria", "assumptions", "unresolved", "nodes", "edges", "evidence_turn_ids",
@@ -365,6 +377,14 @@ def _approved_semantic_hash(work: dict[str, Any]) -> str:
         allow_nan=False,
     ).encode("utf-8")
     return "sha256:" + hashlib.sha256(payload).hexdigest()
+
+
+def _work_source_contract_projection(work: dict[str, Any]) -> dict[str, Any]:
+    """Keep the report source hash aligned with the sealed F20 work scope."""
+    return {
+        **{field: work.get(field) for field in WORK_SOURCE_IDENTITY_FIELDS},
+        **{field: work.get(field) for field in SEMANTIC_FIELDS},
+    }
 
 
 def _validate_approved_contract(work: dict[str, Any], blueprint: dict[str, Any]) -> tuple[str, int]:
@@ -700,8 +720,8 @@ def _validate_retrieval_trace_binding(
 
 def _validate_catalog_asset_bindings(blueprint: dict[str, Any], trace: dict[str, Any]) -> None:
     raw_allowlist = trace.get("candidate_allowlist")
-    if not isinstance(raw_allowlist, list) or not 1 <= len(raw_allowlist) <= 50:
-        raise ValueError("retrieval_trace candidate_allowlist is required")
+    if not isinstance(raw_allowlist, list) or len(raw_allowlist) > 50:
+        raise ValueError("retrieval_trace candidate_allowlist is invalid")
     projection: list[dict[str, str]] = []
     allowed: dict[tuple[str, str, str, str], str] = {}
     seen: set[tuple[str, str]] = set()
@@ -981,6 +1001,60 @@ def _implementation(node: dict[str, Any], graph_kind: str) -> str:
     return "human_task" if _source_kind(node) in {"task", "human_review"} else "builtin"
 
 
+def _presentation_node_order(nodes: list[Any], edges: list[Any]) -> list[Any]:
+    """Return a stable topological presentation order without changing contracts.
+
+    The approved WorkDefinition hash deliberately canonicalizes unordered graph
+    lists.  The report must not inherit that hash-order as a visual workflow
+    order, so it uses graph edges first and the supplied order only as a stable
+    tie-breaker.  Cyclic or malformed portions remain in their supplied order
+    and are still validated by the regular graph checks below.
+    """
+    index_by_id: dict[str, int] = {}
+    for index, item in enumerate(nodes):
+        if not isinstance(item, dict):
+            continue
+        node_id = _text(item.get("node_id") or item.get("id"), limit=128)
+        if node_id and node_id not in index_by_id:
+            index_by_id[node_id] = index
+    if len(index_by_id) < 2:
+        return nodes
+
+    successors: dict[int, set[int]] = {index: set() for index in index_by_id.values()}
+    indegree: dict[int, int] = {index: 0 for index in index_by_id.values()}
+    for edge in edges:
+        if not isinstance(edge, dict):
+            continue
+        source_id = _text(edge.get("source_node_id") or edge.get("source"), limit=128)
+        target_id = _text(edge.get("target_node_id") or edge.get("target"), limit=128)
+        source_index = index_by_id.get(source_id)
+        target_index = index_by_id.get(target_id)
+        if source_index is None or target_index is None or source_index == target_index:
+            continue
+        if target_index not in successors[source_index]:
+            successors[source_index].add(target_index)
+            indegree[target_index] += 1
+
+    ready = sorted(index for index, value in indegree.items() if value == 0)
+    ordered_indexes: list[int] = []
+    while ready:
+        current = ready.pop(0)
+        ordered_indexes.append(current)
+        for target in sorted(successors[current]):
+            indegree[target] -= 1
+            if indegree[target] == 0:
+                ready.append(target)
+                ready.sort()
+    if len(ordered_indexes) == len(index_by_id):
+        return [nodes[index] for index in ordered_indexes]
+
+    # Preserve every cyclic or malformed item after the valid acyclic prefix.
+    ordered_set = set(ordered_indexes)
+    return [nodes[index] for index in ordered_indexes] + [
+        item for index, item in enumerate(nodes) if index not in ordered_set
+    ]
+
+
 def _build_graph(
     graph: dict[str, Any],
     graph_kind: str,
@@ -1006,6 +1080,7 @@ def _build_graph(
         source_edges = blueprint_edges
     if len(source_nodes) > max_nodes or len(source_edges) > max_edges:
         raise ValueError("graph size exceeds configured limits")
+    source_nodes = _presentation_node_order(source_nodes, source_edges)
 
     request_map: dict[str, dict[str, Any]] = {}
     if isinstance(generation_requests, list):
@@ -1203,6 +1278,14 @@ def _build_graph(
                 "retry_policy": _redact_sensitive(raw_edge.get("retry_policy")) if isinstance(raw_edge.get("retry_policy"), dict) else {},
             }
         )
+    node_sequence = {node["node_id"]: node["sequence"] for node in nodes}
+    edges.sort(
+        key=lambda edge: (
+            node_sequence.get(edge["source_node_id"], len(nodes) + 1),
+            node_sequence.get(edge["target_node_id"], len(nodes) + 1),
+            edge["edge_id"],
+        )
+    )
 
     clean_requests: dict[str, dict[str, Any]] = {}
     referenced_requests = set(request_ref_to_node)
@@ -1361,6 +1444,57 @@ class ReportViewModelBuilderComponent(Component):
         )
         to_be_graph["build_readiness"] = readiness
         blueprint_sha256 = _canonical_hash(blueprint)
+        sections = [
+            {
+                "section_id": "assumptions",
+                "title": "가정",
+                "items": _redact_sensitive(
+                    _canonicalize(_bounded_list(work.get("assumptions"), "work assumptions", 1_000))
+                ),
+            },
+            {
+                "section_id": "unresolved",
+                "title": "남은 확인 사항",
+                "items": _redact_sensitive(
+                    _canonicalize(
+                        _bounded_list(
+                            work.get("unresolved") if work.get("unresolved") else blueprint.get("unresolved"),
+                            "unresolved items",
+                            1_000,
+                        )
+                    )
+                ),
+            },
+            {
+                "section_id": "risks",
+                "title": "위험과 통제",
+                "items": _redact_sensitive(
+                    _canonicalize(_bounded_list(work.get("risks_controls"), "risk controls", 1_000))
+                ),
+            },
+            {
+                "section_id": "tests",
+                "title": "검증 계획",
+                "items": _redact_sensitive(
+                    _canonicalize(_bounded_list(blueprint.get("tests"), "blueprint tests", 1_000))
+                ),
+            },
+        ]
+        if not trace.get("candidate_allowlist"):
+            sections.insert(
+                0,
+                {
+                    "section_id": "catalog_reuse",
+                    "title": "카탈로그 재사용 결과",
+                    "items": [
+                        {
+                            "status": "no_authorized_candidates",
+                            "message": "카탈로그 검색은 정상 완료되었지만 현재 업무·권한 범위에서 재사용 가능한 자산은 찾지 못했습니다. 이 설계는 기본 요소, 신규 Standalone Custom Component, Human 업무만 사용하며 catalog Component/Flow 참조는 허용하지 않습니다.",
+                            "empty_result_reason": _text(trace.get("empty_result_reason"), limit=128),
+                        }
+                    ],
+                },
+            )
         view_model = {
             "schema_version": "report_view_model.v1",
             "renderer_version": REPORT_RENDERER_VERSION,
@@ -1379,36 +1513,15 @@ class ReportViewModelBuilderComponent(Component):
             },
             "as_is_graph": as_is_graph,
             "to_be_graph": to_be_graph,
-            "sections": [
-                {
-                    "section_id": "assumptions",
-                    "title": "가정",
-                    "items": _redact_sensitive(_bounded_list(work.get("assumptions"), "work assumptions", 1_000)),
-                },
-                {
-                    "section_id": "unresolved",
-                    "title": "남은 확인 사항",
-                    "items": _redact_sensitive(
-                        _bounded_list(
-                            work.get("unresolved") if work.get("unresolved") else blueprint.get("unresolved"),
-                            "unresolved items",
-                            1_000,
-                        )
-                    ),
-                },
-                {
-                    "section_id": "risks",
-                    "title": "위험과 통제",
-                    "items": _redact_sensitive(_bounded_list(work.get("risks_controls"), "risk controls", 1_000)),
-                },
-                {
-                    "section_id": "tests",
-                    "title": "검증 계획",
-                    "items": _redact_sensitive(_bounded_list(blueprint.get("tests"), "blueprint tests", 1_000)),
-                },
-            ],
+            "sections": sections,
             "retrieval_trace": _redact_sensitive(trace),
-            "source_contract_hash": _canonical_hash({"work": work, "blueprint": blueprint, "retrieval_trace": trace}),
+            "source_contract_hash": _canonical_hash(
+                {
+                    "work": _canonicalize(_work_source_contract_projection(work)),
+                    "blueprint": _canonicalize(blueprint),
+                    "retrieval_trace": _canonicalize(trace),
+                }
+            ),
         }
         view_model["report_id"] = "report-" + _canonical_hash(view_model).split(":", 1)[1][:24]
         self.status = f"Report view model ready: {len(as_is_graph['nodes']) + len(to_be_graph['nodes'])} nodes"

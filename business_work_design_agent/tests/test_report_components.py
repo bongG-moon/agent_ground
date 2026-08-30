@@ -74,6 +74,34 @@ def build_view_model(
     return dict(component.build_report_view_model().data)
 
 
+def test_30_uses_graph_edges_for_stable_as_is_presentation_order(
+    modules: dict[str, ModuleType],
+    sample_contracts: tuple[dict[str, Any], dict[str, Any], dict[str, Any]],
+) -> None:
+    """Hash canonicalization must not turn the visual flow into lexical order."""
+
+    work, _, candidate_context = copy.deepcopy(sample_contracts)
+    work["as_is_graph"]["nodes"] = list(reversed(work["as_is_graph"]["nodes"]))
+    terminal = read_json("agent_blueprint_terminal.json")
+    view_model = dict(
+        modules["30_report_view_model_builder"].ReportViewModelBuilderComponent(
+            work_definition=work,
+            agent_blueprint=terminal,
+            retrieval_trace=candidate_context["retrieval_trace"],
+            report_title="업무 Flow 순서 검증",
+            max_nodes=500,
+            max_edges=1000,
+        ).build_report_view_model().data
+    )
+    assert [node["source_node_id"] for node in view_model["as_is_graph"]["nodes"]] == [
+        "as-start",
+        "as-search",
+        "as-draft",
+        "as-review",
+        "as-end",
+    ]
+
+
 def render_view_model(modules: dict[str, ModuleType], view_model: dict[str, Any]) -> dict[str, Any]:
     component = modules["31_responsive_report_renderer"].ResponsiveReportRendererComponent(
         report_view_model=view_model,

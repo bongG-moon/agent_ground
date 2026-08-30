@@ -560,6 +560,38 @@ def test_retriever_application_rrf_filters_scope_acl_and_preserves_trace(monkeyp
     assert result["retrieval_trace"]["silent_fallback_used"] is False
 
 
+def test_retriever_returns_a_sealed_empty_result_when_search_has_no_candidates(
+    monkeypatch: pytest.MonkeyPatch, modules: dict[str, Any]
+) -> None:
+    module = modules["21_catalog_hybrid_retriever"]
+    plan = modules["20_search_query_planner"].build_search_query_plan(
+        approved_work(), tenant_id="tenant-a", catalog_snapshot_id="snap-1", acl_context=acl()
+    )
+    vectors = locked_query_vectors(plan, {item["query_id"]: [0.1, 0.2, 0.3] for item in plan["queries"]}, 3)
+    monkeypatch.setattr(
+        module,
+        "_retrieve_from_mongodb",
+        lambda **_: {"active_snapshot_id": "snap-1", "source_results": {"exact": [], "lexical": []}},
+    )
+
+    result = module.retrieve_catalog_candidates(
+        plan,
+        vectors,
+        tenant_id="tenant-a",
+        catalog_snapshot_id="snap-1",
+        acl_context=acl(),
+        provider_mode="application_rrf",
+        mongodb_uri="mongodb://not-used",
+    )
+
+    assert result["ok"] is True
+    assert result["status"] == "COMPLETED"
+    assert result["candidates"] == []
+    assert result["retrieval_trace"]["empty_result_reason"] == "NO_CANDIDATES"
+    assert result["retrieval_trace"]["returned_count"] == 0
+    assert result["retrieval_trace"]["silent_fallback_used"] is False
+
+
 def test_retriever_records_only_vector_queries_that_contributed(monkeypatch: pytest.MonkeyPatch, modules: dict[str, Any]) -> None:
     module = modules["21_catalog_hybrid_retriever"]
     queries = [
@@ -968,6 +1000,83 @@ def test_candidate_context_dedupes_and_bounds_untrusted_text(modules: dict[str, 
     mismatched["retrieval_trace"] = {"snapshot_id": "another-snapshot"}
     blocked = module.build_candidate_context(mismatched)
     assert blocked["error"]["code"] == "RETRIEVAL_TRACE_LOCK_MISMATCH"
+
+
+def test_empty_candidate_context_allows_only_non_catalog_blueprint_sources(modules: dict[str, Any]) -> None:
+    planner = modules["20_search_query_planner"]
+    context_builder = modules["22_candidate_context_builder"]
+    normalizer = modules["23_agent_blueprint_normalizer"]
+    scope = planner.build_design_scope(
+        approved_work(),
+        tenant_id="tenant-a",
+        catalog_snapshot_id="snap-1",
+        acl_context=acl(),
+        design_prompt="카탈로그 후보가 없으면 신규 standalone 계약으로 설계한다.",
+    )
+    retrieval = {
+        "ok": True,
+        "status": "COMPLETED",
+        "tenant_id": "tenant-a",
+        "snapshot_id": "snap-1",
+        "work_definition_id": scope["work_definition_id"],
+        "work_definition_revision": scope["work_definition_revision"],
+        "approved_hash": scope["approved_hash"],
+        "design_scope_sha256": scope["design_scope_sha256"],
+        "query_plan_sha256": "sha256:" + "c" * 64,
+        "provider_mode": "application_rrf",
+        "candidates": [],
+        "retrieval_trace": {"empty_result_reason": "NO_CANDIDATES"},
+    }
+    candidates = context_builder.build_candidate_context(retrieval)
+    assert candidates["ok"] is True
+    assert candidates["candidate_items"] == []
+    assert candidates["candidate_allowlist"] == []
+    assert candidates["candidate_allowlist_sha256"] == canonical_hash([])
+    assert candidates["catalog_reference_policy"] == "deny_all_catalog_assets"
+    assert candidates["retrieval_trace"]["empty_result_reason"] == "NO_CANDIDATES"
+
+    skills = {
+        "ok": True,
+        "tenant_id": "tenant-a",
+        "catalog_snapshot_id": "snap-1",
+        "work_definition_id": scope["work_definition_id"],
+        "work_definition_revision": scope["work_definition_revision"],
+        "approved_hash": scope["approved_hash"],
+        "design_scope_sha256": scope["design_scope_sha256"],
+        "applied_skills": [],
+    }
+    draft = {
+        "nodes": [
+            {
+                "node_id": "summary",
+                "title": "업무 보고 초안 생성",
+                "responsibility": "업무 문서를 주간 보고 초안으로 정리한다.",
+                "implementation_source": "new_standalone_component",
+                "generation_contract": generation_contract(),
+            }
+        ],
+        "edges": [],
+    }
+    model_text = {"text": "```json\n" + json.dumps(draft, ensure_ascii=False) + "\n```"}
+    normalized = normalizer.normalize_agent_blueprint_from_scope(model_text, scope, candidates, skills)
+    assert normalized["ok"] is True
+    assert normalized["blueprint"]["catalog_snapshot_id"] == scope["catalog_snapshot_id"]
+    assert normalized["blueprint"]["work_definition_id"] == scope["work_definition_id"]
+    assert normalized["blueprint"]["candidate_allowlist_sha256"] == canonical_hash([])
+
+    validated = modules["24_port_contract_validator"].validate_port_contracts(normalized)
+    classified = modules["25_blueprint_readiness_classifier"].classify_blueprint_readiness(validated)
+    terminal = modules["26_component_generation_prompt_builder"].build_component_generation_prompt(classified, target_node_id="")
+    assert terminal["ok"] is True
+    assert terminal["blueprint"]["terminal_contract"] is True
+
+    forged_catalog_draft = copy.deepcopy(draft)
+    forged_catalog_draft["nodes"][0].pop("generation_contract")
+    forged_catalog_draft["nodes"][0]["implementation_source"] = "catalog_component"
+    forged_catalog_draft["nodes"][0]["asset_ref"] = {"asset_id": "forged", "version": "v1"}
+    blocked = normalizer.normalize_agent_blueprint_from_scope(forged_catalog_draft, scope, candidates, skills)
+    assert blocked["ok"] is False
+    assert blocked["error"]["code"] == "UNKNOWN_CATALOG_ASSET"
 
 
 def test_candidate_allowlist_hash_seals_authoritative_ports_and_23_rejects_a_stale_hash(
@@ -1816,6 +1925,36 @@ def test_readiness_classifier_keeps_three_status_axes_separate(modules: dict[str
     blocked = module.classify_blueprint_readiness(blueprint)
     assert blocked["build_readiness"] == "design_only"
     assert any(item["code"] == "METADATA_ONLY_EXECUTION_NODE" for item in blocked["blockers"])
+
+
+def test_f20_validation_chain_preserves_the_original_blocked_error(modules: dict[str, Any]) -> None:
+    """A parent Run Flow must receive the cause, not Component 26's fallback."""
+    upstream = {
+        "ok": False,
+        "status": "BLOCKED",
+        "artifact_refs": [],
+        "error": {
+            "code": "INVALID_BLUEPRINT_DRAFT",
+            "message": "LLM blueprint JSON을 읽을 수 없습니다.",
+            "retryable": False,
+            "details": {"stage": "blueprint_model"},
+        },
+        "resume": None,
+        "trace_id": "trace-normalizer",
+    }
+    port_result = modules["24_port_contract_validator"].validate_port_contracts(upstream)
+    readiness_result = modules["25_blueprint_readiness_classifier"].classify_blueprint_readiness(port_result)
+    generation_result = modules["26_component_generation_prompt_builder"].build_component_generation_prompt(
+        readiness_result,
+        target_node_id="",
+    )
+
+    for result in (port_result, readiness_result, generation_result):
+        assert result["ok"] is False
+        assert result["status"] == "BLOCKED"
+        assert result["error"]["code"] == "INVALID_BLUEPRINT_DRAFT"
+        assert result["error"]["message"] == "LLM blueprint JSON을 읽을 수 없습니다."
+    assert generation_result["error"]["details"]["stage"] == "blueprint_model"
 
 
 def test_generation_prompt_is_deterministic_bounded_and_source_gated(modules: dict[str, Any]) -> None:

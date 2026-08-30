@@ -116,6 +116,38 @@ def _payload(value: Any) -> dict[str, Any]:
     return {}
 
 
+def _forward_blocked_envelope(value: Any, *, trace_id: str) -> dict[str, Any] | None:
+    """Do not hide an earlier F20 validation failure behind a generic error.
+
+    A direct raw blueprint still fails with
+    ``CLASSIFIED_BLUEPRINT_ENVELOPE_REQUIRED``.  Only a structured blocked
+    envelope from the normalizer, port validator, or readiness classifier is
+    carried forward unchanged so the caller can fix the true prerequisite.
+    """
+    payload = _payload(value)
+    error = payload.get("error")
+    if payload.get("ok") is not False or str(payload.get("status") or "") != "BLOCKED" or not isinstance(error, dict):
+        return None
+    details = error.get("details")
+    forwarded_details = dict(details) if isinstance(details, dict) else {}
+    upstream_trace_id = str(payload.get("trace_id") or "").strip()
+    if upstream_trace_id:
+        forwarded_details.setdefault("upstream_trace_id", upstream_trace_id)
+    return {
+        "ok": False,
+        "status": "BLOCKED",
+        "artifact_refs": [],
+        "error": {
+            "code": str(error.get("code") or "UPSTREAM_BLUEPRINT_STAGE_BLOCKED"),
+            "message": str(error.get("message") or "이전 Blueprint 단계가 차단되었습니다."),
+            "retryable": error.get("retryable") is True,
+            "details": forwarded_details,
+        },
+        "resume": None,
+        "trace_id": trace_id,
+    }
+
+
 def _classified_blueprint(value: Any) -> tuple[dict[str, Any], dict[str, Any], str]:
     payload = _payload(value)
     nested = payload.get("blueprint")
@@ -217,6 +249,9 @@ def _bounded_json(value: Any, maximum_chars: int = 30000) -> Any:
 
 def build_component_generation_prompt(classified_blueprint: Any, *, target_node_id: str) -> dict[str, Any]:
     trace_id = str(uuid.uuid4())
+    blocked = _forward_blocked_envelope(classified_blueprint, trace_id=trace_id)
+    if blocked is not None:
+        return blocked
     classified, blueprint, contract_error = _classified_blueprint(classified_blueprint)
     target_id = str(target_node_id or "").strip()
     if contract_error:

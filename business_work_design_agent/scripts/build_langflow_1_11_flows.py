@@ -1873,7 +1873,8 @@ def _build_f20() -> dict[str, Any]:
         """## ② 하이브리드 카탈로그 검색
 
 - query plan에서 검색 문장을 만들고 같은 승인 Embedding Model로 벡터를 생성합니다.
-- lexical/vector 후보를 결합하고 active snapshot·ACL·embedding 계약을 재검증합니다.""",
+- lexical/vector 후보를 결합하고 active snapshot·ACL·embedding 계약을 재검증합니다.
+- 정상 검색 결과가 0건이면 오류로 숨기지 않고, catalog 참조를 금지한 빈 allowlist로 기본 요소·신규 Standalone·Human 업무만 설계합니다.""",
         (460, -1350),
         width=1250,
         height=360,
@@ -1884,6 +1885,7 @@ def _build_f20() -> dict[str, Any]:
 
 - 후보 컴포넌트/Flow와 승인 Skill 문맥을 LLM prompt에 넣어 Blueprint JSON을 생성합니다.
 - Normalizer, port contract, readiness 단계가 불완전하거나 위험한 설계를 fail-closed 처리합니다.
+- 빈 allowlist에서는 catalog Component/Flow를 임의로 만들 수 없고, builtin·신규 Standalone·Human/companion 설계만 허용합니다.
 - 검색된 원문은 실행 지시가 아니라 참고 메타정보로만 사용합니다.""",
         (1740, -1350),
         width=2400,

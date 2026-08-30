@@ -38,8 +38,37 @@ def _blueprint(value: Any) -> tuple[dict[str, Any], list[dict[str, Any]]]:
     return blueprint, [item for item in issues if isinstance(item, dict)]
 
 
+def _forward_blocked_envelope(value: Any, *, trace_id: str) -> dict[str, Any] | None:
+    """Preserve the precise preceding F20 failure for the parent Run Flow."""
+    payload = _payload(value)
+    error = payload.get("error")
+    if payload.get("ok") is not False or str(payload.get("status") or "") != "BLOCKED" or not isinstance(error, dict):
+        return None
+    details = error.get("details")
+    forwarded_details = dict(details) if isinstance(details, dict) else {}
+    upstream_trace_id = str(payload.get("trace_id") or "").strip()
+    if upstream_trace_id:
+        forwarded_details.setdefault("upstream_trace_id", upstream_trace_id)
+    return {
+        "ok": False,
+        "status": "BLOCKED",
+        "artifact_refs": [],
+        "error": {
+            "code": str(error.get("code") or "UPSTREAM_BLUEPRINT_STAGE_BLOCKED"),
+            "message": str(error.get("message") or "이전 Blueprint 단계가 차단되었습니다."),
+            "retryable": error.get("retryable") is True,
+            "details": forwarded_details,
+        },
+        "resume": None,
+        "trace_id": trace_id,
+    }
+
+
 def classify_blueprint_readiness(validated_blueprint: Any) -> dict[str, Any]:
     trace_id = str(uuid.uuid4())
+    blocked = _forward_blocked_envelope(validated_blueprint, trace_id=trace_id)
+    if blocked is not None:
+        return blocked
     blueprint, validation_issues = _blueprint(validated_blueprint)
     if not blueprint or not isinstance(blueprint.get("nodes"), list) or not isinstance(blueprint.get("edges"), list):
         return _error(trace_id, "INVALID_BLUEPRINT", "port 검증을 거친 blueprint가 필요합니다.")

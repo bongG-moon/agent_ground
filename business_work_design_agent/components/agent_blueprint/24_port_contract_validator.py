@@ -33,6 +33,39 @@ def _blueprint(value: Any) -> dict[str, Any]:
     return nested if isinstance(nested, dict) else payload
 
 
+def _forward_blocked_envelope(value: Any, *, trace_id: str) -> dict[str, Any] | None:
+    """Keep a prior F20-stage failure visible instead of relabeling it.
+
+    F20 is deliberately fail-closed, but its linear Data chain still invokes
+    downstream components after an upstream component returns a structured
+    ``BLOCKED`` envelope.  Without this guard, the actual error from the
+    normalizer is replaced by ``INVALID_BLUEPRINT`` here and becomes
+    impossible to diagnose from the parent Run Flow.
+    """
+    payload = _payload(value)
+    error = payload.get("error")
+    if payload.get("ok") is not False or str(payload.get("status") or "") != "BLOCKED" or not isinstance(error, dict):
+        return None
+    details = error.get("details")
+    forwarded_details = dict(details) if isinstance(details, dict) else {}
+    upstream_trace_id = str(payload.get("trace_id") or "").strip()
+    if upstream_trace_id:
+        forwarded_details.setdefault("upstream_trace_id", upstream_trace_id)
+    return {
+        "ok": False,
+        "status": "BLOCKED",
+        "artifact_refs": [],
+        "error": {
+            "code": str(error.get("code") or "UPSTREAM_BLUEPRINT_STAGE_BLOCKED"),
+            "message": str(error.get("message") or "이전 Blueprint 단계가 차단되었습니다."),
+            "retryable": error.get("retryable") is True,
+            "details": forwarded_details,
+        },
+        "resume": None,
+        "trace_id": trace_id,
+    }
+
+
 def _runtime_evidence(value: Any) -> dict[str, dict[str, Any]]:
     payload = _payload(value)
     items = payload.get("edge_evidence") if isinstance(payload.get("edge_evidence"), list) else []
@@ -80,6 +113,9 @@ def _type_compatible(source: str, target: str) -> bool:
 
 def validate_port_contracts(normalized_blueprint: Any, runtime_evidence: Any = None) -> dict[str, Any]:
     trace_id = str(uuid.uuid4())
+    blocked = _forward_blocked_envelope(normalized_blueprint, trace_id=trace_id)
+    if blocked is not None:
+        return blocked
     blueprint = _blueprint(normalized_blueprint)
     evidence = _runtime_evidence(runtime_evidence)
     if not blueprint or not isinstance(blueprint.get("nodes"), list) or not isinstance(blueprint.get("edges"), list):

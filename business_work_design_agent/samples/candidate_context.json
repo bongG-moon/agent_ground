@@ -74,6 +74,8 @@
     }
   ],
   "candidate_allowlist_sha256": "sha256:9394d3730e4a8f757a3b01851613215d69cde12d0bfc257a8cb9bc88273e1f9d",
+  "catalog_reference_policy": "allow_candidate_allowlist",
+  "catalog_candidate_status": "available",
   "untrusted_candidate_context": "<untrusted-catalog-candidate rank=\"1\">\n{\"asset_id\":\"47d41a8d-9208-48c2-b79b-9d84d7ce199d\",\"asset_type\":\"flow\",\"category\":\"\",\"description\":\"메일을 수집해 업무보고를 만드는 기존 Flow 후보\",\"limitations\":[],\"metadata_only\":true,\"port_contract_sha256\":\"sha256:cc720a324af5727c74f00b41fb209465e50885fadb5f14831028fa4b418d3ccc\",\"ports\":{\"inputs\":[],\"outputs\":[]},\"readme_excerpt\":\"\",\"recommendation_status\":\"candidate\",\"retrieval_trace\":{},\"technical_contract_status\":\"metadata_only\",\"title\":\"email기반 자동 업무보고 만들기\",\"version\":\"v1.0.0\"}\n</untrusted-catalog-candidate>\n\n<untrusted-catalog-candidate rank=\"2\">\n{\"asset_id\":\"e21931b2-1093-4f32-b55a-36ac66ef5b59\",\"asset_type\":\"component\",\"category\":\"\",\"description\":\"Outlook 연계 방식 참고용 Component 후보\",\"limitations\":[],\"metadata_only\":true,\"port_contract_sha256\":\"sha256:cc720a324af5727c74f00b41fb209465e50885fadb5f14831028fa4b418d3ccc\",\"ports\":{\"inputs\":[],\"outputs\":[]},\"readme_excerpt\":\"\",\"recommendation_status\":\"candidate\",\"retrieval_trace\":{},\"technical_contract_status\":\"metadata_only\",\"title\":\"Outlook일정가지고오기 component(GetScheduleComponent)\",\"version\":\"v1.0.1\"}\n</untrusted-catalog-candidate>",
   "context_char_count": 1114,
   "limits": {
@@ -115,7 +117,9 @@
         "port_contract_sha256": "sha256:cc720a324af5727c74f00b41fb209465e50885fadb5f14831028fa4b418d3ccc"
       }
     ],
-    "candidate_allowlist_sha256": "sha256:9394d3730e4a8f757a3b01851613215d69cde12d0bfc257a8cb9bc88273e1f9d"
+    "candidate_allowlist_sha256": "sha256:9394d3730e4a8f757a3b01851613215d69cde12d0bfc257a8cb9bc88273e1f9d",
+    "catalog_reference_policy": "allow_candidate_allowlist",
+    "catalog_candidate_status": "available"
   },
   "trace_id": "trace-sample-candidate-context"
 }

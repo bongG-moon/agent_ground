@@ -13,6 +13,7 @@
 5. 각 node의 `implementation_source`는 `builtin`, `catalog_component`, `catalog_flow`, `new_standalone_component`, `companion_service`, `human_task` 중 하나다.
 6. built-in으로 충족되면 신규 Custom을 제안하지 않는다.
 7. catalog node는 입력 candidate set의 asset ID/version만 참조한다.
+7a. `candidate_context.catalog_reference_policy`가 `deny_all_catalog_assets`이거나 candidate allowlist가 비어 있으면 `catalog_component`, `catalog_flow`, `asset_ref`를 출력하지 않는다. 이 경우 `builtin`, `new_standalone_component`, `human_task` 또는 필요한 `companion_service`만 사용하고, 카탈로그 재사용 후보가 없었다는 사실을 설계 근거에 남긴다.
 8. `metadata_only`, `ports_extracted`, `flow_graph_extracted` 자산을 `verified_runtime`으로 바꾸지 않는다.
 9. `technical_contract_status`, edge의 `connection_validation_status`, root `build_readiness`를 서로 섞지 않는다.
 10. secret, permission, network zone, timeout, retry, idempotency, failure route와 Human gate를 빠뜨리지 않는다.

@@ -54,7 +54,6 @@
         "candidate_allowlist_sha256": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
         "candidate_allowlist": {
           "type": "array",
-          "minItems": 1,
           "maxItems": 50,
           "items": {
             "type": "object",
