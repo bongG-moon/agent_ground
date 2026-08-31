@@ -153,6 +153,38 @@ class F10CompactHelperTests(unittest.TestCase):
         self.assertIn("질문 카드", text)
         self.assertIn("ANSWER_REQUIRED_VALUE_MISSING", text)
 
+    def test_terminal_message_has_safe_authentication_and_mongodb_explanations(self):
+        authentication = TERMINAL.render_f10_terminal_result_message(
+            [{"status": "BLOCKED", "error": {"code": "TRUSTED_GATEWAY_SUBJECT_REQUIRED", "message": "subject=secret"}}]
+        )
+        mongodb = TERMINAL.render_f10_terminal_result_message(
+            [{"status": "BLOCKED", "error": {"code": "DESIGN_INVOCATION_MONGODB_UNAVAILABLE", "message": "mongodb://user:secret@host"}}]
+        )
+        self.assertIn("인증된 사용자", authentication)
+        self.assertIn("MongoDB 설정", mongodb)
+        self.assertNotIn("secret", authentication)
+        self.assertNotIn("mongodb://", mongodb)
+
+    def test_terminal_message_explains_f20_handoff_and_blueprint_contract_failures(self):
+        handoff = TERMINAL.render_f10_terminal_result_message(
+            [{"status": "BLOCKED", "error": {"code": "F20_REPORT_HANDOFF_FIELDS_INVALID", "message": "handoff invalid"}}]
+        )
+        blueprint = TERMINAL.render_f10_terminal_result_message(
+            [
+                {
+                    "status": "BLOCKED",
+                    "error": {
+                        "code": "TERMINAL_BLUEPRINT_BINDING_INVALID",
+                        "message": "blueprint binding invalid",
+                    },
+                }
+            ]
+        )
+        self.assertIn("F20 설계 결과", handoff)
+        self.assertIn("F20_REPORT_HANDOFF_FIELDS_INVALID", handoff)
+        self.assertIn("노드 연결 또는 입출력", blueprint)
+        self.assertIn("TERMINAL_BLUEPRINT_BINDING_INVALID", blueprint)
+
     def test_terminal_uses_one_list_input_to_avoid_eager_optional_fan_in(self):
         inputs = TERMINAL.F10TerminalResultMessageComponent.inputs
         self.assertEqual([item.name for item in inputs], ["terminal_events"])

@@ -447,6 +447,1734 @@
       "aliases": ["iFlow", "Cube 알림", "최신 게시글", "post notification"],
       "technical_contract_status": "metadata_only",
       "acl": {"visibility": "tenant", "groups": [], "subjects": []}
+    },
+    {
+      "id": "f0010001-0000-4000-8000-000000000001",
+      "title": "Outlook 업무 메일 Folder Reader Component",
+      "type": "py",
+      "description": "지정한 메일함과 기간에서 업무 메일 후보, 제목, 수신 시각, 원문 참조를 읽는 재사용 후보입니다.",
+      "category": "Utility / Mail",
+      "version": "v0.2.0-sample",
+      "stars_count": 13,
+      "downloads_count": 23,
+      "created_at": "2026-08-02T01:00:00.000000Z",
+      "updated_at": "2026-08-02T09:00:00.000000Z",
+      "readme": "주간 업무보고의 수집 단계 후보입니다. 실제 메일 접근 권한, paging, 삭제·보존 정책과 입출력 포트는 사용 전 코드와 운영 설정을 확인해야 합니다.",
+      "aliases": [
+        "Outlook mail",
+        "메일함 조회",
+        "업무 메일"
+      ],
+      "technical_contract_status": "metadata_only",
+      "acl": {
+        "visibility": "tenant",
+        "groups": [],
+        "subjects": []
+      }
+    },
+    {
+      "id": "f0010002-0000-4000-8000-000000000002",
+      "title": "Outlook 메일 검색 조건 Builder Component",
+      "type": "py",
+      "description": "기간, 발신자, 제목 키워드, 프로젝트 조건을 메일 검색 조건으로 정규화하는 후보입니다.",
+      "category": "Utility / Mail",
+      "version": "v0.2.0-sample",
+      "stars_count": 20,
+      "downloads_count": 34,
+      "created_at": "2026-08-03T01:00:00.000000Z",
+      "updated_at": "2026-08-03T09:00:00.000000Z",
+      "readme": "업무보고·인수인계용 메일 조회 조건을 일관되게 만들기 위한 후보입니다. 실제 검색 문법, 허용 필드, 사용자별 권한은 별도 검증이 필요합니다.",
+      "aliases": [
+        "메일 검색 조건",
+        "mail query",
+        "Outlook filter"
+      ],
+      "technical_contract_status": "metadata_only",
+      "acl": {
+        "visibility": "tenant",
+        "groups": [],
+        "subjects": []
+      }
+    },
+    {
+      "id": "f0010003-0000-4000-8000-000000000003",
+      "title": "메일 발신자·도메인 Allowlist Filter Component",
+      "type": "py",
+      "description": "업무 관련 발신자와 허용 도메인 규칙으로 메일 후보를 분리하는 재사용 후보입니다.",
+      "category": "Data / Preparation",
+      "version": "v0.2.0-sample",
+      "stars_count": 27,
+      "downloads_count": 45,
+      "created_at": "2026-08-04T01:00:00.000000Z",
+      "updated_at": "2026-08-04T09:00:00.000000Z",
+      "readme": "자동 알림과 개인성 메일을 줄이는 전처리 후보입니다. 제외 규칙, 예외 처리, 감사 로그와 조직별 allowlist는 실제 정책을 확인해야 합니다.",
+      "aliases": [
+        "메일 allowlist",
+        "발신자 필터",
+        "mail sender filter"
+      ],
+      "technical_contract_status": "metadata_only",
+      "acl": {
+        "visibility": "tenant",
+        "groups": [],
+        "subjects": []
+      }
+    },
+    {
+      "id": "f0010004-0000-4000-8000-000000000004",
+      "title": "메일 민감정보 마스킹 Component",
+      "type": "py",
+      "description": "메일 본문과 첨부 텍스트에서 민감정보 후보를 마스킹하고 마스킹 사유를 남기는 재사용 후보입니다.",
+      "category": "Security / Document",
+      "version": "v0.2.0-sample",
+      "stars_count": 34,
+      "downloads_count": 56,
+      "created_at": "2026-08-05T01:00:00.000000Z",
+      "updated_at": "2026-08-05T09:00:00.000000Z",
+      "readme": "LLM 분석 전 최소한의 정보만 전달하기 위한 후보입니다. 탐지 규칙, 복원 권한, 원문 보관 위치와 오탐 검토는 실제 보안 정책을 따라야 합니다.",
+      "aliases": [
+        "메일 마스킹",
+        "PII redaction",
+        "sensitive mail"
+      ],
+      "technical_contract_status": "metadata_only",
+      "acl": {
+        "visibility": "tenant",
+        "groups": [],
+        "subjects": []
+      }
+    },
+    {
+      "id": "f0010005-0000-4000-8000-000000000005",
+      "title": "메일 Thread 요약·근거 유지 Flow",
+      "type": "json",
+      "description": "동일 메일 thread를 묶어 핵심 진행 내용과 각 문장의 원문 참조를 함께 만드는 후보 Flow입니다.",
+      "category": "Workflow / Mail",
+      "version": "v0.2.0-sample",
+      "stars_count": 41,
+      "downloads_count": 67,
+      "created_at": "2026-08-06T01:00:00.000000Z",
+      "updated_at": "2026-08-06T09:00:00.000000Z",
+      "readme": "메일 기반 업무 현황을 중복 없이 요약하는 후보입니다. 원문 링크 권한, 요약 기준, 사람 검토와 실제 Flow 연결 계약을 확인해야 합니다.",
+      "aliases": [
+        "메일 thread",
+        "thread summary",
+        "근거 유지"
+      ],
+      "technical_contract_status": "metadata_only",
+      "acl": {
+        "visibility": "tenant",
+        "groups": [],
+        "subjects": []
+      }
+    },
+    {
+      "id": "f0010006-0000-4000-8000-000000000006",
+      "title": "메일 첨부 OCR·텍스트 추출 Component",
+      "type": "py",
+      "description": "허용된 PDF, 이미지, Office 첨부파일에서 분석용 텍스트와 파일 참조를 만드는 후보입니다.",
+      "category": "Document",
+      "version": "v0.2.0-sample",
+      "stars_count": 9,
+      "downloads_count": 78,
+      "created_at": "2026-08-07T01:00:00.000000Z",
+      "updated_at": "2026-08-07T09:00:00.000000Z",
+      "readme": "첨부 자료를 업무보고 근거로 사용할 때의 후보입니다. 지원 확장자, 악성 파일 차단, OCR 품질, 파일 ACL과 보존 기간은 실제 구현을 확인해야 합니다.",
+      "aliases": [
+        "첨부 OCR",
+        "attachment OCR",
+        "문서 추출"
+      ],
+      "technical_contract_status": "metadata_only",
+      "acl": {
+        "visibility": "tenant",
+        "groups": [],
+        "subjects": []
+      }
+    },
+    {
+      "id": "f0010007-0000-4000-8000-000000000007",
+      "title": "메일·JIRA 연관 이슈 Linker Component",
+      "type": "py",
+      "description": "메일 본문의 이슈 키와 링크를 찾아 JIRA 항목과 연결하는 재사용 후보입니다.",
+      "category": "Utility / Mail",
+      "version": "v0.2.0-sample",
+      "stars_count": 16,
+      "downloads_count": 89,
+      "created_at": "2026-08-08T01:00:00.000000Z",
+      "updated_at": "2026-08-08T09:00:00.000000Z",
+      "readme": "메일과 이슈 진행 상태를 함께 보는 보고서 입력 후보입니다. 키 추출 정확도, 링크 열람 권한, 잘못된 자동 연결의 검토 절차가 필요합니다.",
+      "aliases": [
+        "mail JIRA link",
+        "이슈 연결",
+        "JIRA key"
+      ],
+      "technical_contract_status": "metadata_only",
+      "acl": {
+        "visibility": "tenant",
+        "groups": [],
+        "subjects": []
+      }
+    },
+    {
+      "id": "f0010008-0000-4000-8000-000000000008",
+      "title": "Teams·CUBE 업무 메시지 수집 Component",
+      "type": "py",
+      "description": "지정 채널의 업무 메시지와 참조 링크를 수집하여 후속 Flow 입력으로 만드는 후보입니다.",
+      "category": "Utility / Notification",
+      "version": "v0.2.0-sample",
+      "stars_count": 23,
+      "downloads_count": 17,
+      "created_at": "2026-08-09T01:00:00.000000Z",
+      "updated_at": "2026-08-09T09:00:00.000000Z",
+      "readme": "메신저 기반 업무 현황을 보조 근거로 모으는 후보입니다. 채널 참여 권한, 개인 대화 제외, rate limit과 보존 정책은 실제 시스템 계약을 확인해야 합니다.",
+      "aliases": [
+        "Teams message",
+        "CUBE message",
+        "채널 수집"
+      ],
+      "technical_contract_status": "metadata_only",
+      "acl": {
+        "visibility": "tenant",
+        "groups": [],
+        "subjects": []
+      }
+    },
+    {
+      "id": "f0010009-0000-4000-8000-000000000009",
+      "title": "회의 녹취·Transcript 수집 Flow",
+      "type": "json",
+      "description": "회의 녹취 또는 transcript를 가져와 회의 단위 메타데이터와 함께 정리하는 후보 Flow입니다.",
+      "category": "Workflow / Meeting",
+      "version": "v0.2.0-sample",
+      "stars_count": 30,
+      "downloads_count": 28,
+      "created_at": "2026-08-10T01:00:00.000000Z",
+      "updated_at": "2026-08-10T09:00:00.000000Z",
+      "readme": "회의록 자동화의 입력 Flow 후보입니다. 녹취 동의, 접근 ACL, 화자 식별 정확도와 원본 저장 위치는 실제 정책에 따라야 합니다.",
+      "aliases": [
+        "회의 transcript",
+        "meeting recording",
+        "녹취 수집"
+      ],
+      "technical_contract_status": "metadata_only",
+      "acl": {
+        "visibility": "tenant",
+        "groups": [],
+        "subjects": []
+      }
+    },
+    {
+      "id": "f0010010-0000-4000-8000-000000000010",
+      "title": "일정·메일 상관관계 분석 Component",
+      "type": "py",
+      "description": "캘린더 일정과 관련 메일 thread를 시간·참석자·키워드 기준으로 연결하는 후보입니다.",
+      "category": "Utility / Mail",
+      "version": "v0.2.0-sample",
+      "stars_count": 37,
+      "downloads_count": 39,
+      "created_at": "2026-08-11T01:00:00.000000Z",
+      "updated_at": "2026-08-11T09:00:00.000000Z",
+      "readme": "회의 후속 업무를 찾는 후보입니다. 참석자 정보 노출, 시간대 처리, 연결 근거와 오탐 검토를 실제 계약으로 확인해야 합니다.",
+      "aliases": [
+        "calendar mail",
+        "일정 연계",
+        "meeting email"
+      ],
+      "technical_contract_status": "metadata_only",
+      "acl": {
+        "visibility": "tenant",
+        "groups": [],
+        "subjects": []
+      }
+    },
+    {
+      "id": "f0010011-0000-4000-8000-000000000011",
+      "title": "메일 SLA 지연 감지 Flow",
+      "type": "json",
+      "description": "업무 메일과 이슈의 응답 기한을 점검해 지연 후보와 근거를 알려주는 후보 Flow입니다.",
+      "category": "Workflow / Monitoring",
+      "version": "v0.2.0-sample",
+      "stars_count": 44,
+      "downloads_count": 50,
+      "created_at": "2026-08-12T01:00:00.000000Z",
+      "updated_at": "2026-08-12T09:00:00.000000Z",
+      "readme": "지연 알림 자동화 후보입니다. SLA 기준, 수신자, 업무 시간, 휴일과 실제 알림 재시도 정책을 확인해야 합니다.",
+      "aliases": [
+        "mail SLA",
+        "응답 지연",
+        "delay alert"
+      ],
+      "technical_contract_status": "metadata_only",
+      "acl": {
+        "visibility": "tenant",
+        "groups": [],
+        "subjects": []
+      }
+    },
+    {
+      "id": "f0010012-0000-4000-8000-000000000012",
+      "title": "Inbox Action Item 분류 Flow",
+      "type": "json",
+      "description": "받은 메일에서 담당자·기한·Action Item 후보를 추출하고 확인 대상을 표시하는 후보 Flow입니다.",
+      "category": "Workflow / Mail",
+      "version": "v0.2.0-sample",
+      "stars_count": 12,
+      "downloads_count": 61,
+      "created_at": "2026-08-13T01:00:00.000000Z",
+      "updated_at": "2026-08-13T09:00:00.000000Z",
+      "readme": "메시지에서 할 일을 추출하는 후보입니다. 자동 할당이나 외부 쓰기 전에 담당자 확인과 원문 근거 검토가 필요합니다.",
+      "aliases": [
+        "inbox action item",
+        "메일 할 일",
+        "task triage"
+      ],
+      "technical_contract_status": "metadata_only",
+      "acl": {
+        "visibility": "tenant",
+        "groups": [],
+        "subjects": []
+      }
+    },
+    {
+      "id": "f0010013-0000-4000-8000-000000000013",
+      "title": "메일 번역·한국어 요약 Component",
+      "type": "py",
+      "description": "다국어 업무 메일을 한국어 요약과 원문 대조 정보로 변환하는 재사용 후보입니다.",
+      "category": "Document",
+      "version": "v0.2.0-sample",
+      "stars_count": 19,
+      "downloads_count": 72,
+      "created_at": "2026-08-14T01:00:00.000000Z",
+      "updated_at": "2026-08-14T09:00:00.000000Z",
+      "readme": "해외 협업 메일을 빠르게 파악하기 위한 후보입니다. 번역 품질, 전문 용어 사전, 원문 보관과 민감정보 처리 정책을 확인해야 합니다.",
+      "aliases": [
+        "메일 번역",
+        "Korean summary",
+        "multilingual mail"
+      ],
+      "technical_contract_status": "metadata_only",
+      "acl": {
+        "visibility": "tenant",
+        "groups": [],
+        "subjects": []
+      }
+    },
+    {
+      "id": "f0010014-0000-4000-8000-000000000014",
+      "title": "첨부파일 권한·악성파일 검사 Component",
+      "type": "py",
+      "description": "첨부파일의 허용 확장자, 접근 권한, 악성 여부와 크기 제한을 확인하는 후보입니다.",
+      "category": "Security / Document",
+      "version": "v0.2.0-sample",
+      "stars_count": 26,
+      "downloads_count": 83,
+      "created_at": "2026-08-15T01:00:00.000000Z",
+      "updated_at": "2026-08-15T09:00:00.000000Z",
+      "readme": "문서 추출 전에 안전 경계를 적용하는 후보입니다. 실제 보안 엔진, 격리 절차, 허용 목록과 실패 시 처리 정책은 별도 검증이 필요합니다.",
+      "aliases": [
+        "attachment security",
+        "파일 권한",
+        "malware scan"
+      ],
+      "technical_contract_status": "metadata_only",
+      "acl": {
+        "visibility": "tenant",
+        "groups": [],
+        "subjects": []
+      }
+    },
+    {
+      "id": "f0010015-0000-4000-8000-000000000015",
+      "title": "주간보고 입력 소스 통합 Component",
+      "type": "py",
+      "description": "메일, JIRA, 일정, 문서에서 모은 항목을 공통 업무 항목 형식으로 통합하는 후보입니다.",
+      "category": "Data / Preparation",
+      "version": "v0.2.0-sample",
+      "stars_count": 33,
+      "downloads_count": 94,
+      "created_at": "2026-08-16T01:00:00.000000Z",
+      "updated_at": "2026-08-16T09:00:00.000000Z",
+      "readme": "주간 업무보고 설계의 데이터 정규화 후보입니다. 중복 기준, 시간대, 원문 참조 형식과 스키마 충돌 처리 계약을 확인해야 합니다.",
+      "aliases": [
+        "weekly report input",
+        "source merge",
+        "업무 소스 통합"
+      ],
+      "technical_contract_status": "metadata_only",
+      "acl": {
+        "visibility": "tenant",
+        "groups": [],
+        "subjects": []
+      }
+    },
+    {
+      "id": "f0010016-0000-4000-8000-000000000016",
+      "title": "PDF 레이아웃·표 텍스트 추출 Component",
+      "type": "py",
+      "description": "PDF 문서의 본문, 표, 페이지 참조를 구조화 텍스트로 변환하는 재사용 후보입니다.",
+      "category": "Document",
+      "version": "v0.2.0-sample",
+      "stars_count": 40,
+      "downloads_count": 22,
+      "created_at": "2026-08-17T01:00:00.000000Z",
+      "updated_at": "2026-08-17T09:00:00.000000Z",
+      "readme": "SOP, 보고서, 기술 문서 분석의 입력 후보입니다. 스캔 PDF OCR, 표 정확도, 페이지 근거와 파일 권한은 실제 코드로 검증해야 합니다.",
+      "aliases": [
+        "PDF extract",
+        "PDF table",
+        "문서 텍스트"
+      ],
+      "technical_contract_status": "metadata_only",
+      "acl": {
+        "visibility": "tenant",
+        "groups": [],
+        "subjects": []
+      }
+    },
+    {
+      "id": "f0010017-0000-4000-8000-000000000017",
+      "title": "Excel Workbook Table Reader Component",
+      "type": "py",
+      "description": "Excel 파일의 시트, 표, 헤더, 수식 결과를 Flow 입력용 표 데이터로 읽는 후보입니다.",
+      "category": "Document",
+      "version": "v0.2.0-sample",
+      "stars_count": 8,
+      "downloads_count": 33,
+      "created_at": "2026-08-18T01:00:00.000000Z",
+      "updated_at": "2026-08-18T09:00:00.000000Z",
+      "readme": "업무보고·데이터 품질 점검의 입력 후보입니다. 매크로 처리, 수식 재계산, 대용량 제한, 파일 ACL을 실제 환경에서 확인해야 합니다.",
+      "aliases": [
+        "Excel reader",
+        "workbook table",
+        "엑셀 조회"
+      ],
+      "technical_contract_status": "metadata_only",
+      "acl": {
+        "visibility": "tenant",
+        "groups": [],
+        "subjects": []
+      }
+    },
+    {
+      "id": "f0010018-0000-4000-8000-000000000018",
+      "title": "PowerPoint Deck Insight Extract Component",
+      "type": "py",
+      "description": "발표자료의 슬라이드 텍스트, 표, 노트와 페이지 참조를 추출하는 후보입니다.",
+      "category": "Document",
+      "version": "v0.2.0-sample",
+      "stars_count": 15,
+      "downloads_count": 44,
+      "created_at": "2026-08-19T01:00:00.000000Z",
+      "updated_at": "2026-08-19T09:00:00.000000Z",
+      "readme": "회의 자료와 보고서를 연결할 때의 후보입니다. 이미지 OCR, 슬라이드 보안, 원본 링크와 결과 품질은 사용 전 확인해야 합니다.",
+      "aliases": [
+        "PPT extract",
+        "slide insight",
+        "발표자료"
+      ],
+      "technical_contract_status": "metadata_only",
+      "acl": {
+        "visibility": "tenant",
+        "groups": [],
+        "subjects": []
+      }
+    },
+    {
+      "id": "f0010019-0000-4000-8000-000000000019",
+      "title": "Word SOP Parser Component",
+      "type": "py",
+      "description": "Word 기반 SOP에서 절차, 역할, 입력·출력, 예외 항목을 추출하는 후보입니다.",
+      "category": "Document",
+      "version": "v0.2.0-sample",
+      "stars_count": 22,
+      "downloads_count": 55,
+      "created_at": "2026-08-20T01:00:00.000000Z",
+      "updated_at": "2026-08-20T09:00:00.000000Z",
+      "readme": "업무 방식 정의와 SOP 영향 분석에 활용할 수 있는 후보입니다. 최신 문서 식별, 변경 이력, 문서 ACL과 추출 기준을 확인해야 합니다.",
+      "aliases": [
+        "Word SOP",
+        "procedure parser",
+        "업무 절차"
+      ],
+      "technical_contract_status": "metadata_only",
+      "acl": {
+        "visibility": "tenant",
+        "groups": [],
+        "subjects": []
+      }
+    },
+    {
+      "id": "f0010020-0000-4000-8000-000000000020",
+      "title": "문서 버전 비교 Component",
+      "type": "py",
+      "description": "두 문서의 변경 문단, 표, 삭제·추가 항목을 비교해 검토 후보를 만드는 재사용 후보입니다.",
+      "category": "Document",
+      "version": "v0.2.0-sample",
+      "stars_count": 29,
+      "downloads_count": 66,
+      "created_at": "2026-08-21T01:00:00.000000Z",
+      "updated_at": "2026-08-21T09:00:00.000000Z",
+      "readme": "SOP나 가이드 변경 영향 분석의 후보입니다. 비교 기준, PDF 변환 오차, 승인된 원본과 변경 확정 권한은 실제 정책이 필요합니다.",
+      "aliases": [
+        "document diff",
+        "버전 비교",
+        "change compare"
+      ],
+      "technical_contract_status": "metadata_only",
+      "acl": {
+        "visibility": "tenant",
+        "groups": [],
+        "subjects": []
+      }
+    },
+    {
+      "id": "f0010021-0000-4000-8000-000000000021",
+      "title": "문서 ACL Filter Component",
+      "type": "py",
+      "description": "사용자·그룹 범위에 맞지 않는 문서와 원문 링크를 결과에서 제외하는 후보입니다.",
+      "category": "Security / Document",
+      "version": "v0.2.0-sample",
+      "stars_count": 36,
+      "downloads_count": 77,
+      "created_at": "2026-08-22T01:00:00.000000Z",
+      "updated_at": "2026-08-22T09:00:00.000000Z",
+      "readme": "RAG와 보고서 근거 노출 전에 적용하는 후보입니다. 인증 주체 전달 방식, 그룹 동기화, 감사 로그와 fail-closed 처리를 확인해야 합니다.",
+      "aliases": [
+        "document ACL",
+        "권한 필터",
+        "access control"
+      ],
+      "technical_contract_status": "metadata_only",
+      "acl": {
+        "visibility": "tenant",
+        "groups": [],
+        "subjects": []
+      }
+    },
+    {
+      "id": "f0010022-0000-4000-8000-000000000022",
+      "title": "정책·SOP 근거 인용 Validator Component",
+      "type": "py",
+      "description": "답변과 보고 문장에 연결된 정책·SOP 근거가 존재하는지 점검하는 후보입니다.",
+      "category": "Document",
+      "version": "v0.2.0-sample",
+      "stars_count": 43,
+      "downloads_count": 88,
+      "created_at": "2026-08-23T01:00:00.000000Z",
+      "updated_at": "2026-08-23T09:00:00.000000Z",
+      "readme": "근거 없는 완료 처리나 임의 정책 해석을 막는 후보입니다. 원본 문서 버전, 인용 위치, 예외 승인과 최신성 기준을 확인해야 합니다.",
+      "aliases": [
+        "citation validator",
+        "근거 검증",
+        "SOP citation"
+      ],
+      "technical_contract_status": "metadata_only",
+      "acl": {
+        "visibility": "tenant",
+        "groups": [],
+        "subjects": []
+      }
+    },
+    {
+      "id": "f0010023-0000-4000-8000-000000000023",
+      "title": "문서 청킹 Preview Component",
+      "type": "py",
+      "description": "문서를 저장 전 청킹하여 크기, 겹침, 예상 검색 문장을 미리 점검하는 후보입니다.",
+      "category": "RAG / Search",
+      "version": "v0.2.0-sample",
+      "stars_count": 11,
+      "downloads_count": 16,
+      "created_at": "2026-08-24T01:00:00.000000Z",
+      "updated_at": "2026-08-24T09:00:00.000000Z",
+      "readme": "Knowledge 적재 품질을 확인하는 후보입니다. 실제 vector 저장, embedding 모델, 문서 정제 규칙과는 별도로 검증해야 합니다.",
+      "aliases": [
+        "chunk preview",
+        "문서 청킹",
+        "RAG chunk"
+      ],
+      "technical_contract_status": "metadata_only",
+      "acl": {
+        "visibility": "tenant",
+        "groups": [],
+        "subjects": []
+      }
+    },
+    {
+      "id": "f0010024-0000-4000-8000-000000000024",
+      "title": "문서 메타데이터 추출 Component",
+      "type": "py",
+      "description": "제목, 작성일, 소유 부서, 버전, 분류 등 문서 메타데이터 후보를 추출하는 재사용 후보입니다.",
+      "category": "Document",
+      "version": "v0.2.0-sample",
+      "stars_count": 18,
+      "downloads_count": 27,
+      "created_at": "2026-08-25T01:00:00.000000Z",
+      "updated_at": "2026-08-25T09:00:00.000000Z",
+      "readme": "검색 필터와 문서 거버넌스 입력 후보입니다. 원본 메타데이터 우선순위, 누락 처리, ACL과 보존 기간을 확인해야 합니다.",
+      "aliases": [
+        "document metadata",
+        "문서 분류",
+        "owner department"
+      ],
+      "technical_contract_status": "metadata_only",
+      "acl": {
+        "visibility": "tenant",
+        "groups": [],
+        "subjects": []
+      }
+    },
+    {
+      "id": "f0010025-0000-4000-8000-000000000025",
+      "title": "OCR 품질·누락 페이지 점검 Component",
+      "type": "py",
+      "description": "OCR 결과의 낮은 신뢰도, 빈 페이지, 누락 표를 찾아 사람 검토 대상으로 만드는 후보입니다.",
+      "category": "Document",
+      "version": "v0.2.0-sample",
+      "stars_count": 25,
+      "downloads_count": 38,
+      "created_at": "2026-08-26T01:00:00.000000Z",
+      "updated_at": "2026-08-26T09:00:00.000000Z",
+      "readme": "문서 자동 추출 품질을 높이는 후보입니다. 실제 OCR 신뢰도 기준과 재처리 규칙, 검토 담당자는 별도 설정이 필요합니다.",
+      "aliases": [
+        "OCR quality",
+        "문서 품질",
+        "missing page"
+      ],
+      "technical_contract_status": "metadata_only",
+      "acl": {
+        "visibility": "tenant",
+        "groups": [],
+        "subjects": []
+      }
+    },
+    {
+      "id": "f0010026-0000-4000-8000-000000000026",
+      "title": "지식 문서 적재 준비 Flow",
+      "type": "json",
+      "description": "문서 수집, 권한 점검, 텍스트 추출, 청킹 preview, 승인 후 적재 순서를 구성한 후보 Flow입니다.",
+      "category": "Workflow / RAG",
+      "version": "v0.2.0-sample",
+      "stars_count": 32,
+      "downloads_count": 49,
+      "created_at": "2026-08-27T01:00:00.000000Z",
+      "updated_at": "2026-08-27T09:00:00.000000Z",
+      "readme": "사내 지식 적재 설계 후보입니다. 저장소, embedding, Vector DB, 권한 동기화와 human approval의 실제 연결을 확인해야 합니다.",
+      "aliases": [
+        "knowledge ingest",
+        "RAG ingest",
+        "문서 적재"
+      ],
+      "technical_contract_status": "metadata_only",
+      "acl": {
+        "visibility": "tenant",
+        "groups": [],
+        "subjects": []
+      }
+    },
+    {
+      "id": "f0010027-0000-4000-8000-000000000027",
+      "title": "문서 기반 질의응답 Search Flow",
+      "type": "json",
+      "description": "권한 필터를 통과한 문서에서 검색·재정렬·근거 인용 답변을 만드는 후보 Flow입니다.",
+      "category": "Workflow / RAG",
+      "version": "v0.2.0-sample",
+      "stars_count": 39,
+      "downloads_count": 60,
+      "created_at": "2026-08-28T01:00:00.000000Z",
+      "updated_at": "2026-08-28T09:00:00.000000Z",
+      "readme": "문서 QA 설계 후보입니다. 검색 인덱스, embedding 계약, 인용 문서 접근 권한과 응답 검토 경계를 검증해야 합니다.",
+      "aliases": [
+        "document Q&A",
+        "RAG answer",
+        "근거 답변"
+      ],
+      "technical_contract_status": "metadata_only",
+      "acl": {
+        "visibility": "tenant",
+        "groups": [],
+        "subjects": []
+      }
+    },
+    {
+      "id": "f0010028-0000-4000-8000-000000000028",
+      "title": "SOP 준수 점검 Flow",
+      "type": "json",
+      "description": "업무 기록과 SOP 체크리스트를 비교해 미확인 항목과 근거를 찾는 후보 Flow입니다.",
+      "category": "Workflow / Compliance",
+      "version": "v0.2.0-sample",
+      "stars_count": 7,
+      "downloads_count": 71,
+      "created_at": "2026-08-01T01:00:00.000000Z",
+      "updated_at": "2026-08-01T09:00:00.000000Z",
+      "readme": "절차 준수 확인을 보조하는 후보입니다. 판정 기준, 예외 승인, 책임자와 결과 저장 위치는 실제 운영 규정으로 확인해야 합니다.",
+      "aliases": [
+        "SOP compliance",
+        "절차 점검",
+        "checklist"
+      ],
+      "technical_contract_status": "metadata_only",
+      "acl": {
+        "visibility": "tenant",
+        "groups": [],
+        "subjects": []
+      }
+    },
+    {
+      "id": "f0010029-0000-4000-8000-000000000029",
+      "title": "업무 절차 초안 생성·검토 Flow",
+      "type": "json",
+      "description": "자연어 업무 설명과 SOP 근거를 바탕으로 업무 절차 초안을 만들고 사람 검토를 받는 후보 Flow입니다.",
+      "category": "Workflow / Document",
+      "version": "v0.2.0-sample",
+      "stars_count": 14,
+      "downloads_count": 82,
+      "created_at": "2026-08-02T01:00:00.000000Z",
+      "updated_at": "2026-08-02T09:00:00.000000Z",
+      "readme": "F10 업무 정의와 연계할 수 있는 후보입니다. 생성 결과는 설계 초안이며, 실제 실행 절차·승인 권한을 자동 확정하지 않아야 합니다.",
+      "aliases": [
+        "업무 절차",
+        "procedure draft",
+        "HITL SOP"
+      ],
+      "technical_contract_status": "metadata_only",
+      "acl": {
+        "visibility": "tenant",
+        "groups": [],
+        "subjects": []
+      }
+    },
+    {
+      "id": "f0010030-0000-4000-8000-000000000030",
+      "title": "근거 인용 형식 Normalizer Component",
+      "type": "py",
+      "description": "메일, JIRA, 문서의 제목·식별자·링크를 공통 인용 형식으로 정규화하는 후보입니다.",
+      "category": "Document",
+      "version": "v0.2.0-sample",
+      "stars_count": 21,
+      "downloads_count": 93,
+      "created_at": "2026-08-03T01:00:00.000000Z",
+      "updated_at": "2026-08-03T09:00:00.000000Z",
+      "readme": "보고서와 인수인계에서 원문 추적성을 유지하는 후보입니다. 링크 ACL, 표시 가능한 메타데이터와 끊어진 참조 처리 규칙이 필요합니다.",
+      "aliases": [
+        "evidence citation",
+        "source reference",
+        "근거 포맷"
+      ],
+      "technical_contract_status": "metadata_only",
+      "acl": {
+        "visibility": "tenant",
+        "groups": [],
+        "subjects": []
+      }
+    },
+    {
+      "id": "f0010031-0000-4000-8000-000000000031",
+      "title": "MongoDB Catalog Vector Search Component",
+      "type": "py",
+      "description": "active catalog snapshot에서 vector 유사도 기준으로 Component와 Flow 후보를 검색하는 재사용 후보입니다.",
+      "category": "RAG / Search",
+      "version": "v0.2.0-sample",
+      "stars_count": 28,
+      "downloads_count": 21,
+      "created_at": "2026-08-04T01:00:00.000000Z",
+      "updated_at": "2026-08-04T09:00:00.000000Z",
+      "readme": "F20 설계 후보 검색에 활용할 수 있습니다. 실제 Atlas Search index, query vector dimension, ACL 필터와 timeout 정책을 확인해야 합니다.",
+      "aliases": [
+        "Mongo vector search",
+        "catalog search",
+        "vector retrieval"
+      ],
+      "technical_contract_status": "metadata_only",
+      "acl": {
+        "visibility": "tenant",
+        "groups": [],
+        "subjects": []
+      }
+    },
+    {
+      "id": "f0010032-0000-4000-8000-000000000032",
+      "title": "Hybrid BM25·Vector Retriever Component",
+      "type": "py",
+      "description": "키워드 검색과 vector 검색 결과를 결합해 재사용 후보를 반환하는 후보입니다.",
+      "category": "RAG / Search",
+      "version": "v0.2.0-sample",
+      "stars_count": 35,
+      "downloads_count": 32,
+      "created_at": "2026-08-05T01:00:00.000000Z",
+      "updated_at": "2026-08-05T09:00:00.000000Z",
+      "readme": "카탈로그와 지식 문서의 혼합 검색 후보입니다. 가중치, 후보 수, ACL, snapshot binding과 검색 품질 평가는 실제 설정으로 검증해야 합니다.",
+      "aliases": [
+        "hybrid retrieval",
+        "BM25 vector",
+        "catalog hybrid search"
+      ],
+      "technical_contract_status": "metadata_only",
+      "acl": {
+        "visibility": "tenant",
+        "groups": [],
+        "subjects": []
+      }
+    },
+    {
+      "id": "f0010033-0000-4000-8000-000000000033",
+      "title": "Search Query Embedding Batcher Component",
+      "type": "py",
+      "description": "여러 검색 질의를 승인된 embedding model로 순차 벡터화하는 후보입니다.",
+      "category": "RAG / Search",
+      "version": "v0.2.0-sample",
+      "stars_count": 42,
+      "downloads_count": 43,
+      "created_at": "2026-08-06T01:00:00.000000Z",
+      "updated_at": "2026-08-06T09:00:00.000000Z",
+      "readme": "검색 Flow의 query embedding 단계 후보입니다. provider 호출 제한, model version, dimension, 재시도와 1초 호출 간격은 실제 계약을 확인해야 합니다.",
+      "aliases": [
+        "query embedding",
+        "embedding batch",
+        "검색 벡터"
+      ],
+      "technical_contract_status": "metadata_only",
+      "acl": {
+        "visibility": "tenant",
+        "groups": [],
+        "subjects": []
+      }
+    },
+    {
+      "id": "f0010034-0000-4000-8000-000000000034",
+      "title": "DataLake SQL Guard Component",
+      "type": "py",
+      "description": "허용된 데이터셋과 읽기 전용 SQL 규칙을 검사해 위험한 쿼리를 차단하는 후보입니다.",
+      "category": "Data / ERP",
+      "version": "v0.2.0-sample",
+      "stars_count": 10,
+      "downloads_count": 54,
+      "created_at": "2026-08-07T01:00:00.000000Z",
+      "updated_at": "2026-08-07T09:00:00.000000Z",
+      "readme": "데이터 조회 Agent의 안전 경계 후보입니다. 실제 권한 모델, 허용 테이블, 비용 제한, parameter binding과 감사 로그를 확인해야 합니다.",
+      "aliases": [
+        "SQL guard",
+        "DataLake safety",
+        "read only SQL"
+      ],
+      "technical_contract_status": "metadata_only",
+      "acl": {
+        "visibility": "tenant",
+        "groups": [],
+        "subjects": []
+      }
+    },
+    {
+      "id": "f0010035-0000-4000-8000-000000000035",
+      "title": "StarRocks 보고용 Query Template Component",
+      "type": "py",
+      "description": "기간·공정·프로젝트 조건을 보고용 StarRocks 조회 템플릿에 바인딩하는 후보입니다.",
+      "category": "Data / ERP",
+      "version": "v0.2.0-sample",
+      "stars_count": 17,
+      "downloads_count": 65,
+      "created_at": "2026-08-08T01:00:00.000000Z",
+      "updated_at": "2026-08-08T09:00:00.000000Z",
+      "readme": "정형 데이터 기반 보고서 입력 후보입니다. 실제 SQL, 테이블 권한, 결과 크기 제한과 집계 정의는 코드 확인이 필요합니다.",
+      "aliases": [
+        "StarRocks template",
+        "report query",
+        "DataLake SQL"
+      ],
+      "technical_contract_status": "metadata_only",
+      "acl": {
+        "visibility": "tenant",
+        "groups": [],
+        "subjects": []
+      }
+    },
+    {
+      "id": "f0010036-0000-4000-8000-000000000036",
+      "title": "h-API 응답 Mapper Component",
+      "type": "py",
+      "description": "h-API 응답을 표준 업무 항목, 오류, 원문 참조 형태로 변환하는 후보입니다.",
+      "category": "Data / ERP",
+      "version": "v0.2.0-sample",
+      "stars_count": 24,
+      "downloads_count": 76,
+      "created_at": "2026-08-09T01:00:00.000000Z",
+      "updated_at": "2026-08-09T09:00:00.000000Z",
+      "readme": "여러 사내 API 결과를 같은 Flow에 연결할 때의 후보입니다. endpoint별 schema, 오류 코드, retry와 secret 관리는 실제 계약을 확인해야 합니다.",
+      "aliases": [
+        "h-API mapper",
+        "API response",
+        "data normalize"
+      ],
+      "technical_contract_status": "metadata_only",
+      "acl": {
+        "visibility": "tenant",
+        "groups": [],
+        "subjects": []
+      }
+    },
+    {
+      "id": "f0010037-0000-4000-8000-000000000037",
+      "title": "API Retry·Circuit Breaker Component",
+      "type": "py",
+      "description": "일시 오류에만 재시도하고 반복 실패 시 호출을 차단하는 API 안전 제어 후보입니다.",
+      "category": "Data / ERP",
+      "version": "v0.2.0-sample",
+      "stars_count": 31,
+      "downloads_count": 87,
+      "created_at": "2026-08-10T01:00:00.000000Z",
+      "updated_at": "2026-08-10T09:00:00.000000Z",
+      "readme": "외부 데이터 조회 안정화 후보입니다. retry 가능 오류, backoff, 중복 호출 방지와 운영 알림 기준은 실제 시스템에 맞춰야 합니다.",
+      "aliases": [
+        "API retry",
+        "circuit breaker",
+        "timeout handling"
+      ],
+      "technical_contract_status": "metadata_only",
+      "acl": {
+        "visibility": "tenant",
+        "groups": [],
+        "subjects": []
+      }
+    },
+    {
+      "id": "f0010038-0000-4000-8000-000000000038",
+      "title": "데이터 품질 Rule Runner Component",
+      "type": "py",
+      "description": "누락, 중복, 허용 범위, 참조 무결성 규칙을 실행해 결과를 반환하는 후보입니다.",
+      "category": "Data / Preparation",
+      "version": "v0.2.0-sample",
+      "stars_count": 38,
+      "downloads_count": 15,
+      "created_at": "2026-08-11T01:00:00.000000Z",
+      "updated_at": "2026-08-11T09:00:00.000000Z",
+      "readme": "보고서 전 데이터 검증 후보입니다. 규칙 정의, 임계치, 예외 승인과 원본 데이터 접근 권한을 확인해야 합니다.",
+      "aliases": [
+        "data quality",
+        "validation rule",
+        "데이터 점검"
+      ],
+      "technical_contract_status": "metadata_only",
+      "acl": {
+        "visibility": "tenant",
+        "groups": [],
+        "subjects": []
+      }
+    },
+    {
+      "id": "f0010039-0000-4000-8000-000000000039",
+      "title": "CSV·Excel 업무 데이터 Normalizer Component",
+      "type": "py",
+      "description": "서로 다른 파일 형식의 컬럼명, 날짜, 코드값을 공통 업무 데이터 형식으로 정리하는 후보입니다.",
+      "category": "Data / Preparation",
+      "version": "v0.2.0-sample",
+      "stars_count": 6,
+      "downloads_count": 26,
+      "created_at": "2026-08-12T01:00:00.000000Z",
+      "updated_at": "2026-08-12T09:00:00.000000Z",
+      "readme": "분석·보고 Flow의 전처리 후보입니다. 컬럼 매핑, 날짜 기준, 오류 행 처리와 파일 보안은 실제 계약이 필요합니다.",
+      "aliases": [
+        "CSV normalize",
+        "Excel normalize",
+        "데이터 정리"
+      ],
+      "technical_contract_status": "metadata_only",
+      "acl": {
+        "visibility": "tenant",
+        "groups": [],
+        "subjects": []
+      }
+    },
+    {
+      "id": "f0010040-0000-4000-8000-000000000040",
+      "title": "Master Data Lookup Component",
+      "type": "py",
+      "description": "코드값을 프로젝트, 조직, 설비, 제품 등의 기준정보와 연결하는 후보입니다.",
+      "category": "Data / ERP",
+      "version": "v0.2.0-sample",
+      "stars_count": 13,
+      "downloads_count": 37,
+      "created_at": "2026-08-13T01:00:00.000000Z",
+      "updated_at": "2026-08-13T09:00:00.000000Z",
+      "readme": "보고서 분류와 데이터 품질 점검의 보조 후보입니다. 기준정보 최신성, 조회 권한, 캐시와 코드 불일치 처리를 확인해야 합니다.",
+      "aliases": [
+        "master data",
+        "code lookup",
+        "기준정보"
+      ],
+      "technical_contract_status": "metadata_only",
+      "acl": {
+        "visibility": "tenant",
+        "groups": [],
+        "subjects": []
+      }
+    },
+    {
+      "id": "f0010041-0000-4000-8000-000000000041",
+      "title": "JIRA 프로젝트 필드 Mapper Component",
+      "type": "py",
+      "description": "JIRA 프로젝트별 사용자 정의 필드를 공통 보고 항목으로 정규화하는 후보입니다.",
+      "category": "Utility",
+      "version": "v0.2.0-sample",
+      "stars_count": 20,
+      "downloads_count": 48,
+      "created_at": "2026-08-14T01:00:00.000000Z",
+      "updated_at": "2026-08-14T09:00:00.000000Z",
+      "readme": "여러 JIRA 프로젝트를 통합 보고할 때의 후보입니다. 필드 권한, 프로젝트별 차이, 상태 매핑과 최신 schema 확인이 필요합니다.",
+      "aliases": [
+        "JIRA field map",
+        "issue fields",
+        "project mapping"
+      ],
+      "technical_contract_status": "metadata_only",
+      "acl": {
+        "visibility": "tenant",
+        "groups": [],
+        "subjects": []
+      }
+    },
+    {
+      "id": "f0010042-0000-4000-8000-000000000042",
+      "title": "iFlow 게시글 Digest Flow",
+      "type": "json",
+      "description": "최근 iFlow 게시글을 검색하고 업무 관련 항목만 요약해 안내하는 후보 Flow입니다.",
+      "category": "Workflow / Search",
+      "version": "v0.2.0-sample",
+      "stars_count": 27,
+      "downloads_count": 59,
+      "created_at": "2026-08-15T01:00:00.000000Z",
+      "updated_at": "2026-08-15T09:00:00.000000Z",
+      "readme": "사내 공지·기술 게시글을 업무에 연결하는 후보입니다. 기간, 구독 범위, 게시글 ACL, 중복 알림과 실제 검색 API를 확인해야 합니다.",
+      "aliases": [
+        "iFlow digest",
+        "게시글 요약",
+        "post search"
+      ],
+      "technical_contract_status": "metadata_only",
+      "acl": {
+        "visibility": "tenant",
+        "groups": [],
+        "subjects": []
+      }
+    },
+    {
+      "id": "f0010043-0000-4000-8000-000000000043",
+      "title": "Active Catalog Snapshot Loader Component",
+      "type": "py",
+      "description": "현재 active snapshot과 embedding 계약을 읽어 후속 검색 조건을 고정하는 후보입니다.",
+      "category": "RAG / Search",
+      "version": "v0.2.0-sample",
+      "stars_count": 34,
+      "downloads_count": 70,
+      "created_at": "2026-08-16T01:00:00.000000Z",
+      "updated_at": "2026-08-16T09:00:00.000000Z",
+      "readme": "F20 설계 검색의 일관성을 위한 후보입니다. MongoDB pointer, tenant scope, snapshot 무결성과 실패 시 처리 정책을 확인해야 합니다.",
+      "aliases": [
+        "active snapshot",
+        "catalog pointer",
+        "snapshot loader"
+      ],
+      "technical_contract_status": "metadata_only",
+      "acl": {
+        "visibility": "tenant",
+        "groups": [],
+        "subjects": []
+      }
+    },
+    {
+      "id": "f0010044-0000-4000-8000-000000000044",
+      "title": "검색 결과 Reranker Component",
+      "type": "py",
+      "description": "질의와 후보 설명·README의 관련성을 다시 평가해 상위 후보를 정렬하는 재사용 후보입니다.",
+      "category": "RAG / Search",
+      "version": "v0.2.0-sample",
+      "stars_count": 41,
+      "downloads_count": 81,
+      "created_at": "2026-08-17T01:00:00.000000Z",
+      "updated_at": "2026-08-17T09:00:00.000000Z",
+      "readme": "하이브리드 검색 결과 품질 개선 후보입니다. 재정렬 모델, 비용, ACL 유지와 메타데이터만 있는 후보의 표시 기준을 확인해야 합니다.",
+      "aliases": [
+        "reranker",
+        "search ranking",
+        "candidate ranking"
+      ],
+      "technical_contract_status": "metadata_only",
+      "acl": {
+        "visibility": "tenant",
+        "groups": [],
+        "subjects": []
+      }
+    },
+    {
+      "id": "f0010045-0000-4000-8000-000000000045",
+      "title": "데이터 Lineage·근거 추적 Flow",
+      "type": "json",
+      "description": "조회 결과가 어떤 원본·조건·변환 단계를 거쳤는지 기록하는 후보 Flow입니다.",
+      "category": "Workflow / Data",
+      "version": "v0.2.0-sample",
+      "stars_count": 9,
+      "downloads_count": 92,
+      "created_at": "2026-08-18T01:00:00.000000Z",
+      "updated_at": "2026-08-18T09:00:00.000000Z",
+      "readme": "데이터 기반 보고와 판정의 추적성 후보입니다. 실행 ID, 저장 위치, 보존 기간, 민감정보 마스킹과 감사 권한을 확인해야 합니다.",
+      "aliases": [
+        "data lineage",
+        "provenance",
+        "근거 추적"
+      ],
+      "technical_contract_status": "metadata_only",
+      "acl": {
+        "visibility": "tenant",
+        "groups": [],
+        "subjects": []
+      }
+    },
+    {
+      "id": "f0010046-0000-4000-8000-000000000046",
+      "title": "데이터 최신성 Monitor Flow",
+      "type": "json",
+      "description": "원본 데이터의 마지막 갱신 시각과 지연을 점검해 사용 가능 여부를 표시하는 후보 Flow입니다.",
+      "category": "Workflow / Monitoring",
+      "version": "v0.2.0-sample",
+      "stars_count": 16,
+      "downloads_count": 20,
+      "created_at": "2026-08-19T01:00:00.000000Z",
+      "updated_at": "2026-08-19T09:00:00.000000Z",
+      "readme": "조회·분석 전에 데이터 최신성을 확인하는 후보입니다. 소스별 갱신 SLA, 장애 알림, 휴일 규칙과 운영자 대응을 정의해야 합니다.",
+      "aliases": [
+        "data freshness",
+        "update monitor",
+        "최신성"
+      ],
+      "technical_contract_status": "metadata_only",
+      "acl": {
+        "visibility": "tenant",
+        "groups": [],
+        "subjects": []
+      }
+    },
+    {
+      "id": "f0010047-0000-4000-8000-000000000047",
+      "title": "Human Input 질문 카드 Component",
+      "type": "py",
+      "description": "부족한 업무 정보에 대해 구조화 질문과 자유 입력 필드를 보여주는 후보입니다.",
+      "category": "Workflow / HITL",
+      "version": "v0.2.0-sample",
+      "stars_count": 23,
+      "downloads_count": 31,
+      "created_at": "2026-08-20T01:00:00.000000Z",
+      "updated_at": "2026-08-20T09:00:00.000000Z",
+      "readme": "업무 정의 보완 단계 후보입니다. 질문 수 상한, 취소·건너뛰기, 답변 저장과 Playground UI 동작은 실제 Flow에서 검증해야 합니다.",
+      "aliases": [
+        "human input",
+        "HITL question",
+        "추가 질문"
+      ],
+      "technical_contract_status": "metadata_only",
+      "acl": {
+        "visibility": "tenant",
+        "groups": [],
+        "subjects": []
+      }
+    },
+    {
+      "id": "f0010048-0000-4000-8000-000000000048",
+      "title": "WorkDefinition Normalizer Component",
+      "type": "py",
+      "description": "자연어 업무 설명과 추가 지시를 일관된 WorkDefinition 구조로 정규화하는 후보입니다.",
+      "category": "Workflow / HITL",
+      "version": "v0.2.0-sample",
+      "stars_count": 30,
+      "downloads_count": 42,
+      "created_at": "2026-08-21T01:00:00.000000Z",
+      "updated_at": "2026-08-21T09:00:00.000000Z",
+      "readme": "F10 초기 업무 정의 단계 후보입니다. LLM 출력 검증, 식별자, revision과 미확정 항목 관리 계약을 확인해야 합니다.",
+      "aliases": [
+        "work definition",
+        "업무 정의",
+        "normalize work"
+      ],
+      "technical_contract_status": "metadata_only",
+      "acl": {
+        "visibility": "tenant",
+        "groups": [],
+        "subjects": []
+      }
+    },
+    {
+      "id": "f0010049-0000-4000-8000-000000000049",
+      "title": "업무 완전성 평가 Component",
+      "type": "py",
+      "description": "목표, 입력, 절차, 결과, 위험, 승인 조건의 누락 여부를 평가하는 후보입니다.",
+      "category": "Workflow / HITL",
+      "version": "v0.2.0-sample",
+      "stars_count": 37,
+      "downloads_count": 53,
+      "created_at": "2026-08-22T01:00:00.000000Z",
+      "updated_at": "2026-08-22T09:00:00.000000Z",
+      "readme": "추가 질문 필요 여부를 판단하는 후보입니다. 평가 기준, confidence, 질문 횟수 상한과 차단 경로를 실제 정책으로 확인해야 합니다.",
+      "aliases": [
+        "completeness",
+        "업무 완성도",
+        "clarification"
+      ],
+      "technical_contract_status": "metadata_only",
+      "acl": {
+        "visibility": "tenant",
+        "groups": [],
+        "subjects": []
+      }
+    },
+    {
+      "id": "f0010050-0000-4000-8000-000000000050",
+      "title": "명확화 질문 Batch Builder Component",
+      "type": "py",
+      "description": "완전성 gap을 바탕으로 최대 질문 수 안에서 답변 Batch를 만드는 후보입니다.",
+      "category": "Workflow / HITL",
+      "version": "v0.2.0-sample",
+      "stars_count": 44,
+      "downloads_count": 64,
+      "created_at": "2026-08-23T01:00:00.000000Z",
+      "updated_at": "2026-08-23T09:00:00.000000Z",
+      "readme": "HITL 보완 단계 후보입니다. 질문 중복 제거, 우선순위, 응답 schema와 시간 초과 처리를 확인해야 합니다.",
+      "aliases": [
+        "clarification batch",
+        "재질문",
+        "question builder"
+      ],
+      "technical_contract_status": "metadata_only",
+      "acl": {
+        "visibility": "tenant",
+        "groups": [],
+        "subjects": []
+      }
+    },
+    {
+      "id": "f0010051-0000-4000-8000-000000000051",
+      "title": "답변 병합·변경 이력 Component",
+      "type": "py",
+      "description": "사람 답변을 기존 업무 정의에 병합하고 변경 경로와 충돌을 남기는 후보입니다.",
+      "category": "Workflow / HITL",
+      "version": "v0.2.0-sample",
+      "stars_count": 12,
+      "downloads_count": 75,
+      "created_at": "2026-08-24T01:00:00.000000Z",
+      "updated_at": "2026-08-24T09:00:00.000000Z",
+      "readme": "다회차 업무 정의 보완 후보입니다. optimistic revision, 충돌 처리, idempotency와 감사 이벤트 계약이 필요합니다.",
+      "aliases": [
+        "answer merge",
+        "revision history",
+        "답변 반영"
+      ],
+      "technical_contract_status": "metadata_only",
+      "acl": {
+        "visibility": "tenant",
+        "groups": [],
+        "subjects": []
+      }
+    },
+    {
+      "id": "f0010052-0000-4000-8000-000000000052",
+      "title": "승인 상태 저장 Component",
+      "type": "py",
+      "description": "검토·승인·반려·취소 상태를 업무 정의와 연결해 기록하는 후보입니다.",
+      "category": "Workflow / HITL",
+      "version": "v0.2.0-sample",
+      "stars_count": 19,
+      "downloads_count": 86,
+      "created_at": "2026-08-25T01:00:00.000000Z",
+      "updated_at": "2026-08-25T09:00:00.000000Z",
+      "readme": "외부 게시 전에 human approval을 강제하는 후보입니다. 승인 주체, 권한, revision, 트랜잭션과 실패 복구 정책을 확인해야 합니다.",
+      "aliases": [
+        "approval state",
+        "승인 저장",
+        "review status"
+      ],
+      "technical_contract_status": "metadata_only",
+      "acl": {
+        "visibility": "tenant",
+        "groups": [],
+        "subjects": []
+      }
+    },
+    {
+      "id": "f0010053-0000-4000-8000-000000000053",
+      "title": "Result Gate Component",
+      "type": "py",
+      "description": "성공 결과만 다음 노드로 전달하고 차단 결과를 별도 안내 경로로 보내는 후보입니다.",
+      "category": "Workflow / HITL",
+      "version": "v0.2.0-sample",
+      "stars_count": 26,
+      "downloads_count": 14,
+      "created_at": "2026-08-26T01:00:00.000000Z",
+      "updated_at": "2026-08-26T09:00:00.000000Z",
+      "readme": "Flow의 오류·미승인 결과가 후속 실행으로 섞이지 않게 하는 후보입니다. 필수 필드, 오류 envelope와 사용자 안내 기준을 확인해야 합니다.",
+      "aliases": [
+        "result gate",
+        "성공 경로",
+        "blocked path"
+      ],
+      "technical_contract_status": "metadata_only",
+      "acl": {
+        "visibility": "tenant",
+        "groups": [],
+        "subjects": []
+      }
+    },
+    {
+      "id": "f0010054-0000-4000-8000-000000000054",
+      "title": "Idempotency Key Builder Component",
+      "type": "py",
+      "description": "동일 요청의 중복 저장·알림·게시를 막는 안정적인 idempotency key를 만드는 후보입니다.",
+      "category": "Workflow / Governance",
+      "version": "v0.2.0-sample",
+      "stars_count": 33,
+      "downloads_count": 25,
+      "created_at": "2026-08-27T01:00:00.000000Z",
+      "updated_at": "2026-08-27T09:00:00.000000Z",
+      "readme": "재실행 가능한 업무 Flow의 후보입니다. 키 구성, 만료, 동일성 기준과 충돌 처리 정책을 실제 운영에 맞춰야 합니다.",
+      "aliases": [
+        "idempotency",
+        "중복 방지",
+        "request key"
+      ],
+      "technical_contract_status": "metadata_only",
+      "acl": {
+        "visibility": "tenant",
+        "groups": [],
+        "subjects": []
+      }
+    },
+    {
+      "id": "f0010055-0000-4000-8000-000000000055",
+      "title": "업무 Runtime 상태 Checkpoint Flow",
+      "type": "json",
+      "description": "업무 정의의 진행 상태와 사용자 행동을 checkpoint로 남겨 재개 경로를 제공하는 후보 Flow입니다.",
+      "category": "Workflow / Governance",
+      "version": "v0.2.0-sample",
+      "stars_count": 40,
+      "downloads_count": 36,
+      "created_at": "2026-08-28T01:00:00.000000Z",
+      "updated_at": "2026-08-28T09:00:00.000000Z",
+      "readme": "HITL 또는 장기 Flow 재개 후보입니다. 상태 저장소, 권한, TTL, 재시도와 종료 상태 처리 계약이 필요합니다.",
+      "aliases": [
+        "runtime state",
+        "checkpoint",
+        "workflow resume"
+      ],
+      "technical_contract_status": "metadata_only",
+      "acl": {
+        "visibility": "tenant",
+        "groups": [],
+        "subjects": []
+      }
+    },
+    {
+      "id": "f0010056-0000-4000-8000-000000000056",
+      "title": "리스크·통제 체크리스트 Flow",
+      "type": "json",
+      "description": "업무 자동화 설계의 리스크, 통제, 승인 필요 지점을 정리하는 후보 Flow입니다.",
+      "category": "Workflow / Governance",
+      "version": "v0.2.0-sample",
+      "stars_count": 8,
+      "downloads_count": 47,
+      "created_at": "2026-08-01T01:00:00.000000Z",
+      "updated_at": "2026-08-01T09:00:00.000000Z",
+      "readme": "Agent 설계 검토 보조 후보입니다. 실제 위험 분류, 보안 승인, 책임자와 예외 허용 기준을 확인해야 합니다.",
+      "aliases": [
+        "risk control",
+        "통제",
+        "approval checklist"
+      ],
+      "technical_contract_status": "metadata_only",
+      "acl": {
+        "visibility": "tenant",
+        "groups": [],
+        "subjects": []
+      }
+    },
+    {
+      "id": "f0010057-0000-4000-8000-000000000057",
+      "title": "포트 계약 검증 Flow",
+      "type": "json",
+      "description": "선택한 Component와 Flow의 입력·출력 포트, 타입, 필수값 호환성을 점검하는 후보 Flow입니다.",
+      "category": "Workflow / Governance",
+      "version": "v0.2.0-sample",
+      "stars_count": 15,
+      "downloads_count": 58,
+      "created_at": "2026-08-02T01:00:00.000000Z",
+      "updated_at": "2026-08-02T09:00:00.000000Z",
+      "readme": "재사용 자산 연결 전 설계 검증 후보입니다. metadata_only 자산은 실제 runtime 검증 대상이라는 점을 유지해야 합니다.",
+      "aliases": [
+        "port contract",
+        "component compatibility",
+        "연결 검증"
+      ],
+      "technical_contract_status": "metadata_only",
+      "acl": {
+        "visibility": "tenant",
+        "groups": [],
+        "subjects": []
+      }
+    },
+    {
+      "id": "f0010058-0000-4000-8000-000000000058",
+      "title": "Agent Blueprint 설계 Flow",
+      "type": "json",
+      "description": "승인된 업무 정의와 카탈로그 검색 결과를 바탕으로 Agent 구성안을 만드는 후보 Flow입니다.",
+      "category": "Workflow / Agent",
+      "version": "v0.2.0-sample",
+      "stars_count": 22,
+      "downloads_count": 69,
+      "created_at": "2026-08-03T01:00:00.000000Z",
+      "updated_at": "2026-08-03T09:00:00.000000Z",
+      "readme": "F20 설계 단계와 연계 가능한 후보입니다. 검색 근거, 허용 자산, 사용자 승인과 생성 결과 검증을 실제 Flow에서 확인해야 합니다.",
+      "aliases": [
+        "agent blueprint",
+        "agent design",
+        "flow design"
+      ],
+      "technical_contract_status": "metadata_only",
+      "acl": {
+        "visibility": "tenant",
+        "groups": [],
+        "subjects": []
+      }
+    },
+    {
+      "id": "f0010059-0000-4000-8000-000000000059",
+      "title": "Standalone Component 생성 요청 Flow",
+      "type": "json",
+      "description": "신규 기능에 필요한 standalone custom component 생성 요청 프롬프트를 만드는 후보 Flow입니다.",
+      "category": "Workflow / Agent",
+      "version": "v0.2.0-sample",
+      "stars_count": 29,
+      "downloads_count": 80,
+      "created_at": "2026-08-04T01:00:00.000000Z",
+      "updated_at": "2026-08-04T09:00:00.000000Z",
+      "readme": "재사용 자산이 없을 때의 설계 후보입니다. 생성 코드는 로컬 모듈 import 없이 독립 실행 가능해야 하며 검토·테스트가 필요합니다.",
+      "aliases": [
+        "custom component prompt",
+        "standalone component",
+        "generation request"
+      ],
+      "technical_contract_status": "metadata_only",
+      "acl": {
+        "visibility": "tenant",
+        "groups": [],
+        "subjects": []
+      }
+    },
+    {
+      "id": "f0010060-0000-4000-8000-000000000060",
+      "title": "프롬프트 주입·외부지시 검토 Flow",
+      "type": "json",
+      "description": "업로드 문서와 사용자 입력에 포함된 외부 지시를 분리해 안전한 처리 범위를 점검하는 후보 Flow입니다.",
+      "category": "Workflow / Security",
+      "version": "v0.2.0-sample",
+      "stars_count": 36,
+      "downloads_count": 91,
+      "created_at": "2026-08-05T01:00:00.000000Z",
+      "updated_at": "2026-08-05T09:00:00.000000Z",
+      "readme": "문서 기반 Agent의 보안 후보입니다. 실제 정책, 차단 기준, 오탐 처리와 감사 절차를 확인해야 합니다.",
+      "aliases": [
+        "prompt injection",
+        "external instruction",
+        "input safety"
+      ],
+      "technical_contract_status": "metadata_only",
+      "acl": {
+        "visibility": "tenant",
+        "groups": [],
+        "subjects": []
+      }
+    },
+    {
+      "id": "f0010061-0000-4000-8000-000000000061",
+      "title": "Report View Model Builder Component",
+      "type": "py",
+      "description": "업무 정의와 Agent Blueprint를 화면 표시용 AS-IS·TO-BE 그래프 데이터로 변환하는 후보입니다.",
+      "category": "Report",
+      "version": "v0.2.0-sample",
+      "stars_count": 43,
+      "downloads_count": 19,
+      "created_at": "2026-08-06T01:00:00.000000Z",
+      "updated_at": "2026-08-06T09:00:00.000000Z",
+      "readme": "F30 보고서 구성 후보입니다. sealed handoff, hash binding, 원문 추적성과 schema 검증은 실제 컴포넌트를 확인해야 합니다.",
+      "aliases": [
+        "report view model",
+        "AS-IS TO-BE",
+        "report data"
+      ],
+      "technical_contract_status": "metadata_only",
+      "acl": {
+        "visibility": "tenant",
+        "groups": [],
+        "subjects": []
+      }
+    },
+    {
+      "id": "f0010062-0000-4000-8000-000000000062",
+      "title": "반응형 HTML Report Renderer Component",
+      "type": "py",
+      "description": "검증된 보고서 view model을 노드·연결선·상세 Drawer가 있는 HTML로 렌더링하는 후보입니다.",
+      "category": "Report",
+      "version": "v0.2.0-sample",
+      "stars_count": 11,
+      "downloads_count": 30,
+      "created_at": "2026-08-07T01:00:00.000000Z",
+      "updated_at": "2026-08-07T09:00:00.000000Z",
+      "readme": "업무 설계 보고서 표시 후보입니다. HTML 보안, no-JS fallback, 접근성, 대형 그래프 가독성과 발행 API 계약을 확인해야 합니다.",
+      "aliases": [
+        "responsive report",
+        "HTML renderer",
+        "flow visualization"
+      ],
+      "technical_contract_status": "metadata_only",
+      "acl": {
+        "visibility": "tenant",
+        "groups": [],
+        "subjects": []
+      }
+    },
+    {
+      "id": "f0010063-0000-4000-8000-000000000063",
+      "title": "Report API Publisher Component",
+      "type": "py",
+      "description": "검증된 HTML 보고서를 내부 API에 발행하거나 테스트 실행 결과를 반환하는 후보입니다.",
+      "category": "Report",
+      "version": "v0.2.0-sample",
+      "stars_count": 18,
+      "downloads_count": 41,
+      "created_at": "2026-08-08T01:00:00.000000Z",
+      "updated_at": "2026-08-08T09:00:00.000000Z",
+      "readme": "보고서 링크 제공 후보입니다. API 주소, 인증, timeout, 링크 ACL과 dry-run·실제 게시 구분을 실제 운영 설정으로 확인해야 합니다.",
+      "aliases": [
+        "report publisher",
+        "HTML API",
+        "report link"
+      ],
+      "technical_contract_status": "metadata_only",
+      "acl": {
+        "visibility": "tenant",
+        "groups": [],
+        "subjects": []
+      }
+    },
+    {
+      "id": "f0010064-0000-4000-8000-000000000064",
+      "title": "CUBE Rich Notification Renderer Component",
+      "type": "py",
+      "description": "Markdown·표·링크를 CUBE 친화적 알림 형식으로 변환하는 후보입니다.",
+      "category": "Utility / Notification",
+      "version": "v0.2.0-sample",
+      "stars_count": 25,
+      "downloads_count": 52,
+      "created_at": "2026-08-09T01:00:00.000000Z",
+      "updated_at": "2026-08-09T09:00:00.000000Z",
+      "readme": "승인된 보고서 알림 후보입니다. 채널 권한, 멘션, 중복 발송 방지, 실패 재시도와 링크 열람 권한을 확인해야 합니다.",
+      "aliases": [
+        "CUBE notification",
+        "rich message",
+        "report alert"
+      ],
+      "technical_contract_status": "metadata_only",
+      "acl": {
+        "visibility": "tenant",
+        "groups": [],
+        "subjects": []
+      }
+    },
+    {
+      "id": "f0010065-0000-4000-8000-000000000065",
+      "title": "Dashboard KPI Composer Component",
+      "type": "py",
+      "description": "여러 업무 소스의 지표를 카드·표·추세 데이터로 구성하는 후보입니다.",
+      "category": "Report",
+      "version": "v0.2.0-sample",
+      "stars_count": 32,
+      "downloads_count": 63,
+      "created_at": "2026-08-10T01:00:00.000000Z",
+      "updated_at": "2026-08-10T09:00:00.000000Z",
+      "readme": "업무 현황 대시보드 설계 후보입니다. 지표 정의, 데이터 최신성, 집계 단위와 접근 권한을 실제 기준으로 검증해야 합니다.",
+      "aliases": [
+        "KPI dashboard",
+        "report metrics",
+        "지표 구성"
+      ],
+      "technical_contract_status": "metadata_only",
+      "acl": {
+        "visibility": "tenant",
+        "groups": [],
+        "subjects": []
+      }
+    },
+    {
+      "id": "f0010066-0000-4000-8000-000000000066",
+      "title": "업무 Flow 시각화 생성 Flow",
+      "type": "json",
+      "description": "업무 단계와 분기를 노드·연결선·상세 설명으로 시각화하는 후보 Flow입니다.",
+      "category": "Workflow / Report",
+      "version": "v0.2.0-sample",
+      "stars_count": 39,
+      "downloads_count": 74,
+      "created_at": "2026-08-11T01:00:00.000000Z",
+      "updated_at": "2026-08-11T09:00:00.000000Z",
+      "readme": "업무 방식 보고서의 시각화 후보입니다. 노드 schema, 레이아웃, 대형 그래프 성능과 클릭 상세 정보 계약을 확인해야 합니다.",
+      "aliases": [
+        "flow visualization",
+        "node edge",
+        "업무 그래프"
+      ],
+      "technical_contract_status": "metadata_only",
+      "acl": {
+        "visibility": "tenant",
+        "groups": [],
+        "subjects": []
+      }
+    },
+    {
+      "id": "f0010067-0000-4000-8000-000000000067",
+      "title": "Report 품질·접근성 점검 Flow",
+      "type": "json",
+      "description": "보고서의 누락 섹션, 링크, 텍스트 대체, 인쇄·모바일 가독성을 점검하는 후보 Flow입니다.",
+      "category": "Workflow / Report",
+      "version": "v0.2.0-sample",
+      "stars_count": 7,
+      "downloads_count": 85,
+      "created_at": "2026-08-12T01:00:00.000000Z",
+      "updated_at": "2026-08-12T09:00:00.000000Z",
+      "readme": "배포 전 리포트 확인 후보입니다. 실제 브라우저 테스트, 접근성 기준, 깨진 링크와 민감정보 노출 검사는 별도로 필요합니다.",
+      "aliases": [
+        "report QA",
+        "accessibility",
+        "HTML quality"
+      ],
+      "technical_contract_status": "metadata_only",
+      "acl": {
+        "visibility": "tenant",
+        "groups": [],
+        "subjects": []
+      }
+    },
+    {
+      "id": "f0010068-0000-4000-8000-000000000068",
+      "title": "승인 근거 Append Flow",
+      "type": "json",
+      "description": "승인자, 승인 시각, 검토 의견과 근거 hash를 보고서 이력에 추가하는 후보 Flow입니다.",
+      "category": "Workflow / Report",
+      "version": "v0.2.0-sample",
+      "stars_count": 14,
+      "downloads_count": 13,
+      "created_at": "2026-08-13T01:00:00.000000Z",
+      "updated_at": "2026-08-13T09:00:00.000000Z",
+      "readme": "보고서의 감사 추적 후보입니다. 승인자 인증, 변경 불가 저장소, 보존 기간과 개인정보 노출 기준을 확인해야 합니다.",
+      "aliases": [
+        "approval evidence",
+        "audit report",
+        "승인 이력"
+      ],
+      "technical_contract_status": "metadata_only",
+      "acl": {
+        "visibility": "tenant",
+        "groups": [],
+        "subjects": []
+      }
+    },
+    {
+      "id": "f0010069-0000-4000-8000-000000000069",
+      "title": "실패 원인·누락 건수 알림 Flow",
+      "type": "json",
+      "description": "데이터 조회 실패, 인증 만료, 누락 건수를 요약해 게시 전 차단과 알림을 수행하는 후보 Flow입니다.",
+      "category": "Workflow / Monitoring",
+      "version": "v0.2.0-sample",
+      "stars_count": 21,
+      "downloads_count": 24,
+      "created_at": "2026-08-14T01:00:00.000000Z",
+      "updated_at": "2026-08-14T09:00:00.000000Z",
+      "readme": "주간 업무보고 실패 경로 후보입니다. 오류 분류, 재시도, 수신자, 민감한 오류 메시지 마스킹을 실제 운영 기준으로 확인해야 합니다.",
+      "aliases": [
+        "failure summary",
+        "missing count",
+        "blocked alert"
+      ],
+      "technical_contract_status": "metadata_only",
+      "acl": {
+        "visibility": "tenant",
+        "groups": [],
+        "subjects": []
+      }
+    },
+    {
+      "id": "f0010070-0000-4000-8000-000000000070",
+      "title": "정기 업무보고 스케줄링 Flow",
+      "type": "json",
+      "description": "정해진 주기마다 보고서 준비를 시작하고 결과를 승인 대기로 보내는 후보 Flow입니다.",
+      "category": "Workflow / Scheduling",
+      "version": "v0.2.0-sample",
+      "stars_count": 28,
+      "downloads_count": 35,
+      "created_at": "2026-08-15T01:00:00.000000Z",
+      "updated_at": "2026-08-15T09:00:00.000000Z",
+      "readme": "정기 보고 자동화 후보입니다. 스케줄 권한, 시간대, 휴일, 중복 실행 방지, 장애 재시도와 승인 전 게시 금지를 확인해야 합니다.",
+      "aliases": [
+        "scheduled report",
+        "weekly schedule",
+        "정기 실행"
+      ],
+      "technical_contract_status": "metadata_only",
+      "acl": {
+        "visibility": "tenant",
+        "groups": [],
+        "subjects": []
+      }
+    },
+    {
+      "id": "f0010071-0000-4000-8000-000000000071",
+      "title": "생산 Hold 사례 요약·검토 Flow",
+      "type": "json",
+      "description": "Hold 자재의 이력, 관련 데이터, 조치 후보와 근거를 정리해 사람 검토로 보내는 후보 Flow입니다.",
+      "category": "Workflow / Manufacturing",
+      "version": "v0.2.0-sample",
+      "stars_count": 35,
+      "downloads_count": 46,
+      "created_at": "2026-08-16T01:00:00.000000Z",
+      "updated_at": "2026-08-16T09:00:00.000000Z",
+      "readme": "제조 판정 지원 후보입니다. 실제 판정 기준, 데이터 최신성, 책임 경계와 최종 조치 승인은 반드시 사람에게 남아야 합니다.",
+      "aliases": [
+        "production hold",
+        "FDC hold",
+        "case summary"
+      ],
+      "technical_contract_status": "metadata_only",
+      "acl": {
+        "visibility": "tenant",
+        "groups": [],
+        "subjects": []
+      }
+    },
+    {
+      "id": "f0010072-0000-4000-8000-000000000072",
+      "title": "장비 Event Timeline 검색·보고 Flow",
+      "type": "json",
+      "description": "EQP·장비 이벤트와 관련 이력의 시간 흐름을 검색해 보고서 입력으로 만드는 후보 Flow입니다.",
+      "category": "Workflow / Manufacturing",
+      "version": "v0.2.0-sample",
+      "stars_count": 42,
+      "downloads_count": 57,
+      "created_at": "2026-08-17T01:00:00.000000Z",
+      "updated_at": "2026-08-17T09:00:00.000000Z",
+      "readme": "설비 이력 분석 후보입니다. 장비 정보 ACL, 시간대, 원본 데이터 정확도와 운영 시스템 연결 계약을 확인해야 합니다.",
+      "aliases": [
+        "equipment timeline",
+        "EQP event",
+        "장비 이력"
+      ],
+      "technical_contract_status": "metadata_only",
+      "acl": {
+        "visibility": "tenant",
+        "groups": [],
+        "subjects": []
+      }
     }
   ]
 }

@@ -26,6 +26,10 @@
 17. edge는 `label`, `condition`, `is_default`를 명시한다. `branch_label`, `default`는 과거 입력 호환 alias일 뿐 새 후보에 출력하지 않는다.
 18. node `config`에 token, password, secret, credential, API key, authorization, cookie, session 또는 실제 인증 값을 넣지 않는다. secret은 값 없이 `required_secrets`의 `name`, `ref`, `port_id`, `required`, `configured`만 사용한다.
 19. 각 node에는 클릭 상세용 `current_work`, `problems`, `improvement`를 bounded text/list로 작성한다. 현재 방식과 문제는 승인 WorkDefinition 근거에서 가져오고, 개선 방향은 해당 node 책임과 구현 출처에 맞춰 작성한다.
+20. **실행 가능한 node 연결은 먼저 port 계약으로 정의한 뒤 edge를 작성한다.** 각 node의 `inputs`/`outputs`에는 해당 node가 실제로 받거나 내보내는 모든 연결 port를 선언한다. 각 port는 비어 있지 않은 `port_id`, `data_type`, `cardinality`, `required`를 가지며, 같은 node 안에서 `port_id`를 중복하지 않는다. `source_port_id`는 반드시 source node의 `outputs[].port_id`를, `target_port_id`는 반드시 target node의 `inputs[].port_id`를 정확히 참조한다. 추측한 port ID, 다른 node의 port ID, 빈 문자열(`""`)이나 공백 문자열은 절대 사용하지 않는다.
+21. `edge_kind`가 `data`, `branch`, `human`, `retry`, `error`인 edge와 실제 Langflow 실행 순서를 표현하는 `control` edge는 기본적으로 양쪽 port ID를 모두 가진다. 연결하는 두 port의 `data_type`, `cardinality`, `semantic_role`, `streaming`, secret/permission/network zone 계약도 서로 호환되게 작성한다. required input은 edge, default, 승인된 secret/config 중 하나로 충족되어야 한다.
+22. port를 갖지 않는 설명용/보고서용 관계만 예외적으로 `source_port_id: null`, `target_port_id: null`을 사용할 수 있다. 이 예외 edge는 실제 Flow 연결이나 import-ready 구현이라고 주장하지 않고 `connection_validation_status: "unverified"`, `build_readiness: "design_only"`로 남긴다. 한쪽만 null이거나 빈 문자열인 edge는 만들지 않는다. 실제 연결로 구현할 수 없는 설명은 가능하면 `edges`가 아니라 node의 `summary`/`improvement`에 기록한다.
+23. catalog asset은 `candidate_context`가 제공한 봉인된 port 계약을 그대로 사용한다. catalog asset의 port를 새로 발명하거나 축소·변경하지 않으며, candidate에 port 계약이 없으면 `technical_contract_status`와 `connection_validation_status`를 과장하지 않는다. builtin/new standalone node는 edge를 만들기 전에 필요한 입력·출력 port를 명시적으로 설계한다.
 
 ## New standalone generation contract
 
@@ -68,6 +72,49 @@
 - `design_scope` (`work_definition`과 사용자가 추가 입력한 `design_prompt` 포함)
 - `approved_skill_context`
 - `candidate_context`
+
+## Port/edge contract example
+
+아래는 **port와 edge 필드만 보여 주는 축약 예시**다. 실제 출력에서는 각 node의 다른 schema 필수 필드도 함께 채운다. 이 예시처럼 edge의 port ID는 정확히 해당 node의 declared port ID를 참조해야 한다.
+
+```json
+{
+  "nodes": [
+    {
+      "node_id": "request-start",
+      "inputs": [],
+      "outputs": [
+        {"port_id": "run-request", "data_type": "Data", "cardinality": "one", "required": true}
+      ]
+    },
+    {
+      "node_id": "mail-collector",
+      "inputs": [
+        {"port_id": "run-request", "data_type": "Data", "cardinality": "one", "required": true}
+      ],
+      "outputs": [
+        {"port_id": "mail-messages", "data_type": "Data", "cardinality": "one", "required": true}
+      ]
+    }
+  ],
+  "edges": [
+    {
+      "edge_id": "edge-request-collect",
+      "source_node_id": "request-start",
+      "source_port_id": "run-request",
+      "target_node_id": "mail-collector",
+      "target_port_id": "run-request",
+      "edge_kind": "data",
+      "label": "실행 요청",
+      "condition": null,
+      "is_default": true,
+      "connection_validation_status": "contract_compatible"
+    }
+  ]
+}
+```
+
+허용되지 않는 예: `"source_port_id": ""`, `"target_port_id": " "`, 존재하지 않는 port ID, source output이 아닌 ID를 source에 쓰는 경우, target input이 아닌 ID를 target에 쓰는 경우.
 
 ## Required output
 

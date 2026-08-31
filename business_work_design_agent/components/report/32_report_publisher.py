@@ -1,8 +1,13 @@
 from __future__ import annotations
 
-"""Publish a rendered report to the companion Report API with fail-closed checks."""
+"""Publish F30 HTML through the shared HTML Report API.
 
-import hashlib
+This component deliberately uses the same small HTTP contract as the proven
+reference report flow: a single base URL, a POST to ``/reports``, and a
+server-generated view/download link.  F30's sealed handoff and HTML renderer
+stay unchanged; only the final external publishing boundary is simplified.
+"""
+
 import json
 import re
 import socket
@@ -12,16 +17,38 @@ import urllib.request
 from typing import Any
 
 from lfx.custom import Component
-from lfx.io import BoolInput, DataInput, IntInput, MultilineInput, Output, SecretStrInput, StrInput
+from lfx.io import BoolInput, DataInput, IntInput, Output, StrInput
 from lfx.schema import Data
 
 
-MAX_REPORT_BYTES = 15 * 1024 * 1024
+DEFAULT_REPORT_API_URL = "http://127.0.0.1:5000"
+DEFAULT_REPORT_TTL_HOURS = 4
+DEFAULT_TIMEOUT_SECONDS = 30
+MAX_RESPONSE_BYTES = 65_536
+F30_TERMINAL_SCHEMA_VERSION = "f30-terminal-result/v1"
+TRACE_ID_PATTERN = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._:-]{0,199}$")
 
 
-class _NoRedirect(urllib.request.HTTPRedirectHandler):
-    def redirect_request(self, req, fp, code, msg, headers, newurl):  # noqa: ANN001, ANN201, ARG002
-        return None
+class _PublishError(ValueError):
+    """A publish failure that should be shown as Flow data, not a build error."""
+
+    pass
+
+
+def _error(code: str, message: str, *, retryable: bool = False) -> _PublishError:
+    return _PublishError(code, message, retryable)
+
+
+def _error_code(error: _PublishError) -> str:
+    return str(error.args[0]) if error.args else "REPORT_PUBLISHER_UNEXPECTED"
+
+
+def _error_message(error: _PublishError) -> str:
+    return str(error.args[1]) if len(error.args) > 1 else "Report publication failed"
+
+
+def _error_retryable(error: _PublishError) -> bool:
+    return bool(error.args[2]) if len(error.args) > 2 else False
 
 
 def _raw(value: Any) -> Any:
@@ -35,264 +62,280 @@ def _payload(value: Any, field: str) -> dict[str, Any]:
         try:
             value = json.loads(value)
         except json.JSONDecodeError as exc:
-            raise ValueError(f"{field} must be a JSON object") from exc
+            raise _error("REPORT_INPUT_INVALID", f"{field} must be a JSON object") from exc
     if not isinstance(value, dict):
-        raise ValueError(f"{field} must be an object")
+        raise _error("REPORT_INPUT_INVALID", f"{field} must be an object")
     return dict(value)
 
 
-def _secret(value: Any) -> str:
-    getter = getattr(value, "get_secret_value", None)
-    if callable(getter):
-        return str(getter()).strip()
-    return str(value or "").strip()
-
-
-def _allowed_hosts(value: Any) -> set[str]:
-    value = _raw(value)
-    if value in (None, ""):
-        return set()
-    if isinstance(value, str):
-        try:
-            parsed = json.loads(value)
-            value = parsed
-        except json.JSONDecodeError:
-            value = [item.strip() for item in value.split(",") if item.strip()]
-    if not isinstance(value, list):
-        raise ValueError("allowed_hosts_json must be a JSON array or comma-separated host list")
-    result = {str(item).strip().lower().rstrip(".") for item in value if str(item).strip()}
-    if any("/" in item or "://" in item or "@" in item for item in result):
-        raise ValueError("allowed_hosts_json entries must contain hostnames only")
-    return result
-
-
-def _validate_url(url: str, hosts: set[str], *, response_url: bool = False) -> str:
+def _bounded_int(value: Any, *, field: str, default: int, minimum: int, maximum: int) -> int:
     try:
-        parsed = urllib.parse.urlsplit(url.strip())
-    except ValueError as exc:
-        raise ValueError("invalid report API URL") from exc
-    hostname = (parsed.hostname or "").lower().rstrip(".")
-    if not hostname or parsed.username or parsed.password:
-        raise ValueError("report URL must have a hostname and must not contain credentials")
-    is_loopback = hostname in {"localhost", "127.0.0.1", "::1"}
-    if parsed.scheme not in ({"http", "https"} if is_loopback else {"https"}):
-        raise ValueError("HTTPS is required except for explicit loopback development URLs")
-    if not hosts and not is_loopback:
-        raise ValueError("allowed_hosts_json must explicitly allow every non-loopback report host")
-    if hosts and hostname not in hosts:
-        kind = "returned report" if response_url else "report API"
-        raise ValueError(f"{kind} host is not in allowed_hosts_json")
-    if not response_url and (parsed.query or parsed.fragment):
-        raise ValueError("report API base URL must not contain a query or fragment")
-    return urllib.parse.urlunsplit((parsed.scheme, parsed.netloc, parsed.path.rstrip("/"), "", ""))
+        parsed = int(default if value in (None, "") else value)
+    except (TypeError, ValueError) as exc:
+        raise _error("REPORT_CONFIGURATION_INVALID", f"{field} must be a whole number") from exc
+    return max(minimum, min(parsed, maximum))
 
 
-def _sha256_text(text: str) -> str:
-    return "sha256:" + hashlib.sha256(text.encode("utf-8")).hexdigest()
+def _reports_post_url(value: Any) -> str:
+    """Accept a report-service base URL or an already-complete /reports URL."""
 
-
-def _validate_report_link(url: str, hosts: set[str], report_id: str, *, download: bool) -> str:
-    _validate_url(url, hosts, response_url=True)
-    parsed = urllib.parse.urlsplit(url.strip())
-    expected_suffix = "/reports/" + urllib.parse.quote(report_id, safe="")
-    if download:
-        expected_suffix += "/download"
-    if parsed.fragment or not parsed.path.endswith(expected_suffix):
-        raise ValueError("report API returned a URL that is not bound to the requested report")
+    raw = str(value or "").strip()
+    if not raw:
+        raise _error("REPORT_API_URL_REQUIRED", "Report API URL is required")
+    if any(ord(character) < 32 for character in raw):
+        raise _error("REPORT_API_URL_INVALID", "Report API URL must not contain control characters")
     try:
-        query = urllib.parse.parse_qsl(parsed.query, keep_blank_values=True, strict_parsing=True)
+        parsed = urllib.parse.urlsplit(raw)
     except ValueError as exc:
-        raise ValueError("report API returned an invalid capability URL") from exc
-    if len(query) != 1 or query[0][0] != "capability" or not query[0][1]:
-        raise ValueError("report API returned an invalid capability URL")
-    return url.strip()
+        raise _error("REPORT_API_URL_INVALID", "Report API URL is invalid") from exc
+    if parsed.scheme not in {"http", "https"} or not parsed.hostname:
+        raise _error("REPORT_API_URL_INVALID", "Report API URL must be an absolute http(s) URL")
+    if parsed.username or parsed.password or parsed.fragment:
+        raise _error(
+            "REPORT_API_URL_INVALID",
+            "Report API URL must not include credentials or a fragment",
+        )
+    path = parsed.path.rstrip("/")
+    reports_path = path if path.endswith("/reports") else (path + "/reports" if path else "/reports")
+    return urllib.parse.urlunsplit((parsed.scheme, parsed.netloc, reports_path, parsed.query, ""))
+
+
+def _safe_result_url(value: Any, field: str) -> str:
+    url = str(value or "").strip()
+    if any(ord(character) < 32 for character in url):
+        raise _error("REPORT_API_INVALID_RESPONSE", f"Report API returned an invalid {field}")
+    try:
+        parsed = urllib.parse.urlsplit(url)
+    except ValueError as exc:
+        raise _error("REPORT_API_INVALID_RESPONSE", f"Report API returned an invalid {field}") from exc
+    if (
+        parsed.scheme not in {"http", "https"}
+        or not parsed.hostname
+        or parsed.username
+        or parsed.password
+        or parsed.fragment
+    ):
+        raise _error("REPORT_API_INVALID_RESPONSE", f"Report API returned an invalid {field}")
+    return url
+
+
+def _http_error_detail(exc: urllib.error.HTTPError) -> str:
+    try:
+        raw = exc.read(2_049)
+    except OSError:
+        return ""
+    text = raw.decode("utf-8", errors="replace").strip()
+    if not text:
+        return ""
+    try:
+        payload = json.loads(text)
+    except json.JSONDecodeError:
+        return text[:300]
+    if isinstance(payload, dict):
+        return str(payload.get("detail") or payload.get("message") or payload.get("error") or "")[:300]
+    return text[:300]
+
+
+def _post_report_json(
+    target_url: str,
+    body: dict[str, Any],
+    *,
+    timeout_seconds: int,
+) -> dict[str, Any]:
+    try:
+        encoded = json.dumps(body, ensure_ascii=False, default=str).encode("utf-8")
+    except (TypeError, ValueError) as exc:
+        raise _error("REPORT_PAYLOAD_INVALID", "Report payload could not be converted to JSON") from exc
+    request = urllib.request.Request(
+        target_url,
+        data=encoded,
+        method="POST",
+        headers={
+            "Content-Type": "application/json; charset=utf-8",
+            "Accept": "application/json",
+        },
+    )
+    try:
+        with urllib.request.urlopen(request, timeout=timeout_seconds) as response:
+            raw = response.read(MAX_RESPONSE_BYTES + 1)
+            status_value = getattr(response, "status", None)
+            status_code = int(status_value if status_value is not None else response.getcode())
+    except urllib.error.HTTPError as exc:
+        detail = _http_error_detail(exc)
+        message = f"Report API HTTP {exc.code}"
+        if detail:
+            message += f": {detail}"
+        raise _error("REPORT_API_HTTP_ERROR", message, retryable=exc.code >= 500 or exc.code in {408, 429}) from exc
+    except (urllib.error.URLError, socket.timeout, TimeoutError) as exc:
+        reason = str(getattr(exc, "reason", exc) or "connection failed")[:300]
+        raise _error("REPORT_API_CONNECTION_FAILED", f"Report API connection failed: {reason}", retryable=True) from exc
+
+    if len(raw) > MAX_RESPONSE_BYTES:
+        raise _error("REPORT_API_INVALID_RESPONSE", "Report API response exceeds 64 KiB")
+    if status_code not in {200, 201}:
+        raise _error("REPORT_API_HTTP_ERROR", f"Report API returned unexpected HTTP {status_code}", retryable=status_code >= 500)
+    try:
+        payload = json.loads(raw.decode("utf-8"))
+    except (UnicodeDecodeError, json.JSONDecodeError) as exc:
+        raise _error("REPORT_API_INVALID_RESPONSE", "Report API returned invalid JSON") from exc
+    if not isinstance(payload, dict):
+        raise _error("REPORT_API_INVALID_RESPONSE", "Report API response must be a JSON object")
+    return payload
+
+
+def _failure(error: _PublishError, *, target_url: str | None = None) -> Data:
+    result: dict[str, Any] = {
+        "ok": False,
+        "status": "PUBLISH_FAILED",
+        "message": _error_message(error),
+        "error": {
+            "code": _error_code(error),
+            "message": _error_message(error),
+            "retryable": _error_retryable(error),
+        },
+    }
+    if target_url:
+        result["target_url"] = target_url
+    return Data(data=result)
+
+
+def _f30_upstream_failure(rendered: dict[str, Any]) -> Data:
+    """Forward an F30 validation/render block without trying to publish HTML."""
+
+    source_error = rendered.get("error") if isinstance(rendered.get("error"), dict) else {}
+    code = str(source_error.get("code") or "F30_RENDER_RESULT_BLOCKED").strip()[:128]
+    message = str(source_error.get("message") or "F30 이전 단계에서 보고서 생성을 중단했습니다.").strip()[:500]
+    trace_id = str(rendered.get("trace_id") or "").strip()
+    if TRACE_ID_PATTERN.fullmatch(trace_id) is None:
+        trace_id = "trace-f30-publisher-blocked"
+    result = {
+        "ok": False,
+        "status": "BLOCKED",
+        "schema_version": F30_TERMINAL_SCHEMA_VERSION,
+        "stage": str(rendered.get("stage") or "f30_publisher")[:128],
+        "error": {
+            "code": code or "F30_RENDER_RESULT_BLOCKED",
+            "message": message or "F30 이전 단계에서 보고서 생성을 중단했습니다.",
+            "retryable": False,
+            "details": {},
+        },
+        "trace_id": trace_id,
+    }
+    return Data(data=result)
 
 
 class ReportPublisherComponent(Component):
     display_name = "Business Flow Report Publisher"
-    description = "Publishes verified report HTML to the authenticated companion Report API."
+    description = "Posts F30's rendered HTML to the shared Report API. Test runs validate only and never send a network request."
     icon = "CloudUpload"
     name = "ReportPublisher"
 
     inputs = [
         DataInput(name="render_result", display_name="Rendered Report", required=True),
-        DataInput(
-            name="report_context",
-            display_name="Report Execution Context",
-            required=False,
-            info="F30 handoff가 자동 연결하는 tenant/actor/approval identity입니다.",
-        ),
-        StrInput(name="report_api_url", display_name="Report API Base URL", required=True),
-        SecretStrInput(name="bearer_token", display_name="Report API Bearer Token", required=False),
         StrInput(
-            name="tenant_id",
-            display_name="Tenant ID",
-            required=False,
-            info="F30 handoff 연결 시 자동 적용됩니다. 단독 실행에서만 직접 입력합니다.",
+            name="report_api_url",
+            display_name="Report API URL",
+            value=DEFAULT_REPORT_API_URL,
+            required=True,
+            info="예: http://127.0.0.1:5000. /reports endpoint까지 입력해도 됩니다.",
         ),
-        StrInput(
-            name="actor_id",
-            display_name="Actor ID",
-            value="langflow-service",
-            required=False,
-            info="F30 handoff 연결 시 자동 적용됩니다. 단독 실행에서만 직접 입력합니다.",
+        IntInput(
+            name="report_ttl_hours",
+            display_name="HTML Link TTL (hours)",
+            value=DEFAULT_REPORT_TTL_HOURS,
+            required=True,
+            info="Report API가 보고서 링크 보관/만료 정책에 사용하는 시간입니다.",
         ),
-        StrInput(
-            name="idempotency_key",
-            display_name="Idempotency Key",
-            value="",
-            required=False,
-            advanced=True,
-            info="Leave blank to derive a stable key from tenant, report ID, and content hash.",
-        ),
-        MultilineInput(
-            name="allowed_hosts_json",
-            display_name="Allowed Hosts",
-            value='["localhost","127.0.0.1","::1"]',
-            info="JSON array (or comma-separated list) of exact report API and returned-link hostnames.",
-        ),
-        IntInput(name="timeout_seconds", display_name="Timeout (seconds)", value=30, advanced=True),
         BoolInput(
             name="dry_run",
             display_name="테스트 실행 (저장하지 않음)",
             value=True,
-            advanced=True,
-            info="켜면 Report API에 게시하지 않고 HTML, hash, URL 허용 범위만 검증합니다.",
+            info="켜면 HTML과 API URL만 검증하고 Report API에 요청을 보내지 않습니다.",
         ),
+        IntInput(name="timeout_seconds", display_name="API Timeout (seconds)", value=DEFAULT_TIMEOUT_SECONDS, advanced=True),
     ]
-    outputs = [Output(name="publish_result", display_name="Publish Result", method="publish_report")]
+    outputs = [
+        Output(name="publish_result", display_name="Publish Result", method="publish_report", types=["Data"]),
+    ]
 
     def publish_report(self) -> Data:
-        rendered = _payload(self.render_result, "render_result")
-        html = rendered.get("html")
-        supplied_hash = str(rendered.get("content_sha256") or "").strip()
-        report_id = str(rendered.get("report_id") or "").strip()
-        supplied_context = getattr(self, "report_context", None)
-        context = _payload(supplied_context, "report_context") if supplied_context not in (None, "") else {}
-        context_tenant_id = str(context.get("tenant_id") or "").strip()
-        context_actor_id = str(context.get("actor_id") or "").strip()
-        configured_tenant_id = str(getattr(self, "tenant_id", "") or "").strip()
-        configured_actor_id = str(getattr(self, "actor_id", "") or "").strip()
-        if context_tenant_id and configured_tenant_id and context_tenant_id != configured_tenant_id:
-            raise ValueError("report_context tenant_id does not match tenant_id")
-        if context_actor_id and configured_actor_id and context_actor_id != configured_actor_id:
-            raise ValueError("report_context actor_id does not match actor_id")
-        tenant_id = context_tenant_id or configured_tenant_id
-        actor_id = context_actor_id or configured_actor_id
-        if not isinstance(html, str) or not html.strip():
-            raise ValueError("render_result.html is required")
-        if not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9._:-]{0,127}", report_id):
-            raise ValueError("render_result.report_id is required and must be a canonical identity")
-        if not tenant_id or len(tenant_id) > 128:
-            raise ValueError("tenant_id is required and must be at most 128 characters")
-        if not actor_id or len(actor_id) > 128:
-            raise ValueError("actor_id is required and must be at most 128 characters")
-        html_bytes = html.encode("utf-8")
-        if len(html_bytes) > MAX_REPORT_BYTES:
-            raise ValueError("report HTML exceeds the 15 MiB publisher limit")
-        actual_hash = _sha256_text(html)
-        if supplied_hash != actual_hash:
-            raise ValueError("render_result.content_sha256 does not match the HTML")
-
-        hosts = _allowed_hosts(getattr(self, "allowed_hosts_json", ""))
-        api_base = _validate_url(str(getattr(self, "report_api_url", "") or ""), hosts)
-        target_url = api_base + "/reports"
-        timeout = max(1, min(int(getattr(self, "timeout_seconds", 30) or 30), 120))
-        supplied_metadata = rendered.get("metadata") if isinstance(rendered.get("metadata"), dict) else {}
-        metadata = {
-            **supplied_metadata,
-            "renderer_version": rendered.get("renderer_version"),
-            "script_csp_hash": rendered.get("script_csp_hash"),
-            "style_csp_hash": rendered.get("style_csp_hash"),
-            "byte_count": len(html_bytes),
-            "accessibility_summary": rendered.get("accessibility_summary"),
-        }
-        body = {
-            "report_id": report_id or None,
-            "content_sha256": actual_hash,
-            "html": html,
-            "metadata": metadata,
-        }
-        if bool(getattr(self, "dry_run", False)):
-            self.status = (
-                f"테스트 실행 완료: {len(html_bytes)} bytes를 검증했습니다. "
-                "Report API에는 게시하지 않았습니다."
+        target_url: str | None = None
+        try:
+            rendered = _payload(self.render_result, "render_result")
+            if rendered.get("ok") is False:
+                result = _f30_upstream_failure(rendered)
+                self.status = f"Report publication blocked: {result.data['error']['code']}"
+                return result
+            html = rendered.get("html")
+            if not isinstance(html, str) or not html.strip():
+                raise _error("REPORT_HTML_REQUIRED", "render_result.html is required")
+            target_url = _reports_post_url(getattr(self, "report_api_url", ""))
+            ttl_hours = _bounded_int(
+                getattr(self, "report_ttl_hours", DEFAULT_REPORT_TTL_HOURS),
+                field="HTML Link TTL (hours)",
+                default=DEFAULT_REPORT_TTL_HOURS,
+                minimum=1,
+                maximum=168,
             )
-            return Data(
-                data={
+            renderer_report_id = str(rendered.get("report_id") or "").strip()
+            filename_part = renderer_report_id or "report"
+            body = {
+                "html": html,
+                "title": str(rendered.get("title") or "Business Work Design Report"),
+                "question": "Business Work Design F30 responsive report",
+                "view_request": "business_work_design_agent F30 report",
+                "available_datasets": [],
+                "report_plan": {
+                    "source_flow": "F30_responsive_report",
+                    "renderer_report_id": renderer_report_id or None,
+                    "renderer_version": rendered.get("renderer_version"),
+                },
+                "ttl_hours": ttl_hours,
+                "filename_hint": f"business-work-design-{filename_part}.html",
+            }
+            if bool(getattr(self, "dry_run", False)):
+                result = {
                     "ok": True,
                     "status": "would_publish",
                     "execution_mode_display": "테스트 실행 (저장하지 않음)",
                     "message": "테스트 실행입니다. Report API에는 게시하지 않았습니다.",
-                    "report_id": report_id or None,
-                    "content_sha256": actual_hash,
-                    "content_bytes": len(html_bytes),
+                    "renderer_report_id": renderer_report_id or None,
+                    "content_bytes": len(html.encode("utf-8")),
                     "target_url": target_url,
+                    "ttl_hours": ttl_hours,
                 }
-            )
+                self.status = "테스트 실행 완료: Report API에는 게시하지 않았습니다."
+                return Data(data=result)
 
-        token = _secret(getattr(self, "bearer_token", ""))
-        parsed_target = urllib.parse.urlsplit(target_url)
-        if parsed_target.hostname not in {"localhost", "127.0.0.1", "::1"} and not token:
-            raise ValueError("bearer_token is required for non-loopback publication")
-        request_headers = {
-            "Accept": "application/json",
-            "Content-Type": "application/json; charset=utf-8",
-            "X-Tenant-ID": tenant_id,
-            "X-Actor-ID": actor_id,
-            "Idempotency-Key": str(getattr(self, "idempotency_key", "") or "").strip()
-            or hashlib.sha256(f"{tenant_id}\n{report_id}\n{actual_hash}".encode("utf-8")).hexdigest(),
-            "User-Agent": "business-work-design-agent/1.0",
-        }
-        if token:
-            request_headers["Authorization"] = "Bearer " + token
-        request = urllib.request.Request(
-            target_url,
-            data=json.dumps(body, ensure_ascii=False, separators=(",", ":")).encode("utf-8"),
-            headers=request_headers,
-            method="POST",
-        )
-        try:
-            opener = urllib.request.build_opener(_NoRedirect())
-            with opener.open(request, timeout=timeout) as response:
-                response_bytes = response.read(1_048_577)
-                if len(response_bytes) > 1_048_576:
-                    raise ValueError("report API response exceeds 1 MiB")
-                response_payload = json.loads(response_bytes.decode("utf-8"))
-                status_code = int(response.status)
-        except urllib.error.HTTPError as exc:
-            message = ""
-            try:
-                error_payload = json.loads(exc.read(16_385).decode("utf-8", errors="replace"))
-                message = str(error_payload.get("detail") or error_payload.get("error") or "")[:500]
-            except (json.JSONDecodeError, AttributeError):
-                message = ""
-            raise ValueError(f"report API rejected publication with HTTP {exc.code}: {message or 'no safe detail'}") from exc
-        except (urllib.error.URLError, socket.timeout, TimeoutError) as exc:
-            raise ValueError("report API could not be reached before the timeout") from exc
-        except json.JSONDecodeError as exc:
-            raise ValueError("report API returned invalid JSON") from exc
-        if not isinstance(response_payload, dict) or status_code not in {200, 201}:
-            raise ValueError("report API returned an invalid success response")
-        required_response = ("report_id", "content_sha256", "view_url", "download_url")
-        if any(type(response_payload.get(key)) is not str or not response_payload[key] for key in required_response):
-            raise ValueError("report API success response is missing required artifact bindings")
-        returned_report_id = response_payload["report_id"]
-        returned_hash = response_payload["content_sha256"]
-        if returned_report_id != report_id:
-            raise ValueError("report API returned a different report identity")
-        if returned_hash != actual_hash:
-            raise ValueError("report API returned a different content hash")
-        view_url = _validate_report_link(response_payload["view_url"], hosts, report_id, download=False)
-        download_url = _validate_report_link(response_payload["download_url"], hosts, report_id, download=True)
-        safe_result = {
-            "ok": True,
-            "status": "published",
-            "report_id": report_id,
-            "content_sha256": actual_hash,
-            "view_url": view_url,
-            "download_url": download_url,
-            "created_at": response_payload.get("created_at"),
-        }
-        self.status = f"Report published: {safe_result['report_id']}"
-        return Data(data=safe_result)
+            timeout = _bounded_int(
+                getattr(self, "timeout_seconds", DEFAULT_TIMEOUT_SECONDS),
+                field="API Timeout (seconds)",
+                default=DEFAULT_TIMEOUT_SECONDS,
+                minimum=1,
+                maximum=120,
+            )
+            response = _post_report_json(target_url, body, timeout_seconds=timeout)
+            view_url = _safe_result_url(response.get("view_url"), "view_url")
+            download_url = _safe_result_url(response.get("download_url"), "download_url")
+            result = {
+                "ok": True,
+                "status": "published",
+                "message": "Report API에 보고서를 게시했습니다.",
+                "renderer_report_id": renderer_report_id or None,
+                "report_id": response.get("report_id"),
+                "view_url": view_url,
+                "download_url": download_url,
+                "expires_at": response.get("expires_at"),
+                "ttl_hours": response.get("ttl_hours", ttl_hours),
+                "storage": response.get("storage"),
+                "target_url": target_url,
+            }
+            self.status = f"Report published: {response.get('report_id') or renderer_report_id or 'server report'}"
+            return Data(data=result)
+        except _PublishError as exc:
+            self.status = f"Report publication failed: {_error_code(exc)}"
+            return _failure(exc, target_url=target_url)
+        except Exception as exc:  # noqa: BLE001 - the Flow must expose a readable failure envelope.
+            error = _error("REPORT_PUBLISHER_UNEXPECTED", f"Report publication failed unexpectedly: {str(exc)[:300]}")
+            self.status = f"Report publication failed: {_error_code(error)}"
+            return _failure(error, target_url=target_url)

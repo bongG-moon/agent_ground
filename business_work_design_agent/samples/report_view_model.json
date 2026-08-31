@@ -15,7 +15,7 @@
         "problems": [
           "초안 문장과 원본 메일의 연결 근거가 끊기고 반복 편집이 많다."
         ],
-        "reuse_decision_reason": "",
+        "reuse_decision_reason": "선택한 구현 방식과 검증 범위를 설계 단계에서 명시합니다.",
         "secrets_permissions": [],
         "tests": [],
         "title": "업무보고 수동 작성"
@@ -33,7 +33,7 @@
         "problems": [
           "승인 전 게시 여부와 게시 결과를 일관되게 추적하기 어렵다."
         ],
-        "reuse_decision_reason": "",
+        "reuse_decision_reason": "선택한 구현 방식과 검증 범위를 설계 단계에서 명시합니다.",
         "secrets_permissions": [],
         "tests": [],
         "title": "업무보고 공유 완료"
@@ -51,7 +51,7 @@
         "problems": [
           "검토 여부와 수정 사유가 구조화되어 남지 않는다."
         ],
-        "reuse_decision_reason": "",
+        "reuse_decision_reason": "선택한 구현 방식과 검증 범위를 설계 단계에서 명시합니다.",
         "secrets_permissions": [],
         "tests": [],
         "title": "민감정보와 내용 검토"
@@ -69,7 +69,7 @@
         "problems": [
           "메일을 하나씩 열어야 하며 원문 근거를 다시 찾는 시간이 길다."
         ],
-        "reuse_decision_reason": "",
+        "reuse_decision_reason": "선택한 구현 방식과 검증 범위를 설계 단계에서 명시합니다.",
         "secrets_permissions": [],
         "tests": [],
         "title": "Outlook 메일 수동 검색"
@@ -87,7 +87,7 @@
         "problems": [
           "실행 기준이 사람마다 달라 누락 범위가 생길 수 있다."
         ],
-        "reuse_decision_reason": "",
+        "reuse_decision_reason": "선택한 구현 방식과 검증 범위를 설계 단계에서 명시합니다.",
         "secrets_permissions": [],
         "tests": [],
         "title": "금요일 보고 준비 시작"
@@ -170,7 +170,7 @@
         "port_contract_sha256": null,
         "sequence": 1,
         "source_node_id": "as-start",
-        "summary": "",
+        "summary": "금요일 보고 준비 시작 단계를 정의된 방식으로 수행하고 다음 단계에 필요한 결과를 전달합니다.",
         "technical_contract_status": null,
         "title": "금요일 보고 준비 시작"
       },
@@ -187,7 +187,7 @@
         "port_contract_sha256": null,
         "sequence": 2,
         "source_node_id": "as-search",
-        "summary": "",
+        "summary": "Outlook 메일 수동 검색 단계를 정의된 방식으로 수행하고 다음 단계에 필요한 결과를 전달합니다.",
         "technical_contract_status": null,
         "title": "Outlook 메일 수동 검색"
       },
@@ -204,7 +204,7 @@
         "port_contract_sha256": null,
         "sequence": 3,
         "source_node_id": "as-draft",
-        "summary": "",
+        "summary": "업무보고 수동 작성 단계를 정의된 방식으로 수행하고 다음 단계에 필요한 결과를 전달합니다.",
         "technical_contract_status": null,
         "title": "업무보고 수동 작성"
       },
@@ -221,7 +221,7 @@
         "port_contract_sha256": null,
         "sequence": 4,
         "source_node_id": "as-review",
-        "summary": "",
+        "summary": "민감정보와 내용 검토 단계를 정의된 방식으로 수행하고 다음 단계에 필요한 결과를 전달합니다.",
         "technical_contract_status": null,
         "title": "민감정보와 내용 검토"
       },
@@ -238,21 +238,21 @@
         "port_contract_sha256": null,
         "sequence": 5,
         "source_node_id": "as-end",
-        "summary": "",
+        "summary": "업무보고 공유 완료 단계를 정의된 방식으로 수행하고 다음 단계에 필요한 결과를 전달합니다.",
         "technical_contract_status": null,
         "title": "업무보고 공유 완료"
       }
     ],
     "text_fallback": [
-      "1. 금요일 보고 준비 시작: Human",
-      "2. Outlook 메일 수동 검색: Human",
-      "3. 업무보고 수동 작성: Human",
-      "4. 민감정보와 내용 검토: Human",
-      "5. 업무보고 공유 완료: Human"
+      "1. 금요일 보고 준비 시작: 금요일 보고 준비 시작 단계를 정의된 방식으로 수행하고 다음 단계에 필요한 결과를 전달합니다.",
+      "2. Outlook 메일 수동 검색: Outlook 메일 수동 검색 단계를 정의된 방식으로 수행하고 다음 단계에 필요한 결과를 전달합니다.",
+      "3. 업무보고 수동 작성: 업무보고 수동 작성 단계를 정의된 방식으로 수행하고 다음 단계에 필요한 결과를 전달합니다.",
+      "4. 민감정보와 내용 검토: 민감정보와 내용 검토 단계를 정의된 방식으로 수행하고 다음 단계에 필요한 결과를 전달합니다.",
+      "5. 업무보고 공유 완료: 업무보고 공유 완료 단계를 정의된 방식으로 수행하고 다음 단계에 필요한 결과를 전달합니다."
     ]
   },
   "renderer_version": "business-report-renderer.v1",
-  "report_id": "report-334ae780ba4457e1ea50df65",
+  "report_id": "report-4df762c01cc986f1af232805",
   "retrieval_trace": {
     "approved_hash": "sha256:86a9c68d6acb5958adc46a74a3e3479cfe7cfd6e553082359174b42df9cd07ba",
     "candidate_allowlist": [

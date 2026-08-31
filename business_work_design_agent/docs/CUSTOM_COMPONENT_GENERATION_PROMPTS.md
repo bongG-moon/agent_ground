@@ -31,7 +31,7 @@
 | `DEPLOYMENT_MODE` | 실행 방식 | `inline_bounded` |
 | `PROMPT_PACK` | 아래 그룹별 추가문 | `CCP-SEARCH-SKILL` |
 
-`ONE_RESPONSIBILITY`에 `그리고`, `동시에`, `전체 pipeline`이 반복되면 Component를 나눈다. F00도 예외가 아니며 파일 정규화(`00`), 결정론적 청킹(`01`), embedding·MongoDB 게시(`02`)를 서로 다른 Standalone Component로 구현한다. work `10`~`18`/`27`/`28`/`34`/`35`/`39`~`43`, search·blueprint `19`~`26`/`29`/`36`, report `30`~`32` 역시 한 파일에 여러 Component subclass로 묶지 않는다. 이 중 현행 F10 Canvas는 `42`·`39`~`41`·`43`을 사용하며 `14`·`15`·`27`·`28`·`34`·`35`와 Answer Form/HITL API 연동은 독립 검증 또는 과거 재사용용 historical source/연동이다.
+`ONE_RESPONSIBILITY`에 `그리고`, `동시에`, `전체 pipeline`이 반복되면 Component를 나눈다. F00도 예외가 아니며 파일 정규화(`00`), 결정론적 청킹(`01`), embedding·MongoDB 게시(`02`)를 서로 다른 Standalone Component로 구현한다. work `10`~`18`/`27`/`28`/`34`/`35`/`39`~`45`, search·blueprint `19`~`26`/`29`/`36`/`38`, report `30`~`33` 역시 한 파일에 여러 Component subclass로 묶지 않는다. 이 중 현행 F10 Canvas는 `42`·`39`~`45`를 사용하며 `14`·`15`·`27`·`28`·`34`·`35`와 Answer Form/HITL API 연동은 독립 검증 또는 과거 재사용용 historical source/연동이다.
 
 ---
 
@@ -148,14 +148,14 @@ Catalog ingest는 아래 세 Standalone Component를 서로 다른 생성 요청
 - `00`은 정규화된 parent record, canonical text, source hash와 identity를 bounded `catalog_bundle: Data`로 출력하며 network 또는 MongoDB를 호출하지 않는다.
 - `01`의 Component subclass는 정확히 `CatalogDeterministicChunkerComponent` 하나다. `catalog_bundle: Data`, chunk size/overlap, record별·전체 chunk 상한을 받고 canonical 검색 text를 bounded overlap chunk로 나누며 각 chunk의 입력 hash를 만든다. 잘못된 identity/hash/schema는 차단하고 network 또는 MongoDB를 호출하지 않는다.
 - `01`은 내부 고정된 `tenant_id=default`, `catalog_id=internal-assets`, snapshot seed, `asset_id`, `version`, `asset_type`, ACL, 기술 계약, source hash, parent records와 chunks를 bounded `chunk_bundle: Data`로 출력한다.
-- `02`의 Component subclass는 정확히 `CatalogMongoDBVectorWriterComponent` 하나다. `chunk_bundle: Data`와 `HandleInput(input_types=["Embeddings"])`을 받고 built-in Embedding Model에 청크 1개씩을 순차 호출해 vector를 생성한다. 첫 호출 전에는 대기하지 않고 이후 호출 간에는 최소 1초의 interval을 적용한다.
+- `02`의 Component subclass는 정확히 `CatalogMongoDBVectorWriterComponent` 하나다. `chunk_bundle: Data`와 `HandleInput(input_types=["Embeddings"])`을 받고 built-in Embedding Model에 청크 1개씩을 순차 호출해 vector를 생성한다. 첫 호출 전에는 대기하지 않고 이후 호출과 bounded retry 사이에는 최소 1초의 interval을 적용한다.
 - model/provider credential과 모델 선택은 built-in Embedding Model에만 설정하고 Writer에는 model/version/dimension 입력을 만들지 않는다. built-in node의 advanced `Dimensions`는 provider가 output-size override를 의도적으로 지원할 때만 쓰는 선택값이므로 기본적으로 비워 둔다. 이는 Writer 저장 계약이 아니며 runtime은 반환 vector의 실제 길이를 사용한다.
 - Writer는 `schema_version`, runtime class, configured `available_models` identity 또는 지원된 runtime metadata에서 해석한 model ID, 첫 vector의 실제 dimension, 이 값을 묶은 SHA-256 `fingerprint`로 `embedding-runtime-contract/v2` 계약을 만든다. model ID를 해석할 수 없거나 finite vector/계약이 일치하지 않으면 명시적 오류로 종료한다.
 - MongoDB 핵심 collection은 `catalog_assets`, `catalog_asset_chunks`, `catalog_active_pointers`다. parent/chunk는 deterministic `_id`로 bounded bulk upsert한다.
 - F20/F90 호환성을 위해 vector는 `catalog_asset_chunks.embedding.vector`에, runtime v2 contract는 동일 nested embedding metadata와 active pointer에 저장한다.
-- 모든 embedding과 parent/chunk 저장 건수를 확인한 뒤에만 `catalog_active_pointers`를 마지막에 갱신한다. 어느 단계든 실패하면 기존 pointer를 유지한다.
-- 같은 내부 scope·file hash·runtime v2/chunk contract는 같은 snapshot ID와 document ID를 만들어 재실행이 중복 자산을 만들지 않게 한다.
-- Writer Canvas의 **테스트 실행 (저장하지 않음)**은 내부 `dry_run=true`에서 전달받은 loader/chunker bundle의 schema·hash·count만 검증하고 Embeddings handle 또는 MongoDB를 호출하지 않는다. 따라서 output은 `embedding_contract.state=DEFERRED`, `snapshot_id=null`이며 live contract를 만들거나 주장하지 않는다.
+- 모든 embedding과 parent/chunk 저장 건수를 확인한 뒤에만 `catalog_active_pointers`를 compare-and-swap으로 마지막에 갱신한다. 어느 단계든 실패하거나 concurrent pointer가 먼저 바뀌면 기존 pointer를 유지한다.
+- 같은 내부 scope·file hash·runtime v2/chunk contract는 같은 snapshot ID와 document ID를 만들어 재실행이 중복 자산을 만들지 않게 한다. 중단된 동일 snapshot은 hash·vector·contract가 모두 일치하는 부분 청크만 재사용한다.
+- F00 live 적재는 신규분 병합이 아니라 현재 **전체 catalog 파일**을 다음 active snapshot으로 교체한다. Writer Canvas의 **테스트 실행 (저장하지 않음)**은 기본 `dry_run=true`에서 전달받은 loader/chunker bundle의 schema·hash·count만 검증하고 Embeddings handle 또는 MongoDB를 호출하지 않는다. 실제 저장은 `dry_run=false`와 명시적 전체 파일 확인이 모두 있어야 하며, 따라서 output은 테스트 실행에서 `embedding_contract.state=DEFERRED`, `snapshot_id=null`이고 live contract를 만들거나 주장하지 않는다.
 - `02`의 정상 출력은 `ingestion_result: Data` 하나이며 `ok`, `status`, `tenant_id`, `catalog_id`, `snapshot_id`, source/ingest hash, record/chunk/vector count, runtime v2 contract만 포함한다. 원문과 vector 전체는 출력하지 않는다.
 
 [CCP-CATALOG 추가 테스트]
@@ -178,8 +178,8 @@ Catalog ingest는 아래 세 Standalone Component를 서로 다른 생성 요청
 
 ```text
 [CCP-WORK 전용 요구]
-- 이번 Component는 envelope, normalize, completeness, question batch, native clarification answer gate, answer commit, review entry joiner, terminal result message, graph normalize, preview hash, semantic store, clarification route/join, runtime state store, result gate 중 하나만 책임진다.
-- 현행 F10 Canvas의 보완 경로는 최대 3회 `12 → 질문 LLM → 13 → 42 → 39`이고, `42`는 `graph.request_pause`의 `kind=node_input`과 question별 `schema` field로 Playground 답변 카드 및 `Submit Answers`/`추가 입력 건너뛰기`/`Cancel` branch를 만든다. `39`는 native 제출을 감사 저장한 뒤 검증·병합·CAS·재평가하고, 명시적 skip은 audit·unresolved 기록 후 review로 보낸다. `40`은 9개 review entry 중 하나만 결합한다. built-in `Human Input`은 최종 `Approve`/`Reject`/`Cancel` 승인 단계 하나이고, `43`은 선택되지 않은 최종 상태 저장 branch를 즉시 조건부 제외한다. `41`은 event-list로 terminal 결과를 표시한다. F11/Playground 분리 Flow와 4차 질문은 현재 경로가 아니다. `14`·`15`·`27`·`28`·`34`·`35` 및 Answer Form/HITL API는 historical standalone source 또는 연동으로 취급하고 현행 F10 Canvas 연결을 요구하지 않는다.
+- 이번 Component는 envelope, normalize, completeness, question batch, native clarification answer gate, answer commit, review entry joiner, terminal result message, graph normalize, preview hash, semantic store, clarification route/join, runtime state store, result gate, F20→F30 handoff gate, 또는 F10 인증 context 경계 중 하나만 책임진다.
+- 현행 F10 Canvas의 보완 경로는 최대 3회 `12 → 질문 LLM → 13 → 42 → 39`이고, `42`는 `graph.request_pause`의 `kind=node_input`과 question별 `schema` field로 Playground 답변 카드 및 `Submit Answers`/`추가 입력 건너뛰기`/`Cancel` branch를 만든다. `39`는 native 제출을 감사 저장한 뒤 검증·병합·CAS·재평가하고, 명시적 skip은 audit·unresolved 기록 후 review로 보낸다. `40`은 9개 review entry 중 하나만 결합한다. built-in `Human Input`은 최종 `Approve`/`Reject`/`Cancel` 승인 단계 하나이고, `43`은 선택되지 않은 최종 상태 저장 branch를 즉시 조건부 제외한다. `41`은 모든 intentional cancel/reject/blocked outcome을 event-list로 terminal 표시한다. `45`는 로컬 demo fixture와 운영 trusted gateway 인증 context를 분리하고 `36`은 이 sealed context만 받는다. F11/Playground 분리 Flow와 4차 질문은 현재 경로가 아니다. `14`·`15`·`27`·`28`·`34`·`35` 및 Answer Form/HITL API는 historical standalone source 또는 연동으로 취급하고 현행 F10 Canvas 연결을 요구하지 않는다.
 - LLM 응답을 신뢰하지 말고 JSON Schema와 상태 전이 규칙을 결정론적으로 검증한다.
 - 모든 변경에 expected_revision을 요구하고 불일치는 REVISION_CONFLICT로 차단한다.
 - confirmed, inferred, unknown, conflicting 상태와 evidence_turn_ids를 보존한다.
@@ -374,7 +374,7 @@ Catalog ingest는 아래 세 Standalone Component를 서로 다른 생성 요청
 
 ## 4. Component별 prompt pack 매핑
 
-현재 구현 inventory는 Standalone Component 34개다. 아래 표의 각 행은 한 번의 생성 요청에서 하나의 `.py`만 만들도록 사용한다. `historical unused` 표시는 source가 삭제된 것이 아니라 현행 compact F10 Canvas에 배치되지 않았다는 뜻이다.
+현재 구현 inventory는 Standalone Component 38개다. 아래 표의 각 행은 한 번의 생성 요청에서 하나의 `.py`만 만들도록 사용한다. `historical unused` 표시는 source가 삭제된 것이 아니라 현행 compact F10 Canvas에 배치되지 않았다는 뜻이다.
 
 | 파일 | prompt pack | 생성 요청에서 특히 채울 값 |
 | --- | --- | --- |
@@ -399,6 +399,8 @@ Catalog ingest는 아래 세 Standalone Component를 서로 다른 생성 요청
 | `41_f10_terminal_result_message.py` | `CCP-WORK` | 취소·반려·차단 terminal 결과 하나를 민감정보 없이 짧은 Message로 투영 |
 | `42_f10_clarification_answer_gate.py` | `CCP-WORK` | `node_input`/`schema` 질문 카드, 안전한 question ID mapping, native 답변 값 또는 explicit skip event, Submit/Skip/Cancel branch |
 | `43_f10_final_approval_route_gate.py` | `CCP-WORK` | built-in Human Input의 final action 판별, non-selected Component 18 branch의 즉시 conditional exclusion, 선택 output 외 빈 payload |
+| `44_f10_report_handoff_gate.py` | `CCP-WORK` | F20 sealed handoff schema/hash 검증, F30 직접 실행 전 fail-closed gate |
+| `45_f10_authentication_context.py` | `CCP-WORK` | local demo fixture와 trusted gateway subject/groups의 명시적 분리, sealed authentication context 출력 |
 | `19_skill_context_resolver.py` | `CCP-SEARCH-SKILL` | registry contract, trigger/near-miss, context limit |
 | `20_search_query_planner.py` | `CCP-SEARCH-SKILL` | exact/capability/type query, additional design prompt, design scope/lock |
 | `29_search_query_embedding_batcher.py` | `CCP-SEARCH-SKILL` | exact query ID coverage, two scope locks, built-in Embeddings handle, runtime v2 contract |
@@ -409,9 +411,11 @@ Catalog ingest는 아래 세 Standalone Component를 서로 다른 생성 요청
 | `24_port_contract_validator.py` | `CCP-BLUEPRINT` | port type/cardinality/permission matrix |
 | `25_blueprint_readiness_classifier.py` | `CCP-BLUEPRINT` | `design_only`/`proposed_unverified`/`import_ready` rule |
 | `26_component_generation_prompt_builder.py` | `CCP-PROMPT-BUILDER` | template version과 canonical hash |
+| `38_f20_report_handoff_builder.py` | `CCP-BLUEPRINT` | F20 design scope/retrieval/blueprint의 sealed F30 handoff 조립 |
 | `30_report_view_model_builder.py` | `CCP-REPORT` | visual node/edge/detail schema, retrieval provenance, readiness 재계산 |
 | `31_responsive_report_renderer.py` | `CCP-REPORT` | fixed template version, breakpoint, CSP-compatible output |
 | `32_report_publisher.py` | `CCP-REPORT` | approved host, auth, timeout, artifact hash |
+| `33_f30_report_handoff_loader.py` | `CCP-REPORT` | sealed F20 handoff 검증·F30 report view model 입력 복원 |
 
 ---
 
@@ -459,8 +463,8 @@ Catalog ingest는 아래 세 Standalone Component를 서로 다른 생성 요청
 - Component class명: CatalogMongoDBVectorWriterComponent
 - display_name: 02 MongoDB Catalog Vector Writer
 - 한 가지 책임: 검증된 chunk bundle과 built-in Embeddings handle로 vector를 생성해 F20 호환 MongoDB snapshot을 게시한다.
-- 입력 계약: chunk_bundle(Data, required), embedding(HandleInput input_types=[Embeddings], required), mongodb_uri(SecretStrInput), mongodb_database(StrInput), assets_collection/chunks_collection/pointer_collection(StrInput), embedding_call_interval_seconds(FloatInput, 최소 1초), mongo_write_batch_size/mongodb_timeout_ms(IntInput), dry_run(BoolInput, 화면 표시명 `테스트 실행 (저장하지 않음)`). provider/model/API key 선택은 이 node가 아니라 built-in Embedding Model node가 맡는다. advanced `Dimensions`는 provider의 의도적인 output-size override일 때만 설정하며 Writer 입력이 아니다.
-- 출력 계약: ingestion_result(Data). live ACTIVE면 runtime v2 contract와 snapshot/hash/count만, 내부 status가 DRY_RUN_VALIDATED인 테스트 실행이면 `execution_mode_display=테스트 실행 (저장하지 않음)`, `message=테스트 실행입니다. MongoDB에는 저장하지 않았습니다.`, `embedding_contract.state=DEFERRED`, `snapshot_id=null`만 반환하고 원문/vector/secret은 반환하지 않는다.
+- 입력 계약: chunk_bundle(Data, required), embedding(HandleInput input_types=[Embeddings], required), mongodb_uri(SecretStrInput), mongodb_database(StrInput), assets_collection/chunks_collection/pointer_collection(StrInput), `dry_run`(BoolInput, 화면 표시명 `테스트 실행 (저장하지 않음)`, 기본 `true`), `confirm_complete_catalog_snapshot`(BoolInput, live 저장용 전체 파일 명시 확인, 기본 `false`), `resume_verified_partial_snapshot`(BoolInput), `pause_for_next_batch`(BoolInput, 화면 표시명 `부분 적재 후 계속 여부 확인 (HITL)`, 기본 `true`), embedding_call_interval_seconds(FloatInput, 최소 1초), mongo_write_batch_size/embedding_max_retries/mongodb_timeout_ms(IntInput). provider/model/API key 선택은 이 node가 아니라 built-in Embedding Model node가 맡는다. advanced `Dimensions`는 provider의 의도적인 output-size override일 때만 설정하며 Writer 입력이 아니다.
+- 출력 계약: ingestion_result(Data). live ACTIVE면 runtime v2 contract와 snapshot/hash/count·resume/activation 요약만, 부분 checkpoint에서 HITL이 켜진 경우 `WAITING_INGESTION_CONTINUATION`·진행률·native `resume.request_id`와 Continue/Stop card를 반환하고, 중단 선택은 `PARTIAL_EMBEDDINGS_STOPPED`로 checkpoint만 유지한다. HITL이 꺼졌거나 사용할 수 없으면 `PARTIAL_EMBEDDINGS_SAVED`로 같은 파일 재실행 안내를 반환한다. 내부 status가 DRY_RUN_VALIDATED인 테스트 실행이면 `execution_mode_display=테스트 실행 (저장하지 않음)`, `message=테스트 실행입니다. MongoDB에는 저장하지 않았습니다.`, `embedding_contract.state=DEFERRED`, `snapshot_id=null`만 반환하고 원문/vector/secret은 반환하지 않는다. live 확인값이 없으면 `FULL_SNAPSHOT_CONFIRMATION_REQUIRED`로 fail-closed한다.
 - secret 입력: mongodb_uri. provider API key는 built-in Embedding Model에만 설정한다.
 - 외부 의존성: pymongo의 사내 승인 version과 Langflow가 전달하는 Embeddings interface
 - timeout·batch 상한: embedding 호출 간격 1~60초, MongoDB batch 1000 이하, MongoDB timeout 30초 이하
@@ -468,11 +472,12 @@ Catalog ingest는 아래 세 Standalone Component를 서로 다른 생성 요청
 - 배포 mode: inline_bounded
 
 [저장 계약]
-1. finite vector의 count와 실제 dimension을 runtime v2 contract와 검증하고, approved model ID/fingerprint를 저장한다.
-2. `catalog_assets`와 `catalog_asset_chunks.embedding.vector`에 deterministic ID로 bounded bulk upsert한다.
-3. 전체 parent/chunk/vector count 검증 뒤에만 `catalog_active_pointers`를 마지막에 갱신한다. 실패 시 기존 pointer를 유지한다.
-4. 다른 Flow를 HTTP API로 호출하거나 로컬 module을 import하지 않는다.
-5. `catalog_assets`는 parent metadata/redacted 원문, `catalog_asset_chunks`는 검색 chunk/vector, `catalog_active_pointers`는 검증 완료 snapshot 게시 pointer라는 서로 다른 역할을 유지한다.
+1. live 저장은 현재 **전체 catalog 파일**을 다음 active snapshot으로 교체하는 방식이며 delta-only upload를 merge하지 않는다. explicit confirmation 없이는 provider/MongoDB 호출을 시작하지 않는다.
+2. finite vector의 count와 실제 dimension을 runtime v2 contract와 검증하고, approved model ID/fingerprint를 저장한다. 모든 provider 호출과 retry 사이에 최소 1초를 둔다.
+3. `catalog_assets`와 `catalog_asset_chunks.embedding.vector`에 deterministic ID로 bounded bulk upsert한다. 같은 source/policy/runtime contract의 실패한 partial write는 hash·contract·finite vector를 다시 검증한 청크만 재사용한다.
+4. 전체 parent/chunk/vector count 검증 뒤에만 `catalog_active_pointers`를 compare-and-swap으로 마지막 갱신한다. 실패나 동시 activation conflict 시 기존 pointer를 유지한다.
+5. 다른 Flow를 HTTP API로 호출하거나 로컬 module을 import하지 않는다.
+6. `catalog_assets`는 parent metadata/redacted 원문, `catalog_asset_chunks`는 검색 chunk/vector, `catalog_active_pointers`는 검증 완료 snapshot 게시 pointer라는 서로 다른 역할을 유지한다.
 ```
 
 ### 5.2 Historical unused: Work Runtime State Store 생성 요청 시작부
@@ -528,8 +533,8 @@ Langflow OSS 1.11.1에서 실행되는 Standalone Custom Component 하나를 작
 - 파일명: 36_approved_design_invocation_loader.py
 - Component class명: ApprovedDesignInvocationLoaderComponent
 - display_name: 36 Approved Design Invocation Loader
-- 한 가지 책임: F10 승인 receipt와 인증 주체를 MongoDB canonical 승인본·활성 catalog pointer·활성 Skill registry와 재검증하여 F20용 `agent-design-invocation/v1` 하나를 만든다.
-- 입력 계약: approval_result(Data, required), request_envelope(Data, required), authenticated_subject_id(MessageTextInput, required, trusted gateway only), authenticated_groups(MessageTextInput/Data/JSON, optional), mongodb_uri(SecretStrInput, required), mongo_database(MessageTextInput, required), work_collection/pointer_collection/skill_registry_collection(MessageTextInput), timeout_ms(IntInput), max_skill_entries(IntInput), trace_id(MessageTextInput)
+- 한 가지 책임: F10의 sealed authentication context와 승인 receipt를 MongoDB canonical 승인본·활성 catalog pointer·활성 Skill registry와 재검증하여 F20용 `agent-design-invocation/v1` 하나를 만든다.
+- 입력 계약: approval_result(Data, required), request_envelope(Data, required), authentication_context(Data/JSON, required; Component 45 success_path only), mongodb_uri(SecretStrInput, required), mongo_database(MessageTextInput, required), work_collection/pointer_collection/skill_registry_collection(MessageTextInput), timeout_ms(IntInput), max_skill_entries(IntInput), trace_id(MessageTextInput)
 - 출력 계약: success_path(Data, group output), blocked_path(Data, group output). 정확히 하나만 반환하고 선택하지 않은 output은 self.stop한다.
 - secret 입력: mongodb_uri
 - 외부 의존성: pymongo의 사내 승인 version
@@ -540,7 +545,7 @@ Langflow OSS 1.11.1에서 실행되는 Standalone Custom Component 하나를 작
 [권위·검증 계약]
 1. edge의 WorkDefinition body를 신뢰하지 말고 tenant/work/owner/session identity와 승인 receipt를 사용해 `work_definitions`의 canonical 문서를 다시 읽어줘.
 2. canonical 문서가 정확히 `work-definition/v1`, `status=APPROVED`, 같은 revision/approved_hash/owner/session/channel인지 확인하고 의미 hash를 다시 계산해 constant-time 비교해줘.
-3. `authenticated_subject_id`는 빈 값이나 사용자 자유 입력을 허용하지 않고 canonical owner와 정확히 일치시켜줘. group은 bounded identity list로 정규화해 ACL projection에만 넣어줘.
+3. `authentication_context`는 정확히 `f10-authentication-context/v1` sealed envelope만 받게 해줘. `trusted_gateway`는 verified subject/group을, `local_demo_fixture`는 group 없는 unverified sample subject만 허용한다. 사번·Chat Input·고정 문자열을 직접 받지 말고 context의 subject가 canonical owner와 정확히 일치할 때만 group을 ACL projection에 넣어줘.
 4. 같은 tenant의 `catalog_active_pointers`에서 활성 snapshot을, `skill_registry`에서 `status=active`인 bounded 항목만 읽어줘. caller가 제공한 snapshot이나 Skill 객체를 사용하지 마.
 5. 원 request envelope의 별도 additional prompt는 길이/hash/secret-material 검사를 통과한 문자열만 `design_prompt`로 넣어줘.
 6. 성공 결과는 `ok=true`, `status=READY_FOR_DESIGN`, `schema_version=agent-design-invocation/v1`, canonical WorkDefinition, ACL, active snapshot ID, bounded Skill registry, design prompt, authority source를 포함해줘. Mongo `_id`, mutation receipt, pending action, secret은 제거해줘.

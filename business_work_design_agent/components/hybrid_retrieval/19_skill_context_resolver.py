@@ -113,7 +113,7 @@ def _canonical_hash(text: str) -> str:
 
 
 def _scope_hash(scope: dict[str, Any]) -> str:
-    keys = (
+    keys = [
         "schema_version",
         "tenant_id",
         "catalog_snapshot_id",
@@ -123,7 +123,12 @@ def _scope_hash(scope: dict[str, Any]) -> str:
         "work_definition",
         "acl_context",
         "design_prompt",
-    )
+    ]
+    # Newer F20 scopes bind a retrieval-only original-request seed by hash.
+    # Keep older direct-test scopes valid while preserving the new lock when it
+    # is present.
+    if "search_seed_sha256" in scope:
+        keys.append("search_seed_sha256")
     material = json.dumps({key: scope.get(key) for key in keys}, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
     return "sha256:" + hashlib.sha256(material.encode("utf-8")).hexdigest()
 

@@ -7,7 +7,7 @@
 | 작성 기준일 | `2026-08-30` |
 | 대상 런타임 | Langflow OSS `1.11.x`, 검증 기준 `langflow==1.11.1` |
 | 프로젝트 | `business_work_design_agent` |
-| 구현 상태 | Langflow Flow 5개, Standalone Component 34개와 Report companion API가 구현됨. F10은 최대 3회의 Playground native HITL 입력 보완과 최종 승인을 거쳐 MongoDB 권위를 재검증하고 Langflow Run Flow direct mode로 F20을 연속 실행함 |
+| 구현 상태 | Langflow Flow 5개, Standalone Component 38개와 Report companion API가 구현됨. F10은 최대 3회의 Playground native HITL 입력 보완과 최종 승인을 거쳐 MongoDB 권위를 재검증하고 Langflow Run Flow direct mode로 F20을 연속 실행함 |
 | Custom Component 정책 | Standalone one-file, 로컬/형제 모듈 import 금지 |
 | 주 저장소 | MongoDB + Vector/Search index |
 
@@ -299,7 +299,7 @@ flowchart TD
 | `F30_responsive_report` | F20 이후 | view model, 안전한 HTML, 저장·URL 반환 | 포함 금지 |
 | `F90_search_evaluation` | 운영·QA | 대표 질문 세트로 retrieval 품질 평가 | 없음 |
 
-F20은 재사용 가능한 child Flow로 유지하되 F10의 `Run Flow`가 direct mode(`tool_mode=false`)로 호출한다. F10의 verified `Approve` 뒤 Component 36이 MongoDB canonical 승인본, active catalog pointer, active Skill registry와 인증 owner/groups를 다시 읽어 `agent-design-invocation/v1` 하나를 만든다. Component 36은 같은 Data에 strict JSON `text` projection을 포함하고 built-in TypeConverter가 이를 Message로 변환해 Run Flow의 동적 F20 ChatInput port로 전달한다. F20 ChatInput은 `should_store_message=false`다. 사용자가 WorkDefinition을 복사해 F20을 별도로 실행하지 않는다. F20/F30에는 `Human Input`과 `Requires approval` tool을 넣지 않으며 다른 Flow의 HTTP API를 호출하는 adapter도 두지 않는다.
+F20은 재사용 가능한 child Flow로 유지하되 F10의 `Run Flow`가 direct mode(`tool_mode=false`)로 호출한다. F10의 verified `Approve` 뒤 Component 45가 sealed authentication context를 만들고, Component 36이 MongoDB canonical 승인본, active catalog pointer, active Skill registry와 그 context의 subject/group을 다시 읽어 `agent-design-invocation/v1` 하나를 만든다. Component 36은 같은 Data에 strict JSON `text` projection을 포함하고 built-in TypeConverter가 이를 Message로 변환해 Run Flow의 동적 F20 ChatInput port로 전달한다. F20 ChatInput은 `should_store_message=false`다. 사용자가 WorkDefinition을 복사해 F20을 별도로 실행하지 않는다. F20/F30에는 `Human Input`과 `Requires approval` tool을 넣지 않으며 다른 Flow의 HTTP API를 호출하는 adapter도 두지 않는다.
 
 ### 4.3 신규 구현 디렉터리
 
@@ -369,22 +369,23 @@ Flow 전용 Python node는 공용 Component catalog에 자동 등록하지 않�
 9. 답변 제출 후 마지막 3차의 네 번째 입력까지 답했는데도 blocking gap이 있으면 답변 반영 단계가 `CLARIFICATION_ROUND_LIMIT`로 차단하며, 새 실행에서 업무 설명을 보완한다. 건너뛰기는 현재 card에서 바로 Preview/review로 가는 action이며 4차 질문이 아니다.
 10. 시스템은 확정 전 업무 graph와 가정·미확정 사항을 preview한다.
 11. 사용자가 `확정`, `거절`, `취소`를 선택한다. 수정이 필요하면 승인 전에 반영하거나 취소 후 새 session을 시작한다.
-12. 확정 시 Component 36이 MongoDB canonical 승인본·active catalog/Skill·인증 owner/groups를 다시 검증하고, F10의 Run Flow가 F20을 바로 실행한다.
+12. 확정 시 Component 45가 인증 context를 만들고 Component 36이 MongoDB canonical 승인본·active catalog/Skill·sealed context subject/groups를 다시 검증한 뒤, F10의 Run Flow가 F20을 바로 실행한다.
 13. hybrid search가 관련 Flow/Component를 찾고 설계 LLM에는 압축된 top-N만 전달한다.
 14. Contract Validator가 추천 자산, 포트, dependency, risk를 검증한다.
 15. 반응형 report와 짧은 Chat Output을 반환한다.
 
 ### 5.2 카탈로그 관리자
 
-1. JSON array, `{ "items": [...] }` 또는 JSONL 파일을 업로드한다.
+1. 현재 전체 catalog를 담은 JSON array, `{ "items": [...] }` 또는 JSONL 파일을 업로드한다. 신규분만 든 delta 파일은 live publish에 사용하지 않는다.
 2. `00 Catalog JSON Loader`가 파일 형식·크기·record 수를 검증하고 JSON/JSONL을 파싱한다.
 3. Loader가 각 record를 정규화하고 secret 값을 redaction한 `raw_text_redacted`와 deterministic canonical text를 만든다.
 4. `01 Deterministic Chunker`가 canonical text를 설정된 chunk size/overlap으로 bounded 분할한다.
 5. built-in `Embedding Model`에서 승인 model/provider를 선택하고 `02 MongoDB Catalog Vector Writer`에 Embeddings handle을 연결한다. advanced `Dimensions`는 provider가 output-size override를 의도적으로 지원할 때만 설정하고, 그 외에는 비워 둔다.
-6. Writer가 runtime class·승인 model ID·첫 vector의 실제 dimension·fingerprint로 `embedding-runtime-contract/v2`를 만든 뒤 parent document는 `catalog_assets`, nested vector chunk는 `catalog_asset_chunks.embedding.vector`에 같은 `snapshot_id`로 bulk upsert한다.
-7. record·chunk 수, duplicate key, finite vector, 실제 dimension과 runtime contract 누락 여부를 검증한다.
-8. 모든 parent/chunk write가 성공한 뒤에만 `catalog_active_pointers`를 새 snapshot으로 갱신한다.
-9. `Data to Message`와 `ChatOutput`을 통해 적재 결과와 실패 진단을 반환한다. F00에는 HITL이나 별도 activation 단계가 없다.
+6. 기본 **테스트 실행 (저장하지 않음)**에서 file/chunk/hash를 먼저 확인한다. live 저장은 테스트 실행을 끄고 전체 파일 확인값을 켠 경우에만 시작한다.
+7. Writer가 runtime class·승인 model ID·첫 vector의 실제 dimension·fingerprint로 `embedding-runtime-contract/v2`를 만든 뒤 parent document는 `catalog_assets`, nested vector chunk는 `catalog_asset_chunks.embedding.vector`에 같은 `snapshot_id`로 bulk upsert한다. 모든 provider call과 retry 사이는 최소 1초다.
+8. record·chunk 수, duplicate key, finite vector, 실제 dimension과 runtime contract 누락 여부를 검증한다. 중단된 동일 snapshot은 완전히 검증된 partial chunk만 재사용한다.
+9. 모든 parent/chunk write가 성공한 뒤에만 `catalog_active_pointers`를 compare-and-swap으로 새 snapshot에 갱신한다. 늦게 끝난 동시 실행은 pointer를 되돌리지 않고 conflict로 끝난다.
+10. `Data to Message`와 `ChatOutput`을 통해 적재 결과와 실패 진단을 반환한다. 새 청크가 남아 checkpoint만 저장된 경우 Writer가 native HITL 카드로 처리 수·남은 수와 `계속 적재`/`중단하고 나중에 실행`을 표시한다. 계속 적재는 같은 Writer가 다음 bounded batch를 checkpoint에서 이어 처리하고, 중단은 checkpoint만 보존하며 active pointer를 바꾸지 않는다.
 
 ### 5.3 Builder
 
@@ -585,7 +586,7 @@ stateDiagram-v2
 
 질문 회차는 Flow Canvas에서 최대 3회까지 명시적으로 펼쳐 구성한다. 각 회차는 `12 완전성 평가 → 질문 LLM → 13 질문 Batch → 42 보완 답변 HITL → 39 답변 반영·다음 단계`라는 같은 형태다. 1·2차 질문 카드에는 최대 3개, 마지막 3차 카드에는 최대 4개의 입력칸을 두어 10개 기본 completeness gap을 세 회 안에 수집할 수 있다. 42는 parent Flow에서 native pause를 만들며, 사용자는 답변 제출·명시적 추가 입력 건너뛰기·취소 중 하나를 선택한다. 답변 제출은 다음 회차, 검토, 취소, 차단 중 하나를 열고, 건너뛰기는 audit/`unresolved`를 남긴 정상 review 경로 하나만 연다. 마지막 3차의 네 번째 입력까지 답한 뒤에도 blocking gap이 남으면 같은 `39`가 `CLARIFICATION_ROUND_LIMIT`로 `BLOCKED`를 반환하며 새 질문 또는 가정 수용 경로를 만들지 않는다. 건너뛰기는 4차 질문이 아니며 답을 추정하지 않는다. 동적으로 무한 반복하거나 외부 API를 숨겨 결합하지 않는다.
 
-업무 정의의 별도 실행형 구조화 command 경로는 두지 않는다. F10의 `Approve` 결과만 Component 36으로 전달되며, Component 36은 MongoDB canonical `APPROVED` WorkDefinition과 active catalog/Skill, 인증 owner/groups, exact `native_hitl` channel을 재검증한다. 그 성공 결과인 `agent-design-invocation/v1`만 strict JSON text→Message 변환 뒤 Langflow `Run Flow` direct node로 F20에 전달한다. 따라서 사용자는 승인 업무 JSON을 복사하거나 F20에 별도 input을 넣지 않으며, Component 36 실패 branch에서는 child가 실행되지 않는다.
+업무 정의의 별도 실행형 구조화 command 경로는 두지 않는다. F10의 `Approve` 결과만 Component 45와 36으로 전달되며, Component 45는 local demo/operating gateway authentication context를 명시적으로 구분한다. Component 36은 MongoDB canonical `APPROVED` WorkDefinition과 active catalog/Skill, sealed context subject/groups, exact `native_hitl` channel을 재검증한다. 그 성공 결과인 `agent-design-invocation/v1`만 strict JSON text→Message 변환 뒤 Langflow `Run Flow` direct node로 F20에 전달한다. 따라서 사용자는 승인 업무 JSON을 복사하거나 F20에 별도 input을 넣지 않으며, Component 36 실패 branch에서는 child가 실행되지 않는다.
 
 ### 6.6 Preview와 승인 무결성
 
@@ -758,9 +759,11 @@ ACL이 있는 환경에서는 tenant와 visibility/group filter를 search 이후
  → 01 Deterministic Chunker
  → chunk size/overlap·상한 적용과 chunk bundle 생성
  → 02 MongoDB Catalog Vector Writer
+ → 기본 테스트 실행으로 bundle/hash 검증
+ → live는 현재 **전체 catalog 파일** 확인 후에만 시작 (delta-only upload 금지)
  → catalog_asset_chunks.embedding.vector / catalog_assets bulk upsert
  → 전체 write·count·dimension 검증
- → catalog_active_pointers 갱신
+ → compare-and-swap로 catalog_active_pointers 갱신
  → Data to Message
  → ChatOutput
 
@@ -769,17 +772,18 @@ Embedding Model (model/provider)
 ```
 
 - `00_catalog_json_loader.py`, `01_catalog_deterministic_chunker.py`, `02_catalog_mongodb_vector_writer.py`는 각각 로컬 프로젝트 모듈 import나 동적 import를 사용하지 않는 Langflow 1.11.1 Standalone Component다.
-- F00은 실행 node 6개/edge 5개와 Canvas 설명용 Sticky Note 2개로 구성된다. Sticky Note에는 edge가 없으므로 실행 계약에는 포함되지 않는다. 다른 Flow나 Catalog Worker API를 HTTP로 호출하지 않으며, F00에는 Human Input/activation gate가 없다.
-- Loader에는 파일만 표시하고 `tenant_id=default`, `catalog_id=internal-assets`는 내부적으로 bundle/MongoDB 문서에 넣는다. chunk size/overlap은 Chunker, 실제 model/provider/API key는 built-in Embedding Model, MongoDB URI/DB/collection은 Writer에 표시한다. Writer에는 model/version/dimension 입력이 없으며 runtime v2 contract를 vector 응답에서 만든다.
+- F00은 실행 node 6개/edge 5개와 Canvas 설명용 Sticky Note 2개로 구성된다. Sticky Note에는 edge가 없으므로 실행 계약에는 포함되지 않는다. 다른 Flow나 Catalog Worker API를 HTTP로 호출하지 않으며, 별도 built-in Human Input/activation gate 대신 Writer 자체가 부분 checkpoint에서 native `node_input` pause/resume을 사용한다.
+- Loader에는 파일만 표시하고 `tenant_id=default`, `catalog_id=internal-assets`는 내부적으로 bundle/MongoDB 문서에 넣는다. live 적재 파일은 신규분만 든 delta가 아니라 현재 전체 catalog여야 한다. F00은 merge가 아니라 다음 active snapshot을 업로드 파일 전체로 교체하므로 누락 자산은 다음 검색 대상에서 제외된다. chunk size/overlap은 Chunker, 실제 model/provider/API key는 built-in Embedding Model, MongoDB URI/DB/collection은 Writer에 표시한다. Writer에는 model/version/dimension 입력이 없으며 runtime v2 contract를 vector 응답에서 만든다.
 - built-in Embedding Model의 advanced `Dimensions`는 provider output-size override가 의도적으로 필요한 경우만 설정한다. Writer/검색 contract는 이 UI 값이 아니라 실제 반환 vector length를 사용한다.
 - 파일 크기, 최대 record 수, chunk 크기·overlap, record별/전체 최대 chunk 수, 임베딩 호출 간격과 MongoDB write batch/연결·서버 선택 timeout을 input으로 제한해 단일 실행의 자원 사용을 bounded하게 유지한다.
-- F00은 provider 호출마다 청크 정확히 1개를 전달한다. 임베딩 호출 간격의 기본값·하한은 1초, 상한은 60초이며 첫 호출 전에는 대기하지 않는다.
+- F00 Writer의 **테스트 실행 (저장하지 않음)**은 기본으로 켜져 있다. 실제 저장은 테스트 실행을 끄고 `confirm_complete_catalog_snapshot=true`인 경우에만 시작하며, 확인이 없으면 `FULL_SNAPSHOT_CONFIRMATION_REQUIRED`로 차단한다.
+- F00은 provider 호출마다 청크 정확히 1개를 전달한다. 임베딩 호출 간격의 기본값·하한은 1초, 상한은 60초이며 첫 호출 전에는 대기하지 않는다. bounded provider 재시도도 같은 최소 호출 간격을 지킨다.
 - `bulk_write(ordered=false)` 계열의 batch 중 하나라도 쓰기 오류를 반환하면 pointer 갱신 없이 전체 실행을 실패 처리한다.
-- parse, normalization, embedding, parent/chunk write 중 하나라도 실패하면 `catalog_active_pointers`는 이전 snapshot을 유지한다.
+- parse, normalization, embedding, parent/chunk write 중 하나라도 실패하면 `catalog_active_pointers`는 이전 snapshot을 유지한다. 같은 source/policy/runtime contract의 실패한 partial snapshot은 deterministic chunk ID로 남을 수 있으며, 재실행 시 hash·contract·finite vector가 모두 일치하는 청크만 bounded lookup으로 재사용한다.
 - embedding provider 장애는 명시적 실패로 반환하고 production에서 lexical-only 적재로 조용히 전환하지 않는다.
 - Canvas의 **테스트 실행 (저장하지 않음)**은 내부 `dry_run=true`로 provider/MongoDB를 호출하지 않는다. 따라서 runtime contract의 `state`는 `DEFERRED`, `snapshot_id`는 `null`이고 live snapshot을 예측하지 않는다.
-- 모든 `catalog_assets`와 `catalog_asset_chunks` upsert 및 검증이 성공한 뒤에만 tenant의 pointer를 새 snapshot으로 원자 갱신한다.
-- 동일 파일 재실행은 같은 deterministic record/chunk key를 사용해 upsert하며, 결과의 `file_sha256`, `snapshot_id`, record/chunk count와 오류 요약을 반환한다.
+- 모든 `catalog_assets`와 `catalog_asset_chunks` upsert 및 검증이 성공한 뒤에만 tenant의 pointer를 새 snapshot으로 compare-and-swap 갱신한다. 다른 실행이 먼저 pointer를 바꾸면 `CATALOG_ACTIVATION_CONFLICT`로 끝내며 늦게 끝난 실행이 최신 pointer를 되돌리지 못한다.
+- 동일 파일 재실행은 같은 deterministic record/chunk key를 사용해 upsert하며, 이미 complete active snapshot이면 `ACTIVE_ALREADY_CURRENT`로 parent/chunk write와 pointer 전환 없이 끝낸다. Writer의 semantic persistence 규칙이 바뀌면 별도 writer semantic revision을 올려 이전 snapshot ID를 재사용하지 않는다. 이전 snapshot은 자동 삭제하지 않으며 보존/정리 정책은 별도 운영 계약이다.
 
 세 MongoDB collection은 각각 parent detail, 검색 chunk/vector, 게시 pointer를 담당한다. `catalog_assets`에는 exact title/alias 조회와 최종 상세 정보에 쓸 자산별 메타데이터·redacted 원문을 한 번 저장한다. `catalog_asset_chunks`에는 여러 검색 chunk와 `embedding.vector`를 저장해 lexical/vector 후보를 만든다. `catalog_active_pointers`는 parent/chunk/vector count가 모두 검증된 snapshot만 가리키므로 부분 적재 snapshot을 검색에서 배제한다.
 
@@ -1114,16 +1118,16 @@ Langflow가 제공하는 Chat Input/Output, Prompt Template, 승인된 Model, `H
 
 경계는 하나로 고정한다. `31_responsive_report_renderer.py`가 읽기 전용 interactive graph HTML artifact를 생성하고, companion Report API는 그 artifact의 인증·저장·CSP·URL·download만 담당한다. companion이 별도 graph layout을 다시 만들지 않는다. Blueprint의 `implementation_source=companion_service`는 설계 대상 업무에 필요한 외부 API/UI/worker를 뜻하며 Report viewer 자체의 node 분류가 아니다.
 
-구현된 Standalone Component는 총 34개다. 생성 요청 prompt pack의 대응은 다음과 같다. 한 생성 요청에는 Component 하나만 넣는다.
+구현된 Standalone Component는 총 38개다. 생성 요청 prompt pack의 대응은 다음과 같다. 한 생성 요청에는 Component 하나만 넣는다.
 
 | Component 범위 | 책임 성격 | 생성 요청 pack |
 | --- | --- | --- |
 | `00`~`02` | 파일 1개 parse·정규화, 결정론적 청킹, built-in Embeddings 기반 MongoDB 적재와 pointer 갱신 | `CCP-CATALOG` |
-| `10`~`18`, `27`, `28`, `39`~`43` | WorkDefinition 정규화, 완전성, Playground 질문 입력, 답변, review join, 최종 승인 경로, 최종 결과 안내 | `CCP-WORK` |
+| `10`~`18`, `27`, `28`, `39`~`45` | WorkDefinition 정규화, 완전성, Playground 질문 입력, 답변, review join, 최종 승인 경로, terminal 결과, F20→F30 gate, 인증 context 경계 | `CCP-WORK` |
 | `19`~`22`, `29`, `36` | 승인 설계 invocation 조립, 승인 Skill 선택, scoped query plan/embedding, hybrid retrieval, context 제한 | `CCP-SEARCH-SKILL` |
-| `23`~`25` | Blueprint·port·readiness 결정론적 검증 | `CCP-BLUEPRINT` |
+| `23`~`25`, `38` | Blueprint·port·readiness 결정론적 검증과 sealed F20→F30 handoff | `CCP-BLUEPRINT` |
 | `26` | 신규 Custom node용 생성 요청 조립 | `CCP-PROMPT-BUILDER` |
-| `30`~`32` | report view model, 고정 renderer, publish adapter | `CCP-REPORT` |
+| `30`~`33` | report handoff load, view model, 고정 renderer, publish adapter | `CCP-REPORT` |
 
 완성형 복사·붙여넣기 요청문은 [Standalone Custom Component 생성 요청 프롬프트](CUSTOM_COMPONENT_GENERATION_PROMPTS.md)에 정의한다.
 
@@ -1138,7 +1142,7 @@ Langflow가 제공하는 Chat Input/Output, Prompt Template, 승인된 Model, `H
 | 5 | Data to Message | `ingestion_result` → text | 구조화 결과를 Chat Output용 텍스트로 변환 |
 | 6 | ChatOutput | text → Message | 적재 성공/실패와 record/chunk/snapshot 요약 반환 |
 
-F00은 실행 node 6개/edge 5개이며 HITL이 없다. Canvas에는 파일 처리와 저장 단계를 설명하는 Sticky Note 2개가 별도로 표시되며 edge를 갖지 않는다. 주 경로는 `00 → 01 → 02 → Data to Message → Chat Output`, side edge는 `Embedding Model → 02`다. Catalog Worker, activation API, 다른 Flow HTTP 호출을 사용하지 않는다. Writer는 모든 parent/chunk/vector write와 검증이 성공한 경우에만 pointer를 마지막으로 갱신한다.
+F00은 실행 node 6개/edge 5개이며 Canvas에는 파일 처리와 저장 단계를 설명하는 Sticky Note 2개가 별도로 표시되며 edge를 갖지 않는다. 주 경로는 `00 → 01 → 02 → Data to Message → Chat Output`, side edge는 `Embedding Model → 02`다. 별도 built-in Human Input node는 없지만, Writer는 부분 checkpoint가 남을 때 native `node_input` pause 카드로 진행률과 `계속 적재`/`중단하고 나중에 실행`을 제공한다. Catalog Worker, activation API, 다른 Flow HTTP 호출을 사용하지 않는다. Writer는 모든 parent/chunk/vector write와 검증이 성공한 경우에만 pointer를 마지막으로 갱신한다.
 
 ### 10.3 F10 업무 정의 Parent Flow
 
@@ -1151,14 +1155,14 @@ F00은 실행 node 6개/edge 5개이며 HITL이 없다. Canvas에는 파일 처�
 | 5 | `40_f10_review_entry_joiner.py` | 초기/각 회차의 상호 배타적 검토 진입 결과 9개 중 성공 WorkDefinition 하나만 선택하고, 중복·실패·형식 오류는 차단 |
 | 6 | `16_work_graph_normalizer.py` → `17_work_preview_hasher.py` | 선택된 WorkDefinition을 AS-IS graph와 preview hash로 정규화 |
 | 7 | `18_work_definition_store.py` `review_and_request_approval` → Human Input → `43_f10_final_approval_route_gate.py` → `18_work_definition_store.py` | Preview 검증본을 단일 CAS 저장과 event 기록으로 `WAITING_APPROVAL`로 전환. 43이 최종 선택 하나만 열고 미선택 18 저장 branch를 즉시 제외한다. Revision·중복 실행 방지 키·컬렉션은 자동/내부값이며, `approve`, `reject`, `cancel` action을 저장하고 승인 성공만 다음 단계로 전달 |
-| 8 | `36_approved_design_invocation_loader.py` → Data→Message → Langflow `Run Flow` → Chat Output | 승인 canonical 원본·ACL·active catalog/Skill을 재검증해 `agent-design-invocation/v1`을 만들고 F20을 direct mode(`tool_mode=false`)로 실행 |
-| 9 | `41_f10_terminal_result_message.py` → Chat Output | 하나의 event-list 입력으로 보완 취소·보완 차단·검토 차단·반려·최종 취소·설계 차단을 한 개의 민감정보 없는 사용자 안내 메시지로 표시 |
+| 8 | `45_f10_authentication_context.py` → `36_approved_design_invocation_loader.py` → Data→Message → Langflow `Run Flow` → Chat Output | local demo fixture와 trusted gateway 인증을 명시적으로 구분하고, 승인 canonical 원본·ACL·active catalog/Skill을 재검증해 `agent-design-invocation/v1`을 만든 뒤 F20을 direct mode(`tool_mode=false`)로 실행 |
+| 9 | `41_f10_terminal_result_message.py` → Chat Output | 하나의 event-list 입력으로 모든 intentional 보완 취소·차단·검토 차단·반려·최종 취소·설계 차단을 민감정보 없는 사용자 안내 메시지로 표시 |
 
 F10 Canvas는 질문 1~3차를 명시적으로 보여 주되, 각 회차의 답변 재조회·형식 검증·병합·revision CAS·재평가와 반복 상태·결과 분기를 별도 보조 node로 늘어놓지 않는다. `39`가 회차별 durable answer boundary를 맡고, `40`이 검토 진입을 합치며, `41`이 대표적인 종료 결과를 표시한다. 따라서 Canvas에는 업무 이해와 HITL 흐름에 필요한 node만 남고, 다른 Flow HTTP API나 API wrapper는 사용하지 않는다. Component 파일이 여러 node에서 쓰이는 것은 허용하지만 각 `.py`는 여전히 one-file standalone이어야 한다.
 
 ### 10.4 F10 승인 결과에서 F20으로의 권위 handoff
 
-F10의 `Approve` branch만 Component 36과 Run Flow에 연결된다. `36_approved_design_invocation_loader.py`는 edge의 WorkDefinition body를 권위 원본으로 쓰지 않고, 승인 receipt와 원 request envelope에서 tenant/work/owner/session identity를 확인한 뒤 MongoDB `work_definitions`의 canonical 문서를 다시 읽는다. schema, `status=APPROVED`, revision, `approved_hash`, owner/session, `channel_mode=native_hitl`과 재계산한 semantic hash가 모두 일치해야 한다. trusted gateway가 주입한 `authenticated_subject_id`는 canonical owner와 정확히 일치해야 하며, bounded `authenticated_groups`만 ACL projection에 들어간다. 이어 같은 tenant의 `catalog_active_pointers`와 `status=active` Skill registry를 읽고 별도 추가 설계 prompt의 길이/hash/secret을 검사해 `agent-design-invocation/v1` 하나를 만든다.
+F10의 `Approve` branch만 Component 45·36과 Run Flow에 연결된다. `45_f10_authentication_context.py`는 local demo fixture와 trusted gateway를 구분한 sealed `f10-authentication-context/v1`을 만든다. local demo fixture는 sample 실행을 허용하되 `authenticated_subject_verified=false`로 남으며, production에서는 SSO/gateway의 subject/group output만 trusted gateway 포트에 연결한다. `36_approved_design_invocation_loader.py`는 edge의 WorkDefinition body를 권위 원본으로 쓰지 않고, 승인 receipt와 원 request envelope에서 tenant/work/owner/session identity를 확인한 뒤 MongoDB `work_definitions`의 canonical 문서를 다시 읽는다. schema, `status=APPROVED`, revision, `approved_hash`, owner/session, `channel_mode=native_hitl`과 재계산한 semantic hash가 모두 일치해야 한다. sealed context의 subject는 canonical owner와 정확히 일치해야 하며 bounded gateway group만 ACL projection에 들어간다. 이어 같은 tenant의 `catalog_active_pointers`와 `status=active` Skill registry를 읽고 별도 추가 설계 prompt의 길이/hash/secret을 검사해 `agent-design-invocation/v1` 하나를 만든다.
 
 loader의 `success_path`는 Data→Message를 거쳐 Langflow 1.11.1 `Run Flow` node가 materialize한 F20 ChatInput 동적 port에 연결된다. Run Flow는 child UUID/name을 export에 고정하고 `cache_flow=false`, `tool_mode=false`인 direct 호출이며, F20의 최종 ChatOutput 동적 port를 F10 최종 ChatOutput으로 연결한다. `blocked_path`는 진단 ChatOutput으로 끝나므로 F20이 실행되지 않는다. 이 구조에는 다른 Flow HTTP API, 수동 WorkDefinition 복사, Agent가 선택하는 tool call이 없다. F20은 같은 project/folder에 먼저 import하고 UUID를 유지해야 하며 child 안에는 `Human Input`을 넣지 않는다.
 
@@ -1193,9 +1197,9 @@ F20의 유일한 transport surface는 위 ChatInput의 `agent-design-invocation/
 | --- | --- | --- |
 | 1 | `30_report_view_model_builder.py` | AS-IS/TO-BE graph, 구현 출처, 적용 Skill, 생성 요청, retrieval trace를 안전한 view model로 결합 |
 | 2 | `31_responsive_report_renderer.py` | 고정된 내부 CSS/JS template과 escape·allowlist된 JSON으로 self-contained 반응형 HTML 생성 |
-| 3 | `32_report_publisher.py` | report API/저장소 업로드, view/download URL과 hash 반환 |
+| 3 | `32_report_publisher.py` | 공유 HTML Report API의 `/reports`로 업로드하고 server-generated view/download URL 반환 |
 
-`30`은 전달받은 blueprint의 `build_readiness` 문자열을 그대로 표시하지 않는다. node source/runtime contract, port, edge, secret/permission 검증 상태로 기대 readiness와 blocker를 결정론적으로 다시 계산하고 `readiness_assessment`와 정확히 일치하는지 확인한다. `import_ready`인데 blocker가 있거나 빈 graph인 blueprint, metadata-only/unverified 실행 자산, 잘못된 generation request 1:1 binding은 report 경계에서 거절한다. 또한 retrieval trace의 tenant/snapshot/work/revision/approved/design/query lock을 승인 WorkDefinition과 Blueprint에 다시 묶는다. `31`이 interactive graph의 권위 renderer이며 `32`와 Report API는 artifact 인증·저장·제공만 담당한다. node card나 edge마다 별도 Custom Component를 만들지 않는다. 향후 사내 portal SPA로 renderer를 옮길 경우에는 `30`의 동일 view model을 소비하는 별도 version으로 전환하고 한 Component 안에서 두 renderer mode를 임의 선택하지 않는다.
+`30`은 전달받은 blueprint의 `build_readiness` 문자열을 그대로 표시하지 않는다. node source/runtime contract, port, edge, secret/permission 검증 상태로 기대 readiness와 blocker를 결정론적으로 다시 계산하고 `readiness_assessment`와 정확히 일치하는지 확인한다. `import_ready`인데 blocker가 있거나 빈 graph인 blueprint, metadata-only/unverified 실행 자산, 잘못된 generation request 1:1 binding은 report 경계에서 거절한다. 또한 retrieval trace의 tenant/snapshot/work/revision/approved/design/query lock을 승인 WorkDefinition과 Blueprint에 다시 묶는다. `31`이 interactive graph의 권위 renderer이며 `32`는 HTML을 바꾸지 않고 공유 API의 `POST /reports` transport만 담당한다. 이 transport의 기본 URL은 `http://127.0.0.1:5000`, TTL은 4시간이며 test run은 네트워크를 사용하지 않는다. node card나 edge마다 별도 Custom Component를 만들지 않는다. 향후 사내 portal SPA로 renderer를 옮길 경우에는 `30`의 동일 view model을 소비하는 별도 version으로 전환하고 한 Component 안에서 두 renderer mode를 임의 선택하지 않는다.
 
 ### 10.7 Flow JSON 생성 원칙
 
@@ -1437,23 +1441,20 @@ edge detail에는 최소 source/target node·port, 전달 schema와 cardinality,
 
 ### 11.7 저장과 반환
 
-`reports`에는 view model, HTML hash, WorkDefinition revision, approved hash, catalog snapshot, renderer version을 저장한다. HTML이 document limit을 넘거나 artifact 정책상 분리가 필요하면 GridFS 또는 승인된 object store에 둔다.
-
-채팅에는 긴 HTML을 그대로 반환하지 않고 다음을 반환한다.
+F30은 HTML을 로컬 저장하지 않는다. 공유 HTML Report API가 저장소와 보존 정책을 담당하고, Publisher는 API가 만든 view/download URL만 반환한다. 채팅에는 긴 HTML을 그대로 반환하지 않고 다음을 반환한다.
 
 ```json
 {
-  "summary": "업무 정의와 Agent 설계 보고서가 생성되었습니다.",
-  "report_id": "report-51dc387ca450f522f2aefd98",
-  "view_url": "https://approved-host/reports/report-51dc387ca450f522f2aefd98?capability=SIGNED_VIEW_CAPABILITY",
-  "download_url": "https://approved-host/reports/report-51dc387ca450f522f2aefd98/download?capability=SIGNED_DOWNLOAD_CAPABILITY",
-  "content_sha256": "sha256:..."
+  "ok": true,
+  "status": "published",
+  "report_id": "server-generated-report-id",
+  "view_url": "https://approved-host/reports/view/server-generated-report-id?token=...",
+  "download_url": "https://approved-host/reports/download/server-generated-report-id?token=...",
+  "expires_at": "2026-08-31T00:00:00+09:00"
 }
 ```
 
-게시 요청은 기존 bearer와 tenant/actor header를 사용하지만, 반환 URL은 Report API가 직접 서명한 `report-capability/v1` query로 브라우저 열람을 허용한다. claim은 tenant/actor/report/content hash, `view` 또는 `download` purpose, `iat`, `exp`, `jti`를 정확히 포함하며 TTL은 60~3600초다. signed link는 identity header와 혼용하지 않고, 조회 시 저장 report의 tenant/actor/content hash와 다시 대조한다. capability URL은 만료 전 반복 사용할 수 있는 bearer secret이므로 access log·analytics·chat trace에서 query를 삭제하거나 기록하지 않고, 응답은 no-referrer/no-store 정책을 사용한다. service bearer와 signing secret은 URL이나 browser code에 넣지 않는다.
-
-현재 `REPORT_RETENTION_DAYS`는 idempotency reservation의 `expires_at`/TTL만 제어한다. reservation의 `PROCESSING` 상태에는 30~3600초 `REPORT_PROCESSING_LEASE_SECONDS`와 owner/attempt를 기록한다. 동일 request/report만 만료 lease를 CAS reclaim하고, report metadata가 이미 존재하면 immutable HTML hash를 확인한 뒤 `COMPLETED` projection을 복구한다. `reports` 문서와 GridFS HTML blob을 purge하는 lifecycle은 Report API에 구현되어 있지 않으므로, production에서는 보존·legal hold·감사 정책을 반영한 외부 sweeper가 metadata와 대응 blob 및 upload 도중 hard crash가 남긴 orphan blob을 함께 정리해야 한다.
+게시 요청은 `POST {base}/reports`와 표준 JSON `Content-Type`/`Accept` header만 사용한다. body는 `html`, 제목/요청 설명, 빈 dataset 목록, F30 report plan, TTL, filename hint로 구성한다. API URL은 base 또는 이미 `/reports`가 붙은 endpoint를 허용한다. API 오류는 Langflow build error로 전파하지 않고 `PUBLISH_FAILED` envelope로 반환한다. link token, access log, 저장소와 보존 정책은 공유 API의 운영 기준을 적용한다.
 
 ---
 
@@ -1461,17 +1462,17 @@ edge detail에는 최소 source/target node·port, 전달 schema와 cardinality,
 
 ### 12.1 Langflow 밖의 작은 서비스
 
-F10의 질문 답변은 Langflow Playground native HITL 카드 안에서 끝나므로 별도 Answer Form companion endpoint를 사용하지 않는다. 저장소의 `services/hitl_form_api`는 이전 external-form 계약을 검증하는 호환/참고 구현으로만 남아 있으며 F10 runtime dependency가 아니다. production server가 필요한 현재 companion은 Report API이며 FastAPI/Uvicorn을 기본으로 하고 사내 gateway 뒤에 둔다. F00도 companion API를 사용하지 않고 Langflow Flow 내부의 Loader·Chunker·MongoDB Writer와 built-in Embedding Model로 직접 적재한다.
+F10의 질문 답변은 Langflow Playground native HITL 카드 안에서 끝나므로 별도 Answer Form companion endpoint를 사용하지 않는다. 저장소의 `services/hitl_form_api`는 이전 external-form 계약을 검증하는 호환/참고 구현으로만 남아 있으며 F10 runtime dependency가 아니다. F30의 현재 companion은 다른 팀이 운영하는 공유 HTML Report API이며 F30 Publisher는 그 `/reports` 계약만 사용한다. 저장소의 `services/report_api`는 별도 strict/immutable reference implementation으로 남아 있지만 F30 기본 endpoint가 아니다. F00도 companion API를 사용하지 않고 Langflow Flow 내부의 Loader·Chunker·MongoDB Writer와 built-in Embedding Model로 직접 적재한다.
 
-`Report API`:
+공유 HTML `Report API`:
 
 ```text
-POST /api/reports
-GET  /api/reports/{report_id}
-GET  /api/reports/{report_id}/download
+POST /reports
+GET  /reports/view/{server_report_id}
+GET  /reports/download/{server_report_id}
 ```
 
-Report write 요청은 인증 actor와 `Idempotency-Key`를 요구한다. read/download는 기존 header-auth 경로와 게시 응답에서 발급한 purpose별 signed capability 경로를 지원한다. header-auth view/download/metadata는 같은 tenant여도 생성 actor와 다르면 존재 여부를 숨기는 404로 차단한다. capability가 있으면 Authorization/tenant/actor header와 혼용하지 않으며 tamper, expiry, purpose mismatch, report identity/content hash 불일치를 거절한다.
+F30 Publisher는 표준 JSON POST body와 `Content-Type`/`Accept`만 보내며, API가 반환한 절대 `view_url`과 `download_url`을 사용한다. 구체적인 API 인증, token, 보존/접근 제어는 공유 서버 계약에 따른다. F30은 API response가 없거나 JSON/URL 형식이 맞지 않으면 `PUBLISH_FAILED`를 반환한다.
 
 ### 12.2 필수 설정
 
@@ -1485,7 +1486,7 @@ Report write 요청은 인증 actor와 `Idempotency-Key`를 요구한다. read/d
 - F00/F20/F90 built-in Embedding Model의 같은 provider/model/API key와 승인 model-ID allowlist. F00은 1청크 순차 호출 간격을 적용하며, advanced `Dimensions`는 provider output-size override가 필요한 경우만 설정
 - LLM gateway endpoint/model/timeout
 - `REPORT_PUBLIC_BASE_URL`, artifact store, 32 UTF-8 byte 이상 `REPORT_VIEW_SIGNING_SECRET`, 60~3600초 `REPORT_VIEW_TOKEN_TTL_SECONDS`, 30~3600초 `REPORT_PROCESSING_LEASE_SECONDS`, idempotency TTL인 `REPORT_RETENTION_DAYS`, 별도 report/GridFS lifecycle sweeper
-- tenant/identity claim mapping과 Component 36의 trusted `authenticated_subject_id`/group 주입
+- tenant/identity claim mapping과 Component 45 `trusted_gateway` subject/group 주입
 - upload size, max records, clarification rounds, timeouts
 
 listen address, 내부 service URL, 사용자용 public URL을 같은 값으로 취급하지 않는다. `0.0.0.0`은 listen address일 뿐 report public URL이 아니다.
@@ -1583,7 +1584,7 @@ timeout 이후 자동 fallback과 늦은 응답 routing은 source만 보고 완�
 - resume 응답 유실 409의 pending/durable job reconciliation
 - answer merge 후 두 번째 질문 회차
 - preview 수정 시 승인 hash 무효화
-- 승인 성공 뒤 Component 36의 canonical APPROVED revision/hash/owner/session 재조회와 authenticated owner/group 검증
+- 승인 성공 뒤 Component 45 sealed context와 Component 36의 canonical APPROVED revision/hash/owner/session 재조회·owner/group 검증
 - active catalog pointer와 active Skill registry로 `agent-design-invocation/v1` 조립
 - F10 Run Flow direct mode(`tool_mode=false`)가 F20의 단일 ChatInput과 최종 ChatOutput 동적 port를 사용해 같은 실행에서 child 결과 반환
 - Component 36 blocked branch에서 F20 미실행

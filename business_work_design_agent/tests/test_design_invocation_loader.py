@@ -186,6 +186,30 @@ def request_envelope(*, additional_prompt: str = "승인 단계를 유지한다"
     }
 
 
+def authentication_context(
+    *,
+    source: str = "trusted_gateway",
+    subject_id: str = "employee-1",
+    groups: Any = None,
+    verified: bool | None = None,
+) -> dict[str, Any]:
+    if groups is None:
+        groups = ["REPORTERS", "ops", "reporters"]
+    if verified is None:
+        verified = source == "trusted_gateway"
+    return {
+        "ok": True,
+        "status": "AUTHENTICATION_READY",
+        "schema_version": "f10-authentication-context/v1",
+        "artifact_refs": [],
+        "source": source,
+        "subject_id": subject_id,
+        "groups": groups,
+        "authenticated_subject_verified": verified,
+        "trace_id": "authentication-trace",
+    }
+
+
 def skill(skill_id: str, *, status: str = "active", tenant_id: str = "tenant-a") -> dict[str, Any]:
     prompt = f"{skill_id} 사용 기준"
     return {
@@ -324,8 +348,7 @@ class FakeFactory:
 
 def invoke(module: ModuleType, factory: Any, **overrides: Any) -> dict[str, Any]:
     kwargs: dict[str, Any] = {
-        "authenticated_subject_id": "employee-1",
-        "authenticated_groups": '["REPORTERS", "ops", "reporters"]',
+        "authentication_context": authentication_context(),
         "mongodb_uri": "mongodb://db-user:super-secret@mongo.internal:27017",
         "mongo_database": "business_work_design",
         "work_collection": "work_definitions",
@@ -359,10 +382,18 @@ def test_success_reloads_canonical_work_pointer_skills_and_prompt(module: Module
     assert result["approved_hash"] == approved_work()["approved_hash"]
     assert result["catalog_snapshot_id"] == "snap-001"
     assert result["design_prompt"] == "승인 단계를 유지한다"
+    assert result["search_seed"] == {
+        "text": "메일 보고 업무를 자동화한다",
+        "sha256": "sha256:" + hashlib.sha256("메일 보고 업무를 자동화한다".encode("utf-8")).hexdigest(),
+        "source": "validated_original_work_request",
+        "truncated": False,
+    }
     assert result["acl_context"] == {
         "subject_id": "employee-1",
         "groups": ["ops", "reporters"],
     }
+    assert result["trust_boundary"]["authenticated_subject_verified"] is True
+    assert result["trust_boundary"]["authentication_context_source"] == "trusted_gateway"
     registry = result["skill_registry"]
     assert [item["skill_id"] for item in registry["skills"]] == ["skill-a", "skill-b"]
     assert registry == {
@@ -466,7 +497,7 @@ def test_request_identity_and_trusted_subject_are_checked_before_mongodb(module:
     assert first_factory.calls == 0
 
     second_factory = FakeFactory(FakeDatabase())
-    subject_result = invoke(module, second_factory, authenticated_subject_id="employee-other")
+    subject_result = invoke(module, second_factory, authentication_context=authentication_context(subject_id="employee-other"))
     assert subject_result["error"]["code"] == "AUTHENTICATED_SUBJECT_OWNER_MISMATCH"
     assert second_factory.calls == 0
 
@@ -486,10 +517,43 @@ def test_authenticated_groups_fail_closed_and_are_bounded(
     expected_code: str,
 ) -> None:
     factory = FakeFactory(FakeDatabase())
-    result = invoke(module, factory, authenticated_groups=groups)
+    result = invoke(module, factory, authentication_context=authentication_context(groups=groups))
     assert result["ok"] is False
     assert result["error"]["code"] == expected_code
     assert factory.calls == 0
+
+
+@pytest.mark.parametrize(
+    ("context", "expected_code"),
+    [
+        ({}, "AUTHENTICATION_CONTEXT_INVALID"),
+        (authentication_context(source="browser", verified=False), "AUTHENTICATION_SOURCE_INVALID"),
+        (authentication_context(source="trusted_gateway", verified=False), "AUTHENTICATION_VERIFICATION_INVALID"),
+        (authentication_context(source="local_demo_fixture", groups=["ops"]), "LOCAL_DEMO_GROUPS_NOT_ALLOWED"),
+    ],
+)
+def test_authentication_context_is_sealed_and_checked_before_mongodb(
+    module: ModuleType,
+    context: dict[str, Any],
+    expected_code: str,
+) -> None:
+    factory = FakeFactory(FakeDatabase())
+    result = invoke(module, factory, authentication_context=context)
+    assert result["ok"] is False
+    assert result["error"]["code"] == expected_code
+    assert factory.calls == 0
+
+
+def test_local_demo_authentication_context_is_supported_but_explicitly_unverified(module: ModuleType) -> None:
+    factory = FakeFactory(FakeDatabase())
+    result = invoke(
+        module,
+        factory,
+        authentication_context=authentication_context(source="local_demo_fixture", groups=[], verified=False),
+    )
+    assert result["ok"] is True
+    assert result["trust_boundary"]["authentication_context_source"] == "local_demo_fixture"
+    assert result["trust_boundary"]["authenticated_subject_verified"] is False
 
 
 def test_prompt_hash_secret_pointer_and_database_failures_do_not_echo_sensitive_values(
@@ -509,6 +573,13 @@ def test_prompt_hash_secret_pointer_and_database_failures_do_not_echo_sensitive_
     assert secret_result["error"]["code"] == "DESIGN_PROMPT_SECRET_MATERIAL_DETECTED"
     assert secret_prompt not in json.dumps(secret_result, ensure_ascii=False)
     assert secret_factory.calls == 0
+
+    invalid_seed_request = request_envelope()
+    invalid_seed_request["envelope"]["source_request"]["sha256"] = "0" * 64
+    invalid_seed_factory = FakeFactory(FakeDatabase())
+    invalid_seed_result = invoke(module, invalid_seed_factory, request_envelope=invalid_seed_request)
+    assert invalid_seed_result["error"]["code"] == "SEARCH_SEED_HASH_MISMATCH"
+    assert invalid_seed_factory.calls == 0
 
     pointer_factory = FakeFactory(FakeDatabase(pointer=False))
     pointer_result = invoke(module, pointer_factory)
@@ -542,8 +613,7 @@ def test_component_declares_grouped_success_and_blocked_outputs(
     assert {
         "approval_result",
         "request_envelope",
-        "authenticated_subject_id",
-        "authenticated_groups",
+        "authentication_context",
         "mongodb_uri",
         "mongo_database",
         "work_collection",
@@ -559,8 +629,7 @@ def test_component_declares_grouped_success_and_blocked_outputs(
     instance = component()
     instance.approval_result = approval_result()
     instance.request_envelope = request_envelope()
-    instance.authenticated_subject_id = "employee-1"
-    instance.authenticated_groups = "ops,REPORTERS"
+    instance.authentication_context = authentication_context(groups=["ops", "REPORTERS"])
     instance.mongodb_uri = "mongodb://internal"
     instance.mongo_database = "business_work_design"
     instance.work_collection = "work_definitions"
@@ -611,8 +680,7 @@ def test_component_normalizes_mongodb_datetimes_before_emitting_strict_json(
     instance = module.ApprovedDesignInvocationLoaderComponent()
     instance.approval_result = approval_result(work)
     instance.request_envelope = request_envelope()
-    instance.authenticated_subject_id = "employee-1"
-    instance.authenticated_groups = "ops"
+    instance.authentication_context = authentication_context(groups=["ops"])
     instance.mongodb_uri = "mongodb://internal"
     instance.mongo_database = "business_work_design"
     instance.work_collection = "work_definitions"

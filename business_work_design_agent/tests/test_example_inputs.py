@@ -63,7 +63,7 @@ def test_f00_catalog_example_matches_source_and_stored_parent_contracts() -> Non
         max_records=100,
         max_record_chars=200_000,
     )
-    assert len(records) == 28
+    assert len(records) == 100
     normalized_records = loader._normalize_records(
         records,
         tenant_id=loader._TENANT_ID,
@@ -110,7 +110,7 @@ def test_f00_catalog_example_matches_source_and_stored_parent_contracts() -> Non
         snapshot_id,
         vectors,
     )
-    assert len(parents) == 28
+    assert len(parents) == 100
     assert len(chunks) >= len(parents)
     assert len(chunk_bundle["ingest_sha256"]) == 64
     assert all(chunk["embedding"]["vector"] == [0.125] * 8 for chunk in chunks)

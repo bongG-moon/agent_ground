@@ -592,6 +592,363 @@ def test_retriever_returns_a_sealed_empty_result_when_search_has_no_candidates(
     assert result["retrieval_trace"]["silent_fallback_used"] is False
 
 
+def test_retriever_authorized_parent_fallback_is_scoped_ranked_and_visible(
+    monkeypatch: pytest.MonkeyPatch, modules: dict[str, Any]
+) -> None:
+    module = modules["21_catalog_hybrid_retriever"]
+    plan = modules["20_search_query_planner"].build_search_query_plan(
+        approved_work(), tenant_id="tenant-a", catalog_snapshot_id="snap-1", acl_context=acl()
+    )
+    vectors = locked_query_vectors(plan, {item["query_id"]: [0.1, 0.2] for item in plan["queries"]}, 2)
+    base = {
+        "version": "v1",
+        "asset_type": "component",
+        "technical_contract_status": "metadata_only",
+        "tenant_id": "tenant-a",
+        "snapshot_id": "snap-1",
+        "acl": {"visibility": "tenant"},
+    }
+    fallback = {
+        **base,
+        "asset_id": "asset-outlook-report",
+        "title": "Outlook 메일 기반 주간 업무보고",
+        "description": "Outlook 메일을 수집해 업무보고 초안을 생성합니다.",
+        "stars_count": 10,
+    }
+    monkeypatch.setattr(
+        module,
+        "_retrieve_from_mongodb",
+        lambda **_: {
+            "active_snapshot_id": "snap-1",
+            "source_results": {"exact": [], "lexical": [], "catalog_fallback": [fallback]},
+            "fallback": {
+                "used": True,
+                "mode": "authorized_parent_lexical_fallback",
+                "semantic_match_verified": False,
+            },
+            "scope_diagnostics": {"authorized_chunk_exists": True},
+        },
+    )
+
+    result = module.retrieve_catalog_candidates(
+        plan,
+        vectors,
+        tenant_id="tenant-a",
+        catalog_snapshot_id="snap-1",
+        acl_context=acl(),
+        provider_mode="application_rrf",
+        mongodb_uri="mongodb://not-used",
+    )
+
+    assert result["ok"] is True
+    assert [item["asset_id"] for item in result["candidates"]] == ["asset-outlook-report"]
+    assert result["retrieval_trace"]["fallback"]["used"] is True
+    assert result["retrieval_trace"]["scope_diagnostics"] == {"authorized_chunk_exists": True}
+    candidate_trace = result["candidates"][0]["retrieval_trace"]
+    assert candidate_trace["combined_match_sources"] == ["catalog_fallback"]
+    assert candidate_trace["catalog_fallback_rank"] == 1
+
+
+def test_authorized_parent_fallback_prefers_business_terms_over_popularity(modules: dict[str, Any]) -> None:
+    module = modules["21_catalog_hybrid_retriever"]
+
+    class Cursor(list[dict[str, Any]]):
+        def limit(self, maximum: int) -> "Cursor":
+            return Cursor(self[:maximum])
+
+    class ParentCollection:
+        def find(self, *_: Any, **__: Any) -> Cursor:
+            return Cursor([
+                {
+                    "asset_id": "popular-unrelated",
+                    "version": "v1",
+                    "title": "범용 데이터 처리",
+                    "description": "일반 데이터 처리 도구",
+                    "stars_count": 999,
+                    "downloads_count": 999,
+                },
+                {
+                    "asset_id": "mail-report",
+                    "version": "v1",
+                    "title": "Outlook 메일 업무보고",
+                    "description": "Outlook 메일을 모아 주간 업무보고를 생성합니다.",
+                    "stars_count": 1,
+                    "downloads_count": 1,
+                },
+            ])
+
+    documents, trace = module._authorized_parent_fallback(
+        ParentCollection(),
+        {"tenant_id": "tenant-a", "snapshot_id": "snap-1"},
+        {"queries": [{"text": "Outlook 메일 주간 업무보고"}]},
+        10,
+        1000,
+    )
+
+    assert [item["asset_id"] for item in documents] == ["mail-report"]
+    assert trace["used"] is True
+    assert trace["matched_asset_count"] == 1
+    assert trace["semantic_match_verified"] is False
+
+
+def test_authorized_parent_fallback_matches_pascal_case_catalog_titles(modules: dict[str, Any]) -> None:
+    module = modules["21_catalog_hybrid_retriever"]
+
+    class Cursor(list[dict[str, Any]]):
+        def limit(self, maximum: int) -> "Cursor":
+            return Cursor(self[:maximum])
+
+    class ParentCollection:
+        def find(self, *_: Any, **__: Any) -> Cursor:
+            return Cursor([
+                {
+                    "asset_id": "starrocks-query",
+                    "version": "v1",
+                    "title": "DatalakeStarrocksQueryComponent",
+                    "description": "DataLake query component",
+                }
+            ])
+
+    documents, _ = module._deterministic_parent_lexical_search(
+        ParentCollection(),
+        {"tenant_id": "tenant-a", "snapshot_id": "snap-1"},
+        {"queries": [{"text": "StarRocks 데이터 조회"}]},
+        10,
+        1000,
+    )
+
+    assert [item["asset_id"] for item in documents] == ["starrocks-query"]
+    assert "starrocks" in documents[0]["_lexical_matched_terms"]
+
+
+def test_application_hybrid_lanes_keep_exact_and_keyword_fallback_when_atlas_operators_fail(
+    modules: dict[str, Any]
+) -> None:
+    """A missing Atlas index must not turn a valid scoped catalog into a block.
+
+    The portable parent lane is exercised separately above; this test proves
+    the optional Atlas lexical/vector lanes fail independently and leave the
+    caller with safe exact/parent-keyword evidence to fuse.
+    """
+
+    module = modules["21_catalog_hybrid_retriever"]
+
+    class MissingAtlasIndexesCollection:
+        def aggregate(self, pipeline: list[dict[str, Any]], **_: Any) -> list[dict[str, Any]]:
+            operator = next(iter(pipeline[0]))
+            assert operator in {"$search", "$vectorSearch"}
+            raise module.OperationFailure("configured Atlas index is unavailable", code=27)
+
+    exact = {
+        "asset_id": "exact-outlook",
+        "version": "v1",
+        "asset_type": "component",
+        "tenant_id": "tenant-a",
+        "snapshot_id": "snap-1",
+        "acl": {"visibility": "tenant"},
+    }
+    sources, diagnostics = module._application_hybrid_source_results(
+        MissingAtlasIndexesCollection(),
+        exact_docs=[exact],
+        search_text="Outlook 메일 주간 업무보고",
+        search_filters=[{"equals": {"path": "tenant_id", "value": "tenant-a"}}],
+        vectors={"q-purpose": [0.1, 0.2]},
+        lexical_index_name="catalog_lexical",
+        vector_index_name="catalog_vector",
+        base_filter={"tenant_id": "tenant-a", "snapshot_id": "snap-1"},
+        source_limit=10,
+        query_timeout_ms=1000,
+    )
+
+    assert sources == {"exact": [exact], "lexical": [], "vector:q-purpose": []}
+    assert diagnostics["atlas_lexical"]["status"] == "unavailable"
+    assert diagnostics["atlas_vector"]["q-purpose"]["status"] == "unavailable"
+
+
+def test_normalized_hybrid_fusion_prefers_combined_keyword_and_vector_evidence(modules: dict[str, Any]) -> None:
+    module = modules["21_catalog_hybrid_retriever"]
+    base = {
+        "version": "v1",
+        "asset_type": "component",
+        "tenant_id": "tenant-a",
+        "snapshot_id": "snap-1",
+        "acl": {"visibility": "tenant"},
+    }
+    lexical_only = {**base, "asset_id": "keyword-only", "score": 10.0}
+    vector_only = {**base, "asset_id": "vector-only", "score": 0.95}
+    hybrid = {**base, "asset_id": "hybrid", "score": 8.0}
+    fused = module._normalized_weighted_hybrid_fusion(
+        {
+            "lexical": [lexical_only, hybrid],
+            "vector:q-purpose": [vector_only, {**hybrid, "score": 0.9}],
+        },
+        query_kind_by_id={"q-purpose": "purpose"},
+    )
+
+    assert [item["asset_id"] for item in fused][:1] == ["hybrid"]
+    trace = fused[0]
+    assert trace["_fusion_method"] == "normalized_weighted_hybrid/v1"
+    assert trace["_family_scores"]["lexical"]["source"] == "lexical"
+    assert trace["_family_scores"]["vector"]["per_query"]["q-purpose"]["raw_score"] == 0.9
+    assert trace["_family_scores"]["hybrid_coverage_bonus"] > 0
+
+
+def test_retriever_rejects_ambiguous_active_pointer(monkeypatch: pytest.MonkeyPatch, modules: dict[str, Any]) -> None:
+    module = modules["21_catalog_hybrid_retriever"]
+
+    class PointerCollection:
+        def find_one(self, *_: Any, **__: Any) -> dict[str, Any]:
+            return {"snapshot_id": "snap-old", "active_snapshot_id": "snap-new"}
+
+    class Database:
+        def __getitem__(self, _: str) -> PointerCollection:
+            return PointerCollection()
+
+    class Client:
+        def __getitem__(self, _: str) -> Database:
+            return Database()
+
+        def close(self) -> None:
+            return None
+
+    monkeypatch.setattr(module, "MongoClient", lambda *args, **kwargs: Client())
+    backend = module._retrieve_from_mongodb(
+        mongodb_uri="mongodb://example",
+        database_name="business_work_design",
+        chunks_collection="catalog_asset_chunks",
+        assets_collection="catalog_assets",
+        pointer_collection="catalog_active_pointers",
+        tenant_id="tenant-a",
+        snapshot_id="snap-new",
+        acl=acl(),
+        query_plan={"queries": []},
+        vectors={},
+        query_embedding_contract=None,
+        provider_mode="application_rrf",
+        lexical_index_name="catalog_lexical",
+        vector_index_name="catalog_vector",
+        source_limit=5,
+        server_selection_timeout_ms=1000,
+        query_timeout_ms=1000,
+    )
+    assert backend["pointer_error"] == "ACTIVE_POINTER_AMBIGUOUS"
+
+
+def test_retriever_accepts_active_snapshot_id_as_the_pointer_authority(
+    monkeypatch: pytest.MonkeyPatch, modules: dict[str, Any]
+) -> None:
+    module = modules["21_catalog_hybrid_retriever"]
+
+    class EmptyCollection:
+        def find_one(self, *_: Any, **__: Any) -> None:
+            return None
+
+        def find(self, *_: Any, **__: Any) -> list[dict[str, Any]]:
+            return []
+
+        def aggregate(self, *_: Any, **__: Any) -> list[dict[str, Any]]:
+            return []
+
+    class PointerCollection(EmptyCollection):
+        def find_one(self, *_: Any, **__: Any) -> dict[str, Any]:
+            return {"active_snapshot_id": "snap-active"}
+
+    class Database:
+        def __getitem__(self, name: str) -> EmptyCollection:
+            return PointerCollection() if name == "catalog_active_pointers" else EmptyCollection()
+
+    class Client:
+        def __getitem__(self, _: str) -> Database:
+            return Database()
+
+        def close(self) -> None:
+            return None
+
+    monkeypatch.setattr(module, "MongoClient", lambda *args, **kwargs: Client())
+    backend = module._retrieve_from_mongodb(
+        mongodb_uri="mongodb://example",
+        database_name="business_work_design",
+        chunks_collection="catalog_asset_chunks",
+        assets_collection="catalog_assets",
+        pointer_collection="catalog_active_pointers",
+        tenant_id="tenant-a",
+        snapshot_id="snap-active",
+        acl=acl(),
+        query_plan={"queries": []},
+        vectors={},
+        query_embedding_contract=None,
+        provider_mode="application_rrf",
+        lexical_index_name="catalog_lexical",
+        vector_index_name="catalog_vector",
+        source_limit=5,
+        server_selection_timeout_ms=1000,
+        query_timeout_ms=1000,
+    )
+    assert backend["active_snapshot_id"] == "snap-active"
+    assert "pointer_error" not in backend
+
+
+def test_retriever_fails_closed_on_malformed_backend_and_recovers_from_retryable_query_embedding_error(
+    monkeypatch: pytest.MonkeyPatch, modules: dict[str, Any]
+) -> None:
+    module = modules["21_catalog_hybrid_retriever"]
+    plan = modules["20_search_query_planner"].build_search_query_plan(
+        approved_work(), tenant_id="tenant-a", catalog_snapshot_id="snap-1", acl_context=acl()
+    )
+    vectors = locked_query_vectors(plan, {item["query_id"]: [0.1, 0.2] for item in plan["queries"]}, 2)
+    common = {
+        "tenant_id": "tenant-a",
+        "catalog_snapshot_id": "snap-1",
+        "acl_context": acl(),
+        "provider_mode": "application_rrf",
+        "mongodb_uri": "mongodb://not-used",
+    }
+    monkeypatch.setattr(
+        module,
+        "_retrieve_from_mongodb",
+        lambda **_: {"active_snapshot_id": "snap-1", "source_results": "not-a-source-map"},
+    )
+    malformed = module.retrieve_catalog_candidates(plan, vectors, **common)
+    assert malformed["ok"] is False
+    assert malformed["error"]["code"] == "SEARCH_RESPONSE_INVALID"
+
+    fallback_candidate = {
+        "asset_id": "keyword-only-mail",
+        "version": "v1",
+        "asset_type": "component",
+        "tenant_id": "tenant-a",
+        "snapshot_id": "snap-1",
+        "acl": {"visibility": "tenant"},
+        "title": "메일 업무보고",
+        "_lexical_match_score": 3.0,
+    }
+    monkeypatch.setattr(
+        module,
+        "_retrieve_from_mongodb",
+        lambda **_: {
+            "active_snapshot_id": "snap-1",
+            "source_results": {"exact": [], "parent_lexical": [fallback_candidate]},
+            "vector_contract_status": "not_required_keyword_only",
+        },
+    )
+    blocked_vectors = {
+        "ok": False,
+        "status": "BLOCKED",
+        "error": {"code": "EMBEDDING_PROVIDER_ERROR", "message": "provider unavailable", "retryable": True, "details": {}},
+        "trace_id": "upstream-trace",
+    }
+    recovered = module.retrieve_catalog_candidates(plan, blocked_vectors, **common)
+    assert recovered["ok"] is True
+    assert [item["asset_id"] for item in recovered["candidates"]] == ["keyword-only-mail"]
+    vector_execution = recovered["retrieval_trace"]["vector_execution"]
+    assert vector_execution["mode"] == "keyword_only_embedding_provider_recovery"
+    assert vector_execution["upstream_trace_id"] == "upstream-trace"
+
+    blocked_auth = {**blocked_vectors, "error": {**blocked_vectors["error"], "retryable": False}}
+    forwarded = module.retrieve_catalog_candidates(plan, blocked_auth, **common)
+    assert forwarded["error"]["code"] == "EMBEDDING_PROVIDER_ERROR"
+
+
 def test_retriever_records_only_vector_queries_that_contributed(monkeypatch: pytest.MonkeyPatch, modules: dict[str, Any]) -> None:
     module = modules["21_catalog_hybrid_retriever"]
     queries = [
@@ -934,13 +1291,19 @@ def test_retriever_rejects_mode_snapshot_and_missing_vectors(monkeypatch: pytest
     )
     unsupported = module.retrieve_catalog_candidates(plan, {"vectors": {}}, provider_mode="lexical_only", **common)
     assert unsupported["error"]["code"] == "UNSUPPORTED_PROVIDER_MODE"
+    monkeypatch.setattr(
+        module,
+        "_retrieve_from_mongodb",
+        lambda **_: {"active_snapshot_id": "snap-1", "source_results": {"exact": [], "lexical": []}},
+    )
     no_vector = module.retrieve_catalog_candidates(
         plan,
         locked_query_vectors(plan, {}, 2),
         provider_mode="application_rrf",
         **common,
     )
-    assert no_vector["error"]["code"] == "VECTOR_QUERY_MISSING"
+    assert no_vector["ok"] is True
+    assert no_vector["retrieval_trace"]["vector_execution"]["mode"] == "keyword_only"
 
     query_vectors = {item["query_id"]: [0.1, 0.2] for item in plan["queries"]}
     monkeypatch.setattr(
@@ -1000,6 +1363,17 @@ def test_candidate_context_dedupes_and_bounds_untrusted_text(modules: dict[str, 
     mismatched["retrieval_trace"] = {"snapshot_id": "another-snapshot"}
     blocked = module.build_candidate_context(mismatched)
     assert blocked["error"]["code"] == "RETRIEVAL_TRACE_LOCK_MISMATCH"
+
+    forwarded = module.build_candidate_context(
+        {
+            "ok": False,
+            "status": "BLOCKED",
+            "error": {"code": "SEARCH_OPERATOR_UNAVAILABLE", "message": "index missing", "retryable": False, "details": {}},
+            "trace_id": "retrieval-trace",
+        }
+    )
+    assert forwarded["error"]["code"] == "SEARCH_OPERATOR_UNAVAILABLE"
+    assert forwarded["error"]["details"]["upstream_trace_id"] == "retrieval-trace"
 
 
 def test_empty_candidate_context_allows_only_non_catalog_blueprint_sources(modules: dict[str, Any]) -> None:
@@ -1064,6 +1438,32 @@ def test_empty_candidate_context_allows_only_non_catalog_blueprint_sources(modul
     assert normalized["blueprint"]["work_definition_id"] == scope["work_definition_id"]
     assert normalized["blueprint"]["candidate_allowlist_sha256"] == canonical_hash([])
 
+    class ProviderMessage:
+        def __init__(self, text: str) -> None:
+            self.text = text
+
+    direct_message = normalizer.normalize_agent_blueprint_from_scope(
+        ProviderMessage(json.dumps(draft, ensure_ascii=False)), scope, candidates, skills
+    )
+    assert direct_message["ok"] is True
+    prose = normalizer.normalize_agent_blueprint_from_scope(
+        ProviderMessage("설명입니다. {\"nodes\": []}"), scope, candidates, skills
+    )
+    assert prose["error"]["code"] == "INVALID_BLUEPRINT_DRAFT"
+    forwarded = normalizer.normalize_agent_blueprint_from_scope(
+        model_text,
+        scope,
+        {
+            "ok": False,
+            "status": "BLOCKED",
+            "error": {"code": "SEARCH_TIMEOUT", "message": "retry", "retryable": True, "details": {}},
+            "trace_id": "candidate-trace",
+        },
+        skills,
+    )
+    assert forwarded["error"]["code"] == "SEARCH_TIMEOUT"
+    assert forwarded["error"]["details"]["upstream_trace_id"] == "candidate-trace"
+
     validated = modules["24_port_contract_validator"].validate_port_contracts(normalized)
     classified = modules["25_blueprint_readiness_classifier"].classify_blueprint_readiness(validated)
     terminal = modules["26_component_generation_prompt_builder"].build_component_generation_prompt(classified, target_node_id="")
@@ -1077,6 +1477,65 @@ def test_empty_candidate_context_allows_only_non_catalog_blueprint_sources(modul
     blocked = normalizer.normalize_agent_blueprint_from_scope(forged_catalog_draft, scope, candidates, skills)
     assert blocked["ok"] is False
     assert blocked["error"]["code"] == "UNKNOWN_CATALOG_ASSET"
+
+
+def test_23_supplies_non_empty_presentation_fields_for_omitted_draft_text(modules: dict[str, Any]) -> None:
+    """F20 must not seal blank text that F30 needs for the report drawer."""
+
+    planner = modules["20_search_query_planner"]
+    context_builder = modules["22_candidate_context_builder"]
+    normalizer = modules["23_agent_blueprint_normalizer"]
+    scope = planner.build_design_scope(
+        approved_work(),
+        tenant_id="tenant-a",
+        catalog_snapshot_id="snap-1",
+        acl_context=acl(),
+        design_prompt="빈 설명도 보고서에서 이해할 수 있는 업무 단계로 표현한다.",
+    )
+    retrieval = {
+        "ok": True,
+        "status": "COMPLETED",
+        "tenant_id": "tenant-a",
+        "snapshot_id": "snap-1",
+        "work_definition_id": scope["work_definition_id"],
+        "work_definition_revision": scope["work_definition_revision"],
+        "approved_hash": scope["approved_hash"],
+        "design_scope_sha256": scope["design_scope_sha256"],
+        "query_plan_sha256": "sha256:" + "d" * 64,
+        "provider_mode": "application_rrf",
+        "candidates": [],
+        "retrieval_trace": {"empty_result_reason": "NO_CANDIDATES"},
+    }
+    candidates = context_builder.build_candidate_context(retrieval)
+    skills = {
+        "ok": True,
+        "tenant_id": "tenant-a",
+        "catalog_snapshot_id": "snap-1",
+        "work_definition_id": scope["work_definition_id"],
+        "work_definition_revision": scope["work_definition_revision"],
+        "approved_hash": scope["approved_hash"],
+        "design_scope_sha256": scope["design_scope_sha256"],
+        "applied_skills": [],
+    }
+    draft = {
+        "nodes": [
+            {
+                "node_id": "review",
+                "title": "사람 검토",
+                "responsibility": "",
+                "reuse_decision_reason": "",
+                "implementation_source": "human_task",
+            }
+        ],
+        "edges": [],
+    }
+
+    normalized = normalizer.normalize_agent_blueprint_from_scope(draft, scope, candidates, skills)
+
+    assert normalized["ok"] is True
+    node = normalized["blueprint"]["nodes"][0]
+    assert node["responsibility"]
+    assert node["reuse_decision_reason"]
 
 
 def test_candidate_allowlist_hash_seals_authoritative_ports_and_23_rejects_a_stale_hash(

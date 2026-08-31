@@ -286,7 +286,7 @@ def main() -> int:
 
     component_paths = _component_files()
     components = [_validate_source(path) for path in component_paths]
-    expected_component_count = 37
+    expected_component_count = 38
     if len(components) != expected_component_count:
         raise ValueError(f"Expected {expected_component_count} standalone components, found {len(components)}")
     flows = [_validate_flow(FLOW_ROOT / filename) for filename in FLOW_FILES]

@@ -10,7 +10,7 @@ import re
 from typing import Any
 
 from lfx.custom import Component
-from lfx.io import DataInput, IntInput, Output, StrInput
+from lfx.io import BoolInput, DataInput, IntInput, Output, StrInput
 from lfx.schema import Data
 
 
@@ -48,6 +48,7 @@ BLUEPRINT_PATTERNS = {
 }
 MAX_STRING = 20_000
 REPORT_RENDERER_VERSION = "business-report-renderer.v1"
+F30_TERMINAL_SCHEMA_VERSION = "f30-terminal-result/v1"
 GENERATION_TEMPLATE_VERSION = "ccp-base-2026-08-27.v1"
 GENERATION_PROMPT_PACKS = {"CCP-CATALOG", "CCP-WORK", "CCP-SEARCH-SKILL", "CCP-BLUEPRINT", "CCP-REPORT"}
 GENERATION_BASE_POLICY = """Langflow OSS 1.11.1에서 실행되는 Standalone Custom Component 하나를 작성해줘.
@@ -292,6 +293,92 @@ def _text(value: Any, *, limit: int = MAX_STRING) -> str:
     return result[:limit]
 
 
+def _f30_terminal_failure(
+    *,
+    stage: str,
+    code: str,
+    message: str,
+    upstream: Any = None,
+) -> dict[str, Any]:
+    """Create the JSON-safe failure that F30's one Chat Output displays.
+
+    Direct component use remains strict by default.  F30 enables its
+    ``safe_failure_envelope`` input so a sealed-child-flow validation failure
+    is shown as data instead of surfacing from F10 as a generic Run Flow error.
+    """
+
+    source = _raw(upstream)
+    source_error = source.get("error") if isinstance(source, dict) else None
+    if isinstance(source_error, dict):
+        source_code = _text(source_error.get("code"), limit=128)
+        source_message = _text(source_error.get("message"), limit=500)
+        if source_code:
+            code = source_code
+        if source_message:
+            message = source_message
+    trace_id = _text(source.get("trace_id"), limit=200) if isinstance(source, dict) else ""
+    if not _is_identity(trace_id):
+        digest = hashlib.sha256(f"{stage}:{code}".encode("utf-8")).hexdigest()[:24]
+        trace_id = f"trace-f30-{digest}"
+    return {
+        "ok": False,
+        "status": "BLOCKED",
+        "schema_version": F30_TERMINAL_SCHEMA_VERSION,
+        "stage": stage,
+        "error": {
+            "code": code,
+            "message": message,
+            "retryable": False,
+            "details": {},
+        },
+        "trace_id": trace_id,
+    }
+
+
+def _upstream_f30_failure(value: Any, *, stage: str) -> dict[str, Any] | None:
+    source = _raw(value)
+    if not isinstance(source, dict) or source.get("ok") is not False:
+        return None
+    return _f30_terminal_failure(
+        stage=stage,
+        code="F30_UPSTREAM_BLOCKED",
+        message="F30 이전 단계에서 보고서 생성을 중단했습니다.",
+        upstream=source,
+    )
+
+
+def _presentation_responsibility(node: dict[str, Any]) -> str:
+    """Render legacy sealed F20 blueprints that omitted presentation text."""
+
+    provided = _text(node.get("responsibility") or node.get("description"), limit=5_000)
+    if provided:
+        return provided
+    title = _text(node.get("title") or node.get("label") or node.get("node_id"), limit=500) or "업무 단계"
+    source_text = {
+        "builtin": "Langflow 기본 기능으로",
+        "catalog_component": "승인된 카탈로그 Component로",
+        "catalog_flow": "승인된 카탈로그 Flow로",
+        "new_standalone_component": "신규 Standalone Custom Component로",
+        "companion_service": "승인된 연계 서비스로",
+        "human_task": "담당자의 판단으로",
+    }.get(str(node.get("implementation_source") or ""), "정의된 방식으로")
+    return f"{title} 단계를 {source_text} 수행하고 다음 단계에 필요한 결과를 전달합니다."
+
+
+def _presentation_reuse_reason(node: dict[str, Any]) -> str:
+    provided = _text(node.get("reuse_decision_reason"), limit=5_000)
+    if provided:
+        return provided
+    return {
+        "builtin": "표준 Langflow 기본 기능으로 구현 가능한 단계입니다.",
+        "catalog_component": "승인된 카탈로그 Component 계약을 재사용합니다.",
+        "catalog_flow": "승인된 카탈로그 Flow 계약을 재사용합니다.",
+        "new_standalone_component": "현재 승인 후보에 직접 재사용할 자산이 없어 Standalone Custom Component 생성 후보로 설계했습니다.",
+        "companion_service": "외부 또는 사내 연계 서비스의 명시적 계약이 필요한 단계입니다.",
+        "human_task": "업무 판단·승인 책임을 자동화하지 않고 담당자가 수행해야 하는 단계입니다.",
+    }.get(str(node.get("implementation_source") or ""), "선택한 구현 방식과 검증 범위를 설계 단계에서 명시합니다.")
+
+
 def _safe_id(value: Any, fallback: str) -> str:
     text = _text(value, limit=20_000)
     if not text:
@@ -487,11 +574,9 @@ def _validate_blueprint_schema_and_readiness(blueprint: dict[str, Any]) -> str:
             or not node["title"]
             or len(node["title"]) > 500
             or type(node.get("responsibility")) is not str
-            or not node["responsibility"]
             or len(node["responsibility"]) > 5_000
             or node.get("implementation_source") not in IMPLEMENTATION_LABELS
             or type(node.get("reuse_decision_reason")) is not str
-            or not node["reuse_decision_reason"]
             or len(node["reuse_decision_reason"]) > 5_000
             or not isinstance(node.get("inputs"), list)
             or len(node["inputs"]) > 500
@@ -1176,7 +1261,7 @@ def _build_graph(
             "implementation_label": IMPLEMENTATION_LABELS[implementation],
             "technical_contract_status": technical_status,
             "port_contract_sha256": port_contract_sha256,
-            "summary": _text(raw_node.get("summary") or raw_node.get("responsibility") or raw_node.get("description"), limit=10_000),
+            "summary": _text(raw_node.get("summary"), limit=10_000) or _presentation_responsibility(raw_node),
             "input_ports": input_ports,
             "output_ports": output_ports,
             "applied_skills": applied,
@@ -1197,8 +1282,8 @@ def _build_graph(
             "title": clean_node["title"],
             "current_work": _text(raw_node.get("current_work") or raw_node.get("as_is"), limit=20_000),
             "problems": _redact_sensitive(_bounded_list(raw_node.get("problems"), f"{graph_kind} node {node_id} problems", 500)),
-            "improvement": _text(raw_node.get("improvement") or raw_node.get("to_be") or raw_node.get("responsibility"), limit=20_000),
-            "reuse_decision_reason": _text(raw_node.get("reuse_decision_reason"), limit=5_000),
+            "improvement": _text(raw_node.get("improvement") or raw_node.get("to_be"), limit=20_000) or _presentation_responsibility(raw_node),
+            "reuse_decision_reason": _presentation_reuse_reason(raw_node),
             "asset_ref": detail_asset_ref,
             "inputs": clean_node["input_ports"],
             "outputs": clean_node["output_ports"],
@@ -1383,12 +1468,42 @@ class ReportViewModelBuilderComponent(Component):
         DataInput(name="agent_blueprint", display_name="Agent Blueprint", required=True),
         DataInput(name="retrieval_trace", display_name="Retrieval Trace", required=True),
         StrInput(name="report_title", display_name="Report Title", value="업무 방식 및 Agent 설계 보고서"),
+        BoolInput(
+            name="safe_failure_envelope",
+            display_name="F30 오류를 결과로 반환",
+            value=False,
+            advanced=True,
+            info="F30 Flow에서는 켜 둡니다. 검증 오류를 Chat Output의 BLOCKED JSON으로 전달합니다.",
+        ),
         IntInput(name="max_nodes", display_name="Maximum Nodes per Graph", value=500, advanced=True),
         IntInput(name="max_edges", display_name="Maximum Edges per Graph", value=1000, advanced=True),
     ]
     outputs = [Output(name="report_view_model", display_name="Report View Model", method="build_report_view_model")]
 
     def build_report_view_model(self) -> Data:
+        if not bool(getattr(self, "safe_failure_envelope", False)):
+            return self._build_report_view_model()
+        for value in (
+            getattr(self, "work_definition", None),
+            getattr(self, "agent_blueprint", None),
+            getattr(self, "retrieval_trace", None),
+        ):
+            upstream = _upstream_f30_failure(value, stage="f30_report_view_model")
+            if upstream is not None:
+                self.status = f"Report view model blocked: {upstream['error']['code']}"
+                return Data(data=upstream)
+        try:
+            return self._build_report_view_model()
+        except (TypeError, ValueError, json.JSONDecodeError):
+            result = _f30_terminal_failure(
+                stage="f30_report_view_model",
+                code="F30_REPORT_VIEW_MODEL_INVALID",
+                message="보고서에 사용할 업무 정의와 Agent 설계의 연결 관계를 검증하지 못했습니다. F20 완료 결과와 F30 입력이 같은 승인본인지 확인한 뒤 다시 실행하세요.",
+            )
+            self.status = f"Report view model blocked: {result['error']['code']}"
+            return Data(data=result)
+
+    def _build_report_view_model(self) -> Data:
         work = _contract_dict(self.work_definition, "work_definition", "work_definition")
         blueprint_envelope = _dict(self.agent_blueprint, "agent_blueprint")
         if "ok" in blueprint_envelope and blueprint_envelope.get("ok") is not True:

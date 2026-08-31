@@ -150,6 +150,73 @@ def test_design_invocation_is_the_single_authority_bound_f20_input(modules: dict
     assert strict_json_result["work_definition"]["work_definition_id"] == invocation["work_definition_id"]
 
 
+def test_design_invocation_accepts_verified_legacy_or_empty_search_seed(
+    modules: dict[str, ModuleType],
+) -> None:
+    """F20 remains runnable when an older imported F10 sends its raw seed."""
+
+    legacy_text = "  Outlook 메일을 모아 주간 업무보고 초안을 만들고 승인 후 게시한다.  "
+    legacy = design_invocation(modules)
+    legacy["search_seed"] = {
+        "turn_id": "turn-legacy-1",
+        "raw_text": legacy_text,
+        "language": "ko",
+        "submitted_at": "2026-08-31T00:00:00Z",
+        "sha256": "sha256:" + hashlib.sha256(legacy_text.encode("utf-8")).hexdigest(),
+    }
+    normalized = modules["planner"].validate_design_invocation(legacy)
+    assert normalized["ok"] is True
+    assert normalized["search_seed"]["text"] == legacy_text.strip()
+    assert normalized["search_seed"]["sha256"] == "sha256:" + hashlib.sha256(
+        legacy_text.strip().encode("utf-8")
+    ).hexdigest()
+
+    legacy_wrapper = design_invocation(modules)
+    legacy_wrapper["search_seed"] = {"source_request": legacy["search_seed"]}
+    wrapped_result = modules["planner"].validate_design_invocation(legacy_wrapper)
+    assert wrapped_result["ok"] is True
+    assert wrapped_result["search_seed"] == normalized["search_seed"]
+
+    # Langflow's Message/Data bridge may leave one narrow transport wrapper
+    # around the value when F10 and F20 were imported at different times.
+    for bridge_seed in (
+        {"data": legacy["search_seed"]},
+        {"text": json.dumps(legacy["search_seed"], ensure_ascii=False)},
+        {"data": {"text": json.dumps(legacy["search_seed"], ensure_ascii=False)}},
+    ):
+        bridged = design_invocation(modules)
+        bridged["search_seed"] = bridge_seed
+        bridged_result = modules["planner"].validate_design_invocation(bridged)
+        assert bridged_result["ok"] is True
+        assert bridged_result["search_seed"] == normalized["search_seed"]
+
+    for empty_seed in ({}, "", "   ", {"text": ""}):
+        empty = design_invocation(modules)
+        empty["search_seed"] = empty_seed
+        empty_result = modules["planner"].validate_design_invocation(empty)
+        assert empty_result["ok"] is True
+        assert empty_result["search_seed"] == {}
+
+
+def test_design_invocation_rejects_unverified_legacy_search_seed(
+    modules: dict[str, ModuleType],
+) -> None:
+    invalid = design_invocation(modules)
+    invalid["search_seed"] = {
+        "raw_text": "Outlook 메일을 모아 보고서를 만든다",
+        "sha256": "sha256:" + "0" * 64,
+    }
+    result = modules["planner"].validate_design_invocation(invalid)
+    assert result["ok"] is False
+    assert result["error"]["code"] == "SEARCH_SEED_HASH_MISMATCH"
+
+    missing_hash = design_invocation(modules)
+    missing_hash["search_seed"] = {"raw_text": "Outlook 메일을 모아 보고서를 만든다"}
+    missing_result = modules["planner"].validate_design_invocation(missing_hash)
+    assert missing_result["ok"] is False
+    assert missing_result["error"]["code"] == "SEARCH_SEED_HASH_MISMATCH"
+
+
 def test_design_invocation_rejects_unknown_fields_and_untrusted_authority(modules: dict[str, ModuleType]) -> None:
     unknown = design_invocation(modules)
     unknown["browser_override"] = True
@@ -293,6 +360,33 @@ def test_design_scope_projects_only_approved_semantics(modules: dict[str, Module
     assert "trace_id" not in projected["work_definition"]["steps"][0]
     assert "ui_debug" not in projected["work_definition"]["steps"][0]
     assert "nested-unapproved-secret-value" not in str(projected["work_definition"])
+
+
+def test_search_seed_drives_retrieval_without_becoming_an_approved_semantic_fact(
+    modules: dict[str, ModuleType],
+) -> None:
+    text = "Outlook 메일을 모아 주간 업무보고 초안을 만들고 승인 후 게시한다"
+    seed = {
+        "text": text,
+        "sha256": "sha256:" + hashlib.sha256(text.encode("utf-8")).hexdigest(),
+        "source": "validated_original_work_request",
+        "truncated": False,
+    }
+    kwargs = {
+        "tenant_id": "tenant-a",
+        "catalog_snapshot_id": "snapshot-1",
+        "acl_context": {"subject_id": "employee-1", "groups": ["engineering"]},
+        "design_prompt": "카탈로그에서 검증된 자산을 우선 추천한다.",
+        "search_seed": seed,
+    }
+    scope = modules["planner"].build_design_scope(approved_work(modules), **kwargs)
+    plan = modules["planner"].build_search_query_plan(approved_work(modules), **kwargs)
+
+    assert scope["ok"] is True and plan["ok"] is True
+    assert scope["search_seed_sha256"] == seed["sha256"]
+    assert text not in json.dumps(scope, ensure_ascii=False)
+    assert any(item["text"] == text for item in plan["queries"])
+    assert plan["search_seed_sha256"] == seed["sha256"]
 
 
 def test_nested_confirmed_provenance_builds_exact_reporting_and_risk_queries(

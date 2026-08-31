@@ -37,6 +37,32 @@ def _payload(value: Any) -> dict[str, Any]:
     return {}
 
 
+def _forward_blocked_envelope(value: Any, *, trace_id: str) -> dict[str, Any] | None:
+    """Preserve a concrete retrieval/configuration failure for F20/F90 output."""
+    payload = _payload(value)
+    error = payload.get("error")
+    if payload.get("ok") is not False or str(payload.get("status") or "") != "BLOCKED" or not isinstance(error, dict):
+        return None
+    details = error.get("details")
+    forwarded_details = dict(details) if isinstance(details, dict) else {}
+    upstream_trace_id = str(payload.get("trace_id") or "").strip()
+    if upstream_trace_id:
+        forwarded_details.setdefault("upstream_trace_id", upstream_trace_id)
+    return {
+        "ok": False,
+        "status": "BLOCKED",
+        "artifact_refs": [],
+        "error": {
+            "code": str(error.get("code") or "UPSTREAM_RETRIEVAL_STAGE_BLOCKED"),
+            "message": str(error.get("message") or "이전 검색 단계가 차단되었습니다."),
+            "retryable": error.get("retryable") is True,
+            "details": forwarded_details,
+        },
+        "resume": None,
+        "trace_id": trace_id,
+    }
+
+
 def _safe_text(value: Any, maximum: int) -> str:
     return re.sub(r"[\x00-\x08\x0b\x0c\x0e-\x1f]", "", str(value or "")).strip()[:maximum]
 
@@ -158,6 +184,9 @@ def build_candidate_context(
     total_context_chars: int = 30000,
 ) -> dict[str, Any]:
     trace_id = str(uuid.uuid4())
+    blocked = _forward_blocked_envelope(retrieval_result, trace_id=trace_id)
+    if blocked is not None:
+        return blocked
     retrieval = _payload(retrieval_result)
     if retrieval.get("ok") is not True:
         return _error(trace_id, "RETRIEVAL_NOT_READY", "성공한 retrieval_result가 필요합니다.")

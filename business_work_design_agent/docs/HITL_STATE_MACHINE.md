@@ -128,6 +128,6 @@ F10이 Playground에서 실행되는 정상 경로에는 외부 Answer Form/API 
 2. Component 36이 canonical 승인 WorkDefinition과 request identity를 다시 읽어 schema/status/revision/hash/owner/session/native channel을 검증한다.
 3. 같은 scope의 active catalog pointer와 `status=active` Skill registry를 읽고 bounded ACL/group 및 추가 설계 프롬프트를 포함한 `agent-design-invocation/v1`을 만든다.
 4. built-in TypeConverter가 strict JSON `text`를 Message로 바꾸고 Langflow 1.11.1 `Run Flow` node가 `tool_mode=false` direct mode로 F20 ChatInput에 전달한다.
-5. F20 최종 ChatOutput이 F10의 최종 Chat Output으로 반환된다.
+5. F20은 설계 미리보기 없이 sealed report handoff Chat Output 하나만 반환하고, F10은 이를 검증한 뒤 F30을 실행한다. 사용자에게 표시되는 최종 Chat Output은 F30 보고서 결과다.
 
 이 연결은 Langflow 내부 Run Flow 계약이며 다른 Flow의 HTTP API를 호출하지 않는다. Component 36의 owner/hash/pointer/Skill 검증이 하나라도 실패하면 `blocked_path`만 열리고 F20은 실행되지 않는다.

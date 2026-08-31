@@ -11,11 +11,12 @@ import re
 from typing import Any
 
 from lfx.custom import Component
-from lfx.io import DataInput, IntInput, MultilineInput, Output, StrInput
+from lfx.io import BoolInput, DataInput, IntInput, MultilineInput, Output, StrInput
 from lfx.schema import Data
 
 
 RENDERER_VERSION = "business-report-renderer.v1"
+F30_TERMINAL_SCHEMA_VERSION = "f30-terminal-result/v1"
 NODE_KINDS = {
     "start",
     "end",
@@ -126,37 +127,32 @@ def _normalize_allowed_hosts(value: Any) -> list[str]:
 
 
 CSS = r"""
-:root{color-scheme:light;--bg:#f4f6fb;--panel:#fff;--ink:#172033;--muted:#667085;--line:#cbd3e1;--focus:#6847e8;--violet:#7048e8;--teal:#0f9f8f;--blue:#3c67c7;--amber:#b7791f;--red:#c24152;--shadow:0 14px 40px rgba(36,45,74,.12);font-family:Inter,"Noto Sans KR","Segoe UI",sans-serif}
-*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink)}button{font:inherit}a{color:#304fd0}.report-shell{max-width:1680px;margin:0 auto;padding:24px}.hero{background:linear-gradient(135deg,#19172d,#302451 62%,#1e4265);color:white;border-radius:24px;padding:28px;box-shadow:var(--shadow)}.hero h1{margin:0 0 10px;font-size:clamp(1.65rem,3vw,2.6rem)}.hero p{margin:0;max-width:900px;color:#e5e1f7}.summary-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;margin-top:20px}.summary-card{background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.16);border-radius:14px;padding:12px}.summary-card span{display:block;color:#d8d4e8;font-size:.76rem;text-transform:uppercase}.summary-card strong{display:block;margin-top:5px;overflow-wrap:anywhere}.report-section{background:var(--panel);border:1px solid #e2e7f0;border-radius:20px;margin-top:20px;padding:20px;box-shadow:0 6px 22px rgba(36,45,74,.06)}.section-heading{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:14px}.section-heading h2{margin:0;font-size:1.25rem}.legend{display:flex;gap:7px;flex-wrap:wrap}.badge{display:inline-flex;align-items:center;gap:4px;border:1px solid #d7ddeb;border-radius:999px;padding:3px 8px;font-size:.72rem;background:#f8f9fc;color:#3b455d}.badge.skill{background:#f2edff;border-color:#d8c9ff;color:#5830b7}.badge.new{background:#fff4e6;border-color:#ffd7a3;color:#9a5700}.graph-frame{position:relative;border:1px solid #dfe5ef;border-radius:16px;overflow:hidden;background-color:#fbfcff;background-image:radial-gradient(#cfd7e7 1px,transparent 1px);background-size:20px 20px;min-height:520px}.graph-toolbar{position:absolute;z-index:12;right:12px;top:12px;display:flex;align-items:center;gap:4px;background:#fff;border:1px solid #dfe5ef;border-radius:12px;padding:5px;box-shadow:0 6px 18px rgba(25,32,52,.1)}.graph-toolbar button{border:0;background:#f4f6fa;color:#263149;border-radius:8px;min-width:34px;height:34px;cursor:pointer}.graph-toolbar button:hover{background:#e9e6fb}.graph-toolbar button:focus-visible,.node-main:focus-visible,.edge-label:focus-visible,.drawer-close:focus-visible{outline:3px solid #b8a8ff;outline-offset:2px}.graph-viewport{position:absolute;inset:0;overflow:auto;cursor:grab;touch-action:pan-x pan-y}.graph-viewport.dragging{cursor:grabbing;user-select:none}.graph-world{position:relative;transform-origin:0 0;min-width:100%;min-height:100%}.edge-layer{position:absolute;inset:0;overflow:visible;pointer-events:none}.edge-path{fill:none;stroke:var(--blue);stroke-width:2.2}.edge-path.branch{stroke:var(--violet)}.edge-path.human{stroke:var(--amber)}.edge-path.retry{stroke:var(--amber);stroke-dasharray:7 6}.edge-path.error{stroke:var(--red);stroke-dasharray:6 5}.edge-path.selected{stroke-width:4;filter:drop-shadow(0 1px 2px rgba(73,55,151,.25))}.edge-hit{fill:none;stroke:transparent;stroke-width:16;pointer-events:stroke}.edge-label{position:absolute;z-index:5;max-width:170px;border:1px solid #d5dcec;background:#fff;border-radius:999px;padding:4px 9px;font-size:.72rem;color:#38435b;box-shadow:0 4px 12px rgba(36,45,74,.09);cursor:pointer}.edge-label.selected{border-color:var(--violet);background:#f3efff}.node-layer{position:absolute;inset:0}.flow-node{position:absolute;width:232px;min-height:126px;border:1px solid #d8deea;border-left:5px solid var(--blue);border-radius:16px;background:#fff;box-shadow:0 10px 25px rgba(38,50,80,.1);overflow:hidden}.flow-node.work_step{border-left-color:#56657d}.flow-node.decision{border-left-color:var(--violet);transform:rotate(0deg)}.flow-node.human_gate{border-left-color:var(--amber);background:#fffdf7}.flow-node.new_custom{border-style:dashed;border-left:5px dashed #e58225;background:#fffaf4}.flow-node.companion_service{border-left-color:#697386;background:#f9fafb}.flow-node.skill_group{border-left-color:var(--violet);background:#f9f6ff}.flow-node.exception{border-left-color:var(--red);background:#fff8f9}.flow-node.start,.flow-node.end{border-left-color:var(--teal);border-radius:999px;min-height:92px}.flow-node.selected{border-color:var(--focus);box-shadow:0 0 0 3px rgba(104,71,232,.18),0 14px 30px rgba(38,50,80,.16)}.flow-node.related{box-shadow:0 0 0 2px rgba(60,103,199,.18),0 10px 25px rgba(38,50,80,.1)}.node-main{display:block;width:100%;min-height:122px;text-align:left;border:0;background:transparent;color:inherit;padding:13px 14px;cursor:pointer}.node-eyebrow{display:flex;justify-content:space-between;gap:8px;align-items:center;color:var(--muted);font-size:.7rem;text-transform:uppercase}.node-main h3{margin:8px 0 5px;font-size:.96rem}.node-main p{margin:0;color:var(--muted);font-size:.78rem;line-height:1.35;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}.node-badges{display:flex;flex-wrap:wrap;gap:5px;margin-top:10px}.drawer{position:fixed;z-index:30;right:0;top:0;width:min(430px,40vw);height:100vh;background:#fff;border-left:1px solid #dfe4ed;box-shadow:-18px 0 48px rgba(28,36,60,.17);transform:translateX(105%);transition:transform .2s ease;overflow:auto}.drawer.open{transform:translateX(0)}.drawer-header{position:sticky;top:0;background:#fff;border-bottom:1px solid #e5e9f1;padding:17px;display:flex;justify-content:space-between;gap:12px;align-items:start;z-index:2}.drawer-header h2{font-size:1.13rem;margin:0}.drawer-close{border:0;background:#f1f3f7;border-radius:9px;width:36px;height:36px;cursor:pointer}.drawer-body{padding:17px}.detail-block{border-top:1px solid #e8ebf2;padding:13px 0}.detail-block:first-child{border-top:0}.detail-block h3{font-size:.8rem;text-transform:uppercase;color:#59647a;margin:0 0 7px}.detail-block pre{white-space:pre-wrap;overflow-wrap:anywhere;background:#f6f7fa;border-radius:10px;padding:10px;font:inherit;font-size:.8rem;margin:0}.static-fallback{min-width:0;overflow:hidden}.js .static-fallback{display:none}.static-fallback section,.static-fallback ol,.static-fallback li{min-width:0}.static-fallback ol{padding-left:22px}.static-fallback li{margin:.45rem 0}.static-fallback pre{max-width:100%;overflow:auto;white-space:pre-wrap;overflow-wrap:anywhere;word-break:break-word;background:#f7f8fb;padding:12px;border-radius:10px}.support-sections details{border-top:1px solid #e7eaf1;padding:11px 0}.support-sections summary{cursor:pointer;font-weight:650}.support-sections pre{white-space:pre-wrap;overflow-wrap:anywhere;background:#f7f8fb;padding:12px;border-radius:10px}.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
-@media(max-width:1279px){.drawer{width:min(520px,65vw)}}
-@media(max-width:767px){.report-shell{padding:12px}.hero{border-radius:17px;padding:20px}.report-section{padding:13px;border-radius:15px}.graph-frame{min-height:430px}.drawer{top:auto;bottom:0;width:100%;height:min(72vh,680px);border-left:0;border-top:1px solid #dfe4ed;border-radius:20px 20px 0 0;transform:translateY(105%)}.drawer.open{transform:translateY(0)}.legend{display:none}}
-@media(prefers-reduced-motion:reduce){*{scroll-behavior:auto!important}.drawer{transition:none}}
-@media print{body{background:#fff}.report-shell{max-width:none;padding:0}.hero{background:#fff;color:#000;border:1px solid #aaa;box-shadow:none}.hero p,.summary-card span{color:#333}.summary-card{border-color:#aaa}.graph-frame,.drawer{display:none!important}.static-fallback{display:block!important}.report-section{break-inside:avoid;box-shadow:none}}
+:root{--bg:#f6f7f9;--card:#fff;--ink:#16181d;--muted:#7a808c;--line:#e8eaee;--orange:#ff5a1f;--purple:#7257e8;--green:#20a47a;--amber:#e79b31;--shadow:0 10px 30px rgba(20,24,32,.06)}*{box-sizing:border-box}html{scrollbar-color:#c9cdd5 transparent;scrollbar-width:thin}body{margin:0;background:var(--bg);color:var(--ink);font-family:Inter,"Noto Sans KR","Segoe UI",sans-serif;letter-spacing:-.02em}.shell{max-width:1540px;margin:auto;padding:30px 34px 70px}.topbar{display:flex;justify-content:space-between;align-items:center;margin-bottom:28px}.brand{display:flex;align-items:center;gap:10px;font-weight:800}.brand-mark{width:30px;height:30px;border-radius:10px;background:var(--orange);display:grid;place-items:center;color:#fff;font-size:14px}.meta{font-size:12px;color:var(--muted)}.intro{display:grid;grid-template-columns:minmax(280px,.62fr) minmax(520px,1.38fr);gap:14px;margin-bottom:18px}.intro-main,.intro-side{background:#fff;border:1px solid var(--line);border-radius:22px;box-shadow:var(--shadow)}.intro-main{padding:20px 22px;display:flex;flex-direction:column;justify-content:center}.intro-side{padding:22px 24px;border-color:#ffded1;background:linear-gradient(135deg,#fff 0%,#fffaf7 100%);position:relative;overflow:hidden}.intro-side:before{content:"";position:absolute;left:0;top:0;bottom:0;width:4px;background:var(--orange)}.eyebrow{font-size:11px;font-weight:800;letter-spacing:.13em;color:var(--orange);text-transform:uppercase}.intro h1{font-size:23px;line-height:1.25;margin:7px 0 7px}.intro-main .eyebrow{font-size:9px}.intro-main p{font-size:12px;line-height:1.55}.intro p{margin:0;color:var(--muted);line-height:1.65}.status{display:flex;align-items:center;gap:9px;font-size:13px;font-weight:700}.dot{width:8px;height:8px;border-radius:50%;background:var(--green)}.side-title{font-size:11px;color:var(--muted);margin-bottom:8px}.intro-side .side-title[style]{margin-top:14px!important;color:var(--orange);font-size:12px;font-weight:850;letter-spacing:.02em}.side-reason{font-size:16px;line-height:1.6;font-weight:760;color:#27221f;padding:13px 15px;background:#fff;border:1px solid #ffe2d6;border-radius:14px;box-shadow:0 6px 18px rgba(255,90,31,.06)}.tabs{display:flex;gap:8px;margin:22px 0 12px;padding:5px;background:#ebeef2;border-radius:15px;width:max-content}.tab{border:0;background:transparent;padding:10px 16px;border-radius:11px;color:#858b95;font-weight:750;cursor:pointer;transition:.18s}.tab[data-tab="as_is"]{font-size:12px}.tab[data-tab="to_be"]{font-size:14px;color:#d94b17;font-weight:850}.tab.active{background:#fff;color:#343840;box-shadow:0 3px 10px rgba(20,24,32,.08)}.tab[data-tab="to_be"].active{background:var(--orange);color:#fff;box-shadow:0 5px 16px rgba(255,90,31,.24)}.flow-panel{background:#fff;border:1px solid var(--line);border-radius:26px;box-shadow:var(--shadow);overflow:hidden;margin-bottom:18px}.flow-head{display:flex;justify-content:space-between;align-items:flex-end;padding:24px 26px 15px}.flow-kicker{font-size:11px;font-weight:800;letter-spacing:.12em;color:var(--orange)}.flow-head h2{margin:5px 0 4px;font-size:22px}.flow-head p{margin:0;color:var(--muted);font-size:13px}.legend{display:flex;gap:7px;flex-wrap:wrap;justify-content:flex-end}.pill{padding:6px 9px;border-radius:999px;background:#f4f5f7;color:#707681;font-size:11px;font-weight:700}.pill.new{background:#fff0e9;color:#e84b12}.pill.skill{background:#f1edff;color:#6645dc}.graph-frame{height:360px;position:relative;border-top:1px solid #f0f1f3;background:#fcfcfd;overflow:hidden}.graph-viewport{position:absolute;inset:0;overflow:auto;cursor:grab;scrollbar-width:thin;scrollbar-color:#cfd3da transparent}.graph-viewport::-webkit-scrollbar{height:7px;width:7px}.graph-viewport::-webkit-scrollbar-track{background:transparent}.graph-viewport::-webkit-scrollbar-thumb{background:#cfd3da;border-radius:99px;border:2px solid transparent;background-clip:padding-box}.graph-viewport::-webkit-scrollbar-thumb:hover{background:#aeb4bf;background-clip:padding-box}.graph-world{position:relative;transform-origin:0 0}.edge-layer,.node-layer{position:absolute;inset:0}.edge-layer{overflow:visible;pointer-events:none}.edge-path{fill:none;stroke:#b8bec8;stroke-width:2}.edge-hit{fill:none;stroke:transparent;stroke-width:18;pointer-events:stroke}.edge-label{position:absolute;z-index:4;transform:translate(-50%,-50%);border:1px solid #e7e9ed;background:#fff;box-shadow:0 3px 10px rgba(20,24,32,.04);border-radius:8px;padding:4px 6px;width:68px;white-space:normal;word-break:keep-all;overflow-wrap:break-word;text-align:center;line-height:1.18;font-size:9px;color:#7b818c;cursor:pointer}.flow-node{position:absolute;width:214px;min-height:138px;background:#fff;border:1px solid #e6e8ec;border-radius:18px;box-shadow:0 8px 22px rgba(20,24,32,.06);overflow:hidden;transition:.18s}.flow-node:hover{transform:translateY(-2px);box-shadow:0 12px 26px rgba(20,24,32,.09)}.flow-node:before{content:"";position:absolute;left:16px;right:16px;top:0;height:4px;border-radius:0 0 5px 5px;background:#aab1bc}.flow-node.new_custom:before{background:var(--orange)}.flow-node.human_gate:before{background:var(--amber)}.flow-node.start:before,.flow-node.end:before{background:var(--green)}.flow-node.companion_service:before{background:#66758b}.node-main{width:100%;min-height:138px;border:0;background:transparent;text-align:left;padding:17px 16px 14px;cursor:pointer;color:inherit}.node-top{display:flex;justify-content:space-between;color:#9aa0aa;font-size:10px}.node-main h3{font-size:15px;line-height:1.35;margin:11px 0 6px}.node-main p{font-size:11.5px;color:#777e89;line-height:1.45;margin:0;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}.node-badges{display:flex;gap:5px;flex-wrap:wrap;margin-top:10px}.node-badges .pill{padding:5px 7px;font-size:10px}.toolbar{position:absolute;z-index:10;right:16px;top:14px;display:flex;align-items:center;background:#fff;border:1px solid #e7e9ed;border-radius:13px;padding:4px;box-shadow:0 7px 22px rgba(20,24,32,.08)}.toolbar button,.zoom-readout{height:30px;border:0;background:transparent;color:#686e79;font-size:12px;display:grid;place-items:center}.toolbar button{width:31px;border-radius:8px;cursor:pointer}.toolbar button:hover{background:#f3f4f6}.zoom-readout{min-width:52px;padding:0 6px;font-variant-numeric:tabular-nums}.drawer-backdrop{position:fixed;inset:0;background:rgba(15,17,22,.18);opacity:0;pointer-events:none;transition:.2s;z-index:19}.drawer-backdrop.open{opacity:1;pointer-events:auto}.drawer{position:fixed;z-index:20;right:16px;top:16px;bottom:16px;width:min(470px,calc(100vw - 32px));background:#fff;border-radius:24px;box-shadow:0 24px 70px rgba(18,21,29,.2);transform:translateX(calc(100% + 40px));transition:.22s;overflow:auto;scrollbar-width:thin;scrollbar-color:#d1d5dc transparent}.drawer.open{transform:none}.drawer-head{position:sticky;top:0;z-index:2;background:rgba(255,255,255,.94);backdrop-filter:blur(12px);padding:22px 22px 14px;border-bottom:1px solid #f0f1f3}.drawer-head-row{display:flex;justify-content:space-between;gap:12px}.drawer h2{font-size:20px;margin:5px 0 0}.close{width:34px;height:34px;border:0;border-radius:10px;background:#f3f4f6;cursor:pointer;font-size:18px}.drawer-body{padding:10px 22px 24px}.detail{padding:15px 0;border-bottom:1px solid #f0f1f3}.detail h3{font-size:11px;color:#8b919c;margin:0 0 7px}.detail .value{font-size:13px;line-height:1.6;color:#343840;white-space:pre-wrap;overflow-wrap:anywhere}.support{background:#fff;border:1px solid var(--line);border-radius:24px;padding:22px 26px;box-shadow:var(--shadow)}.support h2{font-size:18px;margin:0 0 10px}.support details{border-top:1px solid #eff0f2;padding:13px 0}.support summary{cursor:pointer;font-size:13px;font-weight:700}.support pre{white-space:pre-wrap;overflow-wrap:anywhere;background:#f7f8f9;padding:12px;border-radius:12px;font:12px/1.5 inherit;color:#555b66}.static-fallback{display:none}@media(max-width:850px){.shell{padding:16px}.intro{grid-template-columns:1fr}.flow-head{align-items:flex-start;gap:12px;flex-direction:column}.legend{justify-content:flex-start}.graph-frame{height:420px}.intro h1{font-size:26px}}
+.quick-meta{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}.quick-meta span{font-size:12px;padding:7px 10px;border:1px solid #e7e9ee;border-radius:10px;background:#fafbfc;color:#747b88}.quick-meta b{color:#20242b;margin-left:5px}.support-list{padding:4px 0 10px}.support-item{padding:12px 2px;border-top:1px solid #eef0f3}.support-item:first-child{border-top:0}.support-item strong{font-size:13px;color:#252a32}.support-item p{margin:5px 0 0;font-size:12px;line-height:1.55;color:#6f7784}
+/* v6: quieter, editorial report chrome; flow canvas intentionally unchanged */
+body{background:#f3f4f5}.shell{padding-top:22px}.topbar{margin-bottom:18px;padding:0 2px 14px;border-bottom:1px solid #dde0e4}.brand{gap:8px;font-size:14px}.brand-mark{width:24px;height:24px;border-radius:6px;background:#25282d;font-size:11px}.meta{color:#9297a0}.intro{display:grid;grid-template-columns:minmax(0,1fr);gap:0;margin:0 0 20px;background:#fff;border:1px solid #e2e4e8;border-radius:18px;overflow:hidden;box-shadow:none}.intro-main,.intro-side{border:0;border-radius:0;box-shadow:none;background:#fff}.intro-main{padding:24px 28px 18px;border-bottom:1px solid #eceef1}.intro-main .eyebrow{display:none}.intro h1{font-size:22px;margin:0 0 6px;letter-spacing:-.035em}.intro-main p{max-width:760px;color:#737983}.intro-side{padding:0;display:grid;grid-template-columns:190px minmax(0,1fr);align-items:stretch;overflow:visible}.intro-side:before{display:none}.intro-side>.side-title:first-child{display:none}.status{padding:18px 22px;border-right:1px solid #eceef1;font-size:12px;align-content:center}.quick-meta{position:absolute;right:62px;top:31px;margin:0}.quick-meta span{border:0;background:#f3f4f6;padding:5px 8px;border-radius:6px;font-size:11px}.intro-side .side-title[style]{margin:0!important;padding:17px 18px 4px;color:#25282d;font-size:13px;font-weight:800;letter-spacing:-.02em}.side-reason{grid-column:2;padding:0 18px 18px;background:transparent;border:0;border-radius:0;box-shadow:none;font-size:14px;line-height:1.55;font-weight:600;color:#4a4f57}.tabs{margin:0 0 10px;padding:0;background:transparent;border-radius:0;border-bottom:1px solid #dfe2e6;width:100%;gap:24px}.tab{padding:11px 2px 10px;border-radius:0;font-size:13px!important;color:#9297a0!important}.tab.active{background:transparent!important;box-shadow:none!important;color:#25282d!important;border-bottom:2px solid #25282d}.tab[data-tab="to_be"]{color:#555b64!important}.tab[data-tab="to_be"].active{color:#e64d18!important;border-bottom-color:#f05a28}.support{margin-top:22px;border-radius:16px;box-shadow:none;padding:0;background:transparent;border:0}.support h2{font-size:14px;margin:0 0 9px;padding-left:2px}.support-list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.support-item{background:#fff;border:1px solid #e3e5e8!important;border-radius:12px;padding:14px 16px!important}.support-item strong{font-size:12px}.support-item p{font-size:11.5px}.drawer .eyebrow{display:none}.drawer h2{margin-top:0}.flow-kicker{display:none}@media(max-width:850px){.intro-side{grid-template-columns:1fr}.status{border-right:0;border-bottom:1px solid #eceef1}.intro-side .side-title[style],.side-reason{grid-column:1}.quick-meta{position:static;padding:0 22px 14px}.support-list{grid-template-columns:1fr}}
+/* Preserve no-JS, reduced-motion, and print access promised by the renderer contract. */
+.static-fallback{display:block}
+.js .static-fallback{display:none}
+@media(prefers-reduced-motion:reduce){*,*:before,*:after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important;scroll-behavior:auto!important}}
+@media print{body{background:#fff}.topbar,.tabs,.graph-frame,.toolbar,.drawer,.drawer-backdrop{display:none!important}.shell{max-width:none;padding:0}.intro,.support{box-shadow:none;break-inside:avoid}.static-fallback{display:block!important}}
+
 """
 
 
 JS = r"""
-(()=>{'use strict';
-const byId=(id)=>document.getElementById(id);const dataNode=byId('report-data');if(!dataNode)return;
-let vm;try{vm=JSON.parse(dataNode.textContent||'{}')}catch(_){return}
-document.documentElement.classList.add('js');
-const drawer=byId('detail-drawer'),drawerTitle=byId('drawer-title'),drawerBody=byId('drawer-body'),drawerClose=byId('drawer-close');let lastFocus=null;
-const el=(tag,cls,text)=>{const node=document.createElement(tag);if(cls)node.className=cls;if(text!==undefined)node.textContent=String(text);return node};
-const addBlock=(title,value)=>{if(value===undefined||value===null||value===''||(Array.isArray(value)&&!value.length))return;const block=el('section','detail-block');block.append(el('h3','',title));const pre=el('pre','',typeof value==='string'?value:JSON.stringify(value,null,2));block.append(pre);drawerBody.append(block)};
-const openDrawer=(title,detail,trigger)=>{lastFocus=trigger||document.activeElement;drawerTitle.textContent=title||'상세 정보';drawerBody.replaceChildren();Object.entries(detail||{}).forEach(([k,v])=>addBlock(k,v));drawer.classList.add('open');drawer.setAttribute('aria-hidden','false');drawerClose.focus()};
-const closeDrawer=()=>{drawer.classList.remove('open');drawer.setAttribute('aria-hidden','true');if(lastFocus&&lastFocus.focus)lastFocus.focus()};drawerClose.addEventListener('click',closeDrawer);document.addEventListener('keydown',(event)=>{if(event.key==='Escape'&&drawer.classList.contains('open'))closeDrawer()});
-const positionsFor=(nodes)=>{const perLayer=new Map(),positions=new Map();nodes.forEach((node,index)=>{const layer=Math.max(0,Number(node.sequence||index+1)-1),row=perLayer.get(layer)||0;perLayer.set(layer,row+1);positions.set(node.node_id,{x:70+layer*310,y:92+row*190})});return positions};
-const relatedIds=(graph,nodeId)=>{const ids=new Set([nodeId]);graph.edges.forEach(edge=>{if(edge.source_node_id===nodeId)ids.add(edge.target_node_id);if(edge.target_node_id===nodeId)ids.add(edge.source_node_id)});return ids};
-function renderGraph(graph,host){const frame=el('div','graph-frame');const toolbar=el('div','graph-toolbar');toolbar.setAttribute('aria-label','확대 축소');const viewport=el('div','graph-viewport');const world=el('div','graph-world');const svg=document.createElementNS('http://www.w3.org/2000/svg','svg');svg.classList.add('edge-layer');const nodeLayer=el('div','node-layer');world.append(svg,nodeLayer);viewport.append(world);frame.append(toolbar,viewport);host.append(frame);
-let scale=1;const positions=positionsFor(graph.nodes||[]),maxX=Math.max(700,...[...positions.values()].map(p=>p.x+300)),maxY=Math.max(480,...[...positions.values()].map(p=>p.y+190));world.style.width=maxX+'px';world.style.height=maxY+'px';svg.setAttribute('width',String(maxX));svg.setAttribute('height',String(maxY));svg.setAttribute('viewBox',`0 0 ${maxX} ${maxY}`);
-const applyScale=()=>{world.style.transform=`scale(${scale})`;world.style.width=(maxX*scale)+'px';world.style.height=(maxY*scale)+'px'};const zoom=(delta)=>{scale=Math.max(.45,Math.min(1.8,scale+delta));applyScale()};[['+','확대',()=>zoom(.1)],['100%','100% 초기화',()=>{scale=1;applyScale()}],['−','축소',()=>zoom(-.1)],['⌗','전체 흐름 맞춤',()=>{scale=Math.max(.45,Math.min(1,(viewport.clientWidth-32)/maxX));applyScale();viewport.scrollTo({left:0,top:0})}]].forEach(([text,label,fn])=>{const button=el('button','',text);button.type='button';button.setAttribute('aria-label',label);button.addEventListener('click',fn);toolbar.append(button)});
-const marker=document.createElementNS('http://www.w3.org/2000/svg','marker');marker.id='arrow-'+graph.graph_id;marker.setAttribute('viewBox','0 0 10 10');marker.setAttribute('refX','9');marker.setAttribute('refY','5');marker.setAttribute('markerWidth','6');marker.setAttribute('markerHeight','6');marker.setAttribute('orient','auto-start-reverse');const arrow=document.createElementNS('http://www.w3.org/2000/svg','path');arrow.setAttribute('d','M 0 0 L 10 5 L 0 10 z');arrow.setAttribute('fill','currentColor');marker.append(arrow);const defs=document.createElementNS('http://www.w3.org/2000/svg','defs');defs.append(marker);svg.append(defs);
-const nodeEls=new Map(),edgeEls=[];const selectNode=(node,button)=>{const related=relatedIds(graph,node.node_id);nodeEls.forEach((article,id)=>{article.classList.toggle('selected',id===node.node_id);article.classList.toggle('related',id!==node.node_id&&related.has(id))});edgeEls.forEach(item=>{const active=item.edge.source_node_id===node.node_id||item.edge.target_node_id===node.node_id;item.path.classList.toggle('selected',active);item.label.classList.toggle('selected',active)});const detail={...(graph.details||{})[node.detail_ref],implementation_source:node.implementation_source,technical_contract_status:node.technical_contract_status,applied_skills:node.applied_skills};if(node.generation_request_ref)detail.generation_request=(graph.generation_requests||{})[node.generation_request_ref];openDrawer(node.title,detail,button)};
-(graph.edges||[]).forEach(edge=>{const s=positions.get(edge.source_node_id),t=positions.get(edge.target_node_id);if(!s||!t)return;const sx=s.x+232,sy=s.y+63,tx=t.x,ty=t.y+63,mid=Math.round((sx+tx)/2),d=`M ${sx} ${sy} H ${mid} V ${ty} H ${tx}`;const hit=document.createElementNS('http://www.w3.org/2000/svg','path');hit.setAttribute('d',d);hit.classList.add('edge-hit');const path=document.createElementNS('http://www.w3.org/2000/svg','path');path.setAttribute('d',d);path.classList.add('edge-path',edge.edge_kind||'data');path.setAttribute('marker-end',`url(#arrow-${graph.graph_id})`);svg.append(hit,path);const label=el('button','edge-label',edge.label||'다음 단계');label.type='button';label.style.left=(mid-45)+'px';label.style.top=(Math.min(sy,ty)+Math.abs(ty-sy)/2-13)+'px';label.addEventListener('click',()=>openDrawer(edge.label||'연결 상세',{source_node:edge.source_node_id,source_port:edge.source_port_id,target_node:edge.target_node_id,target_port:edge.target_port_id,mapping:edge.mapping,condition:edge.condition,is_default:edge.is_default,retry_policy:edge.retry_policy,connection_validation_status:edge.connection_validation_status},label));nodeLayer.append(label);edgeEls.push({edge,path,label})});
-(graph.nodes||[]).forEach(node=>{const p=positions.get(node.node_id);const article=el('article','flow-node '+(node.node_kind||'work_step'));article.style.left=p.x+'px';article.style.top=p.y+'px';const button=el('button','node-main');button.type='button';button.setAttribute('aria-label',`${node.title}, ${node.implementation_label}`);const eyebrow=el('div','node-eyebrow');eyebrow.append(el('span','',node.node_kind),el('span','',`#${node.sequence}`));button.append(eyebrow,el('h3','',node.title),el('p','',node.summary||''));const badges=el('div','node-badges');badges.append(el('span','badge'+(node.implementation_source==='new_standalone_component'?' new':''),node.implementation_label));if((node.applied_skills||[]).length)badges.append(el('span','badge skill',`Skill ${node.applied_skills.length}개 적용`));if(node.technical_contract_status)badges.append(el('span','badge',node.technical_contract_status));button.append(badges);button.addEventListener('click',()=>selectNode(node,button));article.append(button);nodeLayer.append(article);nodeEls.set(node.node_id,article)});
-let dragging=false,startX=0,startY=0,startLeft=0,startTop=0;viewport.addEventListener('pointerdown',event=>{if(event.target.closest('button'))return;dragging=true;viewport.classList.add('dragging');startX=event.clientX;startY=event.clientY;startLeft=viewport.scrollLeft;startTop=viewport.scrollTop;viewport.setPointerCapture(event.pointerId)});viewport.addEventListener('pointermove',event=>{if(!dragging)return;viewport.scrollLeft=startLeft-(event.clientX-startX);viewport.scrollTop=startTop-(event.clientY-startY)});viewport.addEventListener('pointerup',()=>{dragging=false;viewport.classList.remove('dragging')});viewport.addEventListener('wheel',event=>{if(!event.ctrlKey&&!event.metaKey)return;event.preventDefault();zoom(event.deltaY<0?.1:-.1)},{passive:false});applyScale()}
-document.querySelectorAll('[data-graph-target]').forEach(host=>{const graph=host.dataset.graphTarget==='as_is'?vm.as_is_graph:vm.to_be_graph;renderGraph(graph||{nodes:[],edges:[],details:{}},host)});
-})();
+(()=>{'use strict';document.documentElement.classList.add('js');const vm=JSON.parse(document.getElementById('report-data').textContent);const $=s=>document.querySelector(s);$('#page-title').textContent=vm.title||'업무 흐름을 더 단순하게, Agent와 함께.';$('#page-desc').textContent='반복 작업은 Agent가 처리하고, 중요한 판단은 사람이 담당하는 업무 구조를 한눈에 확인하세요.';$('#reason').textContent=vm.summary?.pattern_reason||'';$('#approval-meta').textContent=vm.summary?.approval_status==='APPROVED'?'승인됨':(vm.summary?.approval_status||'-');$('#revision-meta').textContent='Rev. '+(vm.summary?.work_definition_revision??'-');
+const friendly={current_work:'현재는 이렇게 해요',problems:'불편한 점',improvement:'Agent 적용 후',failure_policy:'문제가 생기면',inputs:'받는 정보',outputs:'만드는 결과',human_review:'사람이 확인하는 부분',applied_skills:'사용하는 AI 기능',reuse_decision_reason:'이 방식을 선택한 이유',secrets_permissions:'필요 권한',tests:'확인할 항목',config:'설정',asset_ref:'연결된 기존 자산',implementation_source:'구현 방식',technical_contract_status:'연결 상태',generation_request:'개발 참고 정보',title:'단계 이름'};const hidden=new Set(['title','config','asset_ref','secrets_permissions','technical_contract_status','generation_request']);
+const fmt=v=>{if(typeof v==='string')return v;if(Array.isArray(v))return v.map(x=>typeof x==='string'?'• '+x:'• '+(x.description||x.name||x.label||JSON.stringify(x))).join('\n');if(typeof v==='object'&&v){if(Object.keys(v).length===0)return '';if(v.error_code)return `오류가 발생하면 작업을 중단하고 원인을 표시합니다. (${v.error_code})`;return Object.entries(v).map(([k,x])=>`${k}: ${typeof x==='object'?JSON.stringify(x):x}`).join('\n')}return String(v??'')};
+const drawer=$('#drawer'),backdrop=$('#backdrop');function openDrawer(title,detail){$('#drawer-title').textContent=title;const body=$('#drawer-body');body.innerHTML='';Object.entries(detail||{}).forEach(([k,v])=>{if(hidden.has(k)||v==null||v===''||(Array.isArray(v)&&!v.length))return;const text=fmt(v);if(!text)return;const d=document.createElement('section');d.className='detail';d.innerHTML=`<h3>${friendly[k]||k}</h3><div class="value"></div>`;d.querySelector('.value').textContent=text;body.append(d)});drawer.classList.add('open');backdrop.classList.add('open')}function close(){drawer.classList.remove('open');backdrop.classList.remove('open')}$('#close').onclick=close;backdrop.onclick=close;document.addEventListener('keydown',e=>{if(e.key==='Escape')close()});
+const labels={Human:'사람이 수행','기본 요소':'기본 기능','신규 Custom':'새로 만드는 기능','외부 서비스':'연결 서비스'};function render(kind){const graph=kind==='as_is'?vm.as_is_graph:vm.to_be_graph;$('#flow-kicker').textContent=kind==='as_is'?'CURRENT WORK':'WITH AGENT';$('#flow-title').textContent=kind==='as_is'?'현재 업무 흐름':'Agent 적용 후 업무 흐름';$('#flow-desc').textContent=kind==='as_is'?'지금 사람이 직접 수행하는 과정을 보여줍니다.':'반복 작업은 Agent가 처리하고, 중요한 판단은 사람이 담당합니다.';const legend=$('#legend');legend.innerHTML='';[...new Set(graph.nodes.map(n=>n.implementation_label))].forEach(x=>{const s=document.createElement('span');s.className='pill'+(x==='신규 Custom'?' new':'');s.textContent=labels[x]||x;legend.append(s)});if(graph.nodes.some(n=>(n.applied_skills||[]).length)){const s=document.createElement('span');s.className='pill skill';s.textContent='AI Skill';legend.append(s)};const host=$('#graph-host');host.innerHTML='';renderGraph(graph,host)}
+function renderGraph(graph,host){const frame=document.createElement('div');frame.className='graph-frame';const vp=document.createElement('div');vp.className='graph-viewport';const world=document.createElement('div');world.className='graph-world';const svg=document.createElementNS('http://www.w3.org/2000/svg','svg');svg.classList.add('edge-layer');const nl=document.createElement('div');nl.className='node-layer';world.append(svg,nl);vp.append(world);frame.append(vp);const tb=document.createElement('div');tb.className='toolbar';const minus=document.createElement('button'),read=document.createElement('div'),plus=document.createElement('button'),fit=document.createElement('button');minus.textContent='−';plus.textContent='+';fit.textContent='↙';fit.title='전체 보기';read.className='zoom-readout';tb.append(minus,read,plus,fit);frame.append(tb);host.append(frame);
+const W=214,H=138,gap=118,left=54,top=92;const pos=new Map();graph.nodes.forEach((n,i)=>pos.set(n.node_id,{x:left+i*(W+gap),y:top}));const maxX=left*2+(graph.nodes.length-1)*(W+gap)+W,maxY=330;world.style.width=maxX+'px';world.style.height=maxY+'px';svg.setAttribute('width',maxX);svg.setAttribute('height',maxY);svg.setAttribute('viewBox',`0 0 ${maxX} ${maxY}`);let scale=1;function apply(){world.style.transform=`scale(${scale})`;read.textContent=Math.round(scale*100)+'%'}function zoom(d){scale=Math.max(.55,Math.min(1.6,+(scale+d).toFixed(2)));apply()}function fitAll(){scale=Math.max(.55,Math.min(1,(vp.clientWidth-36)/maxX));apply();vp.scrollTo({left:0,top:0})}minus.onclick=()=>zoom(-.1);plus.onclick=()=>zoom(.1);fit.onclick=fitAll;
+const defs=document.createElementNS('http://www.w3.org/2000/svg','defs'),marker=document.createElementNS('http://www.w3.org/2000/svg','marker');marker.id='arrow-'+graph.graph_id;[['viewBox','0 0 10 10'],['refX','9'],['refY','5'],['markerWidth','6'],['markerHeight','6'],['orient','auto']].forEach(([a,v])=>marker.setAttribute(a,v));const ap=document.createElementNS('http://www.w3.org/2000/svg','path');ap.setAttribute('d','M0 0 L10 5 L0 10z');ap.setAttribute('fill','#b8bec8');marker.append(ap);defs.append(marker);svg.append(defs);
+graph.edges.forEach(e=>{const s=pos.get(e.source_node_id),t=pos.get(e.target_node_id),sx=s.x+W,sy=s.y+H/2,tx=t.x,ty=t.y+H/2,mid=(sx+tx)/2;const d=`M${sx} ${sy} H${tx}`;const p=document.createElementNS('http://www.w3.org/2000/svg','path');p.setAttribute('d',d);p.classList.add('edge-path');p.setAttribute('marker-end',`url(#arrow-${graph.graph_id})`);svg.append(p);const b=document.createElement('button');b.className='edge-label';b.textContent=e.label||'다음';const available=Math.max(52,tx-sx-18);b.style.width=Math.min(86,available)+'px';b.style.left=mid+'px';b.style.top=sy+'px';b.onclick=()=>openDrawer(e.label||'연결 정보',{'현재 단계':graph.nodes.find(n=>n.node_id===e.source_node_id)?.title,'다음 단계':graph.nodes.find(n=>n.node_id===e.target_node_id)?.title,condition:e.condition});nl.append(b)});
+graph.nodes.forEach(n=>{const p=pos.get(n.node_id),a=document.createElement('article');a.className='flow-node '+(n.node_kind||'');a.style.left=p.x+'px';a.style.top=p.y+'px';const b=document.createElement('button');b.className='node-main';const type=labels[n.implementation_label]||n.implementation_label;b.innerHTML=`<div class="node-top"><span>업무 단계</span><span>STEP ${n.sequence}</span></div><h3></h3><p></p><div class="node-badges"></div>`;b.querySelector('h3').textContent=n.title;b.querySelector('p').textContent=n.summary||((graph.details||{})[n.detail_ref]?.current_work)||'';const badges=b.querySelector('.node-badges');const p1=document.createElement('span');p1.className='pill'+(n.implementation_label==='신규 Custom'?' new':'');p1.textContent=type;badges.append(p1);if((n.applied_skills||[]).length){const sk=document.createElement('span');sk.className='pill skill';sk.textContent='AI Skill 적용';badges.append(sk)}b.onclick=()=>{const detail={...(graph.details||{})[n.detail_ref],implementation_source:type};openDrawer(n.title,detail)};a.append(b);nl.append(a)});apply();
+let drag=false,x=0,y=0,sl=0,st=0;vp.onpointerdown=e=>{if(e.target.closest('button'))return;drag=true;x=e.clientX;y=e.clientY;sl=vp.scrollLeft;st=vp.scrollTop;vp.setPointerCapture(e.pointerId)};vp.onpointermove=e=>{if(drag){vp.scrollLeft=sl-(e.clientX-x);vp.scrollTop=st-(e.clientY-y)}};vp.onpointerup=()=>drag=false;vp.addEventListener('wheel',e=>{if(e.ctrlKey||e.metaKey){e.preventDefault();zoom(e.deltaY<0?.1:-.1)}},{passive:false})}
+$('.tabs').addEventListener('click',e=>{const b=e.target.closest('.tab');if(!b)return;document.querySelectorAll('.tab').forEach(x=>x.classList.toggle('active',x===b));render(b.dataset.tab)});const sup=$('#support');(vm.sections||[]).forEach(s=>{const d=document.createElement('details');const sm=document.createElement('summary');sm.textContent=s.title;d.append(sm);const box=document.createElement('div');box.className='support-list';if(!(s.items||[]).length){box.textContent='현재 추가 확인 사항이 없습니다.'}else{(s.items||[]).forEach(item=>{const row=document.createElement('div');row.className='support-item';const title=document.createElement('strong');title.textContent=item.name||item.description||item.test_id||'항목';const desc=document.createElement('p');desc.textContent=item.risk&&item.control?`주의: ${item.risk} · 대응: ${item.control}`:(item.description||item.control||'');row.append(title);if(desc.textContent)row.append(desc);box.append(row)})}d.append(box);sup.append(d)});render('to_be')})();
 """
 
 
@@ -203,6 +199,55 @@ def _text(value: Any, limit: int = 20_000) -> str:
     if isinstance(value, (dict, list)):
         value = json.dumps(value, ensure_ascii=False, sort_keys=True, allow_nan=False)
     return str(value)[:limit]
+
+
+def _f30_terminal_failure(
+    *,
+    stage: str,
+    code: str,
+    message: str,
+    upstream: Any = None,
+) -> dict[str, Any]:
+    """Return a safe F30 terminal envelope instead of a child-flow exception."""
+
+    source = _raw(upstream)
+    source_error = source.get("error") if isinstance(source, dict) else None
+    if isinstance(source_error, dict):
+        source_code = _text(source_error.get("code"), 128).strip()
+        source_message = _text(source_error.get("message"), 500).strip()
+        if source_code:
+            code = source_code
+        if source_message:
+            message = source_message
+    trace_id = _text(source.get("trace_id"), 200).strip() if isinstance(source, dict) else ""
+    if IDENTITY_PATTERN.fullmatch(trace_id) is None:
+        digest = hashlib.sha256(f"{stage}:{code}".encode("utf-8")).hexdigest()[:24]
+        trace_id = f"trace-f30-{digest}"
+    return {
+        "ok": False,
+        "status": "BLOCKED",
+        "schema_version": F30_TERMINAL_SCHEMA_VERSION,
+        "stage": stage,
+        "error": {
+            "code": code,
+            "message": message,
+            "retryable": False,
+            "details": {},
+        },
+        "trace_id": trace_id,
+    }
+
+
+def _upstream_f30_failure(value: Any, *, stage: str) -> dict[str, Any] | None:
+    source = _raw(value)
+    if not isinstance(source, dict) or source.get("ok") is not False:
+        return None
+    return _f30_terminal_failure(
+        stage=stage,
+        code="F30_UPSTREAM_BLOCKED",
+        message="F30 이전 단계에서 보고서 생성을 중단했습니다.",
+        upstream=source,
+    )
 
 
 def _escaped_json(value: dict[str, Any]) -> str:
@@ -601,7 +646,6 @@ def _validate_closed_shape(view_model: dict[str, Any]) -> None:
         for fallback_index, fallback in enumerate(_array(graph["text_fallback"], f"{graph_path}.text_fallback", maximum=5_000)):
             _string(fallback, f"{graph_path}.text_fallback[{fallback_index}]", maximum=20_000)
 
-
 def _secret_key(value: Any) -> bool:
     text = str(value or "").casefold()
     compact = re.sub(r"[^a-z0-9]", "", text)
@@ -755,6 +799,13 @@ class ResponsiveReportRendererComponent(Component):
         DataInput(name="report_view_model", display_name="Report View Model", required=True),
         StrInput(name="renderer_version", display_name="Renderer Version", value=RENDERER_VERSION, advanced=True),
         MultilineInput(name="allowed_hosts_json", display_name="Allowed Link Hosts JSON", value="[]", advanced=True),
+        BoolInput(
+            name="safe_failure_envelope",
+            display_name="F30 오류를 결과로 반환",
+            value=False,
+            advanced=True,
+            info="F30 Flow에서는 켜 둡니다. renderer 검증 오류를 Chat Output의 BLOCKED JSON으로 반환합니다.",
+        ),
         IntInput(name="max_nodes", display_name="Maximum Nodes per Graph", value=500, advanced=True),
         IntInput(name="max_edges", display_name="Maximum Edges per Graph", value=1000, advanced=True),
         IntInput(name="max_html_bytes", display_name="Maximum HTML Bytes", value=10_000_000, advanced=True),
@@ -762,6 +813,24 @@ class ResponsiveReportRendererComponent(Component):
     outputs = [Output(name="render_result", display_name="Rendered Report", method="render_report")]
 
     def render_report(self) -> Data:
+        if not bool(getattr(self, "safe_failure_envelope", False)):
+            return self._render_report()
+        upstream = _upstream_f30_failure(getattr(self, "report_view_model", None), stage="f30_renderer")
+        if upstream is not None:
+            self.status = f"Report rendering blocked: {upstream['error']['code']}"
+            return Data(data=upstream)
+        try:
+            return self._render_report()
+        except (TypeError, ValueError, json.JSONDecodeError):
+            result = _f30_terminal_failure(
+                stage="f30_renderer",
+                code="F30_REPORT_RENDER_INVALID",
+                message="보고서 화면용 데이터를 안전하게 렌더링하지 못했습니다. F20 설계 결과의 보고서 계약을 확인한 뒤 다시 실행하세요.",
+            )
+            self.status = f"Report rendering blocked: {result['error']['code']}"
+            return Data(data=result)
+
+    def _render_report(self) -> Data:
         view_model = _view_model(self.report_view_model)
         _ensure_json_value(view_model, "report_view_model")
         if _secret_material_kind(view_model):
@@ -810,17 +879,58 @@ class ResponsiveReportRendererComponent(Component):
             "<!doctype html><html lang=\"ko\"><head><meta charset=\"utf-8\">"
             "<meta name=\"viewport\" content=\"width=device-width,initial-scale=1\">"
             f"<meta name=\"renderer-version\" content=\"{html.escape(renderer_version)}\">"
-            f"<title>{html.escape(_text(view_model.get('title'),500))}</title><style>{CSS}</style></head><body>"
-            "<main class=\"report-shell\"><header class=\"hero\">"
-            f"<h1>{html.escape(_text(view_model.get('title'),500))}</h1>"
-            "<p>확정된 업무 방식과 Agent 구현 설계를 노드·연결선으로 비교합니다. 노드와 연결 label을 선택하면 상세 계약을 확인할 수 있습니다.</p>"
-            f"<div class=\"summary-grid\">{summary_cards}</div></header>"
-            "<section class=\"report-section\"><div class=\"section-heading\"><h2>AS-IS 업무 Flow</h2><div class=\"legend\"><span class=\"badge\">Human</span><span class=\"badge\">현재 시스템</span></div></div><div data-graph-target=\"as_is\"></div></section>"
-            "<section class=\"report-section\"><div class=\"section-heading\"><h2>TO-BE Agent Flow</h2><div class=\"legend\"><span class=\"badge\">기본 요소</span><span class=\"badge\">기존 자산</span><span class=\"badge new\">신규 Custom</span><span class=\"badge skill\">Skill</span></div></div><div data-graph-target=\"to_be\"></div></section>"
-            f"<section class=\"report-section support-sections\"><h2>설계 근거와 검증</h2>{support}</section>"
-            f"<section class=\"report-section static-fallback\"><h2>순서형 전체 내용</h2>{static_fallback}</section>"
-            "</main><aside id=\"detail-drawer\" class=\"drawer\" aria-hidden=\"true\" aria-label=\"노드 및 연결 상세\"><div class=\"drawer-header\"><h2 id=\"drawer-title\">상세 정보</h2><button id=\"drawer-close\" class=\"drawer-close\" type=\"button\" aria-label=\"상세 닫기\">×</button></div><div id=\"drawer-body\" class=\"drawer-body\"></div></aside>"
-            f"<script id=\"report-data\" type=\"application/json\">{json_payload}</script><script>{JS}</script></body></html>"
+            f"<title>{html.escape(_text(view_model.get('title'), 500))}</title>"
+            f"<style>{CSS}</style></head><body>"
+            "<main class=\"shell\">"
+            "<div class=\"topbar\">"
+            "<div class=\"brand\"><div class=\"brand-mark\">A</div><span>업무 Agent 설계</span></div>"
+            "<div class=\"meta\">업무 흐름 설계안</div>"
+            "</div>"
+            "<section class=\"intro\">"
+            "<div class=\"intro-main\">"
+            "<div class=\"eyebrow\">WORKFLOW REDESIGN</div>"
+            "<h1 id=\"page-title\">업무 흐름을 더 단순하게,<br>Agent와 함께.</h1>"
+            "<p id=\"page-desc\"></p>"
+            "</div>"
+            "<aside class=\"intro-side\">"
+            "<div class=\"side-title\">설계 상태</div>"
+            "<div class=\"status\"><span class=\"dot\"></span><span>설계안 준비 완료</span></div>"
+            "<div class=\"quick-meta\">"
+            "<span>승인 상태 <b id=\"approval-meta\">-</b></span>"
+            "<span>업무 정의 <b id=\"revision-meta\">-</b></span>"
+            "</div>"
+            "<div class=\"side-title\" style=\"margin-top:20px\">왜 이렇게 설계했나요?</div>"
+            "<div class=\"side-reason\" id=\"reason\"></div>"
+            "</aside>"
+            "</section>"
+            "<div class=\"tabs\">"
+            "<button class=\"tab\" data-tab=\"as_is\">현재 업무</button>"
+            "<button class=\"tab active\" data-tab=\"to_be\">Agent 적용 후</button>"
+            "</div>"
+            "<section id=\"flow-panel\" class=\"flow-panel\">"
+            "<div class=\"flow-head\">"
+            "<div>"
+            "<div class=\"flow-kicker\" id=\"flow-kicker\">CURRENT</div>"
+            "<h2 id=\"flow-title\">현재 업무 흐름</h2>"
+            "<p id=\"flow-desc\">지금 사람이 직접 수행하는 과정을 보여줍니다.</p>"
+            "</div>"
+            "<div class=\"legend\" id=\"legend\"></div>"
+            "</div>"
+            "<div id=\"graph-host\"></div>"
+            "</section>"
+            "<section class=\"support\"><h2>설계 참고 정보</h2><div id=\"support\"></div></section>"
+            f"<section class=\"support static-fallback\"><h2>순서형 전체 내용</h2>{static_fallback}{support}</section>"
+            "</main>"
+            "<div id=\"backdrop\" class=\"drawer-backdrop\"></div>"
+            "<aside id=\"drawer\" class=\"drawer\">"
+            "<div class=\"drawer-head\"><div class=\"drawer-head-row\">"
+            "<div><h2 id=\"drawer-title\">상세 정보</h2></div>"
+            "<button id=\"close\" class=\"close\" type=\"button\" aria-label=\"상세 닫기\">×</button>"
+            "</div></div>"
+            "<div id=\"drawer-body\" class=\"drawer-body\"></div>"
+            "</aside>"
+            f"<script id=\"report-data\" type=\"application/json\">{json_payload}</script>"
+            f"<script>{JS}</script></body></html>"
         )
         max_bytes = max(100_000, min(int(getattr(self, "max_html_bytes", 10_000_000) or 10_000_000), 15_000_000))
         byte_count = len(document.encode("utf-8"))
@@ -831,6 +941,7 @@ class ResponsiveReportRendererComponent(Component):
             "ok": True,
             "status": "RENDERED",
             "report_id": _text(view_model.get("report_id"), 128),
+            "title": _text(view_model.get("title"), 500),
             "renderer_version": renderer_version,
             "html": document,
             "content_sha256": "sha256:" + digest,

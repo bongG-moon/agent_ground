@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 import hashlib
 import json
 import subprocess
@@ -12,6 +13,7 @@ from importlib.metadata import version
 from lfx.custom.custom_component.component import Component
 from lfx.custom.utils import build_custom_component_template
 from lfx.graph import Graph
+from lfx.schema import Data
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
@@ -247,7 +249,11 @@ def test_every_embedded_custom_source_builds_with_langflow_1_11(
 
 def test_hitl_is_top_level_only(flows: dict[str, dict[str, Any]]) -> None:
     assert "HumanInput" not in _types(flows["F00"])
-    assert flows["F00"]["metadata"]["contains_native_hitl"] is False
+    assert flows["F00"]["metadata"]["contains_native_hitl"] is True
+    assert (
+        flows["F00"]["metadata"]["native_hitl_execution_requirement"]
+        == "durable_langflow_background_job_required_for_continuation_card"
+    )
     # Three bounded answer cards plus one button-only final approval gate.
     assert _types(flows["F10"]).count("HumanInput") == 1
     assert len(_node_by_source(flows["F10"], "42_f10_clarification_answer_gate.py")) == 3
@@ -265,8 +271,17 @@ def test_f00_visibly_loads_chunks_embeds_and_writes_mongodb(flows: dict[str, dic
     assert len(_node_by_source(flow, "01_catalog_deterministic_chunker.py")) == 1
     assert len(_node_by_source(flow, "02_catalog_mongodb_vector_writer.py")) == 1
     writer = _node_by_source(flow, "02_catalog_mongodb_vector_writer.py")[0]
-    assert writer["data"]["node"]["template"]["dry_run"]["display_name"] == "테스트 실행 (저장하지 않음)"
-    assert writer["data"]["node"]["template"]["mongodb_database"]["value"] == "business_work_design"
+    writer_template = writer["data"]["node"]["template"]
+    assert writer_template["dry_run"]["display_name"] == "테스트 실행 (저장하지 않음)"
+    assert writer_template["dry_run"]["value"] is True
+    assert writer_template["confirm_complete_catalog_snapshot"]["display_name"] == "전체 카탈로그 파일 확인 (실제 저장용)"
+    assert writer_template["confirm_complete_catalog_snapshot"]["value"] is False
+    assert writer_template["resume_verified_partial_snapshot"]["value"] is True
+    assert writer_template["pause_for_next_batch"]["value"] is True
+    assert writer_template["max_embedding_chunks_per_run"]["value"] == 80
+    assert writer_template["embedding_run_time_budget_seconds"]["value"] == 180
+    assert writer_template["mongo_write_batch_size"]["value"] == 10
+    assert writer_template["mongodb_database"]["value"] == "business_work_design"
     assert [node["data"]["type"] for node in _execution_nodes(flow)] == [
         "CatalogJsonLoader",
         "CatalogDeterministicChunker",
@@ -285,6 +300,10 @@ def test_f00_visibly_loads_chunks_embeds_and_writes_mongodb(flows: dict[str, dic
     required = flow["metadata"]["required_configuration"]
     assert any("MongoDB" in item for item in required)
     assert any("embedding" in item for item in required)
+    notes = "\n".join(note["data"]["node"]["description"] for note in _sticky_notes(flow))
+    assert "native HITL" in notes
+    assert "계속 적재" in notes
+    assert "durable background job" in notes
 
     forbidden_sources = {
         "00_catalog_file_vector_ingest.py",
@@ -357,6 +376,7 @@ def test_f10_contains_extraction_clarification_merge_preview_and_approval_store(
         "16_work_graph_normalizer.py",
         "17_work_preview_hasher.py",
         "18_work_definition_store.py",
+        "45_f10_authentication_context.py",
         "36_approved_design_invocation_loader.py",
         "44_f10_report_handoff_gate.py",
             "39_f10_answer_commit.py",
@@ -366,9 +386,9 @@ def test_f10_contains_extraction_clarification_merge_preview_and_approval_store(
             "43_f10_final_approval_route_gate.py",
     ):
         assert _node_by_source(flow, filename), filename
-    assert len(_execution_nodes(flow)) == 38
+    assert len(_execution_nodes(flow)) == 39
     assert len(_sticky_notes(flow)) == 6
-    assert len(flow["data"]["edges"]) == 94
+    assert len(flow["data"]["edges"]) == 109
     assert len(_node_by_source(flow, "12_work_completeness_evaluator.py")) == 3
     assert len(_node_by_source(flow, "13_clarification_batch_builder.py")) == 3
     assert len(_node_by_source(flow, "39_f10_answer_commit.py")) == 3
@@ -379,6 +399,7 @@ def test_f10_contains_extraction_clarification_merge_preview_and_approval_store(
     assert _types(flow).count("HumanInput") == 1
     assert len(_node_by_source(flow, "42_f10_clarification_answer_gate.py")) == 3
     assert len(_node_by_source(flow, "43_f10_final_approval_route_gate.py")) == 1
+    assert len(_node_by_source(flow, "45_f10_authentication_context.py")) == 1
     rounds = {
         node["data"]["node"]["template"]["round_number"]["value"]
         for node in _node_by_source(flow, "13_clarification_batch_builder.py")
@@ -439,6 +460,14 @@ def test_f10_contains_extraction_clarification_merge_preview_and_approval_store(
             and edge["data"]["targetHandle"]["fieldName"] == "native_answer_submission"
             for edge in flow["data"]["edges"]
         )
+        for source, output_name in ((planner, "blocked_path"), (batch, "blocked_path")):
+            assert any(
+                edge["source"] == source["id"]
+                and edge["target"] == _node_by_key(flow, "terminal_result_message")["id"]
+                and edge["data"]["sourceHandle"]["name"] == output_name
+                and edge["data"]["targetHandle"]["fieldName"] == "terminal_events"
+                for edge in flow["data"]["edges"]
+            )
         assert any(
             edge["source"] == gate["id"]
             and edge["target"] == commit["id"]
@@ -564,8 +593,85 @@ def test_f10_contains_extraction_clarification_merge_preview_and_approval_store(
     terminal = _node_by_key(flow, "terminal_result_message")
     assert terminal["data"]["node"]["template"]["terminal_events"]["list"] is True
     terminal_incoming = [edge for edge in flow["data"]["edges"] if edge["target"] == terminal["id"]]
-    assert len(terminal_incoming) == 14
+    assert len(terminal_incoming) == 28
     assert {edge["data"]["targetHandle"]["fieldName"] for edge in terminal_incoming} == {"terminal_events"}
+
+
+def _build_f10_terminal_case(
+    flow: dict[str, Any],
+    *,
+    source_key: str,
+    source_output: str,
+    event: dict[str, Any],
+) -> str:
+    """Build F10's real list fan-in with one selected terminal branch.
+
+    The other 27 terminal predecessors are marked conditionally excluded,
+    matching the grouped F10 route components at runtime.  The selected
+    predecessor is seeded so this contract test exercises Langflow's list
+    input resolver without requiring MongoDB, an LLM, or Human Input.  It
+    protects against the prior ``has not been built yet`` error where a list
+    input tried to pull a result from an unselected branch.
+    """
+
+    graph = Graph.from_payload(
+        flow["data"],
+        flow_id=flow["id"],
+        flow_name=flow["name"],
+        user_id="f10-terminal-branch-contract-test",
+    )
+    terminal = _node_by_key(flow, "terminal_result_message")
+    source = _node_by_key(flow, source_key)
+    terminal_vertex = graph.get_vertex(terminal["id"])
+    source_vertex = graph.get_vertex(source["id"])
+    predecessors = graph.get_predecessors(terminal_vertex)
+    assert len(predecessors) == 28
+
+    for predecessor in predecessors:
+        if predecessor.id != source_vertex.id:
+            graph.conditionally_excluded_vertices.add(predecessor.id)
+    source_vertex.built = True
+    source_vertex.results[source_output] = Data(data=event)
+
+    asyncio.run(graph.build_vertex(terminal_vertex.id))
+    assert terminal_vertex.built is True
+    message = terminal_vertex.results["message"]
+    return str(getattr(message, "text", ""))
+
+
+def test_f10_terminal_graph_handles_early_block_without_unbuilt_predecessor(
+    flows: dict[str, dict[str, Any]],
+) -> None:
+    message = _build_f10_terminal_case(
+        flows["F10"],
+        source_key="clarification_planner_r1",
+        source_output="blocked_path",
+        event={
+            "ok": False,
+            "status": "BLOCKED",
+            "error": {"code": "QUESTION_GENERATION_BLOCKED", "message": "safe failure"},
+            "trace_id": "early-block",
+        },
+    )
+    assert "추가 질문을 준비할 수 없어" in message
+    assert "QUESTION_GENERATION_BLOCKED" in message
+
+
+def test_f10_terminal_graph_handles_final_rejection_without_unbuilt_predecessor(
+    flows: dict[str, dict[str, Any]],
+) -> None:
+    message = _build_f10_terminal_case(
+        flows["F10"],
+        source_key="rejected_work_store",
+        source_output="success_path",
+        event={
+            "ok": True,
+            "status": "REJECTED",
+            "work_definition": {"work_definition_id": "wd-terminal-test"},
+            "trace_id": "final-reject",
+        },
+    )
+    assert "반려" in message
 
 
 def test_f10_approve_path_runs_f20_then_f30_directly_without_http(flows: dict[str, dict[str, Any]]) -> None:
@@ -575,6 +681,7 @@ def test_f10_approve_path_runs_f20_then_f30_directly_without_http(flows: dict[st
     run_f20 = _node_by_key(f10, "run_agent_blueprint_design")
     run_f30 = _node_by_key(f10, "run_responsive_report")
     invocation_loader = _node_by_key(f10, "design_invocation_loader")
+    authentication_context = _node_by_key(f10, "authentication_context")
     invocation_message = _node_by_key(f10, "design_invocation_message")
     handoff_gate = _node_by_key(f10, "report_handoff_gate")
     approved_store = _node_by_key(f10, "approved_work_store")
@@ -586,10 +693,13 @@ def test_f10_approve_path_runs_f20_then_f30_directly_without_http(flows: dict[st
     f20_template = run_f20["data"]["node"]["template"]
     f30_template = run_f30["data"]["node"]["template"]
     assert f20_template["flow_name_selected"]["value"] == f20["name"]
-    assert f20_template["flow_id_selected"]["value"] == f20["id"]
+    assert f20_template["flow_id_selected"]["value"] == ""
+    assert f20_template["flow_name_selected"]["selected_metadata"] == {}
     assert f30_template["flow_name_selected"]["value"] == f30["name"]
-    assert f30_template["flow_id_selected"]["value"] == f30["id"]
+    assert f30_template["flow_id_selected"]["value"] == ""
+    assert f30_template["flow_name_selected"]["selected_metadata"] == {}
     assert len(_node_by_source(f10, "36_approved_design_invocation_loader.py")) == 1
+    assert len(_node_by_source(f10, "45_f10_authentication_context.py")) == 1
     assert len(_node_by_source(f10, "44_f10_report_handoff_gate.py")) == 1
     assert any(
         edge["source"] == approved_store["id"]
@@ -601,9 +711,23 @@ def test_f10_approve_path_runs_f20_then_f30_directly_without_http(flows: dict[st
     request_envelope = _node_by_key(f10, "request_envelope")
     assert any(
         edge["source"] == request_envelope["id"]
+        and edge["target"] == authentication_context["id"]
+        and edge["data"]["sourceHandle"]["name"] == "employee_actor_id"
+        and edge["data"]["targetHandle"]["fieldName"] == "local_demo_employee_actor_id"
+        for edge in f10["data"]["edges"]
+    )
+    assert authentication_context["data"]["node"]["template"]["authentication_source"]["value"] == "local_demo_fixture"
+    assert any(
+        edge["source"] == authentication_context["id"]
+        and edge["target"] == invocation_loader["id"]
+        and edge["data"]["sourceHandle"]["name"] == "success_path"
+        and edge["data"]["targetHandle"]["fieldName"] == "authentication_context"
+        for edge in f10["data"]["edges"]
+    )
+    assert not any(
+        edge["source"] == request_envelope["id"]
         and edge["target"] == invocation_loader["id"]
         and edge["data"]["sourceHandle"]["name"] == "employee_actor_id"
-        and edge["data"]["targetHandle"]["fieldName"] == "authenticated_subject_id"
         for edge in f10["data"]["edges"]
     )
     f20_input_field = f"{f20['metadata']['design_invocation_input_node_id']}~input_value"
@@ -612,7 +736,11 @@ def test_f10_approve_path_runs_f20_then_f30_directly_without_http(flows: dict[st
     f30_output = f"{f30['metadata']['report_output_node_id']}~message"
     assert f20_input_field in f20_template
     assert f30_input_field in f30_template
-    assert any(item["name"] == f20_handoff_output for item in run_f20["data"]["node"]["outputs"])
+    f20_run_output_names = {item["name"] for item in run_f20["data"]["node"]["outputs"]}
+    # F20 exposes exactly one child Chat Output: the sealed handoff for F30.
+    # This prevents a design-preview message from being selected accidentally
+    # as the parent Run Flow result.
+    assert f20_run_output_names == {f20_handoff_output}
     assert any(item["name"] == f30_output for item in run_f30["data"]["node"]["outputs"])
     assert any(
         edge["source"] == invocation_loader["id"]
@@ -667,13 +795,20 @@ def test_f10_compact_route_outputs_are_fail_closed(flows: dict[str, dict[str, An
     assert not _node_by_source(flow, "35_result_gate.py")
 
     # The compact components own their success/blocked routing.  A blocked
-    # graph/preview/store outcome must not feed a later state-changing node.
+    # graph/preview/store outcome may feed the display-only terminal message,
+    # but must never feed a later state-changing node.
+    terminal = _node_by_key(flow, "terminal_result_message")
     for key in ("graph_normalizer", "preview", "review_approval_store"):
         node = _node_by_key(flow, key)
         outgoing = [edge for edge in flow["data"]["edges"] if edge["source"] == node["id"]]
-        assert all(edge["data"]["sourceHandle"]["name"] != "blocked_path" for edge in outgoing)
-        assert all(edge["data"]["sourceHandle"]["name"] != "normalized_graph" for edge in outgoing)
-        assert all(edge["data"]["sourceHandle"]["name"] != "preview" for edge in outgoing)
+        blocked = [edge for edge in outgoing if edge["data"]["sourceHandle"]["name"] == "blocked_path"]
+        assert len(blocked) == 1
+        assert blocked[0]["target"] == terminal["id"]
+        assert blocked[0]["data"]["targetHandle"]["fieldName"] == "terminal_events"
+        assert all(
+            edge["data"]["sourceHandle"]["name"] != "blocked_path" or edge["target"] == terminal["id"]
+            for edge in outgoing
+        )
 
     forbidden = {"HumanInput", "LanguageModel", "WorkDefinitionStore", "WorkGraphNormalizer", "WorkPreviewHasher"}
     for round_number in (1, 2, 3):
@@ -685,6 +820,7 @@ def test_f10_compact_route_outputs_are_fail_closed(flows: dict[str, dict[str, An
         ]
         assert len(blocked_edges) == 1
         assert nodes[blocked_edges[0]["target"]]["data"]["type"] not in forbidden
+        assert blocked_edges[0]["target"] == terminal["id"]
 
 
 def test_f20_search_and_blueprint_chain_is_fail_closed(flows: dict[str, dict[str, Any]]) -> None:
@@ -716,12 +852,14 @@ def test_f20_search_and_blueprint_chain_is_fail_closed(flows: dict[str, dict[str
     assert _has_edge(flow, "SearchQueryPlanner", "design_scope", "AgentBlueprintNormalizer", "design_scope")
     assert _has_edge(flow, "SearchQueryEmbeddingBatcher", "query_vectors", "CatalogHybridRetriever", "query_vectors")
     assert _has_edge(flow, "CatalogHybridRetriever", "retrieval_result", "CandidateContextBuilder", "retrieval_result")
+    assert _has_edge(flow, "LanguageModel", "text_output", "AgentBlueprintNormalizer", "blueprint_draft")
+    assert "blueprint_json" not in {wrapper["data"]["node"].get("metadata", {}).get("flow_node_key") for wrapper in flow["data"]["nodes"]}
     assert _has_edge(flow, "AgentBlueprintNormalizer", "normalized_blueprint", "PortContractValidator", "normalized_blueprint")
     assert _has_edge(flow, "PortContractValidator", "validated_blueprint", "BlueprintReadinessClassifier", "validated_blueprint")
     assert _has_edge(flow, "BlueprintReadinessClassifier", "classified_blueprint", "ComponentGenerationPromptBuilder", "classified_blueprint")
-    assert _has_edge(flow, "ComponentGenerationPromptBuilder", "generation_request", "ParseData", "data")
-    assert _has_edge(flow, "ParseData", "text", "ChatOutput", "input_value")
-    assert _types(flow).count("ChatOutput") == 2
+    assert "generation_message" not in {wrapper["data"]["node"].get("metadata", {}).get("flow_node_key") for wrapper in flow["data"]["nodes"]}
+    assert "design_output" not in {wrapper["data"]["node"].get("metadata", {}).get("flow_node_key") for wrapper in flow["data"]["nodes"]}
+    assert _types(flow).count("ChatOutput") == 1
     assert _has_edge(flow, "SearchQueryPlanner", "design_scope", "F20ReportHandoffBuilder", "design_scope")
     assert _has_edge(flow, "CandidateContextBuilder", "candidate_context", "F20ReportHandoffBuilder", "candidate_context")
     assert _has_edge(flow, "ComponentGenerationPromptBuilder", "generation_request", "F20ReportHandoffBuilder", "terminal_blueprint")
@@ -743,13 +881,18 @@ def test_f20_search_and_blueprint_chain_is_fail_closed(flows: dict[str, dict[str
     }
     assert len(scope_consumers) == 4
     assert _node_by_key(flow, "report_handoff_builder")["id"] in scope_consumers
-    assert flow["metadata"]["design_output_node_id"] == _node_by_key(flow, "design_output")["id"]
     assert flow["metadata"]["report_handoff_output_node_id"] == _node_by_key(flow, "report_handoff_output")["id"]
+    assert _node_by_key(flow, "report_handoff_output")["data"]["node"]["template"]["should_store_message"]["value"] is False
     assert flow["metadata"]["report_handoff_contract"] == {
         "schema_version": "f20-report-handoff/v1",
         "work_definition_source": "query_plan.design_scope",
         "retrieval_trace_source": "candidate_context.retrieval_trace",
         "blueprint_source": "generation_prompt.generation_request",
+    }
+    assert flow["metadata"]["blueprint_model_output_contract"] == {
+        "accepted": ["one JSON object", "one complete json code fence"],
+        "rejected": ["prose", "multiple JSON blocks", "partial JSON"],
+        "failure_code": "INVALID_BLUEPRINT_DRAFT",
     }
 
 
@@ -767,6 +910,7 @@ def test_f30_is_sealed_handoff_report_chain_without_hitl(flows: dict[str, dict[s
     handoff_loader = _node_by_key(flow, "report_handoff_loader")
     report_output = _node_by_key(flow, "report_output")
     assert handoff_input["data"]["node"]["template"]["should_store_message"]["value"] is False
+    assert report_output["data"]["node"]["template"]["should_store_message"]["value"] is False
     assert handoff_json["data"]["node"]["template"]["auto_parse"]["value"] is True
     assert handoff_json["data"]["node"]["template"]["output_type"]["value"] == "JSON"
     assert _has_edge(flow, "ChatInput", "message", "TypeConverter", "input_data")
@@ -776,9 +920,12 @@ def test_f30_is_sealed_handoff_report_chain_without_hitl(flows: dict[str, dict[s
     assert _has_edge(flow, "F30ReportHandoffLoader", "retrieval_trace", "ReportViewModelBuilder", "retrieval_trace")
     assert _has_edge(flow, "ReportViewModelBuilder", "report_view_model", "ResponsiveReportRenderer", "report_view_model")
     assert _has_edge(flow, "ResponsiveReportRenderer", "render_result", "ReportPublisher", "render_result")
-    assert _has_edge(flow, "F30ReportHandoffLoader", "report_context", "ReportPublisher", "report_context")
+    assert not _has_edge(flow, "F30ReportHandoffLoader", "report_context", "ReportPublisher", "report_context")
     assert _has_edge(flow, "ReportPublisher", "publish_result", "ParseData", "data")
     assert _has_edge(flow, "ParseData", "text", "ChatOutput", "input_value")
+    assert handoff_loader["data"]["node"]["template"]["safe_failure_envelope"]["value"] is True
+    assert _node_by_key(flow, "view_model")["data"]["node"]["template"]["safe_failure_envelope"]["value"] is True
+    assert _node_by_key(flow, "renderer")["data"]["node"]["template"]["safe_failure_envelope"]["value"] is True
     assert flow["metadata"]["report_input_contract"] == {
         "schema_version": "f20-report-handoff/v1",
         "single_input_node_id": handoff_input["id"],
@@ -790,11 +937,19 @@ def test_f30_is_sealed_handoff_report_chain_without_hitl(flows: dict[str, dict[s
     publishers = _node_by_source(flow, "32_report_publisher.py")
     assert len(publishers) == 1
     publisher_inputs = publishers[0]["data"]["node"]["template"]
-    assert publisher_inputs["report_api_url"]["value"] == "http://127.0.0.1:8091/api"
-    assert publisher_inputs["tenant_id"]["value"] == ""
-    assert publisher_inputs["actor_id"]["value"] == ""
+    assert publisher_inputs["report_api_url"]["value"] == "http://127.0.0.1:5000"
+    assert publisher_inputs["report_ttl_hours"]["value"] == 4
     assert publisher_inputs["dry_run"]["value"] is True
     assert publisher_inputs["dry_run"]["display_name"] == "테스트 실행 (저장하지 않음)"
+    publisher_outputs = {item["name"]: item for item in publishers[0]["data"]["node"]["outputs"]}
+    assert set(publisher_outputs) == {"publish_result"}
+    assert flow["metadata"]["report_api_publish_contract"] == {
+        "request_url": "Report API Base URL + /reports (or supplied /reports endpoint)",
+        "request_body": ["html", "title", "question", "view_request", "available_datasets", "report_plan", "ttl_hours", "filename_hint"],
+        "success_response": ["view_url", "download_url"],
+        "test_run_default": True,
+        "failure_output": "PUBLISH_FAILED or F30 BLOCKED envelope on publisher.publish_result",
+    }
 
 
 def test_f90_is_hybrid_search_evaluation_surface(flows: dict[str, dict[str, Any]]) -> None:
@@ -807,9 +962,29 @@ def test_f90_is_hybrid_search_evaluation_surface(flows: dict[str, dict[str, Any]
         "22_candidate_context_builder.py",
     ):
         assert len(_node_by_source(flow, filename)) == 1
+    assert _types(flow).count("ChatInput") == 1
+    assert _types(flow).count("TypeConverter") == 1
     assert _types(flow).count("EmbeddingModel") == 1
+    invocation_input = _node_by_key(flow, "evaluation_invocation_input")
+    invocation_json = _node_by_key(flow, "evaluation_invocation_json")
+    assert invocation_input["data"]["node"]["template"]["should_store_message"]["value"] is False
+    assert invocation_json["data"]["node"]["template"]["auto_parse"]["value"] is True
+    assert invocation_json["data"]["node"]["template"]["output_type"]["value"] == "JSON"
+    assert _has_edge(flow, "ChatInput", "message", "TypeConverter", "input_data")
+    assert _has_edge(flow, "TypeConverter", "data_output", "SearchQueryPlanner", "design_invocation")
     assert _has_edge(flow, "EmbeddingModel", "embeddings", "SearchQueryEmbeddingBatcher", "embedding")
     assert _types(flow)[-1] == "ChatOutput"
+    assert _node_by_key(flow, "evaluation_output")["data"]["node"]["template"]["should_store_message"]["value"] is False
+    assert flow["metadata"]["evaluation_input_contract"] == {
+        "schema_version": "agent-design-invocation/v1",
+        "single_input_node_id": invocation_input["id"],
+        "single_input_field": "input_value",
+        "should_store_message": False,
+        "accepts": "Verified Design Invocation JSON from Component 36",
+        "evaluation_only": True,
+    }
+    assert flow["metadata"]["evaluation_input_node_id"] == invocation_input["id"]
+    assert flow["metadata"]["evaluation_output_node_id"] == _node_by_key(flow, "evaluation_output")["id"]
 
 
 def test_no_secret_values_are_baked_into_exports(flows: dict[str, dict[str, Any]]) -> None:

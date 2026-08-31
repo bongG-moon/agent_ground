@@ -43,15 +43,15 @@ Embedding Model
 - F20/F90은 각각 built-in `Embedding Model → 29 Search Query Embedding Batcher` edge로 query vector를 만들며, F00과 같은 승인 provider/model의 runtime contract가 active pointer와 완전히 일치하지 않으면 retrieval을 차단한다.
 - F00 Flow는 실행 node 6개/edge 5개와 설명용 Sticky Note 2개(Canvas 총 8개)로 구성되고 Human Input을 포함하지 않는다.
 - F10/F20/F30/F90에도 각각 6/4/1/2개의 Sticky Note가 있으며, 모든 Note는 edge가 없는 `noteNode`라서 Langflow 실행 Graph vertex에는 포함되지 않는다.
-- 전체 Standalone Component inventory는 37개다.
+- 전체 Standalone Component inventory는 38개다.
 - F10의 각 보완 회차는 `12 완전성 평가 → 질문 LLM → 13 질문 Batch → 42 Playground 답변 카드 → 39 답변 반영`으로 보인다. Component 42는 `schema`를 포함한 native `node_input` pause를 보내고 Playground가 `decision.values` 또는 `skip_additional_input`을 반환하는지 검증 대상이다. 답변 제출은 재평가하고, skip은 audit·`unresolved`를 기록한 뒤 review로 간다. 1·2차는 최대 3문항, 마지막 3차는 최대 4문항이며 skip은 4차 질문이 아니다. `40`은 검토 진입 중 유효한 하나를 합치고 `43`은 최종 Approve/Reject/Cancel 중 선택되지 않은 두 상태 저장 branch를 제외하며, `41`은 선택된 terminal event-list만 안전하게 표시한다.
 - 업무 정의 Flow는 F10 native HITL 하나이고 전체 Flow inventory는 F00/F10/F20/F30/F90 5개다.
-- F10 approve success만 Component 36으로 들어가며 canonical 승인본·authenticated owner/groups·active catalog pointer·active Skill registry를 재검증한다.
+- F10 approve success는 Component 45 인증 Context 경계를 거쳐 Component 36으로 들어가며 canonical 승인본·sealed subject/groups·active catalog pointer·active Skill registry를 재검증한다.
 - Component 36 성공 결과 `agent-design-invocation/v1`만 `Run Flow(tool_mode=false)`의 F20 단일 ChatInput에 연결된다. F20 `38`이 만든 sealed handoff는 F10 `44`의 schema/hash 검증을 통과한 경우에만 F30 ChatInput으로 전달되고 F30 ChatOutput이 F10 결과로 돌아온다.
 - Component 36은 canonical/request channel이 모두 정확히 `native_hitl`인 경우만 허용하고, invocation을 Python repr가 아닌 strict JSON `text`로 투영한다.
 - F10의 built-in TypeConverter가 invocation Data를 Message로 변환하며 F20/F30 ChatInput은 `should_store_message=false`라서 권한성 payload를 대화 이력에 저장하지 않는다.
 - 수동 WorkDefinition 재입력, 별도 F20 사용자 실행, 다른 Flow HTTP API 호출이 없다.
-- F00의 FileInput은 배포 가능한 빈 값으로 유지하고 `samples/f00_catalog_assets_example.json`을 사용자가 한 번 업로드한다.
+- F00의 FileInput은 배포 가능한 빈 값으로 유지하고 `samples/f00_catalog_assets_example.json`을 사용자가 한 번 업로드한다. 부분 checkpoint가 남으면 Writer가 native Continue/Stop 카드를 만들며, Continue는 저장된 vector를 재사용해 다음 bounded batch만 처리하고 Stop은 pointer 미게시 상태의 checkpoint를 보존한다.
 - F10 시작 Text Input 두 개와 `10 업무 요청 Envelope`는 `samples/f10_work_request_example.json`의 안전한 데모 값으로 채워져 있으며 Component 원본의 범용 기본값은 비어 있다.
 - `samples/skill_registry_example.json`은 runtime Skill 계약과 prompt SHA-256을 통과하며 seed helper는 `--apply` 없이는 MongoDB에 쓰지 않는다.
 
@@ -59,26 +59,22 @@ Embedding Model
 
 | 항목 | 결과 |
 | --- | --- |
-| 전체 pytest | `307 passed, 8 warnings` — F20 strict JSON handoff→F10 gate→F30 loader→render→Publisher dry-run 및 handoff 변조 차단 포함 |
-| 이번 F10 핵심 회귀 pytest | `96 passed, 7 warnings` — `PYTEST_DISABLE_PLUGIN_AUTOLOAD=1`, 제출·skip·취소·최종 승인 branch gate·상태 저장·invocation loader를 포함 |
-| Component 36 MongoDB datetime → F20 JSON 회귀 pytest | `107 passed, 7 warnings` — WorkDefinition/Skill의 실제 `datetime`을 UTC ISO-8601 문자열로 projection하고 strict JSON text를 검증 |
-| Flow export·예제 계약 pytest | `41 passed, 7 warnings`, 최신 F10 재생성본 기준 |
-| F10 미빌드 sibling 방지 재검증 | `96 passed, 7 warnings` — 12/13/16/17/18/36/39/40/42/43의 선택되지 않은 group output은 조건부 제외되고, 41은 13개 선택 입력 대신 event-list 하나만 읽음 |
-| F10 explicit skip 계약 | `skip_additional_input → branch_skip_additional_input → 39 skip_trigger` 연결, batch audit·`unresolved`·review projection을 회귀 검증함. 실제 Playground E2E는 운영 검증으로 남음 |
-| warning 사유 | 7건: Pydantic/SQLModel upstream deprecation, Starlette `httpx2` 전환 안내, Python metadata deprecation. 제품 계약 실패 없음 |
-| Python compile | `compileall` 통과 |
-| Standalone source build | 37/37 통과, 로컬·상대 import 없음 |
-| F00 visible vector pipeline 단위 테스트 | `14 passed` |
-| 예제 입력/Skill/Mongo 계약 테스트 | `4 passed` |
-| Flow `Graph.from_payload` | 5/5 통과, Sticky Note를 제외한 실행 node/edge 수와 manifest의 Canvas 수가 각각 일치 |
-| `lfx validate F10 --level 3 --skip-credentials` | 성공 (`✓ flows/F10_work_definition_parent.json`, exit 0) |
-| 실제 Langflow Desktop 1.11.0 분기 검증 | final `Reject` 선택 시 approve/cancel Component 18이 `conditionally_excluded_vertices`에 들어가고 reject node만 활성 상태임을 확인 |
+| 전체 pytest | `336 passed, 8 warnings` — target Langflow 1.11.1 venv에서 `PYTEST_DISABLE_PLUGIN_AUTOLOAD=1` 및 별도 pytest base temp로 실행. F00 full-snapshot/CAS/resume, F10 HITL·skip·terminal fan-in·auth context, F20/F30/F90 handoff·retrieval·report 계약을 포함 |
+| Standalone source build | `38/38` build 및 manifest inventory 일치 |
+| F00 visible vector pipeline | 전체 snapshot 명시 확인, deterministic ID, partial resume, CAS 활성화, provider 호출 간격 회귀를 포함해 통과 |
+| F10 미빌드 sibling 방지 | planner/batch/HITL/commit/review/store/auth/loader의 blocked·cancel·reject terminal 28개를 Component 41 event-list 입력으로만 표시하며 선택되지 않은 sibling build를 요구하지 않음 |
+| F10 인증 경계 | local demo fixture는 `authenticated_subject_verified=false`, `trusted_gateway`는 독립 subject/groups 없이는 차단하며 Component 36은 sealed context만 수용하는 회귀를 통과 |
+| Flow `Graph.from_payload` / embedded source | 5/5 통과. Sticky Note를 제외한 실행 node/edge 수, embedded source hash 및 handle 호환성이 manifest와 일치 |
+| `lfx validate --level 3 --skip-credentials` | target Langflow 1.11.1에서 F00/F10/F20/F30/F90 `5/5 passed`; 설치된 Desktop 1.11.0에서도 동일 JSON 구조 검증 `5/5 passed` |
+| Runtime validator | target `langflow=1.11.1`, `langflow-base=0.11.5`, `lfx=1.11.5`에서 `ok=true`, Flow 5개·Standalone Component 38개 확인 |
 | Flow generator drift | 개별 Flow 5개와 bundle `--check` 통과 |
-| Bundle SHA-256 | `e4debbe51e5d0fd95046b35fa9b37165253ce9dd8d7cc73365ab394f353c5838` |
+| Python compile / diff hygiene | `compileall` 및 `git diff --check` 통과 |
+| warning 사유 | 8건: Pydantic/SQLModel/Starlette/metadata upstream deprecation 경고. 제품 계약 실패 없음 |
+| Bundle SHA-256 | `5bc55a0ce1ded8aaf94954c73051ca88cb555da1bcffad46e71de33e302499e0` |
 
 최종 검증에는 다음 항목을 포함한다.
 
-- Component subclass 수와 전체 inventory 37개 일치
+- Component subclass 수와 전체 inventory 38개 일치
 - 표준 라이브러리, 승인 dependency, `lfx` public import allowlist
 - 상대·형제·로컬·private/dynamic import와 `sys.path` 조작 부재
 - 모든 Component의 Langflow 1.11.1 template 단독 build
@@ -103,11 +99,11 @@ F10의 `lfx validate --level 3 --skip-credentials`는 성공(exit 0)했다. 경�
 
 | Flow | Canvas / 실행 / Note / Edge | SHA-256 |
 | --- | ---: | --- |
-| F00 | 8 / 6 / 2 / 5 | `b9751e849390ddbd98ce7523d377009bac1f3245e13e5eb7ed476d72b5b10066` |
-| F10 | 44 / 38 / 6 / 94 | `f3ae73755a06974ff2bd8d3dc1a9f977b99c1009a8438b641fe50bc1fbdac693` |
-| F20 | 26 / 22 / 4 / 30 | `bd7959bdd954450d826b063b56d0c5724220bae804b55aa1b826defe8e2623e3` |
-| F30 | 9 / 8 / 1 / 10 | `4ea1f67b9329fe65576eb8f62432a6ed8f584b42c6a66c325a6e9923f3132caf` |
-| F90 | 9 / 7 / 2 / 7 | `79a066da0983392d6bfacce2d9b75940518b5942e7d7095f06e1de3190c80790` |
+| F00 | 8 / 6 / 2 / 5 | `724980e4197ea9f2ee753edfcdcf72696b4fe9062350c94f04f0d3b7109dfe36` |
+| F10 | 45 / 39 / 6 / 109 | `956e06ed0325de42ed92ff81b1f0acce60efa86b579daf4749511433e005327c` |
+| F20 | 25 / 21 / 4 / 29 | `96ef295a5fc6f71a44aeca940ef68ded840079e85e9a736c7afe9b1484847636` |
+| F30 | 9 / 8 / 1 / 10 | `e4f1b02451c7f944a2414dba8301ad7686e994975dba68001f3edc42d1b93c6c` |
+| F90 | 11 / 9 / 2 / 9 | `180bc5d7dbdba4ec4a1be6e8d96217335b34b94d31ca4fc50d8b0c610884161c` |
 
 ## 브라우저 반응형 QA
 
@@ -132,7 +128,7 @@ F30 renderer source와 sample report artifact는 변경하지 않았다. 다만 
 - 사내 원본 catalog 2만~3만 행의 메모리·처리시간·부분 장애·재실행 검증
 - 사내 LLM endpoint의 구조화 출력
 - 실제 Langflow project에서 F10 native HITL suspend/resume와 최대 3회 질문(1·2차 최대 3문항, 3차 최대 4문항) 및 explicit skip E2E
-- Component 36의 canonical 승인 WorkDefinition·authenticated owner/groups·active catalog pointer·active Skill registry 조립과 caller 위조 차단
+- Component 45/36의 sealed authentication context·canonical 승인 WorkDefinition·active catalog pointer·active Skill registry 조립과 caller 위조 차단
 - 실제 Langflow project에서 F10 Run Flow direct mode가 F20/F30 동적 입력/출력 port를 해결하고 HTTP 호출·수동 재입력 없이 보고서 결과를 반환하는 E2E
 - Report API 실제 게시, purpose별 signed capability URL browser 조회, tamper/expiry/purpose/header-mix 차단과 교차 tenant 차단
 - Uvicorn/reverse proxy/access analytics의 signed capability query redaction 또는 suppression

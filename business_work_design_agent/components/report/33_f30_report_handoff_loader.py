@@ -10,23 +10,120 @@ import re
 from typing import Any
 
 from lfx.custom import Component
-from lfx.io import DataInput, Output
+from lfx.io import BoolInput, DataInput, Output
 from lfx.schema import Data
 
 
 HANDOFF_SCHEMA_VERSION = "f20-report-handoff/v1"
+F30_TERMINAL_SCHEMA_VERSION = "f30-terminal-result/v1"
 IDENTITY_PATTERN = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$")
 SHA256_PATTERN = re.compile(r"^sha256:[0-9a-f]{64}$")
+MAX_HANDOFF_TEXT_CHARS = 2_000_000
+HANDOFF_KEYS = {
+    "ok",
+    "status",
+    "schema_version",
+    "work_definition",
+    "agent_blueprint",
+    "retrieval_trace",
+    "execution_context",
+    "design_scope_sha256",
+    "query_plan_sha256",
+    "candidate_allowlist_sha256",
+    "handoff_sha256",
+    "trace_id",
+}
+
+
+def _safe_trace_id(value: Any, *, stage: str) -> str:
+    """Keep a correlation id without returning untrusted handoff text."""
+
+    candidate = None
+    data = getattr(value, "data", None)
+    for source in (value, data):
+        if isinstance(source, dict):
+            candidate = source.get("trace_id")
+            if candidate is None and isinstance(source.get("data"), dict):
+                candidate = source["data"].get("trace_id")
+        if isinstance(candidate, str) and IDENTITY_PATTERN.fullmatch(candidate.strip()):
+            return candidate.strip()
+    digest = hashlib.sha256(stage.encode("utf-8")).hexdigest()[:24]
+    return f"trace-f30-{digest}"
+
+
+def _terminal_failure(value: Any, *, stage: str, code: str, message: str) -> dict[str, Any]:
+    """Return a JSON-safe terminal result for F30's one Chat Output.
+
+    The strict loader remains available through :func:`load_f20_report_handoff`.
+    The optional component mode is only used by F30 so an invalid child-flow
+    input cannot become a generic ``Run Flow`` runtime error in F10.
+    """
+
+    return {
+        "ok": False,
+        "status": "BLOCKED",
+        "schema_version": F30_TERMINAL_SCHEMA_VERSION,
+        "stage": stage,
+        "error": {
+            "code": code,
+            "message": message,
+            "retryable": False,
+            "details": {},
+        },
+        "trace_id": _safe_trace_id(value, stage=stage),
+    }
+
+
+def _parse_handoff_text(value: str) -> dict[str, Any]:
+    text = value.lstrip("\ufeff").strip()
+    if not text or len(text) > MAX_HANDOFF_TEXT_CHARS:
+        raise ValueError("F20 report handoff text is missing or exceeds the size limit")
+    try:
+        parsed = json.loads(text)
+    except json.JSONDecodeError as exc:
+        raise ValueError("F20 report handoff must be JSON") from exc
+    if not isinstance(parsed, dict):
+        raise ValueError("F20 report handoff must be an object")
+    return parsed
+
+
+def _unwrap_handoff(value: Any) -> Any:
+    """Read the explicit Langflow Message/Data shapes without loosening F20's seal.
+
+    F30 can be called directly from Playground or as F10's Run Flow child.
+    Depending on the Langflow 1.11 bridge, the same Chat Output reaches this
+    component as ``Message.text``, a JSON ``Data.data`` object, or the
+    unparsed ``Data({"text": ...})`` fallback.  Only those three known shapes
+    are unwrapped; the final exact-key/hash verification remains unchanged.
+    """
+
+    text = getattr(value, "text", None)
+    if isinstance(text, str):
+        return _parse_handoff_text(text)
+
+    data = getattr(value, "data", None)
+    if isinstance(data, str):
+        return _parse_handoff_text(data)
+    if isinstance(data, dict):
+        if set(data) == HANDOFF_KEYS:
+            return data
+        text = data.get("text")
+        if isinstance(text, str):
+            return _parse_handoff_text(text)
+        nested = data.get("data")
+        if isinstance(nested, dict) and set(nested) == HANDOFF_KEYS:
+            return nested
+        if isinstance(nested, str):
+            return _parse_handoff_text(nested)
+        return data
+
+    if isinstance(value, str):
+        return _parse_handoff_text(value)
+    return value
 
 
 def _payload(value: Any) -> dict[str, Any]:
-    data = getattr(value, "data", None)
-    value = data if isinstance(data, dict) else value
-    if isinstance(value, str):
-        try:
-            value = json.loads(value)
-        except json.JSONDecodeError as exc:
-            raise ValueError("F20 report handoff must be JSON") from exc
+    value = _unwrap_handoff(value)
     if not isinstance(value, dict):
         raise ValueError("F20 report handoff must be an object")
     return copy.deepcopy(value)
@@ -59,21 +156,7 @@ def _revision(value: Any, field: str) -> int:
 
 def load_f20_report_handoff(value: Any) -> dict[str, Any]:
     handoff = _payload(value)
-    required = {
-        "ok",
-        "status",
-        "schema_version",
-        "work_definition",
-        "agent_blueprint",
-        "retrieval_trace",
-        "execution_context",
-        "design_scope_sha256",
-        "query_plan_sha256",
-        "candidate_allowlist_sha256",
-        "handoff_sha256",
-        "trace_id",
-    }
-    if set(handoff) != required:
+    if set(handoff) != HANDOFF_KEYS:
         raise ValueError("F20 report handoff fields are invalid")
     if handoff.get("ok") is not True or handoff.get("status") != "COMPLETED":
         raise ValueError("F20 report handoff is not successful")
@@ -86,7 +169,7 @@ def load_f20_report_handoff(value: Any) -> dict[str, Any]:
     if not isinstance(work, dict) or not isinstance(terminal, dict) or not isinstance(trace, dict) or not isinstance(context, dict):
         raise ValueError("F20 report handoff artifacts are invalid")
 
-    core = {key: copy.deepcopy(handoff[key]) for key in required - {"ok", "status", "handoff_sha256", "trace_id"}}
+    core = {key: copy.deepcopy(handoff[key]) for key in HANDOFF_KEYS - {"ok", "status", "handoff_sha256", "trace_id"}}
     expected_handoff_sha256 = _canonical_hash(core)
     supplied_handoff_sha256 = _sha256(handoff.get("handoff_sha256"), "handoff_sha256")
     if not hmac.compare_digest(supplied_handoff_sha256, expected_handoff_sha256):
@@ -161,7 +244,16 @@ class F30ReportHandoffLoaderComponent(Component):
     icon = "ShieldCheck"
     name = "F30ReportHandoffLoader"
 
-    inputs = [DataInput(name="report_handoff", display_name="F20 Report Handoff", required=True)]
+    inputs = [
+        DataInput(name="report_handoff", display_name="F20 Report Handoff", required=True),
+        BoolInput(
+            name="safe_failure_envelope",
+            display_name="F30 오류를 결과로 반환",
+            value=False,
+            advanced=True,
+            info="F30 Flow에서는 켜 둡니다. sealed handoff 검증 실패를 Chat Output의 BLOCKED JSON으로 반환합니다.",
+        ),
+    ]
     outputs = [
         Output(name="work_definition", display_name="Approved Work Definition", method="build_work_definition", types=["Data"], group_outputs=True),
         Output(name="agent_blueprint", display_name="Terminal Agent Blueprint", method="build_agent_blueprint", types=["Data"], group_outputs=True),
@@ -172,18 +264,36 @@ class F30ReportHandoffLoaderComponent(Component):
     def _validated(self) -> dict[str, Any]:
         cached = getattr(self, "_validated_handoff", None)
         if not isinstance(cached, dict):
-            cached = load_f20_report_handoff(getattr(self, "report_handoff", None))
+            handoff = getattr(self, "report_handoff", None)
+            try:
+                cached = load_f20_report_handoff(handoff)
+            except (TypeError, ValueError, json.JSONDecodeError):
+                if not bool(getattr(self, "safe_failure_envelope", False)):
+                    raise
+                cached = _terminal_failure(
+                    handoff,
+                    stage="f30_handoff_loader",
+                    code="F30_REPORT_HANDOFF_INVALID",
+                    message="F20에서 전달된 보고서 설계 정보를 검증하지 못했습니다. F20 완료 결과를 그대로 연결한 뒤 다시 실행하세요.",
+                )
             self._validated_handoff = cached
         return cached
 
+    def _value_or_failure(self, field: str) -> Data:
+        validated = self._validated()
+        if validated.get("ok") is False:
+            self.status = "F30 report handoff blocked: F30_REPORT_HANDOFF_INVALID"
+            return Data(data=copy.deepcopy(validated))
+        return Data(data=copy.deepcopy(validated[field]))
+
     def build_work_definition(self) -> Data:
-        return Data(data=copy.deepcopy(self._validated()["work_definition"]))
+        return self._value_or_failure("work_definition")
 
     def build_agent_blueprint(self) -> Data:
-        return Data(data=copy.deepcopy(self._validated()["agent_blueprint"]))
+        return self._value_or_failure("agent_blueprint")
 
     def build_retrieval_trace(self) -> Data:
-        return Data(data=copy.deepcopy(self._validated()["retrieval_trace"]))
+        return self._value_or_failure("retrieval_trace")
 
     def build_report_context(self) -> Data:
-        return Data(data=copy.deepcopy(self._validated()["execution_context"]))
+        return self._value_or_failure("execution_context")

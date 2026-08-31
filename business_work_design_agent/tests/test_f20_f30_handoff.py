@@ -9,6 +9,7 @@ from types import ModuleType
 from typing import Any
 
 import pytest
+from lfx.schema import Data, Message
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
@@ -153,20 +154,121 @@ def test_f20_handoff_json_roundtrips_through_f10_f30_and_dry_run_report(
     published = dict(
         modules["publisher"].ReportPublisherComponent(
             render_result=rendered,
-            report_context=loaded["execution_context"],
-            report_api_url="http://localhost:8080/internal/report-api",
-            bearer_token="",
-            tenant_id="",
-            actor_id="",
-            idempotency_key="",
-            allowed_hosts_json='["localhost"]',
+            report_api_url="http://localhost:5000/internal/report-api",
+            report_ttl_hours=4,
             timeout_seconds=1,
             dry_run=True,
         ).publish_report().data
     )
     assert published["ok"] is True
     assert published["status"] == "would_publish"
-    assert published["report_id"] == rendered["report_id"]
+    assert published["renderer_report_id"] == rendered["report_id"]
+    assert rendered["title"] == "주간 업무보고 업무 방식 및 Agent 설계"
+
+
+def test_f10_gate_accepts_a_real_lfx_message_from_the_f20_chat_output(
+    modules: dict[str, ModuleType],
+) -> None:
+    """A Langflow Chat Output Message must use its text, not metadata data."""
+
+    handoff = _valid_handoff(modules)
+    chat_output_message = Message(text=json.dumps(handoff, ensure_ascii=False, sort_keys=True, separators=(",", ":")))
+
+    # lfx Message.data is a metadata dictionary.  This assertion documents the
+    # regression that used to make the gate return F20_REPORT_HANDOFF_FIELDS_INVALID.
+    assert isinstance(chat_output_message.data, dict)
+    result = modules["handoff_gate"].validate_f20_report_handoff(chat_output_message)
+
+    assert result["ok"] is True
+    assert result["status"] == "READY_FOR_REPORT"
+    assert result["route"] == "success_message"
+    assert result["handoff"] == handoff
+
+    component = modules["handoff_gate"].F10ReportHandoffGateComponent(f20_report_handoff=chat_output_message)
+    assert component._result()["status"] == "READY_FOR_REPORT"
+
+
+def test_f30_loader_accepts_the_known_langflow_message_and_data_bridge_shapes(
+    modules: dict[str, ModuleType],
+) -> None:
+    """Run Flow can forward the same handoff as Message.text or unparsed Data.text."""
+
+    handoff = _valid_handoff(modules)
+    encoded = json.dumps(handoff, ensure_ascii=False)
+    values = [
+        Message(text=encoded),
+        Data(data=copy.deepcopy(handoff)),
+        Data(data={"text": encoded}),
+    ]
+
+    for value in values:
+        loaded = modules["handoff_loader"].load_f20_report_handoff(value)
+        assert loaded["work_definition"]["work_definition_id"] == handoff["execution_context"]["work_definition_id"]
+
+
+def test_f10_gate_preserves_a_structured_blocked_f20_envelope(
+    modules: dict[str, ModuleType],
+) -> None:
+    upstream = {
+        "ok": False,
+        "status": "BLOCKED",
+        "schema_version": "f20-report-handoff/v1",
+        "error": {
+            "code": "TERMINAL_BLUEPRINT_BINDING_INVALID",
+            "message": "완료된 Agent Blueprint가 F20 scope와 일치하지 않습니다.",
+            "retryable": False,
+            "details": {"reason": "approved_hash_mismatch"},
+        },
+        "trace_id": "trace-f20-upstream",
+    }
+
+    result = modules["handoff_gate"].validate_f20_report_handoff(
+        Message(text=json.dumps(upstream, ensure_ascii=False, sort_keys=True, separators=(",", ":")))
+    )
+
+    assert result["ok"] is False
+    assert result["status"] == "BLOCKED"
+    assert result["route"] == "blocked_path"
+    assert result["error"] == upstream["error"]
+    assert result["upstream_trace_id"] == "trace-f20-upstream"
+
+
+def test_f20_handoff_preserves_the_actual_blocked_candidate_stage(
+    modules: dict[str, ModuleType],
+) -> None:
+    """A failed query embedding must not be relabelled as missing context."""
+
+    work_definition = _read_sample("approved_work_definition.json")
+    blocked_candidates = {
+        "ok": False,
+        "status": "BLOCKED",
+        "error": {
+            "code": "EMBEDDING_PROVIDER_ERROR",
+            "message": "Embedding Model이 검색 query를 벡터화하지 못했습니다.",
+            "retryable": True,
+            "details": {"next_actions": ["provider 상태와 quota를 확인합니다."]},
+        },
+        "trace_id": "trace-query-embedding",
+    }
+
+    result = modules["handoff_builder"].build_f20_report_handoff(
+        _sealed_scope(modules, work_definition),
+        blocked_candidates,
+        {},
+    )
+
+    assert result["ok"] is False
+    assert result["status"] == "BLOCKED"
+    assert result["schema_version"] == "f20-report-handoff/v1"
+    assert result["error"] == {
+        "code": "EMBEDDING_PROVIDER_ERROR",
+        "message": "Embedding Model이 검색 query를 벡터화하지 못했습니다.",
+        "retryable": True,
+        "details": {
+            "next_actions": ["provider 상태와 quota를 확인합니다."],
+            "upstream_trace_id": "trace-query-embedding",
+        },
+    }
 
 
 def test_f20_f30_roundtrip_accepts_a_sealed_empty_catalog_allowlist(
@@ -254,3 +356,61 @@ def test_tampered_handoff_is_blocked_by_f10_or_f30_binding_validation(
     assert modules["handoff_gate"].validate_f20_report_handoff(resealed_cross_binding_change)["status"] == "READY_FOR_REPORT"
     with pytest.raises(ValueError, match="Retrieval Trace binding is invalid"):
         modules["handoff_loader"].load_f20_report_handoff(resealed_cross_binding_change)
+
+
+def test_f30_safe_mode_converts_invalid_handoff_and_render_errors_to_one_terminal_envelope(
+    modules: dict[str, ModuleType],
+) -> None:
+    """F30 child failures must reach its single Chat Output as data, not raise in F10."""
+
+    loader = modules["handoff_loader"].F30ReportHandoffLoaderComponent(
+        report_handoff=Data(data={"not": "a sealed F20 handoff"}),
+        safe_failure_envelope=True,
+    )
+    handoff_failure = dict(loader.build_work_definition().data)
+    assert handoff_failure["ok"] is False
+    assert handoff_failure["status"] == "BLOCKED"
+    assert handoff_failure["stage"] == "f30_handoff_loader"
+    assert handoff_failure["error"]["code"] == "F30_REPORT_HANDOFF_INVALID"
+    assert loader.build_agent_blueprint().data == handoff_failure
+    assert loader.build_retrieval_trace().data == handoff_failure
+
+    view_model_failure = dict(
+        modules["view_model"].ReportViewModelBuilderComponent(
+            work_definition=Data(data=handoff_failure),
+            agent_blueprint=Data(data=handoff_failure),
+            retrieval_trace=Data(data=handoff_failure),
+            safe_failure_envelope=True,
+        ).build_report_view_model().data
+    )
+    assert view_model_failure["error"]["code"] == "F30_REPORT_HANDOFF_INVALID"
+    assert view_model_failure["stage"] == "f30_report_view_model"
+
+    render_failure = dict(
+        modules["renderer"].ResponsiveReportRendererComponent(
+            report_view_model=Data(data=view_model_failure),
+            safe_failure_envelope=True,
+        ).render_report().data
+    )
+    assert render_failure["error"]["code"] == "F30_REPORT_HANDOFF_INVALID"
+    assert render_failure["stage"] == "f30_renderer"
+
+    publish_failure = dict(
+        modules["publisher"].ReportPublisherComponent(
+            render_result=Data(data=render_failure),
+            report_api_url="http://localhost:1",
+            dry_run=False,
+        ).publish_report().data
+    )
+    assert publish_failure["ok"] is False
+    assert publish_failure["status"] == "BLOCKED"
+    assert publish_failure["error"]["code"] == "F30_REPORT_HANDOFF_INVALID"
+    assert publish_failure["stage"] == "f30_renderer"
+
+    invalid_renderer_result = dict(
+        modules["renderer"].ResponsiveReportRendererComponent(
+            report_view_model=Data(data={"not": "a report view model"}),
+            safe_failure_envelope=True,
+        ).render_report().data
+    )
+    assert invalid_renderer_result["error"]["code"] == "F30_REPORT_RENDER_INVALID"

@@ -31,6 +31,7 @@ DESIGN_INVOCATION_KEYS = {
     "acl_context",
     "skill_registry",
     "design_prompt",
+    "search_seed",
     "trust_boundary",
     "trace_id",
 }
@@ -49,6 +50,8 @@ SECRET_KEY_TOKENS = {
 ALLOWED_QUERY_KINDS = {"purpose", "capability", "exact", "risk", "reporting"}
 WORK_DEFINITION_SCHEMA_VERSION = "work-definition/v1"
 IDENTITY_PATTERN = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$")
+SHA256_PATTERN = re.compile(r"^sha256:[0-9a-f]{64}$")
+MAX_SEARCH_SEED_CHARS = 4000
 SEMANTIC_FIELDS = (
     "goal",
     "trigger",
@@ -109,6 +112,129 @@ def _text_field(value: Any) -> tuple[str, str]:
 
 def _safe_text(value: Any, maximum: int = 2000) -> str:
     return re.sub(r"\s+", " ", str(value or "")).strip()[:maximum]
+
+
+def _search_seed_object(value: Any) -> dict[str, Any] | None:
+    """Unwrap only the Langflow bridge forms used for a search seed.
+
+    F10 is normally connected to F20 through ``Data -> Message -> JSON``.
+    Older imported copies of the F10 Flow can therefore reach F20 as a JSON
+    string or as a narrow ``Data({"text": ...})`` wrapper.  The helper does
+    not accept arbitrary objects: after unwrapping, the strict schema checks
+    below still decide whether the seed is usable.
+    """
+
+    if isinstance(value, dict):
+        candidate: Any = copy.deepcopy(value)
+    else:
+        data = getattr(value, "data", None)
+        if isinstance(data, dict):
+            candidate = copy.deepcopy(data)
+        else:
+            text = getattr(value, "text", value if isinstance(value, str) else None)
+            if not isinstance(text, str) or not text.strip():
+                return None
+            try:
+                candidate = json.loads(text)
+            except json.JSONDecodeError:
+                return None
+
+    # Some Langflow 1.11 bridge variants preserve the Message/Data shell as a
+    # single ``{"text": "{...}"}`` or ``{"data": {...}}`` object.  Peel
+    # only those exact, bounded shells; do not generically traverse arbitrary
+    # user-controlled dictionaries.  The strict seed schema below still
+    # validates the resulting object and its SHA-256 before use.
+    for _ in range(2):
+        if not isinstance(candidate, dict):
+            return None
+        if set(candidate) == {"text"} and isinstance(candidate.get("text"), str):
+            if not candidate["text"].strip():
+                return {}
+            try:
+                candidate = json.loads(candidate["text"])
+            except json.JSONDecodeError:
+                return None
+            continue
+        if set(candidate) == {"data"} and isinstance(candidate.get("data"), dict):
+            candidate = copy.deepcopy(candidate["data"])
+            continue
+        break
+    return copy.deepcopy(candidate) if isinstance(candidate, dict) else None
+
+
+def _canonical_search_seed(text: Any, supplied_hash: Any, *, legacy: bool) -> dict[str, str]:
+    if not isinstance(text, str) or not text.strip() or len(text) > 50_000:
+        raise ValueError("SEARCH_SEED_INVALID")
+    if legacy:
+        # Legacy F10 stored the hash for the original request text.  Current
+        # F20 uses a whitespace-normalized, bounded retrieval projection, so
+        # validate the old value first and then seal the new projection.
+        expected_raw = hashlib.sha256(text.encode("utf-8")).hexdigest()
+        if (
+            not isinstance(supplied_hash, str)
+            or re.fullmatch(r"(?:sha256:)?[0-9a-f]{64}", supplied_hash) is None
+            or not hmac.compare_digest(supplied_hash.removeprefix("sha256:"), expected_raw)
+        ):
+            raise ValueError("SEARCH_SEED_HASH_MISMATCH")
+        text = re.sub(r"\s+", " ", text).strip()[:MAX_SEARCH_SEED_CHARS]
+        supplied_hash = "sha256:" + hashlib.sha256(text.encode("utf-8")).hexdigest()
+    if not isinstance(text, str) or not text.strip() or len(text) > MAX_SEARCH_SEED_CHARS:
+        raise ValueError("SEARCH_SEED_INVALID")
+    if not isinstance(supplied_hash, str) or SHA256_PATTERN.fullmatch(supplied_hash) is None:
+        raise ValueError("SEARCH_SEED_INVALID")
+    expected_hash = "sha256:" + hashlib.sha256(text.encode("utf-8")).hexdigest()
+    if not hmac.compare_digest(supplied_hash, expected_hash):
+        raise ValueError("SEARCH_SEED_HASH_MISMATCH")
+    if any(pattern.search(text) for pattern in SECRET_VALUE_PATTERNS):
+        raise ValueError("SEARCH_SEED_SECRET_MATERIAL_DETECTED")
+    return {"text": text, "sha256": supplied_hash}
+
+
+def _validated_search_seed(value: Any) -> dict[str, str]:
+    """Accept the current sealed seed and narrow, verified legacy forms.
+
+    The seed is retrieval-only and never becomes an approved WorkDefinition
+    fact or Blueprint instruction.  An absent or deliberately empty legacy
+    seed falls back to the approved structured work fields.  A populated but
+    malformed seed still fails closed rather than silently influencing search.
+    """
+
+    if value is None or (isinstance(value, str) and not value.strip()):
+        return {}
+    seed = _search_seed_object(value)
+    if seed is None:
+        raise ValueError("SEARCH_SEED_INVALID")
+    # An older Flow with no source request can surface this exact transport
+    # shell instead of omitting the optional field.  It has no retrieval text,
+    # so treating it as an absent seed is equivalent to the documented
+    # approved-WorkDefinition fallback and cannot inject search instructions.
+    if not seed or (
+        set(seed) == {"text"}
+        and isinstance(seed.get("text"), str)
+        and not seed["text"].strip()
+    ):
+        return {}
+
+    canonical_fields = {"text", "sha256", "source", "truncated"}
+    if set(seed) <= canonical_fields and "text" in seed:
+        source = seed.get("source")
+        truncated = seed.get("truncated")
+        if source not in (None, "validated_original_work_request") or (
+            truncated is not None and type(truncated) is not bool
+        ):
+            raise ValueError("SEARCH_SEED_INVALID")
+        return _canonical_search_seed(seed.get("text"), seed.get("sha256"), legacy=False)
+
+    # Compatibility for an already-approved F10 execution generated before
+    # the current ``text/source/truncated`` projection was introduced.  It
+    # may be passed directly or under one explicit ``source_request`` wrapper.
+    if set(seed) == {"source_request"} and isinstance(seed.get("source_request"), dict):
+        seed = copy.deepcopy(seed["source_request"])
+    legacy_fields = {"turn_id", "raw_text", "language", "submitted_at", "sha256"}
+    if set(seed) <= legacy_fields and "raw_text" in seed:
+        return _canonical_search_seed(seed.get("raw_text"), seed.get("sha256"), legacy=True)
+
+    raise ValueError("SEARCH_SEED_INVALID")
 
 
 def _is_identity(value: Any) -> bool:
@@ -227,6 +353,7 @@ def build_design_scope(
     catalog_snapshot_id: str,
     acl_context: Any,
     design_prompt: str = "",
+    search_seed: Any = None,
 ) -> dict[str, Any]:
     """Validate and seal every approved design input into one typed scope.
 
@@ -239,6 +366,16 @@ def build_design_scope(
     tenant = _safe_text(tenant_id, 200)
     snapshot = _safe_text(catalog_snapshot_id, 200)
     bounded_design_prompt = _safe_text(design_prompt, 4000)
+    try:
+        validated_seed = _validated_search_seed(search_seed)
+    except ValueError as exc:
+        code = str(exc)
+        message = {
+            "SEARCH_SEED_INVALID": "원문 업무 설명 기반 검색 seed 형식이 유효하지 않습니다.",
+            "SEARCH_SEED_HASH_MISMATCH": "원문 업무 설명 기반 검색 seed hash가 일치하지 않습니다.",
+            "SEARCH_SEED_SECRET_MATERIAL_DETECTED": "원문 업무 설명 기반 검색 seed에 secret 원문을 넣을 수 없습니다.",
+        }.get(code, "원문 업무 설명 기반 검색 seed를 검증할 수 없습니다.")
+        return _error(trace_id, code if code.startswith("SEARCH_SEED_") else "SEARCH_SEED_INVALID", message)
     if not _is_identity(tenant_id):
         return _error(trace_id, "TENANT_REQUIRED", "tenant_id가 필요합니다.")
     if not _is_identity(catalog_snapshot_id):
@@ -321,6 +458,10 @@ def build_design_scope(
         "acl_context": canonical_acl,
         "design_prompt": bounded_design_prompt,
     }
+    if validated_seed:
+        # Preserve only a hash in the durable scope.  The raw text is consumed
+        # by the query planner below and never becomes Blueprint prompt input.
+        scope_core["search_seed_sha256"] = validated_seed["sha256"]
     return {
         "ok": True,
         "status": "COMPLETED",
@@ -351,6 +492,7 @@ def build_search_query_plan(
     catalog_snapshot_id: str,
     acl_context: Any,
     design_prompt: str = "",
+    search_seed: Any = None,
     max_queries: int = 30,
 ) -> dict[str, Any]:
     trace_id = str(uuid.uuid4())
@@ -360,6 +502,7 @@ def build_search_query_plan(
         catalog_snapshot_id=catalog_snapshot_id,
         acl_context=acl_context,
         design_prompt=design_prompt,
+        search_seed=search_seed,
     )
     if not scope.get("ok"):
         return scope
@@ -378,6 +521,10 @@ def build_search_query_plan(
     outputs = _confirmed_terms(work.get("outputs"))
     risks = _confirmed_terms(work.get("risks_controls"))
     prompt = scope["design_prompt"]
+    try:
+        validated_seed = _validated_search_seed(search_seed)
+    except ValueError as exc:
+        return _error(trace_id, str(exc), "원문 업무 설명 기반 검색 seed를 검증할 수 없습니다.")
     queries: list[dict[str, Any]] = []
 
     def add(kind: str, text: str, expected: list[str], purpose: str, step_ids: list[str] | None = None) -> None:
@@ -405,6 +552,13 @@ def build_search_query_plan(
         )
 
     add("purpose", " ".join(item for item in (title, goal, prompt) if item), ["component", "flow"], "전체 업무 목적과 유사한 자산 탐색")
+    if validated_seed:
+        add(
+            "purpose",
+            validated_seed["text"],
+            ["component", "flow"],
+            "원문 업무 설명 기반 재사용 후보 탐색",
+        )
     for step in steps:
         add(
             "capability",
@@ -415,6 +569,8 @@ def build_search_query_plan(
         )
     for system in systems:
         add("exact", system, ["component", "flow"], "사용자가 확인한 시스템/API/제품명 exact 또는 alias 탐색")
+    for input_name in inputs:
+        add("capability", input_name, ["component", "flow"], "확인된 입력 데이터·문서·시스템을 처리할 수 있는 자산 탐색")
     for risk in risks:
         add("risk", risk, ["component", "flow"], "승인·보안·예외 처리 capability 탐색")
     if outputs:
@@ -439,6 +595,8 @@ def build_search_query_plan(
         "confirmed_inputs": inputs,
         "confirmed_outputs": outputs,
     }
+    if scope.get("search_seed_sha256"):
+        plan_core["search_seed_sha256"] = str(scope["search_seed_sha256"])
     return {
         "ok": True,
         "status": "COMPLETED",
@@ -491,6 +649,10 @@ def validate_design_invocation(value: Any) -> dict[str, Any]:
         return _error(trace_id, "DESIGN_INVOCATION_IDENTITY_INVALID", "tenant 또는 active snapshot identity가 유효하지 않습니다.")
     if not isinstance(design_prompt, str) or len(design_prompt) > 20000:
         return _error(trace_id, "DESIGN_INVOCATION_PROMPT_INVALID", "추가 설계 프롬프트가 유효하지 않습니다.")
+    try:
+        search_seed = _validated_search_seed(invocation.get("search_seed"))
+    except ValueError as exc:
+        return _error(trace_id, str(exc), "원문 업무 설명 기반 검색 seed가 유효하지 않습니다.")
     if not work or work.get("tenant_id") != tenant_id:
         return _error(trace_id, "DESIGN_INVOCATION_WORK_MISMATCH", "승인 업무 정의와 invocation tenant가 일치하지 않습니다.")
     if not acl or acl.get("subject_id") != work.get("owner_id"):
@@ -508,6 +670,7 @@ def validate_design_invocation(value: Any) -> dict[str, Any]:
         "acl_context": copy.deepcopy(acl),
         "skill_registry": copy.deepcopy(registry),
         "design_prompt": design_prompt,
+        "search_seed": copy.deepcopy(search_seed),
         "authority": copy.deepcopy(authority),
         "trace_id": trace_id,
     }
@@ -562,6 +725,7 @@ class SearchQueryPlannerComponent(Component):
             catalog_snapshot_id=invocation["catalog_snapshot_id"],
             acl_context=invocation["acl_context"],
             design_prompt=invocation["design_prompt"],
+            search_seed=invocation["search_seed"],
         )
         self.status = f"Design scope: {result.get('status')}"
         return Data(data=result)
@@ -574,6 +738,7 @@ class SearchQueryPlannerComponent(Component):
             catalog_snapshot_id=invocation["catalog_snapshot_id"],
             acl_context=invocation["acl_context"],
             design_prompt=invocation["design_prompt"],
+            search_seed=invocation["search_seed"],
             max_queries=getattr(self, "max_queries", 30),
         )
         self.status = f"Query plan: {result.get('status')} / queries={len(result.get('queries', []))}"

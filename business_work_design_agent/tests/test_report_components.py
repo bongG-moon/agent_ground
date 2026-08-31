@@ -3,6 +3,7 @@ from __future__ import annotations
 import ast
 import base64
 import copy
+from datetime import datetime, timezone
 import hashlib
 import importlib.util
 import json
@@ -100,6 +101,34 @@ def test_30_uses_graph_edges_for_stable_as_is_presentation_order(
         "as-review",
         "as-end",
     ]
+
+
+def test_30_renders_legacy_sealed_blueprint_with_blank_presentation_text(
+    modules: dict[str, ModuleType],
+    sample_contracts: tuple[dict[str, Any], dict[str, Any], dict[str, Any]],
+) -> None:
+    """Already approved F20 handoffs remain reportable after a UI-text fix."""
+
+    work, _, candidate_context = copy.deepcopy(sample_contracts)
+    terminal = read_json("agent_blueprint_terminal.json")
+    legacy_node = terminal["blueprint"]["nodes"][0]
+    legacy_node["responsibility"] = ""
+    legacy_node["reuse_decision_reason"] = ""
+
+    view_model = dict(
+        modules["30_report_view_model_builder"].ReportViewModelBuilderComponent(
+            work_definition=work,
+            agent_blueprint=terminal,
+            retrieval_trace=candidate_context["retrieval_trace"],
+            report_title="기존 설계 보고서 호환성 검증",
+            max_nodes=500,
+            max_edges=1000,
+        ).build_report_view_model().data
+    )
+
+    detail = view_model["to_be_graph"]["details"][view_model["to_be_graph"]["nodes"][0]["detail_ref"]]
+    assert detail["improvement"]
+    assert detail["reuse_decision_reason"]
 
 
 def render_view_model(modules: dict[str, ModuleType], view_model: dict[str, Any]) -> dict[str, Any]:
@@ -245,7 +274,7 @@ def test_report_component_sources_build_as_langflow_111_standalone_components() 
         assert instance.name == expected_names[path.stem]
         assert template["template"]["code"]["value"] == source
         assert len(template["outputs"]) == 1
-        assert template["outputs"][0]["method"]
+        assert all(item["method"] for item in template["outputs"])
 
 
 def test_sample_work_blueprint_and_report_view_model_validate_against_schemas(
@@ -1402,16 +1431,21 @@ def test_31_declares_layout_contract_for_360_through_1920_widths(
     assert style
     css = style.group(1).replace(" ", "")
     assert '<metaname="viewport"content="width=device-width,initial-scale=1">' in document.replace(" ", "")
-    assert "@media(max-width:767px)" in css
-    assert ".drawer{top:auto;bottom:0;width:100%" in css
+    assert "@media(max-width:850px)" in css
+    assert ".intro{display:grid;grid-template-columns:minmax(0,1fr)" in css
     assert ".graph-viewport{position:absolute;inset:0;overflow:auto" in css
-    assert ".report-shell{max-width:1680px" in css
-    assert "grid-template-columns:repeat(auto-fit,minmax(180px,1fr))" in css
+    assert ".shell{max-width:1540px" in css
+    assert ".tabs{margin:0010px" in css
     assert ".js.static-fallback{display:none}" in css
-    assert ".static-fallback{min-width:0;overflow:hidden}" in css
+    assert ".static-fallback{display:block}" in css
+    assert "@media(prefers-reduced-motion:reduce)" in css
+    assert "@mediaprint" in css
     assert "document.documentElement.classList.add('js')" in document
+    assert 'id="flow-panel"' in document
+    assert 'class="support static-fallback"' in document
+    assert '<div id="support"></div>' in document
     assert "min-width:1920px" not in css and "min-width:768px" not in css
-    assert 360 <= 767 < 1920
+    assert 360 <= 850 < 1920
 
 
 def test_31_rejects_failed_envelope_and_cross_section_provenance_mismatch(
@@ -1461,18 +1495,21 @@ def test_31_rejects_failed_envelope_and_cross_section_provenance_mismatch(
         render_view_model(modules, arbitrary_request_id)
 
 
-def test_32_dry_run_validates_hash_host_and_never_uses_network(
+def test_32_dry_run_uses_shared_html_report_api_shape_and_never_uses_network(
     modules: dict[str, ModuleType],
+    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
+    module = modules["32_report_publisher"]
     rendered = render_view_model(modules, read_json("report_view_model.json"))
-    publisher = modules["32_report_publisher"].ReportPublisherComponent(
+
+    def unexpected_network(*_args: Any, **_kwargs: Any) -> Any:
+        raise AssertionError("dry-run must not contact the Report API")
+
+    monkeypatch.setattr(module.urllib.request, "urlopen", unexpected_network)
+    publisher = module.ReportPublisherComponent(
         render_result=rendered,
-        report_api_url="http://localhost:8080/internal/report-api",
-        bearer_token="",
-        tenant_id="tenant-demo",
-        actor_id="langflow-test",
-        idempotency_key="",
-        allowed_hosts_json='["localhost"]',
+        report_api_url="http://localhost:5000/internal/report-api",
+        report_ttl_hours=4,
         timeout_seconds=1,
         dry_run=True,
     )
@@ -1482,49 +1519,46 @@ def test_32_dry_run_validates_hash_host_and_never_uses_network(
         "status": "would_publish",
         "execution_mode_display": "테스트 실행 (저장하지 않음)",
         "message": "테스트 실행입니다. Report API에는 게시하지 않았습니다.",
-        "report_id": rendered["report_id"],
-        "content_sha256": rendered["content_sha256"],
+        "renderer_report_id": rendered["report_id"],
         "content_bytes": len(rendered["html"].encode("utf-8")),
-        "target_url": "http://localhost:8080/internal/report-api/reports",
+        "target_url": "http://localhost:5000/internal/report-api/reports",
+        "ttl_hours": 4,
     }
-    publisher_inputs = {item.name: item for item in modules["32_report_publisher"].ReportPublisherComponent.inputs}
+    assert module._reports_post_url("http://localhost:5000/reports") == "http://localhost:5000/reports"
+    assert module._reports_post_url("http://localhost:5000?token=api-key") == "http://localhost:5000/reports?token=api-key"
+    publisher_inputs = {item.name: item for item in module.ReportPublisherComponent.inputs}
+    assert set(publisher_inputs) == {"render_result", "report_api_url", "report_ttl_hours", "dry_run", "timeout_seconds"}
+    assert publisher_inputs["report_api_url"].value == "http://127.0.0.1:5000"
     assert publisher_inputs["dry_run"].display_name == "테스트 실행 (저장하지 않음)"
 
-    tampered = dict(rendered)
-    tampered["html"] += "tampered"
-    with pytest.raises(ValueError, match="content_sha256"):
-        modules["32_report_publisher"].ReportPublisherComponent(
-            render_result=tampered,
-            report_api_url="http://localhost:8080",
-            tenant_id="tenant-demo",
-            actor_id="test",
-            allowed_hosts_json='["localhost"]',
+    missing_html = dict(rendered)
+    missing_html.pop("html")
+    failed = dict(
+        module.ReportPublisherComponent(
+            render_result=missing_html,
+            report_api_url="http://localhost:5000",
             dry_run=True,
-        ).publish_report()
-    with pytest.raises(ValueError, match="allowed_hosts"):
-        modules["32_report_publisher"].ReportPublisherComponent(
-            render_result=rendered,
-            report_api_url="https://reports.example.invalid",
-            tenant_id="tenant-demo",
-            actor_id="test",
-            allowed_hosts_json='["localhost"]',
-            dry_run=True,
-        ).publish_report()
+        ).publish_report().data
+    )
+    assert failed["status"] == "PUBLISH_FAILED"
+    assert failed["error"]["code"] == "REPORT_HTML_REQUIRED"
 
 
-def test_32_requires_success_response_to_bind_identity_hash_and_capability_urls(
+def test_32_posts_reference_report_api_contract_and_returns_structured_failures(
     modules: dict[str, ModuleType],
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     module = modules["32_report_publisher"]
     rendered = render_view_model(modules, read_json("report_view_model.json"))
-    report_id = rendered["report_id"]
+    rendered["renderer_version"] = datetime(2026, 8, 31, tzinfo=timezone.utc)
+    received: dict[str, Any] = {}
     response_payload: dict[str, Any] = {
-        "report_id": report_id,
-        "content_sha256": rendered["content_sha256"],
-        "view_url": f"http://localhost:8080/api/reports/{report_id}?capability=view-token",
-        "download_url": f"http://localhost:8080/api/reports/{report_id}/download?capability=download-token",
-        "created_at": "2026-08-28T00:00:00Z",
+        "report_id": "20260831000000_server-generated",
+        "view_url": "http://localhost:5000/reports/view/server-generated?token=view-token",
+        "download_url": "http://localhost:5000/reports/download/server-generated?token=download-token",
+        "expires_at": "2026-08-31T04:00:00+09:00",
+        "ttl_hours": 4,
+        "storage": {"backend": "mongodb"},
     }
 
     class FakeResponse:
@@ -1539,48 +1573,77 @@ def test_32_requires_success_response_to_bind_identity_hash_and_capability_urls(
         def read(self, _limit: int) -> bytes:
             return json.dumps(response_payload).encode("utf-8")
 
-    class FakeOpener:
-        def open(self, _request, timeout):
-            assert timeout == 1
-            return FakeResponse()
+    def fake_urlopen(request: Any, timeout: int) -> FakeResponse:
+        received["url"] = request.full_url
+        received["method"] = request.get_method()
+        received["headers"] = dict(request.header_items())
+        received["body"] = json.loads(request.data.decode("utf-8"))
+        received["timeout"] = timeout
+        return FakeResponse()
 
-    monkeypatch.setattr(module.urllib.request, "build_opener", lambda *_handlers: FakeOpener())
+    monkeypatch.setattr(module.urllib.request, "urlopen", fake_urlopen)
+    result = dict(
+        module.ReportPublisherComponent(
+            render_result=rendered,
+            report_api_url="http://localhost:5000",
+            report_ttl_hours=999,
+            timeout_seconds=1,
+            dry_run=False,
+        ).publish_report().data
+    )
+    assert received["url"] == "http://localhost:5000/reports"
+    assert received["method"] == "POST"
+    assert received["timeout"] == 1
+    assert received["headers"] == {
+        "Content-type": "application/json; charset=utf-8",
+        "Accept": "application/json",
+    }
+    assert set(received["body"]) == {
+        "html",
+        "title",
+        "question",
+        "view_request",
+        "available_datasets",
+        "report_plan",
+        "ttl_hours",
+        "filename_hint",
+    }
+    assert received["body"]["ttl_hours"] == 168
+    assert received["body"]["report_plan"]["source_flow"] == "F30_responsive_report"
+    assert received["body"]["report_plan"]["renderer_report_id"] == rendered["report_id"]
+    assert received["body"]["report_plan"]["renderer_version"] == "2026-08-31 00:00:00+00:00"
+    assert result["ok"] is True
+    assert result["status"] == "published"
+    assert result["report_id"] == response_payload["report_id"]
+    assert result["view_url"] == response_payload["view_url"]
+    assert result["download_url"] == response_payload["download_url"]
+    assert result["storage"] == {"backend": "mongodb"}
 
-    def publish() -> dict[str, Any]:
-        return dict(
-            module.ReportPublisherComponent(
-                render_result=rendered,
-                report_api_url="http://localhost:8080/api",
-                bearer_token="",
-                tenant_id="tenant-demo",
-                actor_id="langflow-test",
-                allowed_hosts_json='["localhost"]',
-                timeout_seconds=1,
-                dry_run=False,
-            ).publish_report().data
-        )
+    response_payload.pop("download_url")
+    missing_link = dict(
+        module.ReportPublisherComponent(
+            render_result=rendered,
+            report_api_url="http://localhost:5000/reports",
+            dry_run=False,
+        ).publish_report().data
+    )
+    assert missing_link["status"] == "PUBLISH_FAILED"
+    assert missing_link["error"]["code"] == "REPORT_API_INVALID_RESPONSE"
 
-    assert publish()["report_id"] == report_id
+    def offline(*_args: Any, **_kwargs: Any) -> Any:
+        raise module.urllib.error.URLError("offline")
 
-    for missing in ("report_id", "content_sha256", "view_url", "download_url"):
-        saved = response_payload.pop(missing)
-        with pytest.raises(ValueError, match="required artifact bindings"):
-            publish()
-        response_payload[missing] = saved
-
-    response_payload["report_id"] = "report-other"
-    with pytest.raises(ValueError, match="different report identity"):
-        publish()
-    response_payload["report_id"] = report_id
-
-    response_payload["content_sha256"] = "sha256:" + "0" * 64
-    with pytest.raises(ValueError, match="different content hash"):
-        publish()
-    response_payload["content_sha256"] = rendered["content_sha256"]
-
-    response_payload["view_url"] = "http://localhost:8080/api/reports/report-other?capability=view-token"
-    with pytest.raises(ValueError, match="not bound"):
-        publish()
-    response_payload["view_url"] = f"http://localhost:8080/api/reports/{report_id}"
-    with pytest.raises(ValueError, match="capability URL"):
-        publish()
+    monkeypatch.setattr(module.urllib.request, "urlopen", offline)
+    connection_failure = dict(
+        module.ReportPublisherComponent(
+            render_result=rendered,
+            report_api_url="http://localhost:5000",
+            dry_run=False,
+        ).publish_report().data
+    )
+    assert connection_failure["status"] == "PUBLISH_FAILED"
+    assert connection_failure["error"] == {
+        "code": "REPORT_API_CONNECTION_FAILED",
+        "message": "Report API connection failed: offline",
+        "retryable": True,
+    }

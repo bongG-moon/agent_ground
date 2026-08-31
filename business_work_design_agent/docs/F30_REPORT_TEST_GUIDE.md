@@ -35,10 +35,9 @@ Component 32 (`Business Flow Report Publisher`)에서 다음을 확인합니다.
 
 | 설정 | 샘플 테스트 값 | 이유 |
 | --- | --- | --- |
-| `Tenant ID` / `Actor ID` | 비워 둠 | sealed handoff의 검증된 execution context가 자동 연결됩니다. 수동값을 넣으면 handoff와 일치해야 합니다. |
 | `테스트 실행 (저장하지 않음)` | `true` | Report API에 저장하거나 게시하지 않습니다. |
-| `Report API Base URL` | 기본값 유지 | dry-run에서는 URL/허용 host만 검증하며 서버에 연결하지 않습니다. |
-| `Bearer Token` | 비워 둠 | dry-run에는 필요하지 않습니다. |
+| `Report API URL` | `http://127.0.0.1:5000` | API base URL입니다. `/reports`까지 넣어도 됩니다. |
+| `HTML Link TTL (hours)` | `4` | 서버가 생성할 view/download 링크의 보관·만료 요청값입니다. |
 
 ### 4. 실행 및 합격 기준
 
@@ -69,7 +68,7 @@ F10/F20이 정상 동작한 뒤에는 샘플 대신 실제 산출물을 사용�
 
 F30만 독립 실행해야 한다면 같은 F20 실행에서 받은 **완전한 handoff JSON 하나**를 Chat Input에 넣습니다. 서로 다른 실행의 값을 섞어 새 JSON을 조립하지 마세요. F30 Loader와 Component 30이 identity/revision/hash를 교차 검증하여 의도적으로 차단합니다.
 
-실제 게시 전에도 먼저 `dry_run=true`로 위 합격 기준을 통과시키세요. 실제 Report API 게시(`dry_run=false`)는 별도 테스트 storage, Report API, bearer token, signing secret이 준비된 경우에만 수행합니다.
+실제 게시 전에도 먼저 `dry_run=true`로 위 합격 기준을 통과시키세요. 실제 Report API 게시(`dry_run=false`)는 공유 HTML Report API가 실행 중일 때만 수행합니다. F30 Publisher는 `POST {Report API URL}/reports`로 HTML, 제목, TTL, filename hint와 F30용 report plan을 보냅니다. 이 API는 서버가 `view_url`과 `download_url`을 새로 생성합니다.
 
 ## 자동화된 로컬 회귀 테스트
 
@@ -95,9 +94,9 @@ $env:PYTEST_DISABLE_PLUGIN_AUTOLOAD = '1'
 | 증상 | 원인 및 조치 |
 | --- | --- |
 | scope/hash, snapshot, tenant, revision 오류 | handoff를 변조했거나 서로 다른 F10/F20 실행의 artifact를 섞었습니다. F20이 만든 handoff 전체를 다시 사용합니다. |
-| `tenant_id is required` | handoff의 execution context가 누락되었거나 수동 설정과 불일치합니다. sealed handoff를 사용하고 F30 Publisher의 tenant/actor 수동값을 비웁니다. |
 | `would_publish`가 표시됨 | 정상 dry-run 성공입니다. `dry_run=true`에서는 실제 URL이 생성되거나 게시되지 않습니다. |
-| Report API 연결 오류를 예상함 | dry-run에서는 네트워크 호출이 없어야 합니다. 실제 게시 테스트에서만 API/token/host 설정을 확인합니다. |
+| `PUBLISH_FAILED`가 표시됨 | Flow가 멈춘 것이 아니라 게시 API가 반환한 오류입니다. `error.code`, `error.message`, `target_url`을 확인합니다. 연결 오류는 API server 주소/실행 상태를 먼저 확인합니다. |
+| Report API 연결 오류를 예상함 | dry-run에서는 네트워크 호출이 없어야 합니다. 실제 게시 테스트에서만 API URL과 서버 상태를 확인합니다. |
 | 일반 문장을 입력하고 실행함 | F30은 일반 대화형 Flow가 아닙니다. Chat Input에는 `f20-report-handoff/v1` JSON 전체가 필요합니다. |
 
 ## 테스트 기록 체크리스트

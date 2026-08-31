@@ -5,6 +5,7 @@ __pycache__/
 *.py[cod]
 .pytest_cache/
 .pytest-tmp-*/
+.pytest-*/
 .pytest_tmp_*/
 .tmp_flows/
 .ruff_cache/
@@ -12,5 +13,6 @@ __pycache__/
 .coverage
 htmlcov/
 artifacts/
+samples/f20_direct_playground_input.local.json
 reports/
 *.log

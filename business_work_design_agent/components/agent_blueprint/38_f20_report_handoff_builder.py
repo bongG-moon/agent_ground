@@ -55,14 +55,65 @@ def _revision(value: Any) -> int | None:
     return value if isinstance(value, int) and not isinstance(value, bool) and value >= 0 else None
 
 
-def _error(trace_id: str, code: str, message: str) -> dict[str, Any]:
+def _error(
+    trace_id: str,
+    code: str,
+    message: str,
+    *,
+    retryable: bool = False,
+    details: dict[str, Any] | None = None,
+) -> dict[str, Any]:
     return {
         "ok": False,
         "status": "BLOCKED",
         "schema_version": HANDOFF_SCHEMA_VERSION,
-        "error": {"code": code, "message": message},
+        "error": {
+            "code": code,
+            "message": message,
+            "retryable": retryable,
+            "details": details or {},
+        },
         "trace_id": trace_id,
     }
+
+
+def _forward_blocked_stage(value: Any, *, trace_id: str) -> dict[str, Any] | None:
+    """Keep a safe, actionable F20 stage failure visible at the sole output.
+
+    The report handoff is intentionally the only F20 Chat Output.  Earlier
+    versions converted a failed search/embedding stage into the generic
+    ``CANDIDATE_CONTEXT_REQUIRED`` message, even though Component 22 had
+    already produced a precise blocked envelope.  Preserve that envelope's
+    code, message, retryability and safe details so a direct F20 run and an
+    F10 Run Flow show the component that actually needs attention.
+    """
+
+    payload = _payload(value)
+    error = payload.get("error")
+    if (
+        payload.get("ok") is not False
+        or payload.get("status") != "BLOCKED"
+        or not isinstance(error, dict)
+    ):
+        return None
+
+    code = str(error.get("code") or "F20_UPSTREAM_STAGE_BLOCKED").strip()[:128]
+    message = str(error.get("message") or "F20의 이전 단계가 차단되었습니다.").strip()[:2_000]
+    if not code:
+        code = "F20_UPSTREAM_STAGE_BLOCKED"
+    if not message:
+        message = "F20의 이전 단계가 차단되었습니다."
+    details = copy.deepcopy(error.get("details")) if isinstance(error.get("details"), dict) else {}
+    upstream_trace_id = str(payload.get("trace_id") or "").strip()[:200]
+    if upstream_trace_id:
+        details.setdefault("upstream_trace_id", upstream_trace_id)
+    return _error(
+        trace_id,
+        code,
+        message,
+        retryable=error.get("retryable") is True,
+        details=details,
+    )
 
 
 def _identity_tuple(scope: dict[str, Any], work: dict[str, Any]) -> tuple[str, str, int, str, str, str] | None:
@@ -100,6 +151,9 @@ def build_f20_report_handoff(
     scope = _payload(design_scope)
     candidates = _payload(candidate_context)
     terminal = _payload(terminal_blueprint)
+    blocked_scope = _forward_blocked_stage(scope, trace_id=trace_id)
+    if blocked_scope is not None:
+        return blocked_scope
     if scope.get("ok") is not True or scope.get("status") != "COMPLETED":
         return _error(trace_id, "DESIGN_SCOPE_REQUIRED", "완료된 sealed design scope가 필요합니다.")
     work = scope.get("work_definition") if isinstance(scope.get("work_definition"), dict) else {}
@@ -108,6 +162,9 @@ def build_f20_report_handoff(
         return _error(trace_id, "DESIGN_SCOPE_BINDING_INVALID", "승인 업무 정의와 design scope의 권위 식별자가 일치하지 않습니다.")
     tenant_id, snapshot_id, revision, work_id, approved_hash, design_scope_sha256 = identity
 
+    blocked_candidates = _forward_blocked_stage(candidates, trace_id=trace_id)
+    if blocked_candidates is not None:
+        return blocked_candidates
     if candidates.get("ok") is not True or candidates.get("status") != "COMPLETED":
         return _error(trace_id, "CANDIDATE_CONTEXT_REQUIRED", "완료된 F20 candidate context가 필요합니다.")
     retrieval_trace = candidates.get("retrieval_trace") if isinstance(candidates.get("retrieval_trace"), dict) else {}
@@ -133,6 +190,9 @@ def build_f20_report_handoff(
     ):
         return _error(trace_id, "RETRIEVAL_TRACE_BINDING_INVALID", "F20 retrieval trace가 승인 design scope와 일치하지 않습니다.")
 
+    blocked_terminal = _forward_blocked_stage(terminal, trace_id=trace_id)
+    if blocked_terminal is not None:
+        return blocked_terminal
     blueprint = terminal.get("blueprint") if isinstance(terminal.get("blueprint"), dict) else {}
     if (
         terminal.get("ok") is not True

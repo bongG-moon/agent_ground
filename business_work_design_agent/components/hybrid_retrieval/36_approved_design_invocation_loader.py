@@ -34,6 +34,8 @@ from pymongo.errors import (
 SCHEMA_VERSION = "agent-design-invocation/v1"
 WORK_REQUEST_SCHEMA_VERSION = "work-request-envelope/v1"
 WORK_DEFINITION_SCHEMA_VERSION = "work-definition/v1"
+AUTHENTICATION_CONTEXT_SCHEMA_VERSION = "f10-authentication-context/v1"
+AUTHENTICATION_SOURCES = {"local_demo_fixture", "trusted_gateway"}
 IDENTITY_PATTERN = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$")
 COLLECTION_PATTERN = re.compile(r"^[A-Za-z0-9_.-]{1,200}$")
 APPROVED_HASH_PATTERN = re.compile(r"^sha256:[0-9a-f]{64}$")
@@ -41,6 +43,7 @@ MAX_GROUPS = 100
 MAX_GROUP_INPUT_CHARS = 20_000
 MAX_SKILL_ENTRIES = 500
 MAX_DESIGN_PROMPT_CHARS = 20_000
+MAX_SEARCH_SEED_CHARS = 4_000
 SEMANTIC_FIELDS = (
     "goal",
     "trigger",
@@ -306,6 +309,61 @@ def _authenticated_groups(value: Any) -> list[str]:
     return sorted(groups)
 
 
+def _authentication_context(value: Any) -> dict[str, Any]:
+    """Validate the sealed F10 authentication boundary before MongoDB access.
+
+    The loader deliberately receives one context envelope, not a direct edge
+    from the request's employee identifier.  A local fixture remains usable
+    for the sample Flow, but it is represented honestly as unverified in the
+    emitted trust boundary.  A production gateway must provide the separate
+    ``trusted_gateway`` source and verified subject/group projection.
+    """
+
+    context = _payload(value)
+    expected_keys = {
+        "ok",
+        "status",
+        "schema_version",
+        "artifact_refs",
+        "source",
+        "subject_id",
+        "groups",
+        "authenticated_subject_verified",
+        "trace_id",
+    }
+    if set(context) != expected_keys:
+        raise ValueError("AUTHENTICATION_CONTEXT_INVALID")
+    if context.get("ok") is not True or context.get("status") != "AUTHENTICATION_READY":
+        raise ValueError("AUTHENTICATION_CONTEXT_NOT_READY")
+    if context.get("schema_version") != AUTHENTICATION_CONTEXT_SCHEMA_VERSION:
+        raise ValueError("AUTHENTICATION_CONTEXT_SCHEMA_INVALID")
+    source = context.get("source")
+    if source not in AUTHENTICATION_SOURCES:
+        raise ValueError("AUTHENTICATION_SOURCE_INVALID")
+    subject_id = _identity(context.get("subject_id"))
+    if not subject_id:
+        raise ValueError("AUTHENTICATED_SUBJECT_INVALID")
+    groups = _authenticated_groups(context.get("groups"))
+    if source == "local_demo_fixture" and groups:
+        raise ValueError("LOCAL_DEMO_GROUPS_NOT_ALLOWED")
+    verified = context.get("authenticated_subject_verified")
+    if type(verified) is not bool:
+        raise ValueError("AUTHENTICATION_VERIFICATION_INVALID")
+    if verified is not (source == "trusted_gateway"):
+        raise ValueError("AUTHENTICATION_VERIFICATION_INVALID")
+    artifact_refs = context.get("artifact_refs")
+    if not isinstance(artifact_refs, list) or artifact_refs:
+        raise ValueError("AUTHENTICATION_CONTEXT_INVALID")
+    if not isinstance(context.get("trace_id"), str) or len(context["trace_id"]) > 200:
+        raise ValueError("AUTHENTICATION_CONTEXT_INVALID")
+    return {
+        "source": source,
+        "subject_id": subject_id,
+        "groups": groups,
+        "authenticated_subject_verified": verified,
+    }
+
+
 def _additional_prompt(envelope: dict[str, Any]) -> str:
     supplied = envelope.get("additional_prompt")
     if supplied is None:
@@ -330,6 +388,41 @@ def _additional_prompt(envelope: dict[str, Any]) -> str:
     if any(pattern.search(text) for pattern in SECRET_VALUE_PATTERNS):
         raise ValueError("DESIGN_PROMPT_SECRET_MATERIAL_DETECTED")
     return text
+
+
+def _search_seed_from_request(envelope: dict[str, Any]) -> dict[str, Any]:
+    """Seal a small retrieval-only projection of the validated raw request.
+
+    This is not copied into the approved WorkDefinition or a Blueprint prompt.
+    It exists solely so F20 can still make a meaningful catalog query when the
+    user chooses to skip clarification questions.
+    """
+
+    supplied = envelope.get("source_request")
+    allowed_fields = {"turn_id", "raw_text", "language", "submitted_at", "sha256"}
+    if not isinstance(supplied, dict) or set(supplied) - allowed_fields:
+        raise ValueError("SEARCH_SEED_INVALID")
+    raw_text = supplied.get("raw_text")
+    expected_hash = supplied.get("sha256", "")
+    if not isinstance(raw_text, str) or not raw_text.strip() or len(raw_text) > 50_000:
+        raise ValueError("SEARCH_SEED_INVALID")
+    raw_hash = hashlib.sha256(raw_text.encode("utf-8")).hexdigest()
+    if expected_hash and (
+        type(expected_hash) is not str
+        or not re.fullmatch(r"(?:sha256:)?[0-9a-f]{64}", expected_hash)
+        or not hmac.compare_digest(expected_hash.removeprefix("sha256:"), raw_hash)
+    ):
+        raise ValueError("SEARCH_SEED_HASH_MISMATCH")
+    if any(pattern.search(raw_text) for pattern in SECRET_VALUE_PATTERNS):
+        raise ValueError("SEARCH_SEED_SECRET_MATERIAL_DETECTED")
+    text = re.sub(r"\s+", " ", raw_text).strip()
+    bounded = text[:MAX_SEARCH_SEED_CHARS]
+    return {
+        "text": bounded,
+        "sha256": "sha256:" + hashlib.sha256(bounded.encode("utf-8")).hexdigest(),
+        "source": "validated_original_work_request",
+        "truncated": len(text) > len(bounded),
+    }
 
 
 def _public_work(document: dict[str, Any]) -> dict[str, Any]:
@@ -365,8 +458,7 @@ def load_approved_design_invocation(
     approval_result: Any,
     request_envelope: Any,
     *,
-    authenticated_subject_id: Any,
-    authenticated_groups: Any = None,
+    authentication_context: Any,
     mongodb_uri: Any,
     mongo_database: Any,
     work_collection: Any = "work_definitions",
@@ -383,8 +475,9 @@ def load_approved_design_invocation(
     try:
         approval, approved_edge_work = _approval_work(approval_result)
         request = _request_envelope(request_envelope)
-        subject_id = _identity(authenticated_subject_id)
-        groups = _authenticated_groups(authenticated_groups)
+        authentication = _authentication_context(authentication_context)
+        subject_id = authentication["subject_id"]
+        groups = authentication["groups"]
         uri = _secret(mongodb_uri)
         database_name = str(mongo_database or "").strip()
         work_name = str(work_collection or "work_definitions").strip()
@@ -394,10 +487,17 @@ def load_approved_design_invocation(
         skill_limit = max(1, min(int(max_skill_entries), MAX_SKILL_ENTRIES))
     except (TypeError, ValueError, json.JSONDecodeError) as exc:
         code = str(exc) if str(exc) in {
+            "AUTHENTICATION_CONTEXT_INVALID",
+            "AUTHENTICATION_CONTEXT_NOT_READY",
+            "AUTHENTICATION_CONTEXT_SCHEMA_INVALID",
+            "AUTHENTICATION_SOURCE_INVALID",
+            "AUTHENTICATION_VERIFICATION_INVALID",
+            "AUTHENTICATED_SUBJECT_INVALID",
             "AUTHENTICATED_GROUPS_INVALID",
             "AUTHENTICATED_GROUPS_LIMIT_EXCEEDED",
+            "LOCAL_DEMO_GROUPS_NOT_ALLOWED",
         } else "DESIGN_INVOCATION_INPUT_INVALID"
-        return _failure(code, "설계 호출 입력 또는 인증 group 형식이 유효하지 않습니다.", safe_trace)
+        return _failure(code, "설계 호출 입력 또는 인증 context 형식이 유효하지 않습니다.", safe_trace)
 
     if approval.get("ok") is not True or approval.get("status") != "APPROVED" or not approved_edge_work:
         return _failure(
@@ -409,12 +509,6 @@ def load_approved_design_invocation(
         return _failure(
             "WORK_REQUEST_ENVELOPE_INVALID",
             "검증 가능한 업무 요청 envelope가 필요합니다.",
-            safe_trace,
-        )
-    if not subject_id:
-        return _failure(
-            "AUTHENTICATED_SUBJECT_INVALID",
-            "trusted authenticated_subject_id가 필요합니다.",
             safe_trace,
         )
     if not uri or not COLLECTION_PATTERN.fullmatch(database_name):
@@ -469,9 +563,18 @@ def load_approved_design_invocation(
         )
     try:
         design_prompt = _additional_prompt(request)
+        search_seed = _search_seed_from_request(request)
     except ValueError as exc:
         code = str(exc)
-        return _failure(code, "추가 설계 프롬프트 검증에 실패했습니다.", safe_trace)
+        messages = {
+            "DESIGN_PROMPT_INVALID": "추가 설계 프롬프트 검증에 실패했습니다.",
+            "DESIGN_PROMPT_HASH_MISMATCH": "추가 설계 프롬프트 hash가 일치하지 않습니다.",
+            "DESIGN_PROMPT_SECRET_MATERIAL_DETECTED": "추가 설계 프롬프트에 secret 원문을 넣을 수 없습니다.",
+            "SEARCH_SEED_INVALID": "업무 설명 원문 기반 검색 seed 형식이 유효하지 않습니다.",
+            "SEARCH_SEED_HASH_MISMATCH": "업무 설명 원문 기반 검색 seed hash가 일치하지 않습니다.",
+            "SEARCH_SEED_SECRET_MATERIAL_DETECTED": "업무 설명 원문 기반 검색 seed에 secret 원문을 넣을 수 없습니다.",
+        }
+        return _failure(code, messages.get(code, "설계 호출 입력 검증에 실패했습니다."), safe_trace)
 
     client = None
     try:
@@ -603,11 +706,14 @@ def load_approved_design_invocation(
                 "maximum": skill_limit,
             },
             "design_prompt": design_prompt,
+            "search_seed": search_seed,
             "trust_boundary": {
                 "work_definition_source": "mongodb-canonical-approved",
                 "catalog_snapshot_source": "mongodb-active-pointer",
                 "skill_registry_source": "mongodb-active-only",
-                "authenticated_subject_verified": True,
+                "search_seed_source": "validated-work-request-envelope",
+                "authenticated_subject_verified": authentication["authenticated_subject_verified"],
+                "authentication_context_source": authentication["source"],
             },
             "trace_id": safe_trace,
         }
@@ -644,28 +750,26 @@ def load_approved_design_invocation(
 
 class ApprovedDesignInvocationLoaderComponent(Component):
     display_name = "36 Approved Design Invocation Loader"
-    description = "F10 승인 receipt를 MongoDB canonical 승인본·활성 snapshot·Skill registry와 재검증해 F20 입력을 만듭니다."
+    description = "F10 승인 receipt와 명시적 인증 context를 MongoDB canonical 승인본·활성 snapshot·Skill registry와 재검증해 F20 입력을 만듭니다."
     icon = "ShieldCheck"
     name = "ApprovedDesignInvocationLoader"
 
     inputs = [
         DataInput(name="approval_result", display_name="F10 Approved Result", input_types=["Data", "JSON"], required=True),
         DataInput(name="request_envelope", display_name="Original Work Request Envelope", input_types=["Data", "JSON"], required=True),
-        MessageTextInput(
-            name="authenticated_subject_id",
-            display_name="Trusted Authenticated Subject ID",
-            required=True,
-            info="로컬 F10 데모에서는 Envelope의 사번 기반 actor를 연결할 수 있습니다. production에서는 반드시 인증 gateway가 주입한 subject로 교체합니다.",
-        ),
-        MessageTextInput(
-            name="authenticated_groups",
-            display_name="Trusted Authenticated Groups",
-            value="[]",
-            required=False,
+        DataInput(
+            name="authentication_context",
+            display_name="Verified Authentication Context",
             input_types=["Data", "JSON"],
-            info="bounded JSON list, list, 또는 comma/newline 구분 문자열입니다.",
+            required=True,
+            info="45 인증 Context 경계의 success_path만 자동 연결합니다. 운영 gateway와 로컬 데모 fixture를 이 입력에서 명시적으로 구분하며, 사번이나 Chat Input을 직접 연결하지 않습니다.",
         ),
-        SecretStrInput(name="mongodb_uri", display_name="MongoDB URI", required=True),
+        SecretStrInput(
+            name="mongodb_uri",
+            display_name="MongoDB URI",
+            required=True,
+            info="공통 Langflow Secret MONGO_URL을 사용합니다. F10 상태 저장은 transaction 지원 MongoDB replica set 또는 Atlas가 필요합니다.",
+        ),
         MessageTextInput(name="mongo_database", display_name="MongoDB Database", value="business_work_design", required=True),
         MessageTextInput(name="work_collection", display_name="WorkDefinition Collection", value="work_definitions", advanced=True),
         MessageTextInput(name="pointer_collection", display_name="Active Pointer Collection", value="catalog_active_pointers", advanced=True),
@@ -702,8 +806,7 @@ class ApprovedDesignInvocationLoaderComponent(Component):
             result = load_approved_design_invocation(
                 getattr(self, "approval_result", None),
                 getattr(self, "request_envelope", None),
-                authenticated_subject_id=getattr(self, "authenticated_subject_id", ""),
-                authenticated_groups=getattr(self, "authenticated_groups", None),
+                authentication_context=getattr(self, "authentication_context", None),
                 mongodb_uri=getattr(self, "mongodb_uri", ""),
                 mongo_database=getattr(self, "mongo_database", ""),
                 work_collection=getattr(self, "work_collection", "work_definitions"),

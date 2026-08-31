@@ -3,17 +3,17 @@
   "langflow_version": "1.11.1",
   "lfx_version": "1.11.5",
   "python_version": "3.13.14",
-  "generator_sha256": "ff59baa16bc4f2de4d623d76506632fc53258e058420293c6b1d22b4bafb7a94",
+  "generator_sha256": "b6eebd2858abdbf32294de8761a9d200ca6ac0ad4f7c2d39bdeca104cea027e3",
   "bundle": {
     "filename": "00_business_work_design_ALL_FLOWS.json",
-    "sha256": "c4e5e72f4653da2df97622e470e580b05bda4b8ec834cf75b3ebee33187beffa"
+    "sha256": "fe467bdea61ac31406841f74c6a42e767ca6f2f87720c9f951b770f44173d58f"
   },
   "flows": [
     {
       "flow_key": "F00",
       "filename": "F00_catalog_file_vector_ingest.json",
       "flow_id": "14ccbaaa-9364-5320-aa4a-b09f0aeb9f95",
-      "sha256": "b9751e849390ddbd98ce7523d377009bac1f3245e13e5eb7ed476d72b5b10066",
+      "sha256": "9961d468a02c5cca5cdf47af2a9a28052d6cd28e00d23e88395ed783593bd858",
       "node_count": 8,
       "edge_count": 5,
       "operational_readiness": "mongodb_vector_ingestion_configuration_required"
@@ -22,36 +22,36 @@
       "flow_key": "F10",
       "filename": "F10_work_definition_parent.json",
       "flow_id": "a27ccb6e-936e-5ac2-a41d-f03f60ab92be",
-      "sha256": "f3ae73755a06974ff2bd8d3dc1a9f977b99c1009a8438b641fe50bc1fbdac693",
-      "node_count": 44,
-      "edge_count": 94,
+      "sha256": "d91d80b9723e21d4dc13c0b50f3f09b06dc575dd8e99cfbd021dbba0e5eb01e1",
+      "node_count": 45,
+      "edge_count": 109,
       "operational_readiness": "configuration_required"
     },
     {
       "flow_key": "F20",
       "filename": "F20_agent_blueprint_design.json",
       "flow_id": "117f7dbe-1bc7-5577-9d55-3a803cb92ed8",
-      "sha256": "b6f68e93ceb286adc9f5f40a7d96cd233822aee99401dfe62b8311f9b05b306c",
-      "node_count": 26,
-      "edge_count": 30,
+      "sha256": "3364d6ece87e436377b09638f045807a90e86d9e1c75281ab008c1f478d691a4",
+      "node_count": 23,
+      "edge_count": 27,
       "operational_readiness": "trusted_backend_only_configuration_required"
     },
     {
       "flow_key": "F30",
       "filename": "F30_responsive_report.json",
       "flow_id": "9c4ae6af-4172-5f98-8812-e8b8c8c0648d",
-      "sha256": "ec4360ddf81f5bcdf849a9c1f265463acd0748b5a55915daef0efe13bdc2dd0c",
+      "sha256": "820c752c41be990643bf4d758468b6648b1db89585fcd702680dbdb7beb45fd5",
       "node_count": 9,
-      "edge_count": 10,
+      "edge_count": 9,
       "operational_readiness": "configuration_required"
     },
     {
       "flow_key": "F90",
       "filename": "F90_search_evaluation.json",
       "flow_id": "97fb8b34-5615-530c-8358-8b20fed34b1b",
-      "sha256": "c5860c9ac8f6f1d82592cebbec618faaefde5842195ed86593bde8770d885e59",
-      "node_count": 9,
-      "edge_count": 7,
+      "sha256": "c83948fd353181359ede36db8e0dfee38657174d3bf6833996e5c09ca15ec302",
+      "node_count": 11,
+      "edge_count": 9,
       "operational_readiness": "evaluation_configuration_required"
     }
   ]

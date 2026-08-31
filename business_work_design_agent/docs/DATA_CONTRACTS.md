@@ -23,7 +23,7 @@ Custom Component의 구조화 출력은 가능한 한 아래 형태를 유지한
 
 ## 2. WorkDefinition 계약
 
-생성·검증·저장은 `10`~`18`이고, 현재 F10의 compact clarification/검토 경계는 `42`(Playground `node_input`/`schema` 답변 카드와 explicit skip event), `39`(native 제출/skip audit·검증·답변 반영 또는 unresolved 기록·CAS·재평가), `40`(9개 review entry 중 하나 결합), `43`(최종 승인 선택 branch 고정), `41`(event-list terminal 결과 메시지)이다. `14`·`15`·`27`·`28`·`34`·`35`는 독립 검증 또는 과거 재사용을 위한 standalone source로 남아 있지만 현재 F10 Canvas에는 배치하지 않는다. Answer Form/HITL API, F11/Playground 분리 Flow와 4차 질문 회차도 현행 F10 계약에는 없다. JSON Schema는 `schemas/work_definition.schema.json`이며, 공개 업무 정의 channel은 F10의 native HITL 하나뿐이다.
+생성·검증·저장은 `10`~`18`이고, 현재 F10의 compact clarification/검토 경계는 `42`(Playground `node_input`/`schema` 답변 카드와 explicit skip event), `39`(native 제출/skip audit·검증·답변 반영 또는 unresolved 기록·CAS·재평가), `40`(9개 review entry 중 하나 결합), `43`(최종 승인 선택 branch 고정), `41`(모든 intentional cancel/reject/blocked event-list terminal 메시지), `44`(F20→F30 handoff gate), `45`(로컬 demo/운영 gateway 인증 context 경계)이다. `14`·`15`·`27`·`28`·`34`·`35`는 독립 검증 또는 과거 재사용을 위한 standalone source로 남아 있지만 현재 F10 Canvas에는 배치하지 않는다. Answer Form/HITL API, F11/Playground 분리 Flow와 4차 질문 회차도 현행 F10 계약에는 없다. JSON Schema는 `schemas/work_definition.schema.json`이며, 공개 업무 정의 channel은 F10의 native HITL 하나뿐이다.
 
 주요 root 필드:
 
@@ -97,7 +97,7 @@ Component 42의 답변 제출 출력은 `native-clarification-answer-submission/
 
 Component 39는 Component 42의 native 제출 또는 native skip event를 읽을 때 owner, tenant, session, batch contract, deadline, idempotency, target path, 현재 revision을 모두 확인하고 MongoDB CAS로 반영한다. 답변 제출은 재평가 뒤 다음 질문·검토·취소·차단 중 하나를 고르지만, 명시적 skip은 existing WorkDefinition과 기록한 `unresolved`만으로 `READY_FOR_REVIEW`/`review_path`를 연다. 따라서 skip은 `CANCELLED`도, 누락 정보를 채운 성공 제출도, 네 번째 보완 회차도 아니다. Component 40은 초기 검토, 1~3차 질문/답변 뒤 검토와 skip 뒤 검토로 열린 entry 중 유효한 성공 결과 정확히 하나만 선택하며, 둘 이상이 열리면 fail-closed 한다. Component 16·17·18도 각각 성공/차단 group output을 직접 제공한다. 검토 단계의 Component 18 `review_and_request_approval`은 `READY_FOR_REVIEW` + Preview hash가 있는 검증본만 `WAITING_APPROVAL`로 저장하며, revision·중복 실행 방지 키는 자동 계산하고 `work_definitions`/`work_definition_events` 컬렉션은 내부 고정한다. Component 43은 최종 Human Input 선택과 함께 미선택 18 저장 branch를 조건부 제외하고, Component 41은 하나의 event-list로 취소·반려·차단 결과를 secret 없는 짧은 terminal Message로 투영한다. 따라서 compact F10은 별도 Runtime State Store·Result Gate 노드 없이도 실패 envelope를 후속 LLM, Component 42/39 보완 경로, 저장, Preview 또는 F20 Run Flow 단계로 넘기지 않는다.
 
-Component 36은 F10의 최종 `APPROVED` 성공 경로에서 F20 호출 권위를 다시 조립한다. edge로 받은 승인 결과와 원 request envelope는 identity와 approval receipt 확인에만 사용하며, MongoDB `work_definitions`의 canonical 문서를 다시 읽어 schema, `status=APPROVED`, revision, `approved_hash`, owner, session을 대조하고 의미 hash를 다시 계산한다. canonical 문서와 request envelope의 `channel_mode`는 서로 같은 것만으로 충분하지 않고 둘 다 정확히 `native_hitl`이어야 한다. trusted gateway가 주입한 `authenticated_subject_id`는 canonical owner와 정확히 일치해야 하며 bounded group 목록만 ACL projection에 포함한다. 이어 같은 tenant의 `catalog_active_pointers`와 `status=active` Skill registry를 읽고 `agent-design-invocation/v1` 하나를 만든다. 성공 `success_path`는 strict JSON `text`를 가진 Data로 나온 뒤 built-in TypeConverter를 거쳐 Langflow `Run Flow` direct mode(`tool_mode=false`)의 F20 ChatInput에 연결한다. 실패 `blocked_path`는 Component 41 terminal 경로로만 가며 child 호출은 없다.
+Component 45는 F10의 사번 기반 실행자 값을 audit/owner hint와 인증 assertion으로 혼동하지 않게 하는 명시적 경계다. 기본 `local_demo_fixture`는 sample Flow를 실행할 수 있게 하지만 `authenticated_subject_verified=false`로 남고 gateway group을 받을 수 없다. 운영에서는 `trusted_gateway`를 선택하고 SSO/gateway가 제공한 subject/group output만 Component 45에 연결한다. Component 36은 이 sealed `f10-authentication-context/v1`만 받아 `trusted_gateway`의 verified subject 또는 명시적으로 unverified인 local demo를 구분한다. 이어 F10 최종 `APPROVED` 성공 경로에서 F20 호출 권위를 다시 조립한다. edge로 받은 승인 결과와 원 request envelope는 identity와 approval receipt 확인에만 사용하며, MongoDB `work_definitions`의 canonical 문서를 다시 읽어 schema, `status=APPROVED`, revision, `approved_hash`, owner, session을 대조하고 의미 hash를 다시 계산한다. canonical 문서와 request envelope의 `channel_mode`는 서로 같은 것만으로 충분하지 않고 둘 다 정확히 `native_hitl`이어야 한다. sealed context의 subject는 canonical owner와 정확히 일치해야 하며 bounded group 목록만 ACL projection에 포함한다. 이어 같은 tenant의 `catalog_active_pointers`와 `status=active` Skill registry를 읽고 `agent-design-invocation/v1` 하나를 만든다. 성공 `success_path`는 strict JSON `text`를 가진 Data로 나온 뒤 built-in TypeConverter를 거쳐 Langflow `Run Flow` direct mode(`tool_mode=false`)의 F20 ChatInput에 연결한다. 실패 `blocked_path`는 Component 41 terminal 경로로만 가며 child 호출은 없다.
 
 승인 설계 invocation의 축약 계약은 다음과 같다.
 
@@ -234,13 +234,13 @@ Renderer 결과의 핵심 필드:
 }
 ```
 
-Component 32와 Report API는 `content_sha256`을 다시 계산한다. 게시 요청은 tenant/actor bearer context와 `Idempotency-Key`가 필요하며 같은 key에 다른 HTML을 재사용하면 409다. 생성 API와 header-auth 열람 경로는 기존 인증을 유지하고 header-auth view/download/metadata는 생성 actor 본인에게만 404 fail-closed로 허용한다. 생성 응답의 `view_url`과 `download_url`에는 브라우저가 직접 사용할 수 있는 purpose별 `report-capability/v1` query가 포함된다. claim은 `tenant_id`, actor의 secret-HMAC binding, `report_id`, `content_sha256`, `purpose=view|download`, `iat`, `exp`, `jti`를 서명 범위에 포함하고 TTL은 60~3600초다. signed link 요청은 Authorization/tenant/actor header와 혼용할 수 없고, 저장 report의 tenant/actor/content hash와 다시 일치해야 한다. capability는 만료 전 replay 가능한 bearer credential이므로 Uvicorn/reverse proxy access log에서 query를 suppression 또는 redaction하고 chat trace·analytics·외부 referrer에도 남기지 않는다. 응답은 `Referrer-Policy: no-referrer`, `Cache-Control: private, no-store`를 사용한다.
+Component 32는 Renderer가 만든 HTML을 변경하지 않고 공유 HTML Report API에 다음 request만 전송한다: `html`, `title`, `question`, `view_request`, `available_datasets`, `report_plan`, `ttl_hours`, `filename_hint`. API URL은 base URL 또는 `/reports` endpoint를 허용하며 최종 호출은 `POST {base}/reports`다. `ttl_hours`는 1~168로 제한한다. F30가 사용하는 성공 응답의 필수 필드는 절대 `http(s)` URL인 `view_url`, `download_url` 두 개이며, `report_id`, `expires_at`, `ttl_hours`, `storage`는 API가 제공할 때 함께 반환한다.
 
-`REPORT_RETENTION_DAYS`는 현재 `report_idempotency` reservation의 TTL만 설정한다. `reports` metadata와 GridFS HTML blob의 보존·hold·삭제는 별도 lifecycle sweeper가 함께 처리해야 한다.
+Component 32의 `dry_run=true`는 네트워크를 호출하지 않는다. URL, HTML, TTL 오류와 실제 API의 연결/HTTP/응답 형식 오류는 Component 예외가 아니라 `{ok:false,status:"PUBLISH_FAILED",error:{code,message,retryable},target_url}`로 반환되어 Chat Output에서 확인할 수 있다. API의 인증, token, 저장소 및 retention 정책은 공유 Report API의 운영 계약에 속하며 F30은 로컬 저장 fallback을 만들지 않는다.
 
 ## 8. Standalone source 계약
 
-`components/*/[0-9][0-9]_*.py` 34개 각각은 다음 조건을 만족한다.
+`components/*/[0-9][0-9]_*.py` 38개 각각은 다음 조건을 만족한다.
 
 - `from lfx.custom import Component` 기반 Component subclass가 정확히 하나다.
 - 형제 파일, 프로젝트 package, 상대 import, `sys.path` 조작을 사용하지 않는다.

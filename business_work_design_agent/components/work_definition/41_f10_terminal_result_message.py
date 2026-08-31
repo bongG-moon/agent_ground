@@ -14,10 +14,19 @@ from lfx.schema import Message
 
 _SENSITIVE_PATTERN = re.compile(
     r"(?i)(?:mongodb(?:\+srv)?://[^\s,;]+|https?://[^\s,;]+|"
-    r"[\"']?(?:api[_ -]?key|token|secret|password|authorization|bearer)[\"']?\s*[:=]\s*"
+    r"[\"']?(?:api[_ -]?key|token|secret|password|authorization|bearer|"
+    r"subject(?:_id)?|employee(?:_id)?|owner(?:_id)?|session(?:_id)?|tenant(?:_id)?)[\"']?\s*[:=]\s*"
     r"[\"']?[^\s,;\]\}\"']+[\"']?)"
 )
 _SAFE_CODE_PATTERN = re.compile(r"[^A-Za-z0-9_.-]+")
+_HIDE_DETAIL_CODE_PREFIXES = (
+    "AUTHENTICATION_",
+    "AUTHENTICATED_",
+    "TRUSTED_GATEWAY_",
+    "LOCAL_DEMO_",
+    "MONGODB_",
+    "DESIGN_INVOCATION_",
+)
 
 
 def _payload(value: Any) -> dict[str, Any]:
@@ -71,10 +80,31 @@ def _base_message(payload: dict[str, Any]) -> str:
         return "업무 정의 검토가 반려되었습니다. 내용을 보완한 뒤 다시 진행해 주세요."
     if status == "CANCELLED" or route == "cancelled_path":
         return "업무 정의 작성을 취소했습니다."
-    if error_code.startswith("ANSWER_") or error_code.startswith("CLARIFICATION_"):
+    if error_code.startswith("ANSWER_") or error_code.startswith("CLARIFICATION_") or error_code.startswith("F10_ANSWER_"):
         return "질문 카드의 답변을 처리할 수 없어 중단되었습니다."
+    if error_code.startswith("QUESTION_"):
+        return "추가 질문을 준비할 수 없어 중단되었습니다."
+    if error_code.startswith("AUTHENTICATION_") or error_code.startswith("AUTHENTICATED_") or error_code.startswith("TRUSTED_GATEWAY_") or error_code.startswith("LOCAL_DEMO_"):
+        return "인증된 사용자 정보를 확인할 수 없어 중단되었습니다."
+    if error_code.startswith("MONGODB_") or error_code.startswith("DESIGN_INVOCATION_MONGODB"):
+        return "MongoDB 설정 또는 연결을 확인할 수 없어 중단되었습니다."
     if error_code.startswith("F10_REVIEW") or error_code.startswith("WORK_GRAPH") or error_code.startswith("WORK_PREVIEW"):
         return "업무 정의 검토를 진행할 수 없어 중단되었습니다."
+    if error_code.startswith("F20_REPORT_HANDOFF") or error_code.startswith("F20_"):
+        return "F20 설계 결과를 보고서 단계로 전달할 수 없어 중단되었습니다."
+    if error_code.startswith(
+        (
+            "TERMINAL_BLUEPRINT_",
+            "BLUEPRINT_",
+            "PORT_",
+            "EDGE_",
+            "GENERATION_",
+            "INVALID_BLUEPRINT_",
+            "CLASSIFIED_BLUEPRINT_",
+            "UPSTREAM_BLUEPRINT_",
+        )
+    ):
+        return "Agent 설계 초안의 노드 연결 또는 입출력 정보를 확인할 수 없어 중단되었습니다."
     if error_code.startswith("DESIGN_") or error_code.startswith("APPROVED_"):
         return "에이전트 설계 단계를 진행할 수 없어 중단되었습니다."
     return "업무 정의 처리 중 문제가 발생해 중단되었습니다."
@@ -87,7 +117,7 @@ def _as_values(value: Any) -> list[Any]:
 def render_f10_terminal_result_message(terminal_events: Any = None) -> str:
     """Return the first supplied terminal outcome in a UI-safe Korean sentence.
 
-    A single list input deliberately replaces thirteen optional fan-in fields.
+    A single list input deliberately replaces many optional fan-in fields.
     Langflow can therefore skip conditionally excluded, never-built branch
     vertices before this renderer is called.
     """
@@ -106,7 +136,14 @@ def render_f10_terminal_result_message(terminal_events: Any = None) -> str:
         parts = [_base_message(payload)]
         status = _safe_code(payload.get("status"))
         error_code = _safe_code(error.get("code"))
-        error_message = _safe_message(error.get("message") or payload.get("message"))
+        # Authentication and MongoDB failures can contain a gateway claim,
+        # URI, or driver detail even when an upstream component attempted to
+        # redact it.  The user-facing terminal keeps the stable code and a
+        # Korean next-step message, but intentionally drops the free-text
+        # detail for those categories.
+        error_message = "" if error_code.upper().startswith(_HIDE_DETAIL_CODE_PREFIXES) else _safe_message(
+            error.get("message") or payload.get("message")
+        )
         if status:
             parts.append(f"상태: {status}.")
         if error_code:

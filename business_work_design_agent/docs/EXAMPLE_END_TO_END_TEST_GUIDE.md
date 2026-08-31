@@ -23,11 +23,11 @@ F00은 이 경로가 검색할 참고 자산을 만드는 선행 Flow다. 업로
 | `scripts/seed_example_skill_registry.py` | Skill JSON 계약 검증 및 선택적 MongoDB upsert | 기본 실행은 검증만 수행 |
 | `scripts/verify_example_mongodb.py` | active catalog pointer, parent/chunk/vector와 Skill registry 일관성 확인 | 읽기 전용 |
 
-예제 업무는 “매주 금요일에 업무 메일을 모아 프로젝트별 완료·진행·리스크·다음 주 계획으로 정리하고, 원본 메일 근거와 담당자 승인을 유지한 뒤에만 보고 포털에 게시한다”는 시나리오다. 실행 시각, 조회·분류 범위와 SLA가 일부러 확정되지 않아 F10의 재질문을 확인할 수 있다. 참고 catalog에는 기존 메일 업무보고·Outlook·GoodDocs·JIRA·HiQ1 자산과, 실제 업무 실행에 연결할 수 있는 메일 수집·첨부 추출·분류·근거 연결·승인 Gate·CUBE 알림·DataLake·공정/문서 Agent 후보를 포함한 총 28건이 들어 있다. 모두 `metadata_only`이므로 F20이 재사용 후보와 실제 runtime 검증 필요성을 구분하는지도 확인한다. 예제 Skill은 “근거 우선 주간 업무보고” 정책을 적용해 승인 전 게시와 근거 없는 완료 처리를 금지한다.
+예제 업무는 “매주 금요일에 업무 메일을 모아 프로젝트별 완료·진행·리스크·다음 주 계획으로 정리하고, 원본 메일 근거와 담당자 승인을 유지한 뒤에만 보고 포털에 게시한다”는 시나리오다. 실행 시각, 조회·분류 범위와 SLA가 일부러 확정되지 않아 F10의 재질문을 확인할 수 있다. 참고 catalog에는 기존 메일 업무보고·Outlook·GoodDocs·JIRA·HiQ1 자산과, 메일·회의·문서·RAG·DataLake·h-API·HITL·승인·CUBE·보고서·제조 업무까지 연결할 수 있는 후보를 포함한 총 100건이 들어 있다. 모두 예제용 `metadata_only` 후보이므로 F20이 재사용 후보와 실제 runtime 검증 필요성을 구분하는지도 확인한다. 예제 Skill은 “근거 우선 주간 업무보고” 정책을 적용해 승인 전 게시와 근거 없는 완료 처리를 금지한다.
 
 세 JSON은 모두 테스트 fixture다. API key, MongoDB credential, 사내 원문, 실제 사용자 정보는 예제 JSON에 추가하지 않는다. Secret은 Langflow Secret/Global 또는 사내 secret manager로 전달한다.
 
-예제 전체 경로는 `default`, `internal-assets`, `employee-demo`를 각각 tenant, catalog, owner로 사용한다. F00 Loader 화면에서는 tenant/catalog을 입력하지 않고, 내부적으로 이 고정 scope를 bundle과 MongoDB 문서에 기록한다. F10의 `owner_id`와 Component 36의 trusted `authenticated_subject_id`는 모두 `employee-demo`여야 한다. 하나라도 다르면 정상적으로 fail-closed 된다.
+예제 전체 경로는 `default`, `internal-assets`, `employee-demo`를 각각 tenant, catalog, owner로 사용한다. F00 Loader 화면에서는 tenant/catalog을 입력하지 않고, 내부적으로 이 고정 scope를 bundle과 MongoDB 문서에 기록한다. F10의 `owner_id`와 Component 45 local demo fixture의 `subject_id`는 모두 `employee-demo`여야 한다. 이 fixture는 sample 확인용 `authenticated_subject_verified=false`이며, 운영에서는 trusted gateway context의 subject가 owner와 일치해야 한다. 하나라도 다르면 정상적으로 fail-closed 된다.
 
 ## 2. 사전 준비
 
@@ -95,7 +95,7 @@ F00, F20, F90에는 각각 built-in `Embedding Model` node가 있으며 모두 �
 
 live 실행에서 Writer 또는 Component 29는 Embeddings runtime의 `schema_version`, `runtime_class`, configured `available_models` identity 또는 지원된 runtime metadata에서 해석한 `model_id`, 첫 vector의 실제 `dimension`, 이 값을 묶은 `fingerprint`로 `embedding-runtime-contract/v2` 계약을 만든다. generic Embeddings handle의 임의 속성에서 model/version을 추측하지 않으며, `model_id`를 해석할 수 없으면 fail-closed한다. active pointer의 v2 계약과 F20/F90 query vector 계약이 하나라도 다르면 `QUERY_EMBEDDING_CONTRACT_MISMATCH`로 검색이 중단되어야 한다.
 
-built-in node의 `chunk_size`는 provider 내부 요청 설정이고 catalog text 분할 크기는 `01 Deterministic Chunker`의 `chunk_chars`와 별개다. F00 Writer는 provider 요청에 청크를 묶지 않고 정확히 한 청크씩 `embed_documents([chunk])`로 호출하며, 다음 호출 전 `임베딩 호출 간격(초)`만큼 대기한다. 기본값과 최소값은 1초이므로 28개 청크 예제는 임베딩 호출 간격만 최소 27초가 필요하다. `MongoDB 일괄 저장 문서 수`는 vector가 만들어진 뒤 MongoDB bulk write에 묶는 문서 수이며 청크 분할이나 embedding 호출 횟수를 바꾸지 않는다. `MongoDB 연결·서버 선택 제한 시간 (ms)`는 MongoDB 연결과 서버 선택에 적용된다. 소켓 read/write는 적재 안정성을 위해 최소 10초를 사용하며, 두 값 모두 Embedding Model 호출에는 적용되지 않는다. advanced `Dimensions`는 provider가 output-size override를 의도적으로 지원할 때만 설정하고, 기본값은 비워 둔다. Writer와 Retriever는 이 UI 값이 아니라 실제 반환 vector length를 사용한다. Canvas의 **테스트 실행 (저장하지 않음)**은 내부 `dry_run=true`로 provider/MongoDB를 호출하지 않기 때문에 `embedding_contract.state`는 `DEFERRED`, snapshot은 `null`이다.
+built-in node의 `chunk_size`는 provider 내부 요청 설정이고 catalog text 분할 크기는 `01 Deterministic Chunker`의 `chunk_chars`와 별개다. F00 Writer는 provider 요청에 청크를 묶지 않고 정확히 한 청크씩 `embed_documents([chunk])`로 호출하며, 다음 호출과 일시 오류 재시도 전 `임베딩 호출 간격(초)`만큼 대기한다. 기본값과 최소값은 1초다. 첫 live 실행은 새 청크 최대 80개 또는 Writer 내부 180초까지만 처리하고 10개씩 MongoDB에 checkpoint를 남긴다. 100건 예제처럼 새 청크가 남은 경우 `부분 적재 후 계속 여부 확인 (HITL)=true`여도 **Langflow durable background job**에서만 `WAITING_INGESTION_CONTINUATION` native 카드가 열리고 처리 수·남은 수를 표시한다. **계속 적재**를 누르면 같은 Writer가 checkpoint에서 다음 bounded batch를 처리하고, 마지막 batch에서만 `ACTIVE`와 active pointer 갱신이 발생한다. **중단하고 나중에 실행**을 누르면 checkpoint는 보존되지만 active pointer는 바뀌지 않는다. 일반 Canvas Run Flow는 durable job을 만들지 않으므로 `PARTIAL_EMBEDDINGS_SAVED`, `hitl.available=false`, `hitl.reason=durable_background_job_required`를 반환하며, 같은 전체 파일·chunk 정책·Embedding Model 설정으로 새 실행을 시작한다. `MongoDB 저장 체크포인트 청크 수`는 vector가 만들어진 뒤 MongoDB에 checkpoint로 저장하는 문서 수이며 청크 분할이나 embedding 호출 횟수를 바꾸지 않는다. `MongoDB 연결·서버 선택 제한 시간 (ms)`는 MongoDB 연결과 서버 선택에 적용된다. 소켓 read/write는 적재 안정성을 위해 최소 10초를 사용하며, 두 값 모두 Embedding Model 호출에는 적용되지 않는다. advanced `Dimensions`는 provider가 output-size override를 의도적으로 지원할 때만 설정하고, 기본값은 비워 둔다. Writer와 Retriever는 이 UI 값이 아니라 실제 반환 vector length를 사용한다. Canvas의 **테스트 실행 (저장하지 않음)**은 기본으로 켜져 있고 내부 `dry_run=true`로 실제 embedding 요청/MongoDB를 호출하지 않기 때문에 `embedding_contract.state`는 `DEFERRED`, snapshot은 `null`이다. 단, Langflow graph는 Writer를 build하기 전에 연결된 Embedding Model node를 build할 수 있으므로, 이 테스트 단계에서도 승인 provider/model과 해당 provider가 build에 요구하는 Secret을 설정해야 한다. 이는 실제 vector API 호출이나 1초 대기를 뜻하지 않는다.
 
 ### 2.4 MongoDB Search index
 
@@ -190,10 +190,11 @@ Canvas에서 각 입력이 담당 node에 나뉘어 보이는지 확인하고 �
 | 01 Chunker | Chunk Size / Overlap | live 단계에서 사용할 동일 정책 |
 | Embedding Model | Model / Provider / Advanced Dimensions | live 단계에서 사용할 승인 모델. Dimensions는 provider output-size override가 필요할 때만 설정하고 기본은 비움 |
 | 02 Writer | MongoDB Database / Collections | 테스트 DB와 canonical 세 collection |
-| 02 Writer (advanced) | 임베딩 호출 간격(초) / MongoDB 일괄 저장 문서 수 / MongoDB 연결·서버 선택 제한 시간 | 실제 저장 시 청크 1개씩 순차 임베딩하고, 첫 호출 뒤부터 최소 1초 간격을 적용. MongoDB write batch는 임베딩 호출 단위와 별개이며 socket read/write는 안정성을 위해 최소 10초를 사용 |
+| 02 Writer (advanced) | 실행 1회당 신규 임베딩 청크 수 / 실행 최대 처리 시간 (초) / 임베딩 호출 간격(초) / MongoDB 저장 체크포인트 청크 수 / MongoDB 연결·서버 선택 제한 시간 | 기본값은 새 청크 80개 또는 180초까지만 처리하고, 10개마다 checkpoint를 저장한다. 실제 저장 시 청크 1개씩 순차 임베딩하고 첫 호출 뒤부터 최소 1초 간격을 적용한다. checkpoint 저장 간격은 임베딩 호출 단위와 별개이며 socket read/write는 안정성을 위해 최소 10초를 사용한다. |
 | 02 Writer | 테스트 실행 (저장하지 않음) | `true` |
+| 02 Writer | 전체 카탈로그 파일 확인 (실제 저장용) | `false` 유지. 테스트 실행에는 필요 없으며 live publish 전에만 켠다. |
 
-테스트 실행에서는 MongoDB URI와 provider API key가 없어도 된다. Loader의 파일 검증·민감정보 제거·canonical text, Chunker의 chunk/hash, Writer의 bundle 검증까지만 실행해야 하며 Embeddings handle, MongoDB network, 임베딩 호출 간 대기를 실행해서는 안 된다. runtime contract와 snapshot은 이 단계에서 의도적으로 생성하지 않는다.
+테스트 실행에서는 MongoDB URI가 없어도 된다. 그러나 `Embedding Model → Writer` 연결 때문에 Langflow가 upstream Embedding Model을 먼저 build할 수 있으므로, 승인 provider/model과 해당 provider가 build에 요구하는 API Secret은 미리 설정한다. Writer는 `dry_run=true`에서 embedding API, MongoDB network, 임베딩 호출 간 대기를 실행하지 않는다. Loader의 파일 검증·민감정보 제거·canonical text, Chunker의 chunk/hash, Writer의 bundle 검증까지만 수행하며 runtime contract와 snapshot은 이 단계에서 의도적으로 생성하지 않는다. F00은 전체 snapshot 교체 방식이므로 live publish에 사용할 파일은 반드시 현재 전체 catalog여야 하며 신규분만 든 delta 파일을 사용하면 안 된다.
 
 ### 4.3 실행 결과
 
@@ -204,7 +205,7 @@ Flow를 실행하고 Chat Output JSON을 저장한다. 합격 기준은 다음�
 - 화면에는 **테스트 실행 (저장하지 않음)**, 내부 계약에는 `dry_run=true`
 - `message="테스트 실행입니다. MongoDB에는 저장하지 않았습니다."`
 - `tenant_id="default"`, `catalog_id="internal-assets"`
-- `counts.records=6`
+- `counts.records=100`
 - `counts.chunks`가 1 이상
 - `embedding_contract.state="DEFERRED"`, `snapshot_id=null`
 - `source_sha256`, `ingest_sha256` 존재
@@ -214,7 +215,7 @@ Flow를 실행하고 Chat Output JSON을 저장한다. 합격 기준은 다음�
 
 ## 5. 3단계: F00 live MongoDB/embedding ingest
 
-같은 F00 Flow에서 Writer의 **테스트 실행 (저장하지 않음)**을 끄고 다음 값을 Secret/Global에서 연결한다. 내부 필드명은 `dry_run=false`다.
+같은 F00 Flow에서 Writer의 **테스트 실행 (저장하지 않음)**을 끄고, 업로드 파일이 현재 전체 catalog임을 확인한 뒤 **전체 카탈로그 파일 확인 (실제 저장용)**도 켠다. 내부 필드명은 각각 `dry_run=false`, `confirm_complete_catalog_snapshot=true`다. 확인값을 켜지 않으면 live write는 시작하지 않고 `FULL_SNAPSHOT_CONFIRMATION_REQUIRED`로 차단된다.
 
 | Node | 필드 | 설정 원칙 |
 | --- | --- | --- |
@@ -224,25 +225,34 @@ Flow를 실행하고 Chat Output JSON을 저장한다. 합격 기준은 다음�
 | 02 Writer | MongoDB URI | 자동 연결된 Langflow Secret `MONGO_URL` (값은 `$env:MONGODB_URI`와 같은 테스트 DB credential) |
 | 02 Writer | MongoDB Database | `$env:MONGODB_DATABASE`와 동일 |
 | 02 Writer | Assets / Chunks / Pointer Collections | `catalog_assets`, `catalog_asset_chunks`, `catalog_active_pointers` |
+| 02 Writer | 전체 카탈로그 파일 확인 (실제 저장용) | `true`; 이 업로드가 현재 전체 catalog라는 운영자 확인 |
+| 02 Writer | 부분 적재 후 계속 여부 확인 (HITL) | `true`; **durable background job**에서만 부분 checkpoint 뒤 Continue/Stop 카드 표시. Canvas Run Flow는 checkpoint 저장 후 재실행 방식 |
+| 02 Writer | 실행 1회당 신규 임베딩 청크 수 | 카드 동작 검증은 `20`, 일반 예제 실행은 기본 `80` |
 
 첫 번째 live 실행의 합격 기준:
 
-- `ok=true`, `status="ACTIVE"`, `dry_run=false`
+- `ok=true`, `dry_run=false`
+- 새 청크가 기본 한도(80개) 또는 180초 안에 모두 끝나면 `status="ACTIVE"`; 남고 **durable background job**에서 HITL이 켜져 있으면 `status="WAITING_INGESTION_CONTINUATION"`과 `resume.request_id`가 나온다.
+- `WAITING_INGESTION_CONTINUATION`이면 Playground 카드의 처리 수·남은 수를 확인한 뒤 **계속 적재** 또는 **중단하고 나중에 실행**을 선택한다. 계속 적재의 마지막 batch에서만 `status="ACTIVE"`와 active pointer 갱신이 발생한다.
+- Continue/Stop 카드를 눈으로 시험하려면 durable background job에서 예제 100건의 `실행 1회당 신규 임베딩 청크 수=20`으로 설정한다. 일반 Canvas Run Flow는 카드를 열지 않는다.
+- Canvas Run Flow, HITL이 꺼진 실행 또는 durable job이 없는 실행에서는 `status="PARTIAL_EMBEDDINGS_SAVED"`, `hitl.reason="durable_background_job_required"`(Canvas인 경우), `progress.next_run_required=true`, `progress.remaining_chunks`를 확인하고 **같은 전체 파일·chunk 정책·Embedding Model 설정으로 다시 실행**한다.
 - `counts.records`와 예제 record 수가 동일
 - `counts.chunks == counts.vectors`
 - `embedding_contract`가 `embedding-runtime-contract/v2`, `schema_version`, `runtime_class`, `model_id`, `dimension`, `fingerprint`를 모두 포함
 - 같은 파일·chunk 정책·runtime v2 계약으로 재실행하면 같은 deterministic `snapshot_id`
 - `catalog_active_pointers`가 모든 parent/chunk/vector 저장과 count 확인 뒤에만 해당 snapshot으로 전환
 
-동일 파일을 한 번 더 실행한다. parent/chunk document가 중복 증가하지 않고 같은 snapshot이 유지되어야 한다.
+최종 `ACTIVE` 이후 동일 파일을 한 번 더 실행한다. parent/chunk document가 중복 증가하지 않고 같은 snapshot이 유지되어야 하며, 결과는 `status="ACTIVE_ALREADY_CURRENT"`일 수 있다. 이 경우 Writer는 runtime contract 확인용 첫 chunk만 probe하고 parent/chunk write와 pointer 전환을 하지 않는다.
 
 장애 안전성은 별도로 확인한다.
 
 1. 현재 active pointer ID를 기록한다.
 2. model identity를 해석할 수 없는 provider runtime을 쓰거나 F20/F90에 F00과 다른 model을 설정해 한 번 실행한다.
-3. `ok=false`이고 `QUERY_EMBEDDING_CONTRACT_MISMATCH`, `EMBEDDING_PROVIDER_FAILED` 또는 명시적 validation 오류인지 확인한다.
+3. `ok=false`이고 `QUERY_EMBEDDING_CONTRACT_MISMATCH`, `EMBEDDING_PROVIDER_FAILED`, `CATALOG_ACTIVATION_CONFLICT` 또는 명시적 validation 오류인지 확인한다.
 4. 기존 active pointer가 1번 값에서 바뀌지 않았는지 확인한다.
 5. 올바른 설정으로 복구한다.
+
+부분 적재 복원력도 시험한다. live test DB에서 vector 두 개 이상이 저장된 뒤 provider를 중단해 pointer가 바뀌지 않았는지 확인하고, 같은 전체 파일·chunk 정책·Embedding Model로 다시 실행한다. `resume_verified_partial_snapshot=true`일 때 결과의 `embedding_execution.resumed_vectors`가 0보다 크고, 재사용 청크가 hash·runtime contract·finite vector를 다시 검증한 것인지 확인한다. 다른 파일, 다른 정책, 다른 model/runtime 계약에는 재사용하면 안 된다.
 
 실패 시험용 값은 테스트 DB와 테스트 credential에서만 사용한다.
 
@@ -312,7 +322,7 @@ F20에서 다음을 설정한다.
 
 F20을 사용자가 직접 실행해 임의 invocation을 붙여 넣는 것은 production 경로 시험이 아니다. F20 설정 확인 후 실제 입력은 F10 승인 성공 경로의 Component 36과 Run Flow가 전달하게 둔다.
 
-F30 Publisher는 첫 E2E에서 `테스트 실행 (저장하지 않음)=true`를 유지한다. F30의 tenant/actor는 sealed handoff가 자동 연결하므로 수동 입력값은 비워 둔다. 실제 게시만 별도 Report API, bearer token, allowlisted host가 준비된 환경에서 `dry_run=false`로 확인한다.
+F30 Publisher는 첫 E2E에서 `테스트 실행 (저장하지 않음)=true`를 유지한다. 기본 `Report API URL`은 `http://127.0.0.1:5000`이고 base URL 또는 `/reports` endpoint를 넣을 수 있다. 실제 게시은 공유 HTML Report API가 준비된 환경에서만 `dry_run=false`로 확인한다.
 
 ### 7.3 F10 공통 설정
 
@@ -324,10 +334,11 @@ F10은 같은 Component source가 여러 회차 node로 펼쳐져 있다. 아래
 | Component 42 보완 답변 HITL (3개 모두) | 외부 설정 없음. `질문 Batch`만 Component 13에서 연결하며, Playground input schema와 답변 type 안내를 자동 생성 |
 | Component 39 답변 반영 (3개 모두) | 자동 연결된 `MONGO_URL`/DB, 내부 `work_definitions`, `clarification_batches`; 사번은 batch/업무 컨텍스트에서 자동 검증 |
 | Component 18 WorkDefinition store | 자동 연결된 `MONGO_URL`/DB만 환경 설정. 사번·revision·중복 실행 방지 키는 자동 연결/계산하며 `work_definitions`와 `work_definition_events`는 내부 고정 |
-| Component 36 invocation loader | 자동 연결된 `MONGO_URL`/DB, work/pointer/skill collection, trusted subject/groups |
+| Component 45 인증 Context 경계 | import 직후에는 `local_demo_fixture`와 자동 연결된 사번 기반 실행자를 사용한다. 운영에서는 `trusted_gateway`로 바꾸고 gateway의 subject/group output만 연결한다. |
+| Component 36 invocation loader | 자동 연결된 `MONGO_URL`/DB, work/pointer/skill collection, Component 45의 sealed authentication context |
 | Extraction/Clarification Model | 승인된 구조화 출력 LLM |
 
-Component 40 Joiner와 Component 41 terminal message에는 별도 외부 설정이 없다. `34_work_runtime_state_store.py`, `35_result_gate.py`, F11/Playground 분리 Flow는 현행 compact F10 Canvas 경로가 아니므로 이 import 절차에서 설정하지 않는다. URI와 token은 node마다 복사해 평문 저장하지 말고 자동 연결된 Langflow Secret Global `MONGO_URL`을 재사용한다. Component 36의 `authenticated_subject_id`와 `authenticated_groups`는 production에서 browser 입력이 아니라 trusted gateway identity에서 주입해야 한다. 로컬 E2E에서는 예제 owner/group과 같은 고정 테스트 identity를 사용하되 이것을 운영 설계로 간주하지 않는다.
+Component 40 Joiner와 Component 41 terminal message에는 별도 외부 설정이 없다. `34_work_runtime_state_store.py`, `35_result_gate.py`, F11/Playground 분리 Flow는 현행 compact F10 Canvas 경로가 아니므로 이 import 절차에서 설정하지 않는다. URI와 token은 node마다 복사해 평문 저장하지 말고 자동 연결된 Langflow Secret Global `MONGO_URL`을 재사용한다. Component 36에는 browser 입력이 아니라 Component 45의 sealed context만 연결한다. 로컬 E2E의 `local_demo_fixture`는 예제 owner와 같은 고정 subject를 쓰되 명시적으로 unverified이며, 운영 설계로 간주하지 않는다.
 
 ### 7.4 예제 업무 설명 입력
 
@@ -350,7 +361,7 @@ F10 export에는 `samples/f10_work_request_example.json`의 업무 설명과 추
 
 1. F10 Canvas의 `업무 설명 원문`, `추가 설계 프롬프트`, 팀 명, 사번이 7.4의 예제 값인지 확인한다. 필요한 경우 `samples/f10_work_request_example.json`의 해당 값으로 바꾼다.
 2. Component 13 (세 회차), Component 39 (세 회차), Component 18, Component 36과 F20 Retriever가 공통 Langflow Secret `MONGO_URL`을 참조하는지 확인한다. URI는 card에 직접 평문으로 입력하지 않고 export가 자동 연결한 Global Variable를 사용한다. 격리 테스트라면 Database만 `business_work_design_e2e`로 바꾼다.
-3. Playground에서 F10을 실행한다. 예제 업무는 일부 조건이 비어 있으므로 Component 12가 보완을 요구하면 Component 13이 `clarification_batches`에 `WAITING_ANSWER` batch를 만든다.
+3. Playground에서 F10을 실행한다. 예제 업무는 일부 조건이 비어 있으므로 Component 12가 보완을 요구하면 Component 13이 `clarification_batches`에 `WAITING_ANSWER` batch를 만든다. 실행 전에 transaction 가능한 MongoDB replica set/Atlas와 F10 unique/TTL index를 배포 preflight로 확인한다.
 4. 응답 화면에 **`Waiting for Human Input`** 카드가 보이면, 질문 문구 아래에 `answer_01` 등 질문 수만큼 실제 입력칸이 표시되는지 확인한다. 이 카드는 `42 보완 답변 HITL`이 보낸 `kind=node_input` + `schema` 카드다. 같은 카드에는 `Submit Answers`, **`추가 입력 건너뛰기` (`Skip Additional Input`)**, `Cancel` 중 하나를 선택하는 action이 보여야 한다.
 
 `Submit Answers`/`추가 입력 건너뛰기`/`Cancel` 버튼만 있고 입력칸이 없다면 과거 built-in `Human Input` export를 연 것이다. 실행을 중단하고 최신 F10과 `42_f10_clarification_answer_gate.py` source를 다시 import/build한 뒤 **새 job**으로 재시작한다. 기존 suspend job은 새 schema를 받지 않는다.
@@ -414,7 +425,7 @@ Component 42가 안전한 field 이름을 원래 질문 ID와 답변 type으로 
 
 1. Component 18이 canonical WorkDefinition을 `APPROVED`와 `approved_hash`로 저장한다.
 2. Component 36이 승인 receipt를 받아 MongoDB canonical WorkDefinition, active catalog pointer, active Skill registry를 다시 읽는다.
-3. canonical/request channel이 모두 `native_hitl`인지, authenticated subject가 owner와 같은지 검증한다.
+3. canonical/request channel이 모두 `native_hitl`인지, Component 45 sealed authentication context의 subject가 owner와 같은지 검증한다.
 4. Component 36이 strict JSON text를 포함한 `agent-design-invocation/v1`을 만든다.
 5. built-in TypeConverter가 Data를 Message로 바꾼다.
 6. F10의 `Run Flow(tool_mode=false)`가 F20 ChatInput으로 직접 전달한다.
@@ -439,7 +450,7 @@ Component 42가 안전한 field 이름을 원래 질문 ID와 답변 type으로 
 
 | 시험 | 기대 결과 |
 | --- | --- |
-| Component 36 authenticated subject를 다른 값으로 설정 | blocked, F20 미실행 |
+| Component 45 trusted gateway subject를 owner와 다른 값으로 설정 | blocked, F20 미실행 |
 | active pointer의 runtime v2 계약과 F20 query contract 불일치 | 검색 blocked |
 | Skill prompt hash 불일치 또는 status가 `Active` | 해당 Skill fail-closed 제외 |
 | 최종 Human Input에서 Reject/Cancel | terminal 상태, F20 미실행 |
@@ -487,9 +498,9 @@ F10 실행 결과는 별도로 다음 collection에서 확인한다.
 
 ### 11.1 F30 반응형 report 테스트 실행 (저장하지 않음)
 
-F30은 9단계 승인 성공 경로에서 자동 실행된다. F30만 독립 dry-run으로 확인할 때는 `flows/F30_responsive_report.json`을 import하고 [`samples/f20_report_handoff.json`](../samples/f20_report_handoff.json) **전체**를 Chat Input에 넣는다. Component 33이 승인 WorkDefinition, terminal Blueprint envelope, retrieval trace, publisher context를 자동 분리한다.
+F30은 9단계 승인 성공 경로에서 자동 실행된다. F30만 독립 dry-run으로 확인할 때는 `flows/F30_responsive_report.json`을 import하고 [`samples/f20_report_handoff.json`](../samples/f20_report_handoff.json) **전체**를 Chat Input에 넣는다. Component 33이 승인 WorkDefinition, terminal Blueprint envelope, retrieval trace를 자동 분리한다.
 
-첫 시험에서는 Component 32 화면의 **테스트 실행 (저장하지 않음)**(`dry_run=true`)을 유지한다. 합격 기준:
+첫 시험에서는 Component 32 화면의 **테스트 실행 (저장하지 않음)**(`dry_run=true`)을 유지한다. `Report API URL=http://127.0.0.1:5000`, `HTML Link TTL (hours)=4`를 확인한다. 게시 API의 연결/HTTP/응답 오류는 Flow 예외가 아니라 `PUBLISH_FAILED` 결과로 표시된다. 합격 기준:
 
 - view model과 HTML render `ok=true`
 - node/edge 클릭 시 업무 방식, 개선 방향, 추천 근거, 적용 Skill, 신규 Custom 생성 요청 확인
@@ -498,11 +509,11 @@ F30은 9단계 승인 성공 경로에서 자동 실행된다. F30만 독립 dry
 - script/HTML injection 문자열이 실행되지 않음
 - Report API network publish가 발생하지 않음
 
-실제 게시 시험은 Report API, bearer token, signing secret과 별도 테스트 storage가 준비된 경우에만 수행한다.
+실제 게시 시험은 공유 HTML Report API가 실행 중이고 view/download URL을 반환하는 경우에만 수행한다.
 
 ### 11.2 F90 검색 평가
 
-`flows/F90_search_evaluation.json`은 active catalog의 검색 품질을 독립적으로 확인하는 선택 Flow다. F10의 Component 36을 통과한 동일 scope의 validated invocation을 평가 입력으로 사용하고, F20과 같은 built-in Embedding Model provider/model, runtime v2 contract, MongoDB/index 설정을 적용한다. advanced `Dimensions`는 provider output-size override가 필요한 경우만 F00/F20과 일관되게 설정한다.
+`flows/F90_search_evaluation.json`은 active catalog의 검색 품질을 독립적으로 확인하는 선택 Flow다. Playground의 유일한 Chat Input에 **F10 Component 36의 `Verified Design Invocation` 전체 JSON**을 붙여 넣어 실행한다. raw 업무 설명이나 F10/F20 중간 payload는 입력 계약이 아니며 Query Planner의 approval/ACL/snapshot lock 검증에서 차단되는 것이 정상이다. F20과 같은 built-in Embedding Model provider/model, runtime v2 contract, MongoDB/index 설정을 적용하며, Component 29는 F00와 같은 provider 경계 보호를 위해 query batch 사이에 기본·최소 1초를 대기한다. advanced `Dimensions`는 provider output-size override가 필요한 경우만 F00/F20과 일관되게 설정한다.
 
 합격 기준:
 

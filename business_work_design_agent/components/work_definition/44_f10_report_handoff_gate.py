@@ -21,9 +21,19 @@ _OUTPUTS = ("success_message", "blocked_path")
 
 
 def _payload(value: Any) -> dict[str, Any]:
-    data = getattr(value, "data", None)
-    text = getattr(value, "text", None)
-    value = data if isinstance(data, dict) else (text if isinstance(text, str) else value)
+    """Extract a handoff from Data, JSON, or an actual Langflow Message.
+
+    ``lfx.schema.Message.data`` is a message metadata dictionary rather than
+    the JSON emitted by a Chat Output.  Reading it before ``Message.text``
+    makes a valid sealed F20 handoff look like a malformed payload in a real
+    Run Flow execution.  Prefer non-empty message text, then fall back to a
+    Data payload.
+    """
+
+    if not isinstance(value, dict):
+        text = getattr(value, "text", None)
+        data = getattr(value, "data", None)
+        value = text if isinstance(text, str) and text.strip() else (data if isinstance(data, dict) else value)
     if isinstance(value, str):
         try:
             value = json.loads(value)
@@ -41,9 +51,43 @@ def _component_id(component: Any) -> str:
     return str(getattr(component, "_id", "") or getattr(component, "name", "") or "F10ReportHandoffGate")[:200]
 
 
+def _forward_upstream_blocked(handoff: dict[str, Any], trace_id: str) -> dict[str, Any] | None:
+    """Keep an F20 structured failure visible to the F10 terminal message.
+
+    F20 may correctly return a blocked envelope before it can create the
+    sealed report-handoff contract.  That envelope deliberately has a
+    different shape, so it must be forwarded before validating the successful
+    handoff schema.  Otherwise the useful F20 code is overwritten with a
+    generic ``F20_REPORT_HANDOFF_FIELDS_INVALID`` error.
+    """
+
+    error = handoff.get("error")
+    if (
+        handoff.get("ok") is not False
+        or handoff.get("status") != "BLOCKED"
+        or handoff.get("schema_version") != HANDOFF_SCHEMA_VERSION
+        or not isinstance(error, dict)
+    ):
+        return None
+    result: dict[str, Any] = {
+        "ok": False,
+        "status": "BLOCKED",
+        "route": "blocked_path",
+        "error": copy.deepcopy(error),
+        "trace_id": trace_id,
+    }
+    upstream_trace_id = handoff.get("trace_id")
+    if isinstance(upstream_trace_id, str) and upstream_trace_id.strip():
+        result["upstream_trace_id"] = upstream_trace_id.strip()[:200]
+    return result
+
+
 def validate_f20_report_handoff(value: Any) -> dict[str, Any]:
     trace_id = f"trace-{uuid.uuid4()}"
     handoff = _payload(value)
+    upstream_blocked = _forward_upstream_blocked(handoff, trace_id)
+    if upstream_blocked is not None:
+        return upstream_blocked
     required = {
         "ok",
         "status",

@@ -8,7 +8,7 @@ import uuid
 from typing import Any
 
 from lfx.custom import Component
-from lfx.io import DataInput, IntInput, Output
+from lfx.io import DataInput, HandleInput, IntInput, Output
 from lfx.schema import Data
 
 
@@ -99,6 +99,25 @@ def _payload(value: Any) -> dict[str, Any]:
     return {}
 
 
+def _forward_blocked_envelope(value: Any, *, trace_id: str) -> dict[str, Any] | None:
+    """Do not relabel an earlier F20 retrieval/model failure as a lock error."""
+    payload = _payload(value)
+    error = payload.get("error")
+    if payload.get("ok") is not False or str(payload.get("status") or "") != "BLOCKED" or not isinstance(error, dict):
+        return None
+    details = error.get("details")
+    forwarded_details = dict(details) if isinstance(details, dict) else {}
+    upstream_trace_id = str(payload.get("trace_id") or "").strip()
+    if upstream_trace_id:
+        forwarded_details.setdefault("upstream_trace_id", upstream_trace_id)
+    return _error(
+        trace_id,
+        str(error.get("code") or "UPSTREAM_BLUEPRINT_STAGE_BLOCKED"),
+        str(error.get("message") or "이전 Blueprint 단계가 차단되었습니다."),
+        details=forwarded_details,
+    )
+
+
 def _blueprint_draft_payload(value: Any) -> dict[str, Any]:
     """Read a direct Blueprint object or a single JSON/fenced-JSON model reply.
 
@@ -107,25 +126,58 @@ def _blueprint_draft_payload(value: Any) -> dict[str, Any]:
     one Markdown JSON fence.  Accept only that narrow representation rather
     than extracting arbitrary text from a model response.
     """
+    # A direct Language Model edge supplies a Message object in Langflow.  Read
+    # only its text field; do not inspect arbitrary metadata or extract JSON
+    # fragments from prose, which would make an accidental model explanation
+    # look like an approved blueprint.
+    text = getattr(value, "text", None)
     payload = _payload(value)
-    text = payload.get("text") if isinstance(payload, dict) else None
+    if not isinstance(text, str):
+        text = payload.get("text") if isinstance(payload, dict) else None
     if not isinstance(text, str):
         return payload
     normalized = text.strip()
     if not normalized or len(normalized) > 500_000:
-        return payload
+        return {}
     fenced = re.fullmatch(r"```(?:json)?\s*(.*?)\s*```", normalized, flags=re.IGNORECASE | re.DOTALL)
     if fenced:
         normalized = fenced.group(1).strip()
     try:
         parsed = json.loads(normalized)
     except json.JSONDecodeError:
-        return payload
-    return parsed if isinstance(parsed, dict) else payload
+        return {}
+    return parsed if isinstance(parsed, dict) else {}
 
 
 def _safe(value: Any, maximum: int = 1000) -> str:
     return re.sub(r"[\x00-\x1f]", " ", str(value or "")).strip()[:maximum]
+
+
+def _default_node_responsibility(title: str, source: str) -> str:
+    """Supply deterministic text when an F20 draft omitted node responsibility."""
+
+    source_text = {
+        "builtin": "Langflow 기본 기능으로",
+        "catalog_component": "승인된 카탈로그 Component로",
+        "catalog_flow": "승인된 카탈로그 Flow로",
+        "new_standalone_component": "신규 Standalone Custom Component로",
+        "companion_service": "승인된 연계 서비스로",
+        "human_task": "담당자의 판단으로",
+    }.get(source, "정의된 방식으로")
+    return f"{title} 단계를 {source_text} 수행하고 다음 단계에 필요한 결과를 전달합니다."
+
+
+def _default_reuse_decision_reason(source: str) -> str:
+    """Give every node an auditable, non-empty reuse decision rationale."""
+
+    return {
+        "builtin": "표준 Langflow 기본 기능으로 구현 가능한 단계입니다.",
+        "catalog_component": "승인된 카탈로그 Component 계약을 재사용합니다.",
+        "catalog_flow": "승인된 카탈로그 Flow 계약을 재사용합니다.",
+        "new_standalone_component": "현재 승인 후보에 직접 재사용할 자산이 없어 Standalone Custom Component 생성 후보로 설계했습니다.",
+        "companion_service": "외부 또는 사내 연계 서비스의 명시적 계약이 필요한 단계입니다.",
+        "human_task": "업무 판단·승인 책임을 자동화하지 않고 담당자가 수행해야 하는 단계입니다.",
+    }.get(source, "선택한 구현 방식과 검증 범위를 설계 단계에서 명시합니다.")
 
 
 def _optional_safe(value: Any, maximum: int = 1000) -> str | None:
@@ -289,7 +341,7 @@ def _canonical_hash(value: Any) -> str:
 
 
 def _design_scope_hash(scope: dict[str, Any]) -> str:
-    keys = (
+    keys = [
         "schema_version",
         "tenant_id",
         "catalog_snapshot_id",
@@ -299,7 +351,11 @@ def _design_scope_hash(scope: dict[str, Any]) -> str:
         "work_definition",
         "acl_context",
         "design_prompt",
-    )
+    ]
+    # A current scope may bind the retrieval-only original request by hash.
+    # Preserve backward compatibility for a direct, older scope with no seed.
+    if "search_seed_sha256" in scope:
+        keys.append("search_seed_sha256")
     return _canonical_hash({key: scope.get(key) for key in keys})
 
 
@@ -385,7 +441,17 @@ def normalize_agent_blueprint(
     if not tenant or not snapshot:
         return _error(trace_id, "BLUEPRINT_SCOPE_MISSING", "tenant_id와 catalog_snapshot_id가 필요합니다.")
     if not draft:
-        return _error(trace_id, "INVALID_BLUEPRINT_DRAFT", "blueprint draft가 비어 있습니다.")
+        return _error(
+            trace_id,
+            "INVALID_BLUEPRINT_DRAFT",
+            "Blueprint Model 응답은 단일 JSON object 또는 하나의 json code fence여야 합니다.",
+            details={
+                "next_actions": [
+                    "Blueprint Language Model의 system message를 유지하고 JSON object만 반환하도록 설정합니다.",
+                    "모델의 설명문·여러 code fence·부분 JSON은 제거합니다.",
+                ]
+            },
+        )
     if draft.get("generation_requests"):
         return _error(
             trace_id,
@@ -613,11 +679,18 @@ def normalize_agent_blueprint(
 
         input_ports = [port for idx, item in enumerate(raw_input_ports[:100], start=1) if (port := _normalize_port(item, idx, "input"))]
         output_ports = [port for idx, item in enumerate(raw_output_ports[:100], start=1) if (port := _normalize_port(item, idx, "output"))]
+        title = _safe(raw.get("title") or raw.get("name") or node_id, 300)
+        responsibility = _safe(raw.get("responsibility") or raw.get("description"), 2000)
+        if not responsibility:
+            responsibility = _default_node_responsibility(title, source)
+        reuse_decision_reason = _safe(raw.get("reuse_decision_reason"), 1000)
+        if not reuse_decision_reason:
+            reuse_decision_reason = _default_reuse_decision_reason(source)
         node = {
             "node_id": node_id,
-            "title": _safe(raw.get("title") or raw.get("name") or node_id, 300),
+            "title": title,
             "node_type": node_type,
-            "responsibility": _safe(raw.get("responsibility") or raw.get("description"), 2000),
+            "responsibility": responsibility,
             "current_work": _safe(raw.get("current_work") or raw.get("as_is"), 20_000),
             "problems": _normalize_problems(raw.get("problems")),
             "improvement": _safe(raw.get("improvement") or raw.get("to_be") or raw.get("responsibility"), 20_000),
@@ -630,7 +703,7 @@ def normalize_agent_blueprint(
                 "companion_service": "외부 서비스",
                 "human_task": "Human",
             }[source],
-            "reuse_decision_reason": _safe(raw.get("reuse_decision_reason"), 1000),
+            "reuse_decision_reason": reuse_decision_reason,
             "asset_ref": asset_ref,
             "port_contract_sha256": port_contract_sha256,
             "technical_contract_status": technical_status,
@@ -785,6 +858,10 @@ def normalize_agent_blueprint_from_scope(
 ) -> dict[str, Any]:
     """Normalize only when every downstream artifact has the same scope lock."""
     trace_id = str(uuid.uuid4())
+    for upstream in (design_scope, candidate_context, applied_skill_context):
+        blocked = _forward_blocked_envelope(upstream, trace_id=trace_id)
+        if blocked is not None:
+            return blocked
     scope = _payload(design_scope)
     candidates = _payload(candidate_context)
     skills = _payload(applied_skill_context)
@@ -807,6 +884,18 @@ def normalize_agent_blueprint_from_scope(
         or not hmac.compare_digest(supplied_scope_hash, _design_scope_hash(scope))
     ):
         return _error(trace_id, "DESIGN_SCOPE_INVALID", "검증·봉인된 design scope가 필요합니다.")
+    if not draft:
+        return _error(
+            trace_id,
+            "INVALID_BLUEPRINT_DRAFT",
+            "Blueprint Model 응답은 단일 JSON object 또는 하나의 json code fence여야 합니다.",
+            details={
+                "next_actions": [
+                    "Blueprint Language Model의 system message를 유지하고 JSON object만 반환하도록 설정합니다.",
+                    "모델의 설명문·여러 code fence·부분 JSON은 제거합니다.",
+                ]
+            },
+        )
     expected = {
         "tenant_id": str(scope["tenant_id"]),
         "snapshot_id": str(scope["catalog_snapshot_id"]),
@@ -920,7 +1009,13 @@ class AgentBlueprintNormalizerComponent(Component):
     name = "AgentBlueprintNormalizer"
 
     inputs = [
-        DataInput(name="blueprint_draft", display_name="Blueprint Draft", required=True),
+        HandleInput(
+            name="blueprint_draft",
+            display_name="Blueprint Draft",
+            input_types=["Data", "JSON", "Message"],
+            required=True,
+            info="Connect Blueprint Language Model directly. Accepts one JSON object or one complete json code fence only.",
+        ),
         DataInput(name="design_scope", display_name="Sealed Design Scope", required=True),
         DataInput(name="candidate_context", display_name="Verified Candidate Context", required=True),
         DataInput(name="applied_skill_context", display_name="Verified Skill Context", required=True),

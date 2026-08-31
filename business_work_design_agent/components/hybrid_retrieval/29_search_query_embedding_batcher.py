@@ -7,18 +7,24 @@ import hmac
 import json
 import math
 import re
+import time
+import uuid
+from collections.abc import Callable
 from typing import Any
 
 from lfx.custom import Component
-from lfx.io import DataInput, HandleInput, IntInput, Output
+from lfx.io import DataInput, FloatInput, HandleInput, IntInput, Output
 from lfx.schema import Data
 
 
 _RUNTIME_CONTRACT_SCHEMA = "embedding-runtime-contract/v2"
 _MAX_EMBEDDING_DIMENSION = 65536
+_MIN_EMBEDDING_CALL_INTERVAL_SECONDS = 1.0
+_MAX_EMBEDDING_CALL_INTERVAL_SECONDS = 60.0
 _RUNTIME_CLASS_PATTERN = re.compile(
     r"^<class '([A-Za-z_][A-Za-z0-9_]*(?:\.(?:[A-Za-z_][A-Za-z0-9_]*|<locals>))*)'>$"
 )
+_SAFE_EXCEPTION_TYPE_PATTERN = re.compile(r"^[A-Za-z_][A-Za-z0-9_.]{0,127}$")
 
 
 def _payload(value: Any, field: str) -> dict[str, Any]:
@@ -191,6 +197,98 @@ def _vectors(value: Any, expected_count: int, dimension: int | None, query_ids: 
     return result, actual_dimension
 
 
+class _ProviderEmbeddingError(RuntimeError):
+    """A provider failure with a safe, non-secret diagnostic summary.
+
+    Provider exception strings can include request URLs, credential hints, or
+    other operational details.  Keep the exception chained for local traces,
+    but expose only its class, an HTTP status when available, and a coarse
+    category to Langflow users.
+    """
+
+    pass
+
+
+def _safe_exception_type(cause: Exception) -> str:
+    # Standalone components intentionally avoid introspection such as
+    # ``__module__``.  A bounded class name is enough for operator diagnostics.
+    value = type(cause).__name__
+    return value if _SAFE_EXCEPTION_TYPE_PATTERN.fullmatch(value) else "provider_exception"
+
+
+def _provider_http_status(cause: Exception) -> int | None:
+    """Read a status field without copying an arbitrary provider message."""
+    try:
+        response = cause.response
+    except Exception:  # noqa: BLE001 - third-party error objects can use arbitrary properties
+        response = None
+    candidates: list[Any] = []
+    for target in (cause, response):
+        if target is None:
+            continue
+        try:
+            candidates.append(target.status_code)
+        except Exception:  # noqa: BLE001 - third-party error objects can use arbitrary properties
+            pass
+        try:
+            candidates.append(target.status)
+        except Exception:  # noqa: BLE001 - third-party error objects can use arbitrary properties
+            pass
+    for value in candidates:
+        if isinstance(value, bool):
+            continue
+        if isinstance(value, int) and 100 <= value <= 599:
+            return value
+    return None
+
+
+def _provider_error_category(cause: Exception, http_status: int | None) -> str:
+    """Classify known transient/configuration families without emitting raw text."""
+    try:
+        material = str(cause).casefold()
+    except Exception:  # noqa: BLE001 - defensive only; do not surface provider text
+        material = ""
+    if http_status in {401, 403} or any(token in material for token in ("api key", "credential", "unauthenticated", "permission denied")):
+        return "authentication_or_authorization"
+    if http_status == 429 or any(token in material for token in ("quota", "rate limit", "resource exhausted", "too many requests")):
+        return "rate_limited_or_quota"
+    if http_status is not None and 400 <= http_status < 500:
+        return "provider_request_rejected"
+    if http_status is not None and http_status >= 500:
+        return "provider_temporary_failure"
+    if any(token in material for token in ("timeout", "temporarily", "connection", "unavailable", "network")):
+        return "provider_temporary_failure"
+    return "provider_runtime_failure"
+
+
+def _provider_embedding_error(cause: Exception) -> _ProviderEmbeddingError:
+    """Build a marker error whose ordinary args contain only safe diagnostics."""
+    http_status = _provider_http_status(cause)
+    return _ProviderEmbeddingError(
+        _safe_exception_type(cause),
+        http_status,
+        _provider_error_category(cause, http_status),
+    )
+
+
+def _provider_embedding_error_summary(error: _ProviderEmbeddingError) -> tuple[str, int | None, str]:
+    args = error.args if isinstance(error.args, tuple) else ()
+    exception_type = args[0] if len(args) >= 1 and isinstance(args[0], str) else "provider_exception"
+    http_status = args[1] if len(args) >= 2 and isinstance(args[1], int) and not isinstance(args[1], bool) else None
+    category = args[2] if len(args) >= 3 and isinstance(args[2], str) else "provider_runtime_failure"
+    if not _SAFE_EXCEPTION_TYPE_PATTERN.fullmatch(exception_type):
+        exception_type = "provider_exception"
+    if category not in {
+        "authentication_or_authorization",
+        "rate_limited_or_quota",
+        "provider_request_rejected",
+        "provider_temporary_failure",
+        "provider_runtime_failure",
+    }:
+        category = "provider_runtime_failure"
+    return exception_type, http_status, category
+
+
 def _embed_documents(embedding: Any, texts: list[str], query_ids: list[str], dimension: int | None) -> tuple[list[list[float]], int]:
     try:
         method = getattr(embedding, "embed_documents", None)
@@ -201,13 +299,149 @@ def _embed_documents(embedding: Any, texts: list[str], query_ids: list[str], dim
     try:
         raw_vectors = method(texts)
     except Exception as exc:  # noqa: BLE001 - providers expose heterogeneous error types
-        raise RuntimeError("The connected Embedding Model failed to vectorize the query batch") from exc
+        raise _provider_embedding_error(exc) from exc
     return _vectors(raw_vectors, len(texts), dimension, query_ids)
+
+
+def _query_embedding_method(embedding: Any, underlying: Any) -> Callable[[str], Any] | None:
+    """Prefer the provider's query-specific API without requiring one from every adapter."""
+    for candidate in (embedding, underlying):
+        try:
+            method = getattr(candidate, "embed_query", None)
+        except Exception:  # noqa: BLE001 - provider wrappers can expose arbitrary properties
+            continue
+        if callable(method):
+            return method
+    return None
+
+
+def _embed_query(
+    method: Callable[[str], Any],
+    text: str,
+    query_id: str,
+    dimension: int | None,
+) -> tuple[list[list[float]], int]:
+    """Embed exactly one retrieval query and normalize the one-vector contract."""
+    try:
+        raw_vector = method(text)
+    except Exception as exc:  # noqa: BLE001 - providers expose heterogeneous error types
+        raise _provider_embedding_error(exc) from exc
+    # A few adapters wrap the single vector once more.  That shape is
+    # unambiguous for an exactly-one query call and is safe to normalize.
+    if isinstance(raw_vector, list) and len(raw_vector) == 1 and isinstance(raw_vector[0], list):
+        raw_vector = raw_vector[0]
+    return _vectors([raw_vector], 1, dimension, [query_id])
+
+
+def _run_embedding_call_with_retries(
+    action: Callable[[], tuple[list[list[float]], int]],
+    *,
+    interval_seconds: float,
+    max_retries: int,
+    is_first_provider_call: bool,
+) -> tuple[list[list[float]], int, int, int]:
+    """Run one logical embedding action with the shared provider rate floor."""
+    retries = 0
+    while True:
+        if not is_first_provider_call or retries:
+            time.sleep(interval_seconds)
+        try:
+            vectors, dimension = action()
+            return vectors, dimension, retries + 1, retries
+        except _ProviderEmbeddingError:
+            if retries >= max_retries:
+                raise
+            retries += 1
+
+
+def _bounded_interval(value: Any) -> float:
+    """Return the shared 1-second floor used by catalog and query embedding.
+
+    The catalog ingest flow deliberately serializes one provider call at a
+    time because the approved embedding service can reject rapid requests.
+    Search-query embedding has the same provider boundary, so it must not
+    bypass that protection simply because it has fewer texts.
+    """
+    try:
+        interval = float(value)
+    except (TypeError, ValueError):
+        interval = _MIN_EMBEDDING_CALL_INTERVAL_SECONDS
+    if not math.isfinite(interval):
+        interval = _MIN_EMBEDDING_CALL_INTERVAL_SECONDS
+    return max(_MIN_EMBEDDING_CALL_INTERVAL_SECONDS, min(_MAX_EMBEDDING_CALL_INTERVAL_SECONDS, interval))
+
+
+def _error(
+    trace_id: str,
+    code: str,
+    message: str,
+    *,
+    retryable: bool = False,
+    details: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    return {
+        "ok": False,
+        "status": "BLOCKED",
+        "artifact_refs": [],
+        "error": {"code": code, "message": message, "retryable": retryable, "details": details or {}},
+        "resume": None,
+        "trace_id": trace_id,
+    }
+
+
+def _configuration_error(trace_id: str, exc: Exception) -> dict[str, Any]:
+    """Convert expected provider/model faults to an actionable safe envelope.
+
+    The raw provider exception may contain endpoint details or credentials, so
+    it is intentionally not surfaced in the Flow result.  The explicit action
+    list is enough for a Langflow operator to fix a model binding.
+    """
+    text = str(exc)
+    model_markers = (
+        "Embedding Model",
+        "stable model identity",
+        "runtime class",
+        "embed_documents",
+        "more than one configured model",
+    )
+    vector_markers = (
+        "embedding response",
+        "vector is missing",
+        "dimension is invalid",
+        "boolean",
+        "non-numeric",
+        "non-finite",
+    )
+    if any(marker in text for marker in model_markers):
+        return _error(
+            trace_id,
+            "EMBEDDING_MODEL_CONFIGURATION_REQUIRED",
+            "승인 카탈로그와 같은 Langflow Embedding Model을 연결하고, provider가 안정적인 모델 ID와 embed_query 또는 embed_documents를 제공하는지 확인하세요.",
+            details={
+                "next_actions": [
+                    "F00에 사용한 동일 provider/model을 Search Query Embedding Batcher에 연결합니다.",
+                    "Embedding Model의 API credential과 모델 선택을 확인합니다.",
+                ]
+            },
+        )
+    if any(marker in text for marker in vector_markers):
+        return _error(
+            trace_id,
+            "EMBEDDING_RESPONSE_INVALID",
+            "Embedding Model 응답이 검색 query 수 또는 vector 차원 계약과 일치하지 않습니다.",
+            details={"next_actions": ["Embedding provider의 batch 응답 수와 vector dimension을 확인합니다."]},
+        )
+    return _error(
+        trace_id,
+        "QUERY_EMBEDDING_INPUT_INVALID",
+        "검색 query plan 또는 embedding 실행 설정이 유효하지 않습니다.",
+        details={"next_actions": ["F20/F90의 sealed design invocation과 query 수 제한을 확인합니다."]},
+    )
 
 
 class SearchQueryEmbeddingBatcherComponent(Component):
     display_name = "29 Search Query Embedding Batcher"
-    description = "Vectorize locked search queries through the connected Langflow Embedding Model in bounded batches."
+    description = "Vectorize locked search queries through the connected Langflow Embedding Model in bounded batches, with at least one second between provider calls."
     icon = "Binary"
     name = "SearchQueryEmbeddingBatcher"
 
@@ -216,42 +450,128 @@ class SearchQueryEmbeddingBatcherComponent(Component):
         HandleInput(name="embedding", display_name="Embedding Model", input_types=["Embeddings"], required=True),
         IntInput(name="batch_size", display_name="Embedding Batch Size", value=16, advanced=True),
         IntInput(name="max_queries", display_name="Maximum Queries", value=30, advanced=True),
+        IntInput(
+            name="max_embedding_retries",
+            display_name="Maximum Embedding Retries",
+            value=2,
+            advanced=True,
+            info="Retries only transient provider failures. Each retry also waits at least the configured call interval.",
+        ),
+        FloatInput(
+            name="embedding_call_interval_seconds",
+            display_name="Embedding Call Interval (seconds)",
+            value=_MIN_EMBEDDING_CALL_INTERVAL_SECONDS,
+            advanced=True,
+            info="The first provider call starts immediately. Later batches wait at least 1 second; values below 1 are raised to 1.",
+        ),
     ]
     outputs = [Output(name="query_vectors", display_name="ID-preserving Query Vectors", method="build_query_vectors", types=["Data"])]
 
     def build_query_vectors(self) -> Data:
-        plan = _payload(getattr(self, "query_plan", None), "query_plan")
-        locks = _verified_plan_locks(plan)
-        maximum = max(1, min(int(getattr(self, "max_queries", 30) or 30), 100))
-        queries = _queries(plan, maximum)
-        embedding = getattr(self, "embedding", None)
-        underlying = _underlying_embedding(embedding)
-        # Resolve model metadata before the first provider request so unknown model
-        # identities fail closed without creating an untraceable vector snapshot.
-        _model_id(embedding, underlying)
-        _runtime_class(underlying)
-        batch_size = max(1, min(int(getattr(self, "batch_size", 16) or 16), 128))
-        vectors: dict[str, list[float]] = {}
-        dimension: int | None = None
-        for start in range(0, len(queries), batch_size):
-            batch = queries[start : start + batch_size]
-            batch_vectors, dimension = _embed_documents(
-                embedding,
-                [item["text"] for item in batch],
-                [item["id"] for item in batch],
-                dimension,
+        trace_id = str(uuid.uuid4())
+        try:
+            plan = _payload(getattr(self, "query_plan", None), "query_plan")
+            locks = _verified_plan_locks(plan)
+            maximum = max(1, min(int(getattr(self, "max_queries", 30) or 30), 100))
+            queries = _queries(plan, maximum)
+            embedding = getattr(self, "embedding", None)
+            underlying = _underlying_embedding(embedding)
+            # Resolve model metadata before the first provider request so unknown model
+            # identities fail closed without creating an untraceable vector snapshot.
+            _model_id(embedding, underlying)
+            _runtime_class(underlying)
+            batch_size = max(1, min(int(getattr(self, "batch_size", 16) or 16), 128))
+            interval = _bounded_interval(
+                getattr(self, "embedding_call_interval_seconds", _MIN_EMBEDDING_CALL_INTERVAL_SECONDS)
             )
-            for item, vector in zip(batch, batch_vectors):
-                vectors[item["id"]] = vector
-        contract = _runtime_contract(embedding, dimension if dimension is not None else 0)
-        result = {
-            "ok": True,
-            "status": "VECTORIZED",
-            "schema_version": "query-vectors/v1",
-            "vectors": vectors,
-            "query_order": [item["id"] for item in queries],
-            "embedding_contract": contract,
-            **locks,
-        }
-        self.status = f"Vectorized {len(vectors)} queries with {contract['model_id']} ({contract['dimension']}d)."
+            max_retries = max(0, min(int(getattr(self, "max_embedding_retries", 2) or 0), 4))
+            vectors: dict[str, list[float]] = {}
+            dimension: int | None = None
+            call_count = 0
+            retry_count = 0
+            query_method = _query_embedding_method(embedding, underlying)
+            if query_method is not None:
+                # Query-specific APIs such as Google Gemini's embed_query use a
+                # RETRIEVAL_QUERY task type.  This is semantically correct for
+                # F20's search terms and avoids treating a query as catalog text.
+                for item in queries:
+                    batch_vectors, dimension, calls, retries = _run_embedding_call_with_retries(
+                        lambda item=item, dimension=dimension: _embed_query(
+                            query_method,
+                            item["text"],
+                            item["id"],
+                            dimension,
+                        ),
+                        interval_seconds=interval,
+                        max_retries=max_retries,
+                        is_first_provider_call=call_count == 0,
+                    )
+                    call_count += calls
+                    retry_count += retries
+                    vectors[item["id"]] = batch_vectors[0]
+            else:
+                # Not every Langflow Embeddings adapter exposes embed_query.
+                # Keep the sealed batch contract as a compatible fallback.
+                for start in range(0, len(queries), batch_size):
+                    batch = queries[start : start + batch_size]
+                    batch_vectors, dimension, calls, retries = _run_embedding_call_with_retries(
+                        lambda batch=batch, dimension=dimension: _embed_documents(
+                            embedding,
+                            [item["text"] for item in batch],
+                            [item["id"] for item in batch],
+                            dimension,
+                        ),
+                        interval_seconds=interval,
+                        max_retries=max_retries,
+                        is_first_provider_call=call_count == 0,
+                    )
+                    call_count += calls
+                    retry_count += retries
+                    for item, vector in zip(batch, batch_vectors):
+                        vectors[item["id"]] = vector
+            contract = _runtime_contract(embedding, dimension if dimension is not None else 0)
+            result = {
+                "ok": True,
+                "status": "VECTORIZED",
+                "schema_version": "query-vectors/v1",
+                "vectors": vectors,
+                "query_order": [item["id"] for item in queries],
+                "embedding_contract": contract,
+                "embedding_execution": {
+                    "calls": call_count,
+                    "retry_attempts": retry_count,
+                    "minimum_interval_seconds": interval,
+                    "batch_size": batch_size,
+                },
+                **locks,
+                "trace_id": trace_id,
+            }
+            self.status = (
+                f"Vectorized {len(vectors)} queries with {contract['model_id']} ({contract['dimension']}d); "
+                f"{call_count} provider calls at >= {interval:.1f}s intervals."
+            )
+            return Data(data=result)
+        except _ProviderEmbeddingError as exc:
+            exception_type, http_status, category = _provider_embedding_error_summary(exc)
+            retryable = category not in {"authentication_or_authorization", "provider_request_rejected"}
+            details: dict[str, Any] = {
+                "provider_failure_category": category,
+                "provider_exception_type": exception_type,
+                "next_actions": [
+                    "F00과 같은 Embedding Model의 credential, provider 상태, quota를 확인합니다.",
+                    "일시 장애 또는 quota 제한이면 잠시 후 같은 F20 입력으로 다시 실행합니다.",
+                ],
+            }
+            if http_status is not None:
+                details["provider_http_status"] = http_status
+            result = _error(
+                trace_id,
+                "EMBEDDING_PROVIDER_ERROR",
+                "Embedding Model이 검색 query를 벡터화하지 못했습니다. provider 상태와 credential을 확인한 뒤 다시 실행하세요.",
+                retryable=retryable,
+                details=details,
+            )
+        except (TypeError, ValueError) as exc:
+            result = _configuration_error(trace_id, exc)
+        self.status = f"Query embedding blocked: {result['error']['code']}"
         return Data(data=result)
