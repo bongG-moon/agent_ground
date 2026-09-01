@@ -7,6 +7,7 @@ import hmac
 import json
 import math
 import re
+import urllib.parse
 from typing import Any
 
 from lfx.custom import Component
@@ -38,6 +39,18 @@ PRESENTATION_NODE_KINDS = {
 TECHNICAL_STATUSES = {None, "metadata_only", "ports_extracted", "flow_graph_extracted", "verified_runtime"}
 CONNECTION_STATUSES = {"unverified", "contract_compatible", "verified_runtime"}
 BUILD_READINESS = {"design_only", "proposed_unverified", "import_ready"}
+TECHNICAL_CONTRACT_LABELS = {
+    None: "기술 계약 확인 필요",
+    "metadata_only": "메타데이터만 확인됨 · 포트·권한·실행 검증 필요",
+    "ports_extracted": "포트 계약 확인됨 · 권한·실행 검증 필요",
+    "flow_graph_extracted": "Flow 구조 확인됨 · 권한·실행 검증 필요",
+    "verified_runtime": "실행 검증됨",
+}
+BUILD_READINESS_LABELS = {
+    "design_only": "설계안 단계 · 실제 구현 및 검증 전",
+    "proposed_unverified": "구현 후보 · 실제 Import/실행 검증 전",
+    "import_ready": "Import 준비 완료 · 운영 환경 검증 필요",
+}
 BLUEPRINT_PATTERNS = {
     "deterministic_sequential",
     "single_agent_allowlisted_tools",
@@ -130,6 +143,7 @@ BLUEPRINT_PORT_FIELDS = {
     "streaming",
 }
 IDENTITY_PATTERN = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$")
+SHA256_PATTERN = re.compile(r"^sha256:[0-9a-f]{64}$")
 SEMANTIC_FIELDS = (
     "goal",
     "trigger",
@@ -190,6 +204,133 @@ SECRET_VALUE_PATTERNS = (
     re.compile(r"[a-zA-Z][a-zA-Z0-9+.-]*://[^/@\s]+:[^/@\s]+@"),
     re.compile(r"-----BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY-----"),
 )
+
+
+# The Blueprint contract carries stable node ids for execution, but those ids
+# are not reader-facing labels.  The report must never make a generated id
+# such as ``node-mail-ingest-sanitize`` look like an instruction for a human.
+# These are deliberately small, deterministic Korean display families.  They
+# only classify words already present in the approved Blueprint node and do
+# not add a new capability or a catalog selection.
+MACHINE_IDENTIFIER_PATTERN = re.compile(
+    r"^(?:node[-_:])?[a-z][a-z0-9]*(?:[-_:][a-z0-9]+)+$",
+    re.IGNORECASE,
+)
+KOREAN_TEXT_PATTERN = re.compile(r"[가-힣]")
+
+
+def _contains_any(text: str, values: tuple[str, ...]) -> bool:
+    lowered = text.casefold()
+    return any(value.casefold() in lowered for value in values)
+
+
+def _looks_like_machine_identifier(value: Any) -> bool:
+    text = _text(value, limit=500)
+    if not text:
+        return False
+    return bool(
+        MACHINE_IDENTIFIER_PATTERN.fullmatch(text)
+        or text.casefold().startswith(("node-", "step-", "stage-", "task-"))
+    )
+
+
+def _stage_display_title_from_text(text: str) -> str:
+    """Return a Korean display label only when source words justify it."""
+
+    # An error / exception step has precedence over broad words such as
+    # "report" or "data" that can occur in its description.
+    if _contains_any(text, ("failure", "error", "exception", "실패", "오류", "예외", "누락")):
+        return "오류 처리·알림"
+    if _contains_any(text, ("hitl", "approval", "approve", "review", "result-gate", "승인", "검토", "반려")):
+        return "담당자 검토·승인"
+    if _contains_any(text, ("publish", "notify", "portal", "cube", "게시", "알림", "공유", "전달")):
+        return "보고서 게시·알림"
+    if _contains_any(text, ("draft", "synthes", "summary", "gooddocs", "초안", "요약", "보고서 작성", "문서 작성")):
+        return "보고서 초안 작성"
+    if _contains_any(text, ("starrocks", "datalake", "sql", "query", "데이터 조회", "데이터 품질", "정합성")):
+        return "데이터 조회·검증"
+    if _contains_any(text, ("mail", "email", "outlook", "메일", "첨부")):
+        return "메일 수집·정제"
+    if _contains_any(text, ("trigger", "start", "실행 시작", "실행 요청", "시작")):
+        return "업무 실행 시작"
+    if _contains_any(text, ("pipeline-end", "end", "완료", "종료")):
+        return "업무 완료"
+    return ""
+
+
+def _presentation_title(node: dict[str, Any], graph_kind: str, sequence: int) -> str:
+    """Choose a human-readable Korean title without exposing a machine id."""
+
+    explicit = _text(
+        node.get("display_title") or node.get("label") or node.get("title") or node.get("name"),
+        limit=500,
+    )
+    context = " ".join(
+        value
+        for value in (
+            explicit,
+            _text(node.get("node_id") or node.get("id"), limit=500),
+            _text(node.get("responsibility"), limit=5_000),
+            _text(node.get("current_work") or node.get("as_is"), limit=5_000),
+            _text(node.get("improvement") or node.get("to_be"), limit=5_000),
+        )
+        if value
+    )
+    inferred = _stage_display_title_from_text(context)
+    if explicit and not _looks_like_machine_identifier(explicit):
+        # Preserve an approved Korean title as the strongest source fact.  An
+        # English implementation title is converted only when its own words
+        # match a deterministic display family; otherwise show a neutral
+        # Korean stage name rather than a low-level id.
+        if KOREAN_TEXT_PATTERN.search(explicit):
+            return explicit
+        if inferred:
+            return inferred
+    if inferred:
+        return inferred
+    kind = _text(node.get("kind") or node.get("node_type"), limit=64)
+    if kind == "start":
+        return "업무 시작"
+    if kind == "end":
+        return "업무 종료"
+    if kind == "decision":
+        return "업무 판단"
+    if kind == "human_review":
+        return "담당자 검토"
+    if kind == "exception":
+        return "예외 처리"
+    return f"업무 단계 {sequence}"
+
+
+def _presentation_summary(node: dict[str, Any], graph_kind: str) -> str:
+    """Render a reader-facing summary from the sealed source wording."""
+
+    ordered_fields = (
+        ("current_work", "as_is", "responsibility", "improvement", "to_be")
+        if graph_kind == "as_is"
+        else ("responsibility", "improvement", "to_be", "current_work", "as_is")
+    )
+    for field in ordered_fields:
+        value = _text(node.get(field), limit=10_000)
+        if value:
+            return value
+    return "이 단계의 입력·출력과 다음 단계 전달 범위는 설계 시 확인이 필요합니다."
+
+
+def _technical_contract_label(value: Any) -> str:
+    """Translate a sealed technical state into a reader-facing Korean label.
+
+    The label explains the meaning of the existing state only.  It does not
+    upgrade a metadata candidate to a reusable or runtime-verified asset.
+    """
+
+    status = _text(value, limit=128) or None
+    return TECHNICAL_CONTRACT_LABELS.get(status, "기술 계약 상태 확인 필요")
+
+
+def _build_readiness_label(value: Any) -> str:
+    status = _text(value, limit=128)
+    return BUILD_READINESS_LABELS.get(status, "구현 준비 상태 확인 필요")
 
 
 def _raw(value: Any) -> Any:
@@ -350,10 +491,15 @@ def _upstream_f30_failure(value: Any, *, stage: str) -> dict[str, Any] | None:
 def _presentation_responsibility(node: dict[str, Any]) -> str:
     """Render legacy sealed F20 blueprints that omitted presentation text."""
 
-    provided = _text(node.get("responsibility") or node.get("description"), limit=5_000)
+    provided = _text(
+        node.get("responsibility")
+        or node.get("description")
+        or node.get("improvement")
+        or node.get("current_work"),
+        limit=5_000,
+    )
     if provided:
         return provided
-    title = _text(node.get("title") or node.get("label") or node.get("node_id"), limit=500) or "업무 단계"
     source_text = {
         "builtin": "Langflow 기본 기능으로",
         "catalog_component": "승인된 카탈로그 Component로",
@@ -362,7 +508,7 @@ def _presentation_responsibility(node: dict[str, Any]) -> str:
         "companion_service": "승인된 연계 서비스로",
         "human_task": "담당자의 판단으로",
     }.get(str(node.get("implementation_source") or ""), "정의된 방식으로")
-    return f"{title} 단계를 {source_text} 수행하고 다음 단계에 필요한 결과를 전달합니다."
+    return f"이 업무 단계를 {source_text} 수행하고 다음 단계에 필요한 결과를 전달합니다."
 
 
 def _presentation_reuse_reason(node: dict[str, Any]) -> str:
@@ -866,6 +1012,1332 @@ def _validate_catalog_asset_bindings(blueprint: dict[str, Any], trace: dict[str,
             raise ValueError("catalog node asset_ref is not present in the sealed candidate allowlist")
 
 
+def _safe_catalog_url(value: Any) -> str:
+    """Keep only a display-safe catalog detail URL.
+
+    Catalog metadata is input data, not executable configuration.  The report
+    may link an approved candidate to its catalog detail page, but it must not
+    preserve credentials, control characters, non-web schemes, or fragments.
+    A URL containing a token-like value has already been redacted by ``_text``
+    and therefore intentionally produces no link.
+    """
+
+    text = _text(value, limit=2_048)
+    if (
+        not text
+        or text == "[REDACTED]"
+        or any(ord(char) < 32 or ord(char) == 127 for char in text)
+        or any(char.isspace() for char in text)
+    ):
+        return ""
+    try:
+        parsed = urllib.parse.urlsplit(text)
+        port = parsed.port
+    except ValueError:
+        return ""
+    if (
+        parsed.scheme not in {"http", "https"}
+        or not parsed.hostname
+        or parsed.username
+        or parsed.password
+    ):
+        return ""
+    try:
+        query_pairs = urllib.parse.parse_qsl(parsed.query, keep_blank_values=True, strict_parsing=False)
+    except ValueError:
+        return ""
+    for query_key, _ in query_pairs:
+        compact_key = re.sub(r"[^a-z0-9]", "", str(query_key).casefold())
+        if any(
+            marker in compact_key
+            for marker in (
+                "apikey",
+                "authorization",
+                "cookie",
+                "credential",
+                "password",
+                "passwd",
+                "secret",
+                "session",
+                "token",
+            )
+        ):
+            return ""
+    hostname = parsed.hostname.casefold()
+    if ":" in hostname and not hostname.startswith("["):
+        hostname = f"[{hostname}]"
+    netloc = hostname if port is None else f"{hostname}:{port}"
+    return urllib.parse.urlunsplit((parsed.scheme.casefold(), netloc, parsed.path, parsed.query, ""))
+
+
+def _catalog_presentation_by_identity(trace: dict[str, Any]) -> dict[tuple[str, str], dict[str, Any]]:
+    """Return a bounded, allowlist-bound display projection for catalog assets.
+
+    ``candidate_allowlist`` remains the sealed execution authority.  The
+    optional ``catalog_presentation`` entry added by F20 is only a display
+    projection: unknown fields are ignored and an item is shown only when its
+    id/version/type/status exactly matches that sealed allowlist.  Older F20
+    handoffs without this additive field remain fully reportable.
+    """
+
+    allowlist = trace.get("candidate_allowlist")
+    if not isinstance(allowlist, list):
+        return {}
+    allowed: dict[tuple[str, str], dict[str, Any]] = {}
+    for item in allowlist[:50]:
+        if not isinstance(item, dict):
+            continue
+        asset_id = item.get("asset_id")
+        version = item.get("version")
+        if type(asset_id) is str and asset_id and type(version) is str and version:
+            allowed[(asset_id, version)] = item
+
+    raw_items = trace.get("catalog_presentation")
+    if raw_items is None:
+        return {}
+    if not isinstance(raw_items, list) or len(raw_items) > 50:
+        raise ValueError("retrieval_trace catalog_presentation is invalid")
+
+    presentation: dict[tuple[str, str], dict[str, Any]] = {}
+    for raw in raw_items:
+        if not isinstance(raw, dict):
+            raise ValueError("retrieval_trace catalog_presentation item is invalid")
+        asset_id = raw.get("asset_id")
+        version = raw.get("version")
+        if type(asset_id) is not str or not asset_id or len(asset_id) > 200:
+            raise ValueError("retrieval_trace catalog_presentation asset_id is invalid")
+        if type(version) is not str or not version or len(version) > 100:
+            raise ValueError("retrieval_trace catalog_presentation version is invalid")
+        identity = (asset_id, version)
+        allowlisted = allowed.get(identity)
+        if allowlisted is None or identity in presentation:
+            raise ValueError("retrieval_trace catalog_presentation is not bound to the candidate allowlist")
+        asset_type = raw.get("asset_type")
+        technical_status = raw.get("technical_contract_status")
+        port_contract_sha256 = raw.get("port_contract_sha256")
+        if asset_type not in {None, allowlisted.get("asset_type")}:
+            raise ValueError("retrieval_trace catalog_presentation asset_type is invalid")
+        if technical_status not in {None, allowlisted.get("technical_contract_status")}:
+            raise ValueError("retrieval_trace catalog_presentation technical status is invalid")
+        if (
+            not isinstance(port_contract_sha256, str)
+            or SHA256_PATTERN.fullmatch(port_contract_sha256) is None
+            or port_contract_sha256 != allowlisted.get("port_contract_sha256")
+        ):
+            raise ValueError("retrieval_trace catalog_presentation port contract is invalid")
+        presentation[identity] = {
+            "asset_id": asset_id,
+            "version": version,
+            "asset_type": allowlisted.get("asset_type"),
+            "title": _text(raw.get("title"), limit=500) or asset_id,
+            "category": _text(raw.get("category"), limit=256),
+            "description": _text(raw.get("description") or raw.get("readme"), limit=5_000),
+            "technical_contract_status": allowlisted.get("technical_contract_status"),
+            "port_contract_sha256": port_contract_sha256,
+            "catalog_url": _safe_catalog_url(
+                raw.get("catalog_url")
+                or raw.get("detail_url")
+                or raw.get("asset_url")
+                or raw.get("link")
+                or raw.get("url")
+            ),
+        }
+    return presentation
+
+
+CATALOG_STAGE_TOPICS: tuple[tuple[str, str, tuple[str, ...], tuple[str, ...]], ...] = (
+    (
+        "failure",
+        "오류·예외 처리",
+        ("failure", "error", "exception", "실패", "오류", "예외", "누락", "인증"),
+        # "알림" alone is not enough: a normal publication/notification
+        # asset must not be presented as an incident-handling candidate.
+        ("failure", "error", "exception", "monitor", "실패", "오류", "예외", "누락", "인증"),
+    ),
+    (
+        "approval",
+        "검토·승인",
+        ("hitl", "approval", "approve", "review", "gate", "승인", "검토", "반려"),
+        ("hitl", "approval", "review", "gate", "승인", "검토", "반려"),
+    ),
+    (
+        "publish",
+        "게시·알림",
+        ("publish", "notify", "portal", "cube", "게시", "알림", "공유", "전달"),
+        ("publish", "notify", "portal", "cube", "게시", "알림", "공유"),
+    ),
+    (
+        "draft",
+        "초안·문서 작성",
+        ("draft", "synthes", "summary", "gooddocs", "초안", "요약", "보고서", "문서"),
+        # "보고" and "문서" are intentionally excluded.  They are common
+        # catalog words and previously made a mail-retrieval Flow look like
+        # an approval or publication recommendation.
+        ("draft", "synthes", "summary", "gooddocs", "초안", "요약"),
+    ),
+    (
+        "data",
+        "데이터 조회·검증",
+        ("starrocks", "datalake", "sql", "query", "데이터", "정합", "품질"),
+        ("starrocks", "datalake", "sql", "query", "정합", "품질"),
+    ),
+    (
+        "mail",
+        "메일·첨부 수집",
+        ("mail", "email", "outlook", "메일", "첨부"),
+        # Outlook calendar/schedule assets are deliberately not matched to a
+        # mail collection stage unless their own metadata also says mail,
+        # email, 메일, or 첨부.
+        ("mail", "email", "메일", "첨부"),
+    ),
+)
+
+
+def _catalog_link_status(url: str) -> str:
+    return "카탈로그 메타데이터에 등록된 상세 링크" if url else "카탈로그 메타데이터에 상세 링크가 등록되어 있지 않습니다."
+
+
+def _catalog_selection_status(status: Any, technical_status: Any) -> str:
+    """Explain reuse state without changing the sealed execution decision."""
+
+    technical_label = _technical_contract_label(technical_status)
+    if status == "selected_for_stage":
+        return f"TO-BE 설계에 연결됨 · {technical_label}"
+    if status == "reference_candidate_for_stage":
+        return f"참고 후보(직접 적용 미확정) · {technical_label}"
+    return f"검색 후보(직접 적용 미확정) · {technical_label}"
+
+
+def _catalog_stage_topics(node: dict[str, Any], detail: dict[str, Any]) -> list[tuple[str, str, tuple[str, ...]]]:
+    """Classify a stage for *candidate-reference* display, never execution."""
+
+    def classify(text: str) -> list[tuple[str, str, tuple[str, ...]]]:
+        return [
+            (key, label, asset_terms)
+            for key, label, stage_terms, asset_terms in CATALOG_STAGE_TOPICS
+            if _contains_any(text, stage_terms)
+        ]
+
+    # A stage can consume e-mail as an input while its own responsibility is
+    # writing a draft.  Classifying from all detail text at once therefore
+    # makes an e-mail collection candidate appear under the draft, approval,
+    # publish, and result stages.  Use the stage identity/title first; only
+    # when it is uninformative do we fall back to the explanatory text.
+    identity_text = " ".join(
+        _text(value, limit=10_000)
+        for value in (
+            node.get("source_node_id"),
+            node.get("title"),
+        )
+        if value
+    )
+    primary_topics = classify(identity_text)
+    if primary_topics:
+        return primary_topics
+
+    supporting_text = " ".join(
+        _text(value, limit=10_000)
+        for value in (
+            node.get("summary"),
+            detail.get("current_work"),
+            detail.get("improvement"),
+        )
+        if value
+    )
+    return classify(supporting_text)
+
+
+def _catalog_candidate_stage_references(
+    *,
+    to_be_graph: dict[str, Any],
+    allowlist: list[Any],
+    presentation: dict[tuple[str, str], dict[str, Any]],
+    selected: set[tuple[str, str]],
+) -> list[dict[str, Any]]:
+    """Map related metadata candidates to a stage without promoting reuse.
+
+    This uses explicit, bounded keyword overlap only.  A candidate reference
+    is not an ``asset_ref`` and does not change the Blueprint implementation
+    source, port contract, readiness, or execution authority.
+    """
+
+    details = to_be_graph.get("details") if isinstance(to_be_graph.get("details"), dict) else {}
+    result: list[dict[str, Any]] = []
+    used_pairs: set[tuple[str, str, str]] = set()
+    for node in to_be_graph.get("nodes", [])[:REPORT_ITEM_LIMIT]:
+        if not isinstance(node, dict):
+            continue
+        detail = details.get(node.get("detail_ref")) if isinstance(details, dict) else None
+        detail = detail if isinstance(detail, dict) else {}
+        for _, topic_label, asset_terms in _catalog_stage_topics(node, detail):
+            best: tuple[int, dict[str, Any], dict[str, Any], tuple[str, str], list[str]] | None = None
+            for raw in allowlist[:50]:
+                if not isinstance(raw, dict):
+                    continue
+                asset_id = _text(raw.get("asset_id"), limit=200)
+                version = _text(raw.get("version"), limit=100)
+                identity = (asset_id, version)
+                if not asset_id or not version or identity in selected:
+                    continue
+                asset = presentation.get(identity)
+                if not isinstance(asset, dict):
+                    # The sealed allowlist is executable authority, but it
+                    # does not carry reader-facing words.  Do not invent a
+                    # stage relation without real catalog presentation data.
+                    continue
+                asset_text = " ".join(
+                    _text(asset.get(field), limit=5_000)
+                    for field in ("title", "category", "description")
+                    if asset.get(field)
+                )
+                matched_terms = [term for term in asset_terms if term.casefold() in asset_text.casefold()]
+                if not matched_terms:
+                    continue
+                score = len(matched_terms)
+                candidate = (score, raw, asset, identity, matched_terms)
+                if best is None or score > best[0] or (
+                    score == best[0] and identity < best[3]
+                ):
+                    best = candidate
+            if best is None:
+                continue
+            _, raw, asset, identity, matched_terms = best
+            pair_key = (str(node.get("node_id") or ""), identity[0], identity[1])
+            if pair_key in used_pairs:
+                continue
+            used_pairs.add(pair_key)
+            url = _safe_catalog_url(asset.get("catalog_url"))
+            result.append(
+                {
+                    "status": "reference_candidate_for_stage",
+                    "reference_type": "metadata_candidate_only",
+                    "stage_title": _text(node.get("title"), limit=500),
+                    "stage_summary": _text(node.get("summary"), limit=2_000),
+                    "asset_id": identity[0],
+                    "version": identity[1],
+                    "asset_type": _text(raw.get("asset_type"), limit=64),
+                    "asset_title": _text(asset.get("title"), limit=500) or identity[0],
+                    "category": _text(asset.get("category"), limit=256),
+                    "description": _text(asset.get("description"), limit=5_000),
+                    "technical_contract_status": _text(raw.get("technical_contract_status"), limit=128),
+                    "technical_contract_label": _technical_contract_label(raw.get("technical_contract_status")),
+                    "catalog_url": url,
+                    "catalog_link_status": _catalog_link_status(url),
+                    "matched_catalog_terms": matched_terms[:10],
+                    "match_basis": f"{topic_label} 관련 핵심 용어 {', '.join(matched_terms[:10])} 일치",
+                    "selection_status": _catalog_selection_status(
+                        "reference_candidate_for_stage",
+                        raw.get("technical_contract_status"),
+                    ),
+                    "reuse_decision_reason": (
+                        f"{topic_label} 관련 단어가 이 단계의 설계 설명과 카탈로그 메타데이터에 함께 있어 참고 후보로 연결했습니다. "
+                        f"현재 기술 계약 상태는 {_text(raw.get('technical_contract_status'), limit=128) or UNKNOWN_REPORT_VALUE}이며, "
+                        "포트 계약·권한·실행 검증 전에는 직접 재사용으로 확정하지 않습니다."
+                    ),
+                }
+            )
+    return result
+
+
+def _catalog_recommendation_section(trace: dict[str, Any], to_be_graph: dict[str, Any]) -> dict[str, Any] | None:
+    """Build the reader-facing map from TO-BE stage to catalog asset choice."""
+
+    allowlist = trace.get("candidate_allowlist")
+    if not isinstance(allowlist, list) or not allowlist:
+        return None
+    presentation = _catalog_presentation_by_identity(trace)
+    details = to_be_graph.get("details") if isinstance(to_be_graph.get("details"), dict) else {}
+    selected: set[tuple[str, str]] = set()
+    items: list[dict[str, Any]] = []
+    for node in to_be_graph.get("nodes", []):
+        if not isinstance(node, dict) or node.get("implementation_source") not in {"catalog_component", "catalog_flow"}:
+            continue
+        detail = details.get(node.get("detail_ref")) if isinstance(details, dict) else None
+        asset_ref = detail.get("asset_ref") if isinstance(detail, dict) else None
+        asset_id = asset_ref.get("asset_id") if isinstance(asset_ref, dict) else None
+        version = asset_ref.get("version") if isinstance(asset_ref, dict) else None
+        if type(asset_id) is not str or type(version) is not str:
+            continue
+        identity = (asset_id, version)
+        selected.add(identity)
+        asset = presentation.get(identity, {})
+        items.append(
+            {
+                "status": "selected_for_stage",
+                "stage_title": _text(node.get("title"), limit=500),
+                "stage_summary": _text(node.get("summary"), limit=2_000),
+                "asset_id": asset_id,
+                "version": version,
+                "asset_type": asset.get("asset_type") or (
+                    "component" if node.get("implementation_source") == "catalog_component" else "flow"
+                ),
+                "asset_title": asset.get("title") or asset_id,
+                "category": asset.get("category") or "",
+                "description": asset.get("description") or "",
+                "technical_contract_status": node.get("technical_contract_status") or asset.get("technical_contract_status"),
+                "technical_contract_label": _technical_contract_label(
+                    node.get("technical_contract_status") or asset.get("technical_contract_status")
+                ),
+                "catalog_url": _safe_catalog_url(asset.get("catalog_url")),
+                "catalog_link_status": _catalog_link_status(_safe_catalog_url(asset.get("catalog_url"))),
+                "selection_status": _catalog_selection_status(
+                    "selected_for_stage",
+                    node.get("technical_contract_status") or asset.get("technical_contract_status"),
+                ),
+                "reuse_decision_reason": _text(
+                    detail.get("reuse_decision_reason") if isinstance(detail, dict) else "",
+                    limit=5_000,
+                ),
+            }
+        )
+    items.extend(
+        _catalog_candidate_stage_references(
+            to_be_graph=to_be_graph,
+            allowlist=allowlist,
+            presentation=presentation,
+            selected=selected,
+        )
+    )
+    referenced = {
+        (_text(item.get("asset_id"), limit=200), _text(item.get("version"), limit=100))
+        for item in items
+        if isinstance(item, dict) and item.get("status") == "reference_candidate_for_stage"
+    }
+    for raw in allowlist:
+        if not isinstance(raw, dict):
+            continue
+        asset_id = raw.get("asset_id")
+        version = raw.get("version")
+        if (
+            type(asset_id) is not str
+            or type(version) is not str
+            or (asset_id, version) in selected
+            or (asset_id, version) in referenced
+        ):
+            continue
+        asset = presentation.get((asset_id, version), {})
+        url = _safe_catalog_url(asset.get("catalog_url"))
+        items.append(
+            {
+                "status": "candidate_not_selected",
+                "stage_title": "직접 적용 후보",
+                "stage_summary": "검색 후보로 검토되었지만 현재 TO-BE 흐름에서는 직접 재사용으로 확정하지 않았습니다.",
+                "asset_id": asset_id,
+                "version": version,
+                "asset_type": raw.get("asset_type") or "",
+                "asset_title": asset.get("title") or asset_id,
+                "category": asset.get("category") or "",
+                "description": asset.get("description") or "",
+                "technical_contract_status": raw.get("technical_contract_status") or "",
+                "technical_contract_label": _technical_contract_label(raw.get("technical_contract_status")),
+                "catalog_url": url,
+                "catalog_link_status": _catalog_link_status(url),
+                "selection_status": _catalog_selection_status(
+                    "candidate_not_selected",
+                    raw.get("technical_contract_status"),
+                ),
+                "reuse_decision_reason": "업무 요구·권한·포트 계약을 기준으로 후보만 유지했습니다. 실제 연결 전에는 상세 계약을 확인합니다.",
+            }
+        )
+    if not items:
+        return None
+    return {
+        "section_id": "catalog_recommendations",
+        "title": "카탈로그 기반 적용 계획",
+        "items": items,
+    }
+
+
+UNKNOWN_REPORT_VALUE = "미확정/추가 확인 필요"
+REPORT_ITEM_LIMIT = 100
+
+
+def _implementation_status(value: Any) -> str:
+    """Explain what the sealed implementation source means to a reader."""
+
+    source = _text(value, limit=128)
+    labels = {
+        "builtin": "Langflow 기본 요소로 구성",
+        "catalog_component": "카탈로그 Component 적용 설계",
+        "catalog_flow": "카탈로그 Flow 적용 설계",
+        "new_standalone_component": "신규 Standalone Custom Component 구현 필요",
+        "companion_service": "연계 서비스 계약·권한 확인 필요",
+        "human_task": "사람의 판단·승인 단계 유지",
+    }
+    return labels.get(source, "구현 방식 확인 필요")
+
+
+def _report_text(value: Any, *, fallback: str = UNKNOWN_REPORT_VALUE, limit: int = 5_000) -> str:
+    """Return display text without turning absent source data into a fact.
+
+    The report is a deterministic presentation of the sealed WorkDefinition
+    and Blueprint; it is not a second planning model.  In particular, an
+    empty field must remain visible as an item requiring confirmation instead
+    of being filled by an LLM-style inference.
+    """
+
+    safe = _redact_sensitive(value)
+    if isinstance(safe, dict) and "value" in safe:
+        safe = safe.get("value")
+    text = _text(safe, limit=limit)
+    return text or fallback
+
+
+def _report_mapping_text(
+    value: Any,
+    keys: tuple[str, ...],
+    *,
+    fallback: str = UNKNOWN_REPORT_VALUE,
+    limit: int = 5_000,
+) -> str:
+    """Select a bounded display field from a source record, if one exists."""
+
+    safe = _redact_sensitive(value)
+    if not isinstance(safe, dict):
+        return _report_text(safe, fallback=fallback, limit=limit)
+    for key in keys:
+        if key not in safe or safe.get(key) in (None, ""):
+            continue
+        text = _report_text(safe.get(key), fallback="", limit=limit)
+        if text:
+            return text
+    return fallback
+
+
+def _report_status(value: Any, *, fallback: str = "unknown") -> str:
+    safe = _redact_sensitive(value)
+    if not isinstance(safe, dict):
+        return fallback
+    provenance = safe.get("provenance")
+    if isinstance(provenance, dict):
+        status = _text(provenance.get("status"), limit=64)
+        if status:
+            return status
+    status = _text(safe.get("status"), limit=64)
+    return status or fallback
+
+
+def _report_reference(value: Any) -> str:
+    """Show a readiness reference without disclosing a secret/credential name."""
+
+    text = _report_text(value, fallback="", limit=500)
+    if not text:
+        return ""
+    return "보안 설정 필요" if _secret_key(text) else text
+
+
+def _report_records(
+    value: Any,
+    *,
+    title_keys: tuple[str, ...],
+    description_keys: tuple[str, ...] = (),
+    maximum: int = REPORT_ITEM_LIMIT,
+) -> list[dict[str, Any]]:
+    """Normalize a list of source facts into safe, renderer-friendly cards."""
+
+    if not isinstance(value, list) or not value:
+        return [{"title": UNKNOWN_REPORT_VALUE, "description": "등록된 정보가 없습니다.", "status": "unknown"}]
+    records: list[dict[str, Any]] = []
+    for index, raw in enumerate(value[:maximum]):
+        safe = _redact_sensitive(raw)
+        title = _report_mapping_text(safe, title_keys, limit=500)
+        description = _report_mapping_text(safe, description_keys, fallback="", limit=5_000)
+        item: dict[str, Any] = {
+            "order": index + 1,
+            "title": title,
+            "description": description,
+            "status": _report_status(safe),
+        }
+        if isinstance(safe, dict):
+            item_id = _text(safe.get("id") or safe.get("step_id") or safe.get("decision_id"), limit=128)
+            if item_id:
+                item["source_id"] = item_id
+        records.append(item)
+    return records
+
+
+def _report_string_items(value: Any, *, maximum: int = REPORT_ITEM_LIMIT) -> list[str]:
+    if not isinstance(value, list) or not value:
+        return []
+    result: list[str] = []
+    seen: set[str] = set()
+    for raw in value[:maximum]:
+        text = _report_mapping_text(
+            raw,
+            ("description", "name", "title", "label", "risk", "control", "question", "condition", "value"),
+            fallback="",
+            limit=5_000,
+        )
+        if text and text not in seen:
+            seen.add(text)
+            result.append(text)
+    return result
+
+
+def _report_as_is_procedure(graph: dict[str, Any], fallback_steps: Any = None) -> list[dict[str, Any]]:
+    nodes = graph.get("nodes") if isinstance(graph.get("nodes"), list) else []
+    details = graph.get("details") if isinstance(graph.get("details"), dict) else {}
+    meaningful_nodes: list[dict[str, Any]] = []
+    for node in nodes:
+        if not isinstance(node, dict) or node.get("node_kind") in {"start", "end"}:
+            continue
+        detail = details.get(node.get("detail_ref")) if isinstance(details, dict) else None
+        current_work = _text(detail.get("current_work"), limit=10_000) if isinstance(detail, dict) else ""
+        if current_work or _text(node.get("summary"), limit=10_000):
+            meaningful_nodes.append(node)
+    # A minimally completed HITL session can legitimately yield only Start →
+    # End in the AS-IS graph while still preserving explicitly confirmed
+    # `steps` in the WorkDefinition.  Prefer those confirmed steps over
+    # presenting a misleadingly empty current-state procedure.
+    if len(meaningful_nodes) == 0 and isinstance(fallback_steps, list) and fallback_steps:
+        procedure: list[dict[str, Any]] = []
+        for index, raw in enumerate(fallback_steps[:REPORT_ITEM_LIMIT]):
+            safe = _redact_sensitive(raw)
+            if not isinstance(safe, dict):
+                continue
+            sequence = safe.get("sequence")
+            procedure.append(
+                {
+                    "order": sequence if type(sequence) is int and sequence >= 0 else index + 1,
+                    "title": _report_mapping_text(safe, ("title", "name", "step_id", "id"), limit=500),
+                    "description": _report_mapping_text(safe, ("capability", "description", "name"), limit=10_000),
+                    "problems": [],
+                    "owner": _report_mapping_text(safe, ("owner", "actor", "role"), fallback="", limit=500),
+                    "node_kind": "work_step",
+                }
+            )
+        if procedure:
+            procedure.sort(key=lambda item: (item["order"], item["title"]))
+            return procedure
+    if not nodes:
+        return [{"order": 1, "title": UNKNOWN_REPORT_VALUE, "description": "현재 업무 절차가 정의되지 않았습니다.", "problems": []}]
+    procedure: list[dict[str, Any]] = []
+    for index, node in enumerate(nodes[:REPORT_ITEM_LIMIT]):
+        if not isinstance(node, dict):
+            continue
+        detail = details.get(node.get("detail_ref")) if isinstance(details, dict) else None
+        detail = detail if isinstance(detail, dict) else {}
+        problems = _report_string_items(detail.get("problems"))
+        procedure.append(
+            {
+                "order": int(node.get("sequence")) if type(node.get("sequence")) is int else index + 1,
+                "title": _report_text(node.get("title"), limit=500),
+                "description": _report_text(
+                    detail.get("current_work") or node.get("summary"),
+                    limit=10_000,
+                ),
+                "problems": problems,
+                "node_kind": _report_text(node.get("node_kind"), fallback="work_step", limit=64),
+            }
+        )
+    return procedure or [
+        {"order": 1, "title": UNKNOWN_REPORT_VALUE, "description": "현재 업무 절차가 정의되지 않았습니다.", "problems": []}
+    ]
+
+
+def _report_risks_controls(value: Any) -> list[dict[str, Any]]:
+    if not isinstance(value, list) or not value:
+        return [{"title": UNKNOWN_REPORT_VALUE, "risk": UNKNOWN_REPORT_VALUE, "control": UNKNOWN_REPORT_VALUE, "status": "unknown"}]
+    result: list[dict[str, Any]] = []
+    for index, raw in enumerate(value[:REPORT_ITEM_LIMIT]):
+        safe = _redact_sensitive(raw)
+        result.append(
+            {
+                "order": index + 1,
+                "title": _report_mapping_text(safe, ("name", "title", "id", "risk"), limit=500),
+                "risk": _report_mapping_text(safe, ("risk", "description", "name"), limit=5_000),
+                "control": _report_mapping_text(safe, ("control", "handling", "mitigation"), limit=5_000),
+                "status": _report_status(safe),
+            }
+        )
+    return result
+
+
+def _report_decisions(value: Any) -> list[dict[str, Any]]:
+    records = _report_records(
+        value,
+        title_keys=("question", "name", "title", "decision_id", "id"),
+        description_keys=("owner", "description", "condition"),
+    )
+    for record, raw in zip(records, value[:REPORT_ITEM_LIMIT] if isinstance(value, list) else [], strict=False):
+        if isinstance(raw, dict):
+            owner = _report_mapping_text(raw, ("owner", "actor", "role"), fallback="", limit=500)
+            if owner:
+                record["owner"] = owner
+    return records
+
+
+def _report_exceptions(value: Any) -> list[dict[str, Any]]:
+    records = _report_records(
+        value,
+        title_keys=("condition", "name", "title", "id"),
+        description_keys=("handling", "control", "description"),
+    )
+    for record, raw in zip(records, value[:REPORT_ITEM_LIMIT] if isinstance(value, list) else [], strict=False):
+        if isinstance(raw, dict):
+            record["handling"] = _report_mapping_text(raw, ("handling", "control", "description"), limit=5_000)
+    return records
+
+
+def _report_to_be_procedure(graph: dict[str, Any]) -> list[dict[str, Any]]:
+    nodes = graph.get("nodes") if isinstance(graph.get("nodes"), list) else []
+    details = graph.get("details") if isinstance(graph.get("details"), dict) else {}
+    result: list[dict[str, Any]] = []
+    for index, node in enumerate(nodes[:REPORT_ITEM_LIMIT]):
+        if not isinstance(node, dict):
+            continue
+        detail = details.get(node.get("detail_ref")) if isinstance(details, dict) else None
+        detail = detail if isinstance(detail, dict) else {}
+        asset_ref = detail.get("asset_ref") if isinstance(detail.get("asset_ref"), dict) else {}
+        skills = [
+            _report_mapping_text(skill, ("name", "skill_id"), fallback="", limit=256)
+            for skill in node.get("applied_skills", [])
+            if isinstance(skill, dict)
+        ]
+        result.append(
+            {
+                "order": int(node.get("sequence")) if type(node.get("sequence")) is int else index + 1,
+                "title": _report_text(node.get("title"), limit=500),
+                "description": _report_text(node.get("summary") or detail.get("improvement"), limit=10_000),
+                "implementation_source": _report_text(node.get("implementation_source"), limit=128),
+                "implementation_label": _report_text(node.get("implementation_label"), limit=256),
+                "implementation_reason": _report_text(detail.get("reuse_decision_reason"), limit=5_000),
+                "technical_contract_status": _report_text(
+                    node.get("technical_contract_status"),
+                    fallback=UNKNOWN_REPORT_VALUE,
+                    limit=128,
+                ),
+                "technical_contract_label": _technical_contract_label(node.get("technical_contract_status")),
+                "implementation_status": _implementation_status(node.get("implementation_source")),
+                "asset_id": _report_mapping_text(asset_ref, ("asset_id",), fallback="", limit=200),
+                "asset_version": _report_mapping_text(asset_ref, ("version",), fallback="", limit=100),
+                "applied_skills": [skill for skill in skills if skill],
+            }
+        )
+    return result or [
+        {
+            "order": 1,
+            "title": UNKNOWN_REPORT_VALUE,
+            "description": "권장 TO-BE 운영 절차가 정의되지 않았습니다.",
+            "implementation_source": UNKNOWN_REPORT_VALUE,
+            "implementation_label": UNKNOWN_REPORT_VALUE,
+            "implementation_reason": UNKNOWN_REPORT_VALUE,
+            "technical_contract_status": UNKNOWN_REPORT_VALUE,
+            "technical_contract_label": "기술 계약 확인 필요",
+            "implementation_status": "구현 방식 확인 필요",
+            "asset_id": "",
+            "asset_version": "",
+            "applied_skills": [],
+        }
+    ]
+
+
+def _report_branch_plan(graph: dict[str, Any]) -> list[dict[str, Any]]:
+    nodes = {node.get("node_id"): node for node in graph.get("nodes", []) if isinstance(node, dict)}
+    result: list[dict[str, Any]] = []
+    for edge in graph.get("edges", [])[:REPORT_ITEM_LIMIT]:
+        if not isinstance(edge, dict):
+            continue
+        edge_kind = _text(edge.get("edge_kind"), limit=64)
+        condition = _text(edge.get("condition"), limit=2_000)
+        if edge_kind not in {"branch", "error", "retry", "human"} and not condition:
+            continue
+        source = nodes.get(edge.get("source_node_id"), {})
+        target = nodes.get(edge.get("target_node_id"), {})
+        result.append(
+            {
+                "title": _report_text(edge.get("label"), limit=500),
+                "condition": condition or UNKNOWN_REPORT_VALUE,
+                "edge_kind": edge_kind or "branch",
+                "from_stage": _report_text(source.get("title"), limit=500),
+                "to_stage": _report_text(target.get("title"), limit=500),
+                "connection_validation_status": _report_text(
+                    edge.get("connection_validation_status"), fallback=UNKNOWN_REPORT_VALUE, limit=128
+                ),
+            }
+        )
+    return result
+
+
+def _report_allocation(
+    to_be_graph: dict[str, Any],
+    catalog_section: dict[str, Any] | None,
+) -> dict[str, Any]:
+    """Map every proposed stage to its implementation responsibility."""
+
+    buckets: dict[str, Any] = {
+        "catalog_reuse": [],
+        "stage_catalog_references": [],
+        "catalog_candidates": [],
+        "new_standalone_components": [],
+        "builtin_components": [],
+        "companion_services": [],
+        "human_tasks": [],
+        "skills": [],
+    }
+    details = to_be_graph.get("details") if isinstance(to_be_graph.get("details"), dict) else {}
+    requests = to_be_graph.get("generation_requests") if isinstance(to_be_graph.get("generation_requests"), dict) else {}
+    catalog_by_identity: dict[tuple[str, str], dict[str, Any]] = {}
+    if isinstance(catalog_section, dict):
+        for item in catalog_section.get("items", [])[:REPORT_ITEM_LIMIT]:
+            if isinstance(item, dict):
+                asset_id = _text(item.get("asset_id"), limit=200)
+                version = _text(item.get("version"), limit=100)
+                if asset_id and version:
+                    catalog_by_identity[(asset_id, version)] = item
+                if item.get("status") == "candidate_not_selected":
+                    buckets["catalog_candidates"].append(
+                        {
+                            "title": _report_text(item.get("asset_title") or asset_id, limit=500),
+                            "asset_id": asset_id,
+                            "version": version,
+                            "description": _report_text(item.get("description"), limit=5_000),
+                            "technical_contract_status": _report_text(
+                                item.get("technical_contract_status"), fallback=UNKNOWN_REPORT_VALUE, limit=128
+                            ),
+                            "technical_contract_label": _report_text(
+                                item.get("technical_contract_label"),
+                                fallback=_technical_contract_label(item.get("technical_contract_status")),
+                                limit=500,
+                            ),
+                            "selection_status": _report_text(
+                                item.get("selection_status"),
+                                fallback=_catalog_selection_status(
+                                    "candidate_not_selected",
+                                    item.get("technical_contract_status"),
+                                ),
+                                limit=500,
+                            ),
+                            "reason": _report_text(item.get("reuse_decision_reason"), limit=5_000),
+                            "catalog_url": _safe_catalog_url(item.get("catalog_url")),
+                            "catalog_link_status": _report_text(
+                                item.get("catalog_link_status"), fallback="카탈로그 상세 링크 미등록", limit=500
+                            ),
+                        }
+                    )
+                elif item.get("status") == "reference_candidate_for_stage":
+                    buckets["stage_catalog_references"].append(
+                        {
+                            "stage_title": _report_text(item.get("stage_title"), limit=500),
+                            "stage_summary": _report_text(item.get("stage_summary"), limit=5_000),
+                            "asset_id": asset_id,
+                            "version": version,
+                            "asset_type": _report_text(item.get("asset_type"), fallback=UNKNOWN_REPORT_VALUE, limit=64),
+                            "title": _report_text(item.get("asset_title") or asset_id, limit=500),
+                            "description": _report_text(item.get("description"), limit=5_000),
+                            "technical_contract_status": _report_text(
+                                item.get("technical_contract_status"), fallback=UNKNOWN_REPORT_VALUE, limit=128
+                            ),
+                            "technical_contract_label": _report_text(
+                                item.get("technical_contract_label"),
+                                fallback=_technical_contract_label(item.get("technical_contract_status")),
+                                limit=500,
+                            ),
+                            "selection_status": _report_text(
+                                item.get("selection_status"),
+                                fallback=_catalog_selection_status(
+                                    "reference_candidate_for_stage",
+                                    item.get("technical_contract_status"),
+                                ),
+                                limit=500,
+                            ),
+                            "reason": _report_text(item.get("reuse_decision_reason"), limit=5_000),
+                            "matched_catalog_terms": _report_string_items(item.get("matched_catalog_terms")),
+                            "match_basis": _report_text(item.get("match_basis"), fallback="", limit=1_000),
+                            "catalog_url": _safe_catalog_url(item.get("catalog_url")),
+                            "catalog_link_status": _report_text(
+                                item.get("catalog_link_status"), fallback="카탈로그 상세 링크 미등록", limit=500
+                            ),
+                            "selection_status": "참고 후보(직접 적용 미확정)",
+                        }
+                    )
+    seen_skills: set[tuple[str, str]] = set()
+    for node in to_be_graph.get("nodes", [])[:REPORT_ITEM_LIMIT]:
+        if not isinstance(node, dict):
+            continue
+        detail = details.get(node.get("detail_ref")) if isinstance(details, dict) else None
+        detail = detail if isinstance(detail, dict) else {}
+        source = _text(node.get("implementation_source"), limit=128)
+        stage = {
+            "stage_title": _report_text(node.get("title"), limit=500),
+            "description": _report_text(node.get("summary") or detail.get("improvement"), limit=5_000),
+            "reason": _report_text(detail.get("reuse_decision_reason"), limit=5_000),
+        }
+        if source in {"catalog_component", "catalog_flow"}:
+            asset_ref = detail.get("asset_ref") if isinstance(detail.get("asset_ref"), dict) else {}
+            asset_id = _report_mapping_text(asset_ref, ("asset_id",), fallback="", limit=200)
+            version = _report_mapping_text(asset_ref, ("version",), fallback="", limit=100)
+            catalog = catalog_by_identity.get((asset_id, version), {})
+            buckets["catalog_reuse"].append(
+                {
+                    **stage,
+                    "asset_id": asset_id,
+                    "version": version,
+                    "asset_type": "component" if source == "catalog_component" else "flow",
+                    "asset_title": _report_text(catalog.get("asset_title") or asset_id, limit=500),
+                    "technical_contract_status": _report_text(
+                        node.get("technical_contract_status"), fallback=UNKNOWN_REPORT_VALUE, limit=128
+                    ),
+                    "technical_contract_label": _technical_contract_label(node.get("technical_contract_status")),
+                    "selection_status": _catalog_selection_status(
+                        "selected_for_stage",
+                        node.get("technical_contract_status"),
+                    ),
+                    "catalog_url": _safe_catalog_url(catalog.get("catalog_url")),
+                    "catalog_link_status": _report_text(
+                        catalog.get("catalog_link_status"), fallback="카탈로그 상세 링크 미등록", limit=500
+                    ),
+                }
+            )
+        elif source == "new_standalone_component":
+            request = requests.get(node.get("generation_request_ref")) if isinstance(requests, dict) else None
+            request = request if isinstance(request, dict) else {}
+            buckets["new_standalone_components"].append(
+                {
+                    **stage,
+                    "component_filename": _report_mapping_text(request, ("component_filename",), limit=256),
+                    "class_name": _report_mapping_text(request, ("class_name",), limit=256),
+                    "prompt_pack": _report_mapping_text(request, ("prompt_pack",), fallback=UNKNOWN_REPORT_VALUE, limit=128),
+                    "implementation_status": _implementation_status(source),
+                }
+            )
+        elif source == "companion_service":
+            buckets["companion_services"].append({**stage, "implementation_status": _implementation_status(source)})
+        elif source == "human_task":
+            buckets["human_tasks"].append({**stage, "implementation_status": _implementation_status(source)})
+        else:
+            buckets["builtin_components"].append({**stage, "implementation_status": _implementation_status(source)})
+        for raw_skill in node.get("applied_skills", [])[:REPORT_ITEM_LIMIT]:
+            if not isinstance(raw_skill, dict):
+                continue
+            skill_id = _text(raw_skill.get("skill_id"), limit=128)
+            version = _text(raw_skill.get("version"), limit=128)
+            identity = (skill_id, version)
+            if not skill_id or identity in seen_skills:
+                continue
+            seen_skills.add(identity)
+            buckets["skills"].append(
+                {
+                    "name": _report_mapping_text(raw_skill, ("name", "skill_id"), limit=256),
+                    "skill_id": skill_id,
+                    "version": version,
+                    "target_stage": _report_mapping_text(raw_skill, ("target_stage",), limit=128),
+                    "reason": _report_mapping_text(raw_skill, ("match_reason",), limit=5_000),
+                }
+            )
+    buckets["summary"] = (
+        f"카탈로그 직접 재사용 {len(buckets['catalog_reuse'])}건, 단계별 참고 후보 "
+        f"{len(buckets['stage_catalog_references'])}건, 일반 검색 후보 "
+        f"{len(buckets['catalog_candidates'])}건, 신규 Standalone Custom Component "
+        f"{len(buckets['new_standalone_components'])}건으로 구분했습니다. "
+        "참고·검색 후보는 포트 계약, 권한, 실행 검증 전에는 직접 적용으로 확정하지 않습니다."
+    )
+    return buckets
+
+
+def _report_next_steps(
+    blueprint: dict[str, Any],
+    readiness: str,
+    allocation: dict[str, Any],
+    validation_plan: list[dict[str, Any]],
+    open_items: list[dict[str, Any]],
+) -> list[dict[str, Any]]:
+    """Return the short, decision-oriented implementation roadmap.
+
+    A readiness assessment can contain many node/edge-level checks.  They are
+    valuable audit evidence, but presenting all of them as the reader's next
+    actions makes the report look like an internal compiler log.  This
+    function groups only facts already present in the sealed design into at
+    most five business actions; detailed preflight records are retained by
+    ``_report_technical_preflight_actions`` below.
+    """
+
+    steps: list[dict[str, Any]] = []
+    assessment = blueprint.get("readiness_assessment") if isinstance(blueprint.get("readiness_assessment"), dict) else {}
+    blockers = assessment.get("blockers") if isinstance(assessment.get("blockers"), list) else []
+    if blockers:
+        steps.append(
+            {
+                "title": "차단 항목 해소",
+                "description": f"승인된 설계의 차단 항목 {len(blockers)}건을 해소한 뒤 다음 구현 단계로 진행합니다.",
+                "source": "readiness_assessment",
+            }
+        )
+    if allocation["new_standalone_components"]:
+        names = ", ".join(
+            item["component_filename"]
+            for item in allocation["new_standalone_components"]
+            if item.get("component_filename") and item["component_filename"] != UNKNOWN_REPORT_VALUE
+        )
+        steps.append(
+            {
+                "title": "신규 Standalone Custom Component 구현 및 단독 검증",
+                "description": names or UNKNOWN_REPORT_VALUE,
+                "source": "new_standalone_components",
+            }
+        )
+    import_requirements = assessment.get("import_requirements") if isinstance(assessment.get("import_requirements"), list) else []
+    requirement_codes = {
+        _text(item.get("code"), limit=128)
+        for item in import_requirements
+        if isinstance(item, dict)
+    }
+    if requirement_codes & {"CONFIGURE_SECRET", "GRANT_PERMISSION"}:
+        steps.append(
+            {
+                "title": "연계 권한·보안 설정 확인",
+                "description": "승인된 설계에 필요한 접근 권한과 보안 설정을 운영 환경에서 확인합니다.",
+                "source": "readiness_assessment",
+            }
+        )
+    if allocation["companion_services"] or "VERIFY_COMPANION_SERVICE" in requirement_codes:
+        steps.append(
+            {
+                "title": "연계 서비스 연결 검증",
+                "description": "외부 또는 사내 연계 서비스의 인증·연결·오류 처리 계약을 확인합니다.",
+                "source": "companion_service",
+            }
+        )
+    if allocation["catalog_reuse"]:
+        steps.append(
+            {
+                "title": "카탈로그 재사용 자산 연결 검증",
+                "description": "선택된 카탈로그 자산의 포트 계약, 권한, 연결 상태를 실제 Flow Import 환경에서 확인합니다.",
+                "source": "catalog_reuse",
+            }
+        )
+    elif allocation["stage_catalog_references"]:
+        steps.append(
+            {
+                "title": "카탈로그 참고 후보 적합성 확인",
+                "description": "단계별 참고 후보는 메타데이터 기준입니다. 포트 계약·권한·실행 검증 후에만 재사용으로 확정합니다.",
+                "source": "catalog_reference_candidates",
+            }
+        )
+    if open_items:
+        steps.append(
+            {
+                "title": "미확정 사항 확인",
+                "description": f"보고서에 남아 있는 확인 항목 {len(open_items)}건을 담당자와 확정합니다.",
+                "source": "open_items",
+            }
+        )
+    if validation_plan:
+        steps.append(
+            {
+                "title": "승인·예외 경로 검증",
+                "description": f"승인된 설계에 정의된 검증 항목 {len(validation_plan)}건을 실행합니다.",
+                "source": "validation_plan",
+            }
+        )
+    if not steps:
+        steps.append(
+            {
+                "title": "운영 전 검증",
+                "description": _build_readiness_label(readiness),
+                "source": "build_readiness",
+            }
+        )
+    for index, step in enumerate(steps[:5]):
+        step["order"] = index + 1
+    return steps[:5]
+
+
+def _report_technical_preflight_actions(blueprint: dict[str, Any]) -> list[dict[str, Any]]:
+    """Keep detailed readiness evidence for the collapsed technical section."""
+
+    assessment = blueprint.get("readiness_assessment") if isinstance(blueprint.get("readiness_assessment"), dict) else {}
+    result: list[dict[str, Any]] = []
+    seen: set[tuple[str, str, str]] = set()
+    for field, label in (
+        ("blockers", "차단 항목"),
+        ("import_requirements", "Import 전 확인"),
+        ("warnings", "운영 전 주의"),
+    ):
+        records = assessment.get(field) if isinstance(assessment.get(field), list) else []
+        for raw in records[:REPORT_ITEM_LIMIT]:
+            if not isinstance(raw, dict):
+                continue
+            code = _report_mapping_text(raw, ("code",), fallback="", limit=128)
+            reference = _report_reference(_report_mapping_text(raw, ("ref",), fallback="", limit=500))
+            identity = (field, code, reference)
+            if not code or identity in seen:
+                continue
+            seen.add(identity)
+            result.append(
+                {
+                    "category": label,
+                    "code": code,
+                    "reference": reference,
+                    "description": code if not reference else f"{code} · 대상: {reference}",
+                    "source": "readiness_assessment",
+                }
+            )
+    for index, item in enumerate(result[:REPORT_ITEM_LIMIT]):
+        item["order"] = index + 1
+    return result[:REPORT_ITEM_LIMIT]
+
+
+def _business_report_section(
+    *,
+    work: dict[str, Any],
+    blueprint: dict[str, Any],
+    as_is_graph: dict[str, Any],
+    to_be_graph: dict[str, Any],
+    readiness: str,
+    catalog_section: dict[str, Any] | None,
+    as_is_procedure_basis: dict[str, str] | None = None,
+) -> dict[str, Any]:
+    """Build the complete, deterministic Korean business-design report body.
+
+    It intentionally emits a structured section rather than a free-form
+    narrative.  The renderer can place the same facts in responsive cards,
+    while exports retain a machine-readable audit trail.  Every sentence is
+    derived from approved input; missing facts stay explicitly unresolved.
+    """
+
+    goal = _report_text(work.get("goal"), limit=5_000)
+    trigger = _report_text(work.get("trigger"), limit=5_000)
+    automation_intent = _report_text(work.get("automation_intent"), limit=5_000)
+    frequency_volume = _report_text(work.get("frequency_volume"), limit=5_000)
+    sla = _report_text(work.get("sla"), limit=5_000)
+    as_is_procedure = _report_as_is_procedure(as_is_graph, work.get("steps"))
+    to_be_procedure = _report_to_be_procedure(to_be_graph)
+    pain_points = _report_records(
+        work.get("pains"),
+        title_keys=("description", "name", "title", "id"),
+        description_keys=("description", "name"),
+    )
+    graph_pains = _report_string_items(
+        [problem for item in as_is_procedure for problem in item.get("problems", [])]
+    )
+    known_pain_titles = {item.get("title") for item in pain_points}
+    for pain in graph_pains:
+        if pain not in known_pain_titles:
+            pain_points.append({"title": pain, "description": pain, "status": "derived_from_as_is_graph"})
+            known_pain_titles.add(pain)
+    risks_controls = _report_risks_controls(work.get("risks_controls"))
+    allocation = _report_allocation(to_be_graph, catalog_section)
+    references_by_stage: dict[str, list[dict[str, Any]]] = {}
+    for item in allocation.get("stage_catalog_references", []):
+        if not isinstance(item, dict):
+            continue
+        stage_title = _report_text(item.get("stage_title"), fallback="", limit=500)
+        if stage_title:
+            references_by_stage.setdefault(stage_title, []).append(item)
+    for stage in to_be_procedure:
+        if not isinstance(stage, dict):
+            continue
+        references = references_by_stage.get(_report_text(stage.get("title"), fallback="", limit=500), [])
+        if references:
+            # Candidates are report guidance only.  The executable node keeps
+            # its sealed implementation_source and asset_ref unchanged.
+            stage["catalog_references"] = references
+    objectives: list[dict[str, Any]] = []
+    seen_objectives: set[str] = set()
+    as_is_details = as_is_graph.get("details") if isinstance(as_is_graph.get("details"), dict) else {}
+    for node in as_is_graph.get("nodes", [])[:REPORT_ITEM_LIMIT]:
+        if not isinstance(node, dict):
+            continue
+        detail = as_is_details.get(node.get("detail_ref")) if isinstance(as_is_details, dict) else None
+        improvement = _report_text(detail.get("improvement") if isinstance(detail, dict) else None, fallback="", limit=10_000)
+        if improvement and improvement not in seen_objectives:
+            seen_objectives.add(improvement)
+            objectives.append({"title": _report_text(node.get("title"), limit=500), "description": improvement})
+    if not objectives:
+        objectives.append({"title": UNKNOWN_REPORT_VALUE, "description": "개선 목표가 명시되지 않았습니다."})
+    principles: list[dict[str, Any]] = []
+    for constraint in _report_records(
+        work.get("constraints"),
+        title_keys=("name", "description", "title", "id"),
+        description_keys=("description", "name"),
+    ):
+        principles.append(
+            {
+                "title": f"제약 준수: {constraint['title']}",
+                "description": constraint.get("description") or UNKNOWN_REPORT_VALUE,
+                "status": constraint.get("status", "unknown"),
+            }
+        )
+    for risk in risks_controls:
+        principles.append(
+            {
+                "title": f"통제 유지: {risk['title']}",
+                "description": risk.get("control") or UNKNOWN_REPORT_VALUE,
+                "status": risk.get("status", "unknown"),
+            }
+        )
+    human_review_points = [
+        {
+            "title": stage["title"],
+            "description": stage["description"],
+            "reason": stage["implementation_reason"],
+        }
+        for stage in to_be_procedure
+        if stage.get("implementation_source") == "human_task" or stage.get("implementation_label") == "Human"
+    ]
+    for point in human_review_points:
+        principles.append(
+            {
+                "title": f"사람의 판단 유지: {point['title']}",
+                "description": point["description"],
+                "status": "to_be_design",
+            }
+        )
+    if not principles:
+        principles.append({"title": UNKNOWN_REPORT_VALUE, "description": "준수해야 할 제약·통제 원칙이 명시되지 않았습니다.", "status": "unknown"})
+
+    raw_validation_plan = blueprint.get("tests") if isinstance(blueprint.get("tests"), list) else []
+    validation_plan = (
+        _report_records(
+            raw_validation_plan,
+            title_keys=("name", "title", "test_id", "id", "description"),
+            description_keys=("description", "expected_result", "control"),
+        )
+        if raw_validation_plan
+        else []
+    )
+    open_items = _report_records(
+        list(work.get("unresolved") or []) + list(blueprint.get("unresolved") or []),
+        title_keys=("name", "title", "question", "reason_code", "id", "description"),
+        description_keys=("description", "value", "reason", "message"),
+    )
+    if not (work.get("unresolved") or blueprint.get("unresolved")):
+        open_items = []
+    for label, value in (("업무 목표", goal), ("실행 시점", trigger), ("자동화 의도", automation_intent)):
+        if value == UNKNOWN_REPORT_VALUE:
+            open_items.append(
+                {"title": f"{label} 확인", "description": UNKNOWN_REPORT_VALUE, "status": "unknown"}
+            )
+    next_steps = _report_next_steps(blueprint, readiness, allocation, validation_plan, open_items)
+    technical_preflight_actions = _report_technical_preflight_actions(blueprint)
+
+    basis = as_is_procedure_basis if isinstance(as_is_procedure_basis, dict) else {}
+    basis_source = _text(basis.get("source"), limit=128) or "approved_as_is_graph"
+    basis_message = _text(basis.get("message"), limit=2_000) or "승인된 WorkDefinition의 현행 업무 그래프를 표시했습니다."
+    as_is_evidence_label = {
+        "approved_as_is_graph": "승인된 현행 업무 그래프",
+        "approved_work_steps_fallback": "승인된 업무 단계로 재구성한 현행 흐름",
+        "blueprint_current_work_fallback": "승인된 Blueprint의 현행 업무 설명을 참고한 흐름",
+        "source_request_fallback": "사용자 원문 업무 설명을 참고한 흐름",
+        "placeholder_as_is_graph": "현행 업무 정보 미확정",
+    }.get(basis_source, "현행 업무 근거 확인 필요")
+    for stage in as_is_procedure:
+        if isinstance(stage, dict):
+            stage["evidence_basis"] = as_is_evidence_label
+    human_review_count = len(human_review_points)
+    branch_count = len(_report_branch_plan(to_be_graph))
+    catalog_reference_count = len(allocation["stage_catalog_references"])
+    overview = (
+        f"현재 업무 {len(as_is_procedure)}개 단계를 권장 운영 {len(to_be_procedure)}개 단계로 정리했습니다. "
+        f"카탈로그 직접 재사용은 {len(allocation['catalog_reuse'])}건, 단계별 참고 후보는 "
+        f"{catalog_reference_count}건이며, 신규 Standalone Custom Component는 "
+        f"{len(allocation['new_standalone_components'])}건이 필요합니다. "
+        f"현행 업무 근거: {as_is_evidence_label}."
+    )
+    return {
+        "section_id": "business_report",
+        "title": "업무 방식 및 개선 실행 보고서",
+        "items": [
+            {
+                "report_type": "business_report",
+                "report_version": "business-report/v1",
+                "executive_summary": {
+                    "title": f"{goal} 업무 개선 보고서" if goal != UNKNOWN_REPORT_VALUE else "업무 개선 보고서",
+                    "overview": overview,
+                    "approval_basis": (
+                        f"승인된 WorkDefinition rev.{work.get('revision')} 및 Agent Blueprint "
+                        f"{_report_text(blueprint.get('blueprint_id'), limit=128)}를 기준으로 작성했습니다."
+                    ),
+                    "build_readiness": readiness,
+                },
+                "work_overview": {
+                    "goal": goal,
+                    "trigger": trigger,
+                    "automation_intent": automation_intent,
+                    "frequency_volume": frequency_volume,
+                    "sla": sla,
+                    "scope_in": _report_records(
+                        work.get("scope_in"),
+                        title_keys=("name", "description", "title", "id"),
+                        description_keys=("description", "name"),
+                    ),
+                    "scope_out": _report_records(
+                        work.get("scope_out"),
+                        title_keys=("name", "description", "title", "id"),
+                        description_keys=("description", "name"),
+                    ),
+                },
+                "operating_context": {
+                    "actors": _report_records(
+                        work.get("actors"),
+                        title_keys=("name", "role", "id"),
+                        description_keys=("role", "description"),
+                    ),
+                    "systems": _report_records(
+                        work.get("systems"),
+                        title_keys=("name", "id"),
+                        description_keys=("purpose", "description"),
+                    ),
+                    "inputs": _report_records(
+                        work.get("inputs"),
+                        title_keys=("name", "id"),
+                        description_keys=("data_type", "description"),
+                    ),
+                    "outputs": _report_records(
+                        work.get("outputs"),
+                        title_keys=("name", "id"),
+                        description_keys=("data_type", "description"),
+                    ),
+                },
+                "as_is_analysis": {
+                    "summary": (
+                        f"현행 업무 {len(as_is_procedure)}개 단계를 표시했습니다. "
+                        f"{basis_message}"
+                    ),
+                    "procedure_basis": {
+                        "source": basis_source,
+                        "evidence_label": as_is_evidence_label,
+                        "message": basis_message,
+                        "requires_confirmation": basis_source in {
+                            "blueprint_current_work_fallback",
+                            "source_request_fallback",
+                            "placeholder_as_is_graph",
+                        },
+                    },
+                    "procedure": as_is_procedure,
+                    "pain_points": pain_points,
+                    "decision_points": _report_decisions(work.get("decisions")),
+                    "exception_paths": _report_exceptions(work.get("exceptions")),
+                    "risks_controls": risks_controls,
+                },
+                "improvement_direction": {
+                    "objectives": objectives,
+                    "principles": principles[:REPORT_ITEM_LIMIT],
+                    "summary": (
+                        f"반복·정형 업무는 TO-BE 단계로 구조화하고, 승인·검토가 필요한 판단은 "
+                        f"Human 단계 {len(human_review_points)}개로 유지합니다."
+                    ),
+                },
+                "to_be_operating_plan": {
+                    "summary": (
+                        f"권장 운영은 {len(to_be_procedure)}개 단계이며, 사람의 승인·검토 단계 "
+                        f"{human_review_count}개와 분기·예외 경로 {branch_count}개를 유지합니다."
+                    ),
+                    "recommended_procedure": to_be_procedure,
+                    "branch_and_exception_plan": _report_branch_plan(to_be_graph),
+                    "human_review_points": human_review_points,
+                },
+                "implementation_allocation": allocation,
+                "next_steps": next_steps,
+                "technical_preflight_actions": technical_preflight_actions,
+                "validation_plan": validation_plan,
+                "open_items": open_items[:REPORT_ITEM_LIMIT],
+            }
+        ],
+    }
+
+
 def _source_kind(node: dict[str, Any]) -> str:
     kind = _text(node.get("kind") or node.get("node_type") or "task", limit=64)
     return kind if kind in SOURCE_NODE_KINDS else "task"
@@ -1140,6 +2612,262 @@ def _presentation_node_order(nodes: list[Any], edges: list[Any]) -> list[Any]:
     ]
 
 
+def _as_is_graph_has_work_nodes(graph: dict[str, Any]) -> bool:
+    """Whether the approved AS-IS graph records more than a start/end shell."""
+
+    raw_nodes = graph.get("nodes") if isinstance(graph.get("nodes"), list) else []
+    return any(
+        isinstance(node, dict) and _source_kind(node) not in {"start", "end"}
+        for node in raw_nodes
+    )
+
+
+def _work_step_fallback_graph(work: dict[str, Any]) -> dict[str, Any] | None:
+    """Create a presentation-only AS-IS graph from non-empty approved steps."""
+
+    raw_steps = work.get("steps")
+    if not isinstance(raw_steps, list):
+        return None
+    step_nodes: list[dict[str, Any]] = []
+    for index, raw in enumerate(raw_steps[:REPORT_ITEM_LIMIT]):
+        safe = _redact_sensitive(raw)
+        if not isinstance(safe, dict):
+            continue
+        title = _report_mapping_text(safe, ("title", "name", "step_id", "id"), fallback="", limit=500)
+        current_work = _report_mapping_text(
+            safe,
+            ("capability", "description", "current_work", "name", "title"),
+            fallback="",
+            limit=10_000,
+        )
+        if not title and not current_work:
+            continue
+        source_id = _safe_id(safe.get("step_id") or safe.get("id") or f"step-{index + 1}", f"step-{index + 1}")
+        sequence = safe.get("sequence")
+        step_nodes.append(
+            {
+                "id": f"as-is-step-{source_id}",
+                "kind": "human_review" if _contains_any(f"{title} {current_work}", ("승인", "검토", "확인")) else "task",
+                "label": title or f"업무 단계 {index + 1}",
+                "sequence": sequence if type(sequence) is int and sequence >= 0 else index + 1,
+                "current_work": current_work or title,
+                "improvement": "",
+                "problems": [],
+            }
+        )
+    if not step_nodes:
+        return None
+    step_nodes.sort(key=lambda item: (item["sequence"], item["id"]))
+    nodes: list[dict[str, Any]] = [
+        {
+            "id": "as-is-work-start",
+            "kind": "start",
+            "label": "업무 시작",
+            "sequence": 0,
+            "current_work": "확정된 업무 단계를 시작합니다.",
+            "improvement": "",
+            "problems": [],
+        },
+        *step_nodes,
+        {
+            "id": "as-is-work-end",
+            "kind": "end",
+            "label": "업무 종료",
+            "sequence": len(step_nodes) + 1,
+            "current_work": "확정된 업무 단계를 완료합니다.",
+            "improvement": "",
+            "problems": [],
+        },
+    ]
+    edges: list[dict[str, Any]] = []
+    for index, (source, target) in enumerate(zip(nodes, nodes[1:], strict=False)):
+        edges.append(
+            {
+                "id": f"as-is-work-step-edge-{index + 1}",
+                "source": source["id"],
+                "target": target["id"],
+                "branch_label": "업무 시작" if index == 0 else ("업무 완료" if index == len(nodes) - 2 else "다음 업무"),
+                "condition": None,
+                "default": False,
+            }
+        )
+    return {"graph_id": "as-is-approved-steps", "nodes": nodes, "edges": edges}
+
+
+def _blueprint_current_work_fallback_graph(
+    blueprint_nodes: list[dict[str, Any]],
+    blueprint_edges: list[dict[str, Any]],
+) -> dict[str, Any] | None:
+    """Use Blueprint ``current_work`` only when F10 stored an empty AS-IS shell.
+
+    This is intentionally a *presentation fallback*, not a new WorkDefinition
+    fact or an executable graph.  It keeps the exact Korean ``current_work``
+    text already carried by the sealed Blueprint and preserves its labelled
+    success/error/approval branches when both endpoints are available.
+    """
+
+    ordered_nodes = _presentation_node_order(blueprint_nodes, blueprint_edges)
+    node_ids: dict[str, str] = {}
+    nodes: list[dict[str, Any]] = []
+    for index, raw in enumerate(ordered_nodes):
+        if not isinstance(raw, dict):
+            continue
+        source_id = _text(raw.get("node_id") or raw.get("id"), limit=128)
+        current_work = _text(raw.get("current_work") or raw.get("as_is"), limit=20_000)
+        if not source_id or not current_work:
+            continue
+        fallback_id = _safe_id(f"as-is-{source_id}", f"as-is-step-{index + 1}")
+        node_ids[source_id] = fallback_id
+        node_type = _source_kind(raw)
+        nodes.append(
+            {
+                "id": fallback_id,
+                "kind": node_type,
+                "label": _presentation_title(raw, "as_is", index + 1),
+                "sequence": raw.get("sequence") if type(raw.get("sequence")) is int else index + 1,
+                # The source describes current manual work.  Do not inherit a
+                # TO-BE implementation source such as a new Custom Component.
+                "implementation_source": "human_task",
+                "current_work": current_work,
+                "improvement": _text(raw.get("improvement") or raw.get("to_be"), limit=20_000),
+                "problems": _redact_sensitive(raw.get("problems")) if isinstance(raw.get("problems"), list) else [],
+            }
+        )
+    if not nodes:
+        return None
+
+    edges: list[dict[str, Any]] = []
+    used_edge_ids: set[str] = set()
+    for index, raw in enumerate(blueprint_edges):
+        if not isinstance(raw, dict):
+            continue
+        source = _text(raw.get("source_node_id") or raw.get("source"), limit=128)
+        target = _text(raw.get("target_node_id") or raw.get("target"), limit=128)
+        if source not in node_ids or target not in node_ids:
+            continue
+        edge_id = _safe_id(raw.get("edge_id") or raw.get("id"), f"as-is-blueprint-edge-{index + 1}")
+        if edge_id in used_edge_ids:
+            continue
+        used_edge_ids.add(edge_id)
+        edges.append(
+            {
+                "id": f"as-is-{edge_id}",
+                "source": node_ids[source],
+                "target": node_ids[target],
+                "branch_label": _text(raw.get("label") or raw.get("branch_label"), limit=500) or "다음 업무",
+                "condition": _text(raw.get("condition"), limit=2_000) or None,
+                "default": bool(raw.get("is_default", raw.get("default", False))),
+                "edge_kind": _text(raw.get("edge_kind"), limit=64),
+                "connection_validation_status": _text(raw.get("connection_validation_status"), limit=64),
+            }
+        )
+    if not edges and len(nodes) > 1:
+        for index, (source, target) in enumerate(zip(nodes, nodes[1:], strict=False)):
+            edges.append(
+                {
+                    "id": f"as-is-blueprint-sequence-{index + 1}",
+                    "source": source["id"],
+                    "target": target["id"],
+                    "branch_label": "업무 순서(설계 참고)",
+                    "condition": None,
+                    "default": False,
+                }
+            )
+    return {"graph_id": "as-is-blueprint-current-work", "nodes": nodes, "edges": edges}
+
+
+def _source_request_fallback_graph(work: dict[str, Any]) -> dict[str, Any] | None:
+    """Last-resort, provenance-labeled AS-IS display for an original request."""
+
+    raw_requests = work.get("source_requests")
+    if not isinstance(raw_requests, list):
+        return None
+    source_text = ""
+    for raw in raw_requests[:REPORT_ITEM_LIMIT]:
+        safe = _redact_sensitive(raw)
+        if not isinstance(safe, dict):
+            continue
+        for field in ("raw_text", "text", "request", "content", "raw"):
+            source_text = _text(safe.get(field), limit=20_000)
+            if source_text:
+                break
+        if source_text:
+            break
+    if not source_text:
+        return None
+    task_title = _stage_display_title_from_text(source_text) or "사용자 업무 설명"
+    return {
+        "graph_id": "as-is-source-request",
+        "nodes": [
+            {
+                "id": "as-is-request-start",
+                "kind": "start",
+                "label": "업무 시작",
+                "current_work": "사용자가 입력한 업무 설명을 확인합니다.",
+                "improvement": "",
+                "problems": [],
+            },
+            {
+                "id": "as-is-request-description",
+                "kind": "task",
+                "label": task_title,
+                "current_work": source_text,
+                "improvement": "세부 업무 절차는 추가 확인이 필요합니다.",
+                "problems": [],
+            },
+            {
+                "id": "as-is-request-end",
+                "kind": "end",
+                "label": "업무 종료",
+                "current_work": "원문 업무 설명의 세부 절차를 확인한 뒤 업무를 완료합니다.",
+                "improvement": "",
+                "problems": [],
+            },
+        ],
+        "edges": [
+            {"id": "as-is-request-e1", "source": "as-is-request-start", "target": "as-is-request-description", "branch_label": "업무 설명 확인", "condition": None, "default": False},
+            {"id": "as-is-request-e2", "source": "as-is-request-description", "target": "as-is-request-end", "branch_label": "세부 절차 확인 필요", "condition": None, "default": False},
+        ],
+    }
+
+
+def _as_is_graph_source(
+    work: dict[str, Any],
+    blueprint_nodes: list[dict[str, Any]],
+    blueprint_edges: list[dict[str, Any]],
+) -> tuple[dict[str, Any], dict[str, str]]:
+    """Choose the most authoritative available AS-IS presentation source."""
+
+    raw_graph = work.get("as_is_graph") if isinstance(work.get("as_is_graph"), dict) else {}
+    if _as_is_graph_has_work_nodes(raw_graph):
+        return raw_graph, {
+            "source": "approved_as_is_graph",
+            "message": "승인된 WorkDefinition의 현행 업무 그래프를 표시했습니다.",
+        }
+    step_graph = _work_step_fallback_graph(work)
+    if step_graph is not None:
+        return step_graph, {
+            "source": "approved_work_steps_fallback",
+            "message": "현행 업무 그래프가 시작·종료만 포함되어, 승인된 WorkDefinition의 업무 단계를 순서대로 시각화했습니다.",
+        }
+    blueprint_graph = _blueprint_current_work_fallback_graph(blueprint_nodes, blueprint_edges)
+    if blueprint_graph is not None:
+        return blueprint_graph, {
+            "source": "blueprint_current_work_fallback",
+            "message": "현행 업무 그래프가 시작·종료만 포함되고 확정 단계가 없어, 승인된 Agent Blueprint에 기록된 current_work 설명을 참고 흐름으로 시각화했습니다. 이 흐름은 별도 현행 업무 확정 전까지 설계 참고용입니다.",
+        }
+    source_request_graph = _source_request_fallback_graph(work)
+    if source_request_graph is not None:
+        return source_request_graph, {
+            "source": "source_request_fallback",
+            "message": "확정된 업무 단계와 현행 업무 설명이 없어, 사용자가 입력한 원문 업무 설명을 단일 참고 단계로 표시했습니다. 세부 절차는 추가 확인이 필요합니다.",
+        }
+    return raw_graph, {
+        "source": "placeholder_as_is_graph",
+        "message": "현행 업무 단계가 아직 기록되지 않아 시작·종료 골격만 표시했습니다. 추가 업무 설명이 필요합니다.",
+    }
+
+
 def _build_graph(
     graph: dict[str, Any],
     graph_kind: str,
@@ -1255,13 +2983,13 @@ def _build_graph(
             "node_id": node_id,
             "source_node_id": _text(raw_node.get("id") or raw_node.get("node_id"), limit=128),
             "node_kind": _presentation_kind(raw_node, graph_kind),
-            "title": _text(raw_node.get("title") or raw_node.get("label") or raw_node.get("responsibility") or node_id, limit=500),
+            "title": _presentation_title(raw_node, graph_kind, sequence),
             "sequence": sequence,
             "implementation_source": implementation,
             "implementation_label": IMPLEMENTATION_LABELS[implementation],
             "technical_contract_status": technical_status,
             "port_contract_sha256": port_contract_sha256,
-            "summary": _text(raw_node.get("summary"), limit=10_000) or _presentation_responsibility(raw_node),
+            "summary": _text(raw_node.get("summary"), limit=10_000) or _presentation_summary(raw_node, graph_kind),
             "input_ports": input_ports,
             "output_ports": output_ports,
             "applied_skills": applied,
@@ -1534,8 +3262,13 @@ class ReportViewModelBuilderComponent(Component):
                 raise ValueError("agent_blueprint applied skill identity is duplicated")
             approved_skill_identities.add(identity)
             approved_skill_fingerprints.add(tuple(clean_skill[field] for field in APPLIED_SKILL_FIELDS))
+        raw_as_is_graph, as_is_procedure_basis = _as_is_graph_source(
+            work,
+            blueprint.get("nodes") if isinstance(blueprint.get("nodes"), list) else [],
+            blueprint.get("edges") if isinstance(blueprint.get("edges"), list) else [],
+        )
         as_is_graph = _build_graph(
-            _dict(work.get("as_is_graph") or {}, "as_is_graph"),
+            raw_as_is_graph,
             "as_is",
             {},
             [],
@@ -1559,7 +3292,18 @@ class ReportViewModelBuilderComponent(Component):
         )
         to_be_graph["build_readiness"] = readiness
         blueprint_sha256 = _canonical_hash(blueprint)
+        catalog_section = _catalog_recommendation_section(trace, to_be_graph)
+        business_report_section = _business_report_section(
+            work=work,
+            blueprint=blueprint,
+            as_is_graph=as_is_graph,
+            to_be_graph=to_be_graph,
+            readiness=readiness,
+            catalog_section=catalog_section,
+            as_is_procedure_basis=as_is_procedure_basis,
+        )
         sections = [
+            business_report_section,
             {
                 "section_id": "assumptions",
                 "title": "가정",
@@ -1595,9 +3339,11 @@ class ReportViewModelBuilderComponent(Component):
                 ),
             },
         ]
-        if not trace.get("candidate_allowlist"):
+        if catalog_section is not None:
+            sections.insert(1, catalog_section)
+        elif not trace.get("candidate_allowlist"):
             sections.insert(
-                0,
+                1,
                 {
                     "section_id": "catalog_reuse",
                     "title": "카탈로그 재사용 결과",
@@ -1607,6 +3353,43 @@ class ReportViewModelBuilderComponent(Component):
                             "message": "카탈로그 검색은 정상 완료되었지만 현재 업무·권한 범위에서 재사용 가능한 자산은 찾지 못했습니다. 이 설계는 기본 요소, 신규 Standalone Custom Component, Human 업무만 사용하며 catalog Component/Flow 참조는 허용하지 않습니다.",
                             "empty_result_reason": _text(trace.get("empty_result_reason"), limit=128),
                         }
+                    ],
+                },
+            )
+        else:
+            # Older F20 handoffs only retained the sealed allowlist rather
+            # than the optional human-readable asset projection.  Do not hide
+            # the catalog decision just because those older reports lack
+            # titles/descriptions; expose the IDs and direct the reader to
+            # verify the selected contract before reuse.
+            sections.insert(
+                1,
+                {
+                    "section_id": "catalog_recommendations",
+                    "title": "카탈로그 기반 적용 계획",
+                    "items": [
+                        {
+                            "status": "candidate_not_selected",
+                            "stage_title": "직접 적용 후보",
+                            "stage_summary": "이 보고서는 이전 F20 handoff를 사용하므로 후보의 설명·상세 링크는 포함되어 있지 않습니다.",
+                            "asset_id": _text(item.get("asset_id"), limit=200),
+                            "version": _text(item.get("version"), limit=100),
+                            "asset_type": _text(item.get("asset_type"), limit=64),
+                            "asset_title": _text(item.get("asset_id"), limit=200),
+                            "category": "",
+                            "description": "카탈로그에서 포트 계약과 사용 조건을 확인한 뒤 재사용 여부를 확정합니다.",
+                            "technical_contract_status": _text(item.get("technical_contract_status"), limit=64),
+                            "technical_contract_label": _technical_contract_label(item.get("technical_contract_status")),
+                            "catalog_url": "",
+                            "catalog_link_status": "이전 F20 handoff에는 카탈로그 상세 링크가 포함되어 있지 않습니다.",
+                            "selection_status": _catalog_selection_status(
+                                "candidate_not_selected",
+                                item.get("technical_contract_status"),
+                            ),
+                            "reuse_decision_reason": "승인된 후보 allowlist에 포함되어 있으나, 이 설계에서 직접 연결로 선택되지는 않았습니다.",
+                        }
+                        for item in trace.get("candidate_allowlist", [])
+                        if isinstance(item, dict)
                     ],
                 },
             )

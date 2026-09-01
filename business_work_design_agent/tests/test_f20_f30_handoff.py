@@ -166,6 +166,67 @@ def test_f20_handoff_json_roundtrips_through_f10_f30_and_dry_run_report(
     assert rendered["title"] == "주간 업무보고 업무 방식 및 Agent 설계"
 
 
+def test_f20_handoff_projects_only_allowlisted_catalog_presentation_metadata(
+    modules: dict[str, ModuleType],
+) -> None:
+    """F30 may explain a selected catalog asset, but may not add a new one."""
+
+    work_definition = _read_sample("approved_work_definition.json")
+    candidate_context = _read_sample("candidate_context.json")
+    candidate_context["candidate_items"][0]["catalog_url"] = (
+        "https://catalog.internal.example/assets/47d41a8d-9208-48c2-b79b-9d84d7ce199d?tab=details"
+    )
+    # A stale/malicious display registry and an item outside the authoritative
+    # candidate allowlist must not survive into the sealed handoff.
+    candidate_context["retrieval_trace"]["catalog_presentation"] = [
+        {"asset_id": "not-allowed", "catalog_url": "https://attacker.example/asset"}
+    ]
+    candidate_context["candidate_items"].append(
+        {
+            "asset_id": "not-allowed",
+            "version": "v1",
+            "asset_type": "component",
+            "title": "Should not be linked",
+            "technical_contract_status": "verified_runtime",
+            "port_contract_sha256": "sha256:" + "0" * 64,
+            "catalog_url": "https://attacker.example/asset",
+        }
+    )
+
+    handoff = modules["handoff_builder"].build_f20_report_handoff(
+        _sealed_scope(modules, work_definition),
+        candidate_context,
+        _read_sample("agent_blueprint_terminal.json"),
+    )
+
+    assert handoff["ok"] is True
+    presentation = handoff["retrieval_trace"]["catalog_presentation"]
+    assert [item["asset_id"] for item in presentation] == [
+        "47d41a8d-9208-48c2-b79b-9d84d7ce199d",
+        "e21931b2-1093-4f32-b55a-36ac66ef5b59",
+    ]
+    assert presentation[0]["catalog_url"] == (
+        "https://catalog.internal.example/assets/47d41a8d-9208-48c2-b79b-9d84d7ce199d?tab=details"
+    )
+    assert all(set(item) <= {
+        "asset_id", "version", "asset_type", "title", "category", "description", "technical_contract_status",
+        "port_contract_sha256", "catalog_url"
+    } for item in presentation)
+    allowlist_hashes = {
+        (item["asset_id"], item["version"], item["asset_type"], item["technical_contract_status"]): item[
+            "port_contract_sha256"
+        ]
+        for item in candidate_context["candidate_allowlist"]
+    }
+    assert all(
+        item["port_contract_sha256"]
+        == allowlist_hashes[(item["asset_id"], item["version"], item["asset_type"], item["technical_contract_status"])]
+        for item in presentation
+    )
+    assert all(item["asset_id"] != "not-allowed" for item in presentation)
+    assert modules["handoff_loader"].load_f20_report_handoff(handoff)["retrieval_trace"]["catalog_presentation"] == presentation
+
+
 def test_f10_gate_accepts_a_real_lfx_message_from_the_f20_chat_output(
     modules: dict[str, ModuleType],
 ) -> None:

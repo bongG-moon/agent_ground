@@ -36,6 +36,7 @@ _CHUNK_SHARED_FIELDS = (
     "description",
     "category",
     "readme",
+    "catalog_url",
     "acl",
     "technical_contract_status",
     "technical_contract",

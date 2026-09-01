@@ -14,6 +14,7 @@ import json
 import re
 import uuid
 from typing import Any
+from urllib.parse import parse_qsl, urlsplit, urlunsplit
 
 from lfx.custom import Component
 from lfx.io import DataInput, Output
@@ -22,7 +23,22 @@ from lfx.schema import Data, Message
 
 HANDOFF_SCHEMA_VERSION = "f20-report-handoff/v1"
 IDENTITY_PATTERN = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$")
+ASSET_ID_PATTERN = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._:-]{0,255}$")
 SHA256_PATTERN = re.compile(r"^sha256:[0-9a-f]{64}$")
+TECHNICAL_STATUSES = {"metadata_only", "ports_extracted", "flow_graph_extracted", "verified_runtime"}
+_SECRET_URL_QUERY_KEY_PATTERN = re.compile(
+    r"(?:^|[_-])(api[_-]?key|authorization|cookie|credential|password|passwd|secret|session|token)(?:$|[_-])",
+    re.IGNORECASE,
+)
+
+
+def _has_secret_url_query_key(value: Any) -> bool:
+    key = str(value or "").casefold()
+    compact = re.sub(r"[^a-z0-9]", "", key)
+    return bool(_SECRET_URL_QUERY_KEY_PATTERN.search(key)) or any(
+        marker in compact
+        for marker in ("apikey", "authorization", "cookie", "credential", "password", "passwd", "secret", "session", "token")
+    )
 
 
 def _payload(value: Any) -> dict[str, Any]:
@@ -53,6 +69,126 @@ def _sha256(value: Any) -> str:
 
 def _revision(value: Any) -> int | None:
     return value if isinstance(value, int) and not isinstance(value, bool) and value >= 0 else None
+
+
+def _safe_text(value: Any, maximum: int) -> str:
+    return re.sub(r"[\x00-\x08\x0b\x0c\x0e-\x1f]", "", str(value or "")).strip()[:maximum]
+
+
+def _catalog_asset_id(value: Any) -> str:
+    text = _safe_text(value, 256)
+    return text if ASSET_ID_PATTERN.fullmatch(text) else ""
+
+
+def _safe_catalog_url(value: Any) -> str:
+    """Validate a presentation-only catalog link before sealing it into F30.
+
+    The report handoff can be opened in a browser, so catalog metadata must
+    never introduce non-HTTP links, credentials, control characters, or a URL
+    that appears to carry a secret.  An invalid optional link is omitted while
+    the associated asset remains available as a text-only catalog reference.
+    """
+
+    if not isinstance(value, str):
+        return ""
+    text = value.strip()
+    if not text or len(text) > 2048 or any(ord(character) < 32 or ord(character) == 127 for character in text):
+        return ""
+    if any(character.isspace() for character in text):
+        return ""
+    try:
+        parsed = urlsplit(text)
+        port = parsed.port
+    except ValueError:
+        return ""
+    scheme = parsed.scheme.casefold()
+    hostname = parsed.hostname
+    if scheme not in {"http", "https"} or not hostname or parsed.username is not None or parsed.password is not None:
+        return ""
+    if len(hostname) > 253:
+        return ""
+    try:
+        query_pairs = parse_qsl(parsed.query, keep_blank_values=True, strict_parsing=False)
+    except ValueError:
+        return ""
+    if any(_has_secret_url_query_key(key) for key, _ in query_pairs):
+        return ""
+    normalized_host = hostname.casefold()
+    if ":" in normalized_host and not normalized_host.startswith("["):
+        normalized_host = f"[{normalized_host}]"
+    netloc = normalized_host if port is None else f"{normalized_host}:{port}"
+    return urlunsplit((scheme, netloc, parsed.path, parsed.query, ""))
+
+
+def _catalog_presentation_registry(candidate_context: dict[str, Any]) -> list[dict[str, Any]]:
+    """Project bounded display metadata for assets that are already allowlisted.
+
+    ``candidate_allowlist`` remains the authoritative, port-hash-sealed
+    execution contract.  This separate list is deliberately presentation-only
+    and cannot add an asset that was not included in that allowlist.  It gives
+    F30 enough information to explain *which* catalog asset was reused and
+    link to its detail page without reintroducing the whole untrusted catalog
+    payload into the report handoff.
+    """
+
+    raw_allowlist = candidate_context.get("candidate_allowlist")
+    if not isinstance(raw_allowlist, list):
+        return []
+    allowed: dict[tuple[str, str], tuple[str, str, str]] = {}
+    for item in raw_allowlist[:50]:
+        if not isinstance(item, dict):
+            continue
+        asset_id = _catalog_asset_id(item.get("asset_id"))
+        version = _safe_text(item.get("version"), 100)
+        asset_type = _safe_text(item.get("asset_type"), 32)
+        technical_status = _safe_text(item.get("technical_contract_status"), 64)
+        port_contract_sha256 = _sha256(item.get("port_contract_sha256"))
+        if (
+            asset_id
+            and version
+            and asset_type in {"component", "flow"}
+            and technical_status in TECHNICAL_STATUSES
+            and port_contract_sha256
+        ):
+            allowed[(asset_id, version)] = (asset_type, technical_status, port_contract_sha256)
+
+    raw_items = candidate_context.get("candidate_items")
+    if not isinstance(raw_items, list) or not allowed:
+        return []
+    result: list[dict[str, Any]] = []
+    seen: set[tuple[str, str]] = set()
+    for item in raw_items[:50]:
+        if not isinstance(item, dict):
+            continue
+        asset_id = _catalog_asset_id(item.get("asset_id"))
+        version = _safe_text(item.get("version"), 100)
+        key = (asset_id, version)
+        expected = allowed.get(key)
+        if not asset_id or not version or expected is None or key in seen:
+            continue
+        asset_type, technical_status, port_contract_sha256 = expected
+        if (
+            _safe_text(item.get("asset_type"), 32) != asset_type
+            or _safe_text(item.get("technical_contract_status"), 64) != technical_status
+            or _sha256(item.get("port_contract_sha256")) != port_contract_sha256
+        ):
+            continue
+        projected = {
+            "asset_id": asset_id,
+            "version": version,
+            "asset_type": asset_type,
+            "title": _safe_text(item.get("title"), 500) or asset_id,
+            "category": _safe_text(item.get("category"), 200),
+            "description": _safe_text(item.get("description"), 2_000),
+            "technical_contract_status": technical_status,
+            "port_contract_sha256": port_contract_sha256,
+        }
+        catalog_url = _safe_catalog_url(item.get("catalog_url"))
+        if catalog_url:
+            projected["catalog_url"] = catalog_url
+        result.append(projected)
+        seen.add(key)
+    return result
 
 
 def _error(
@@ -218,11 +354,16 @@ def build_f20_report_handoff(
         "work_definition_revision": revision,
         "approved_hash": approved_hash,
     }
+    # Never forward a caller-supplied catalog_presentation field unchanged.
+    # Rebuild it from the bounded candidate context and the existing allowlist
+    # so it cannot extend the assets that F20 authorized for this design.
+    sealed_retrieval_trace = copy.deepcopy(retrieval_trace)
+    sealed_retrieval_trace["catalog_presentation"] = _catalog_presentation_registry(candidates)
     core = {
         "schema_version": HANDOFF_SCHEMA_VERSION,
         "work_definition": copy.deepcopy(work),
         "agent_blueprint": copy.deepcopy(terminal),
-        "retrieval_trace": copy.deepcopy(retrieval_trace),
+        "retrieval_trace": sealed_retrieval_trace,
         "execution_context": execution_context,
         "design_scope_sha256": design_scope_sha256,
         "query_plan_sha256": query_plan_sha256,

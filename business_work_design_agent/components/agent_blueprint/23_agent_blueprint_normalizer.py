@@ -59,6 +59,20 @@ GENERATION_CONTRACT_KEYS = {
     "deployment_mode",
     "prompt_pack",
 }
+SECRET_DECLARATION_KEYS = frozenset({"name", "ref", "port_id", "required", "configured"})
+# A bare ``secret_inputs`` string is intentionally treated as a declaration
+# *name*, never as a secret value or URI.  This narrow form is useful for LLM
+# drafts such as ``["outlook_credential_ref"]`` while preventing arbitrary
+# prose, JSON, shell fragments, or credential material from entering the
+# sealed generation contract.
+SECRET_DECLARATION_LABEL_PATTERN = re.compile(r"^[A-Za-z][A-Za-z0-9._:-]{0,299}$")
+# Object-form ``ref`` is allowed only as a declaration label or an approved
+# reference URI.  The schemes are labels for secret stores; they are not URLs
+# to be fetched by this component.
+SECRET_REFERENCE_PATTERN = re.compile(
+    r"^(?:vault|secret|env|keyvault|aws-sm|gcp-sm|azure-keyvault)://[A-Za-z0-9._:/@-]{1,260}$",
+    flags=re.IGNORECASE,
+)
 SECRET_KEY_TOKENS = {
     "apikey",
     "authorization",
@@ -276,6 +290,84 @@ def _normalize_required_secrets(value: Any) -> list[dict[str, Any]]:
     return normalized
 
 
+def _safe_secret_declaration_text(value: Any, *, field_name: str) -> str | None:
+    """Return a canonical declaration label/reference, never a secret value."""
+
+    if not isinstance(value, str):
+        return None
+    text = value.strip()
+    if not text or len(text) > 300:
+        return None
+    if SECRET_DECLARATION_LABEL_PATTERN.fullmatch(text):
+        return text
+    if field_name == "ref" and SECRET_REFERENCE_PATTERN.fullmatch(text):
+        return text
+    return None
+
+
+def _normalize_generation_secret_inputs(value: Any) -> tuple[list[dict[str, Any]] | None, tuple[str, dict[str, Any]] | None]:
+    """Normalize only safe declaration-only ``secret_inputs`` entries.
+
+    A model may naturally emit a declaration name as a string.  Normalize that
+    narrow convenience form before validating the generation contract, but do
+    not silently discard malformed fields: unknown object keys, invalid flags,
+    and non-declaration text are all fail-closed.  Secret-looking content is
+    classified before shape errors so it is never preserved or echoed.
+    """
+
+    if not isinstance(value, list):
+        return None, ("GENERATION_CONTRACT_INVALID", {"reason": "secret_inputs must be an array"})
+    if len(value) > 50:
+        return None, ("GENERATION_CONTRACT_INVALID", {"reason": "secret_inputs exceeds the bounded limit"})
+
+    normalized: list[dict[str, Any]] = []
+    for index, declaration in enumerate(value):
+        path = f"generation_contract.secret_inputs[{index}]"
+        secret_path = _secret_material_path(declaration, path)
+        if secret_path:
+            return None, ("BLUEPRINT_SECRET_MATERIAL_DETECTED", {"field": secret_path})
+        if isinstance(declaration, str):
+            name = _safe_secret_declaration_text(declaration, field_name="name")
+            if not name:
+                return None, (
+                    "GENERATION_CONTRACT_INVALID",
+                    {"reason": f"secret_inputs[{index}] must be a declaration label"},
+                )
+            normalized.append({"name": name, "required": True})
+            continue
+        if not isinstance(declaration, dict) or set(declaration) - SECRET_DECLARATION_KEYS:
+            return None, (
+                "GENERATION_CONTRACT_INVALID",
+                {"reason": f"secret_inputs[{index}] must be a declaration-only object"},
+            )
+        clean: dict[str, Any] = {}
+        for key in ("name", "ref", "port_id"):
+            if key not in declaration:
+                continue
+            text = _safe_secret_declaration_text(declaration.get(key), field_name=key)
+            if not text:
+                return None, (
+                    "GENERATION_CONTRACT_INVALID",
+                    {"reason": f"secret_inputs[{index}].{key} must be a safe declaration label or reference"},
+                )
+            clean[key] = text
+        if not clean:
+            return None, (
+                "GENERATION_CONTRACT_INVALID",
+                {"reason": f"secret_inputs[{index}] requires name, ref, or port_id"},
+            )
+        for key in ("required", "configured"):
+            if key in declaration:
+                if type(declaration[key]) is not bool:
+                    return None, (
+                        "GENERATION_CONTRACT_INVALID",
+                        {"reason": f"secret_inputs[{index}].{key} must be a boolean"},
+                    )
+                clean[key] = declaration[key]
+        normalized.append(clean)
+    return normalized, None
+
+
 def _normalize_problems(value: Any) -> list[Any]:
     source = value if isinstance(value, list) else ([value] if value not in (None, "") else [])
     result: list[Any] = []
@@ -315,7 +407,7 @@ def _generation_contract_error(value: Any) -> tuple[str, dict[str, Any]] | None:
     if len(value["secret_inputs"]) > 50:
         return "GENERATION_CONTRACT_INVALID", {"reason": "secret_inputs exceeds the bounded limit"}
     for index, declaration in enumerate(value["secret_inputs"]):
-        if not isinstance(declaration, dict) or set(declaration) - {"name", "ref", "port_id", "required", "configured"}:
+        if not isinstance(declaration, dict) or set(declaration) - SECRET_DECLARATION_KEYS:
             return "GENERATION_CONTRACT_INVALID", {"reason": f"secret_inputs[{index}] must be a declaration-only object"}
         if not any(isinstance(declaration.get(key), str) and declaration.get(key).strip() for key in ("name", "ref", "port_id")):
             return "GENERATION_CONTRACT_INVALID", {"reason": f"secret_inputs[{index}] requires name, ref, or port_id"}
@@ -614,11 +706,32 @@ def normalize_agent_blueprint(
                 details={"node_id": node_id},
             )
         if source == "new_standalone_component":
-            contract_error = _generation_contract_error(raw.get("generation_contract"))
+            raw_generation_contract = raw.get("generation_contract")
+            if not isinstance(raw_generation_contract, dict):
+                contract_error = _generation_contract_error(raw_generation_contract)
+                normalized_generation_contract: dict[str, Any] | None = None
+            elif "secret_inputs" not in raw_generation_contract:
+                contract_error = _generation_contract_error(raw_generation_contract)
+                normalized_generation_contract = None
+            else:
+                normalized_secret_inputs, secret_input_error = _normalize_generation_secret_inputs(
+                    raw_generation_contract.get("secret_inputs")
+                )
+                if secret_input_error:
+                    code, details = secret_input_error
+                    return _error(
+                        trace_id,
+                        code,
+                        "신규 Standalone Component 생성 계약에 안전하지 않은 secret 선언이 있습니다.",
+                        details={"node_id": node_id, **details},
+                    )
+                normalized_generation_contract = dict(raw_generation_contract)
+                normalized_generation_contract["secret_inputs"] = normalized_secret_inputs
+                contract_error = _generation_contract_error(normalized_generation_contract)
             if contract_error:
                 code, details = contract_error
                 return _error(trace_id, code, "신규 Standalone Component 생성 계약이 유효하지 않습니다.", details={"node_id": node_id, **details})
-            generation_contract = json.loads(json.dumps(raw["generation_contract"], ensure_ascii=False))
+            generation_contract = json.loads(json.dumps(normalized_generation_contract, ensure_ascii=False))
         else:
             if raw.get("generation_contract") not in (None, {}):
                 return _error(

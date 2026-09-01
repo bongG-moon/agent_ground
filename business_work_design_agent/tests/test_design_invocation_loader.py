@@ -654,6 +654,16 @@ def test_component_declares_grouped_success_and_blocked_outputs(
     assert stopped == ["blocked_path"]
     assert instance.status["route"] == "success_path"
 
+    # A nested Langflow Run Flow can preserve Data fields while appending the
+    # blank default field to the same payload.  This is the exact F10 -> F20
+    # transport shell accepted by the F20 planner, not a permissive wrapper.
+    planner = load_search_query_planner()
+    nested_transport = copy.deepcopy(routed)
+    nested_transport["default_value"] = ""
+    accepted = planner.validate_design_invocation(nested_transport)
+    assert accepted["ok"] is True
+    assert accepted["work_definition"]["work_definition_id"] == routed["work_definition_id"]
+
 
 def test_component_normalizes_mongodb_datetimes_before_emitting_strict_json(
     module: ModuleType,

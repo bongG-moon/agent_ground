@@ -35,6 +35,11 @@ DESIGN_INVOCATION_KEYS = {
     "trust_boundary",
     "trace_id",
 }
+# Langflow 1.11 can preserve a Data payload's fields while also adding the
+# Data.get_text() projection and a blank default value to a nested Run Flow
+# ChatInput.  This is the *only* transport shell accepted at the F10 -> F20
+# boundary; all other extra fields remain forbidden by the invocation schema.
+F10_RUN_FLOW_TRANSPORT_KEYS = {"text", "default_value"}
 SECRET_VALUE_PATTERNS = (
     re.compile(r"(?i)\b(?:api[_-]?key|password|passwd|secret|access[_-]?token|client[_-]?secret|authorization|cookie|session)\s*[:=]\s*[\"']?[^\s,;]{8,}"),
     re.compile(r"(?i)\b(?:bearer|basic)\s+\S{8,}"),
@@ -100,6 +105,54 @@ def _payload(value: Any) -> dict[str, Any]:
             return {}
         return parsed if isinstance(parsed, dict) else {}
     return {}
+
+
+def _unwrap_f10_run_flow_transport(value: Any) -> dict[str, Any]:
+    """Return the canonical F10 invocation from Langflow's narrow Data shell.
+
+    Component 36 serializes the canonical ``agent-design-invocation/v1`` into
+    its ``text`` field so a nested Run Flow can feed F20's Chat Input.  In
+    Langflow 1.11, the child can instead receive a shell that contains both
+    the original fields and ``{"text": <canonical-json>, "default_value": ""}``.
+
+    Accepting an arbitrary text-bearing wrapper here would weaken F20's
+    authority boundary.  Therefore this helper unwraps only that exact shape,
+    requires byte-for-byte canonical JSON, and verifies that every duplicated
+    canonical field agrees before the normal strict validation runs.
+    """
+
+    outer = _payload(value)
+    if "text" not in outer or outer.get("default_value") != "":
+        return outer
+    if set(outer) - (DESIGN_INVOCATION_KEYS | F10_RUN_FLOW_TRANSPORT_KEYS):
+        return outer
+
+    serialized = outer.get("text")
+    if not isinstance(serialized, str) or not serialized:
+        return outer
+    try:
+        inner = json.loads(serialized)
+    except json.JSONDecodeError:
+        return outer
+    if not isinstance(inner, dict):
+        return outer
+    if set(outer) != set(inner) | F10_RUN_FLOW_TRANSPORT_KEYS:
+        return outer
+    try:
+        canonical = json.dumps(
+            inner,
+            ensure_ascii=False,
+            sort_keys=True,
+            separators=(",", ":"),
+            allow_nan=False,
+        )
+    except (TypeError, ValueError):
+        return outer
+    if serialized != canonical:
+        return outer
+    if any(outer.get(key) != item for key, item in inner.items()):
+        return outer
+    return inner
 
 
 def _text_field(value: Any) -> tuple[str, str]:
@@ -626,7 +679,7 @@ def validate_design_invocation(value: Any) -> dict[str, Any]:
     """Validate the single trusted input exposed by F20 and Run Flow."""
 
     trace_id = str(uuid.uuid4())
-    invocation = _payload(value)
+    invocation = _unwrap_f10_run_flow_transport(value)
     if invocation.get("ok") is not True or invocation.get("status") != "READY_FOR_DESIGN":
         return _error(trace_id, "DESIGN_INVOCATION_NOT_READY", "MongoDB 권위 데이터 재확인이 완료된 invocation이 필요합니다.")
     if invocation.get("schema_version") != DESIGN_INVOCATION_SCHEMA_VERSION:

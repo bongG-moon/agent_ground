@@ -1,10 +1,11 @@
 from __future__ import annotations
 
-"""Build deterministic Langflow 1.11.1 flow exports from standalone sources.
+"""Build deterministic Langflow 1.11.x Flow exports from standalone sources.
 
-Run this script with the pinned Langflow 1.11.1 environment.  Every custom
-component node is introspected by Langflow itself, and the exact source bytes
-read from ``components/`` are embedded in the resulting Flow JSON.
+Run this script with a supported Langflow 1.11.x runtime.  Every custom
+component node is introspected by the local Langflow runtime itself, and the
+exact source bytes read from ``components/`` are embedded in the resulting
+Flow JSON.  The generated metadata records the exact runtime that built it.
 """
 
 import argparse
@@ -25,8 +26,8 @@ from lfx.custom.utils import build_custom_component_template
 from lfx.graph.graph.base import Graph
 
 
-LANGFLOW_VERSION = "1.11.1"
-LFX_VERSION = "1.11.5"
+LANGFLOW_MINOR_FAMILY = (1, 11)
+LFX_MINOR_FAMILY = (1, 11)
 BUNDLE_SCHEMA_VERSION = "business-work-design-flow-bundle/v1"
 MONGODB_URI_GLOBAL_VARIABLE = "MONGO_URL"
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
@@ -44,6 +45,34 @@ FLOW_FILES = {
 }
 BUNDLE_FILE = "00_business_work_design_ALL_FLOWS.json"
 MANIFEST_FILE = "build_manifest.json"
+
+
+def _minor_version(value: str) -> tuple[int, int] | None:
+    """Return the numeric major/minor pair without accepting prereleases."""
+
+    parts = value.split(".")
+    if len(parts) < 3 or any(not part.isdigit() for part in parts):
+        return None
+    return int(parts[0]), int(parts[1])
+
+
+def _require_supported_runtime() -> tuple[str, str]:
+    """Resolve the installed public Langflow 1.11 runtime used for export."""
+
+    installed_langflow = version("langflow")
+    installed_lfx = version("lfx")
+    if _minor_version(installed_langflow) != LANGFLOW_MINOR_FAMILY or _minor_version(installed_lfx) != LFX_MINOR_FAMILY:
+        raise RuntimeError(
+            "This generator requires Langflow and LFX from the 1.11.x family; "
+            f"found langflow=={installed_langflow}, lfx=={installed_lfx}"
+        )
+    return installed_langflow, installed_lfx
+
+
+# Flow templates include the Langflow version in each serialized node.  Bind
+# it to the runtime that actually introspects the standalone source instead of
+# claiming a different patch release than the user's Desktop installation.
+LANGFLOW_VERSION, LFX_VERSION = _require_supported_runtime()
 
 FLOW_NAMES = {
     "F00": "F00_catalog_file_vector_ingest",
@@ -713,7 +742,7 @@ class FlowBuilder:
             "locked": False,
             "mcp_enabled": False,
             "name": name,
-            "tags": ["business-work-design", "langflow-1.11.1", "standalone-custom-components"],
+            "tags": ["business-work-design", "langflow-1.11.x", "standalone-custom-components"],
             "webhook": False,
             "metadata": {
                 "flow_contract": f"business-work-design/{self.flow_key.lower()}/v1",
@@ -1576,7 +1605,7 @@ def _build_f10(f20_flow: dict[str, Any], f30_flow: dict[str, Any]) -> dict[str, 
 
 - 직접 입력: 업무 설명 원문, 추가 설계 프롬프트, 팀 명, 사번입니다.
 - 자동·내부: 실행별 run ID/session, WorkDefinition ID, 기준 시각, catalog scope(`default`)입니다. 입력하지 않습니다. 새 전체 실행은 새 WorkDefinition과 질문 Batch를 만듭니다.
-- Canvas의 왼쪽 Text Input 두 개에는 주간 메일 업무보고 데모 원문과 설계 프롬프트가 이미 채워져 있습니다. 팀 명은 `업무자동화팀`, 사번은 `employee-demo`입니다.
+- Canvas의 왼쪽 Text Input 두 개에는 복합 생산·프로젝트 리스크 보고 데모 원문과 설계 프롬프트가 이미 채워져 있습니다. 팀 명과 사번은 sample 파일의 값으로 채워집니다.
 - 실제 긴 문장은 `samples/f10_work_request_example.json`과 각 Text Input 필드에서 그대로 확인·수정합니다.
 - 첫 질문이 필요한 경우에만 질문 Batch가 revision 0 WorkDefinition을 준비합니다.""",
         (-100, -850),
@@ -2062,7 +2091,8 @@ def _build_f30() -> dict[str, Any]:
 - 노드·연결선·상세 업무 방식이 있는 반응형 HTML을 렌더링합니다.
 - Publisher는 검증된 HTML을 공유 HTML Report API의 `/reports` endpoint에 POST합니다.
 - 기본은 **테스트 실행**입니다. 이때 API 서버로 요청하지 않고 HTML·URL·TTL만 확인합니다.
-- sealed handoff·view model·renderer·게시 실패는 Flow 전체 오류가 아니라 하나의 Chat Output JSON 결과로 표시됩니다.""",
+- Playground에는 raw JSON 대신 보고서 열기·HTML 다운로드 링크와 다음 조치를 담은 읽기 쉬운 안내가 표시됩니다.
+- sealed handoff·view model·renderer·게시 실패도 Flow 전체 오류가 아니라 하나의 안내 메시지로 표시됩니다.""",
         (-760, -700),
         width=2500,
         height=350,
@@ -2084,7 +2114,7 @@ def _build_f30() -> dict[str, Any]:
         (1180, 0),
         {"report_api_url": "http://127.0.0.1:5000", "report_ttl_hours": 4, "dry_run": True},
     )
-    flow.data_to_message("publish_result_message", (1560, 0))
+    flow.custom("publication_message", "37_report_publication_message.py", (1560, 0))
     flow.builtin("report_output", "ChatOutput", (1940, 0), {"should_store_message": False})
     flow.connect("report_handoff_input", "message", "report_handoff_json", "input_data")
     flow.connect("report_handoff_json", "data_output", "report_handoff_loader", "report_handoff")
@@ -2093,8 +2123,8 @@ def _build_f30() -> dict[str, Any]:
     flow.connect("report_handoff_loader", "retrieval_trace", "view_model", "retrieval_trace")
     flow.connect("view_model", "report_view_model", "renderer", "report_view_model")
     flow.connect("renderer", "render_result", "publisher", "render_result")
-    flow.connect("publisher", "publish_result", "publish_result_message", "data")
-    flow.connect("publish_result_message", "text", "report_output", "input_value")
+    flow.connect("publisher", "publish_result", "publication_message", "publish_result")
+    flow.connect("publication_message", "message", "report_output", "input_value")
     result = flow.build()
     result["metadata"]["report_input_contract"] = {
         "schema_version": "f20-report-handoff/v1",
@@ -2254,14 +2284,9 @@ def _validate_flow_contract(flow: dict[str, Any], flow_key: str) -> None:
 
 
 def build_all() -> dict[str, dict[str, Any]]:
-    installed_langflow = version("langflow")
-    installed_lfx = version("lfx")
-    if installed_langflow != LANGFLOW_VERSION or installed_lfx != LFX_VERSION:
-        raise RuntimeError(
-            "This generator requires the resolved Langflow 1.11.1 runtime "
-            f"(langflow=={LANGFLOW_VERSION}, lfx=={LFX_VERSION}); found "
-            f"langflow=={installed_langflow}, lfx=={installed_lfx}"
-        )
+    installed_langflow, installed_lfx = _require_supported_runtime()
+    if (installed_langflow, installed_lfx) != (LANGFLOW_VERSION, LFX_VERSION):
+        raise RuntimeError("Langflow runtime changed while this generator was running")
     f20_flow = _build_f20()
     f30_flow = _build_f30()
     return {

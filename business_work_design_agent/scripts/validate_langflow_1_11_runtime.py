@@ -16,10 +16,10 @@ from lfx.graph import Graph
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 FLOW_ROOT = PROJECT_ROOT / "flows"
-EXPECTED_VERSIONS = {
-    "langflow": "1.11.1",
-    "langflow-base": "0.11.5",
-    "lfx": "1.11.5",
+EXPECTED_MINOR_FAMILIES = {
+    "langflow": (1, 11),
+    "langflow-base": (0, 11),
+    "lfx": (1, 11),
 }
 FLOW_FILES = (
     "F00_catalog_file_vector_ingest.json",
@@ -47,6 +47,30 @@ FORBIDDEN_INTROSPECTION_ATTRIBUTES = {
     "__subclasses__", "__traceback__", "ag_frame", "cell_contents", "cr_frame", "f_builtins",
     "f_globals", "f_locals", "func_globals", "gi_frame", "modules", "tb_frame",
 }
+
+
+def _minor_version(value: str) -> tuple[int, int] | None:
+    """Return a stable major/minor release pair for 1.11.x validation."""
+
+    parts = value.split(".")
+    if len(parts) < 3 or any(not part.isdigit() for part in parts):
+        return None
+    return int(parts[0]), int(parts[1])
+
+
+def _resolved_runtime() -> dict[str, str]:
+    resolved = {name: version(name) for name in EXPECTED_MINOR_FAMILIES}
+    incompatible = {
+        name: actual
+        for name, actual in resolved.items()
+        if _minor_version(actual) != EXPECTED_MINOR_FAMILIES[name]
+    }
+    if incompatible:
+        raise RuntimeError(
+            "Langflow 1.11.x runtime required; "
+            f"expected families={EXPECTED_MINOR_FAMILIES}; resolved={resolved}"
+        )
+    return resolved
 
 
 def _joined_string(node: ast.AST) -> str | None:
@@ -280,13 +304,11 @@ def _validate_project_manifest(component_paths: list[Path]) -> dict[str, Any]:
 
 
 def main() -> int:
-    resolved = {name: version(name) for name in EXPECTED_VERSIONS}
-    if resolved != EXPECTED_VERSIONS:
-        raise RuntimeError(f"Exact runtime required: {EXPECTED_VERSIONS}; resolved: {resolved}")
+    resolved = _resolved_runtime()
 
     component_paths = _component_files()
     components = [_validate_source(path) for path in component_paths]
-    expected_component_count = 38
+    expected_component_count = 39
     if len(components) != expected_component_count:
         raise ValueError(f"Expected {expected_component_count} standalone components, found {len(components)}")
     flows = [_validate_flow(FLOW_ROOT / filename) for filename in FLOW_FILES]

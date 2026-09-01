@@ -43,6 +43,20 @@ MONGODB_URI_NODE_COUNTS = {
 }
 
 
+def _minor_version(value: str) -> tuple[int, int]:
+    parts = value.split(".")
+    assert len(parts) >= 3 and all(part.isdigit() for part in parts)
+    return int(parts[0]), int(parts[1])
+
+
+def _runtime_versions() -> tuple[str, str]:
+    langflow_version = version("langflow")
+    lfx_version = version("lfx")
+    assert _minor_version(langflow_version) == (1, 11)
+    assert _minor_version(lfx_version) == (1, 11)
+    return langflow_version, lfx_version
+
+
 def _load(path: Path) -> dict[str, Any]:
     value = json.loads(path.read_text(encoding="utf-8"))
     assert isinstance(value, dict)
@@ -129,8 +143,7 @@ def _has_edge(flow: dict[str, Any], source_type: str, output_name: str, target_t
 
 
 def test_exact_resolved_runtime() -> None:
-    assert version("langflow") == "1.11.1"
-    assert version("lfx") == "1.11.5"
+    _runtime_versions()
 
 
 @pytest.mark.parametrize("flow_key", tuple(FLOW_FILES))
@@ -153,7 +166,8 @@ def test_expected_exports_exist_and_have_unique_ids(flows: dict[str, dict[str, A
     assert all((FLOW_ROOT / filename).is_file() for filename in FLOW_FILES.values())
     flow_ids = [flow["id"] for flow in flows.values()]
     assert len(flow_ids) == len(set(flow_ids))
-    assert all(flow["last_tested_version"] == "1.11.1" for flow in flows.values())
+    langflow_version, _ = _runtime_versions()
+    assert all(flow["last_tested_version"] == langflow_version for flow in flows.values())
 
 
 @pytest.mark.parametrize("flow_key", tuple(FLOW_FILES))
@@ -204,7 +218,7 @@ def test_sticky_notes_describe_stages_without_affecting_execution(
         assert data["type"] == "note"
         assert node["display_name"] == ""
         assert node["documentation"] == ""
-        assert node["lf_version"] == "1.11.1"
+        assert node["lf_version"] == _runtime_versions()[0]
         assert node["description"].startswith("## ")
         assert node["template"]["backgroundColor"] in {"blue", "amber"}
         assert note["positionAbsolute"] == note["position"]
@@ -229,7 +243,7 @@ def test_custom_source_is_byte_identical_and_hash_bound(flows: dict[str, dict[st
         embedded = node["template"]["code"]["value"].encode("utf-8")
         assert embedded == source_bytes
         assert metadata["standalone_source_sha256"] == hashlib.sha256(source_bytes).hexdigest()
-        assert node["lf_version"] == "1.11.1"
+        assert node["lf_version"] == _runtime_versions()[0]
 
 
 @pytest.mark.parametrize("flow_key", tuple(FLOW_FILES))
@@ -903,8 +917,9 @@ def test_f30_is_sealed_handoff_report_chain_without_hitl(flows: dict[str, dict[s
     assert _types(flow).count("ChatInput") == 1
     assert _types(flow).count("ChatOutput") == 1
     assert _types(flow).count("TypeConverter") == 1
-    assert _types(flow).count("ParseData") == 1
+    assert _types(flow).count("ParseData") == 0
     assert len(_node_by_source(flow, "33_f30_report_handoff_loader.py")) == 1
+    assert len(_node_by_source(flow, "37_report_publication_message.py")) == 1
     handoff_input = _node_by_key(flow, "report_handoff_input")
     handoff_json = _node_by_key(flow, "report_handoff_json")
     handoff_loader = _node_by_key(flow, "report_handoff_loader")
@@ -921,8 +936,8 @@ def test_f30_is_sealed_handoff_report_chain_without_hitl(flows: dict[str, dict[s
     assert _has_edge(flow, "ReportViewModelBuilder", "report_view_model", "ResponsiveReportRenderer", "report_view_model")
     assert _has_edge(flow, "ResponsiveReportRenderer", "render_result", "ReportPublisher", "render_result")
     assert not _has_edge(flow, "F30ReportHandoffLoader", "report_context", "ReportPublisher", "report_context")
-    assert _has_edge(flow, "ReportPublisher", "publish_result", "ParseData", "data")
-    assert _has_edge(flow, "ParseData", "text", "ChatOutput", "input_value")
+    assert _has_edge(flow, "ReportPublisher", "publish_result", "ReportPublicationMessage", "publish_result")
+    assert _has_edge(flow, "ReportPublicationMessage", "message", "ChatOutput", "input_value")
     assert handoff_loader["data"]["node"]["template"]["safe_failure_envelope"]["value"] is True
     assert _node_by_key(flow, "view_model")["data"]["node"]["template"]["safe_failure_envelope"]["value"] is True
     assert _node_by_key(flow, "renderer")["data"]["node"]["template"]["safe_failure_envelope"]["value"] is True
@@ -1004,16 +1019,18 @@ def test_no_secret_values_are_baked_into_exports(flows: dict[str, dict[str, Any]
 def test_bundle_contains_byte_equivalent_individual_flows(flows: dict[str, dict[str, Any]]) -> None:
     bundle = _load(BUNDLE_FILE)
     assert bundle["bundle_schema_version"] == "business-work-design-flow-bundle/v1"
-    assert bundle["langflow_version"] == "1.11.1"
-    assert bundle["lfx_version"] == "1.11.5"
+    langflow_version, lfx_version = _runtime_versions()
+    assert bundle["langflow_version"] == langflow_version
+    assert bundle["lfx_version"] == lfx_version
     bundled = {flow["name"].split("_")[0]: flow for flow in bundle["flows"]}
     assert bundled == flows
 
 
 def test_build_manifest_hashes_match_files() -> None:
     manifest = _load(FLOW_ROOT / "build_manifest.json")
-    assert manifest["langflow_version"] == "1.11.1"
-    assert manifest["lfx_version"] == "1.11.5"
+    langflow_version, lfx_version = _runtime_versions()
+    assert manifest["langflow_version"] == langflow_version
+    assert manifest["lfx_version"] == lfx_version
     for record in manifest["flows"]:
         payload = (FLOW_ROOT / record["filename"]).read_bytes()
         assert hashlib.sha256(payload).hexdigest() == record["sha256"]

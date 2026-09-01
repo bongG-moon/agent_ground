@@ -223,6 +223,7 @@ Envelope의 `generation_requests`가 존재하면 F30 View Model은 `blueprint.g
 | `work_definition_id`, `work_definition_revision`, `approved_hash` | 어떤 승인 업무를 위해 검색했는지 |
 | `design_scope_sha256`, `query_plan_sha256`, `candidate_allowlist_sha256` | Blueprint/최상위 handoff와 일치해야 하는 세 fingerprint |
 | `candidate_allowlist` | 재사용이 허용된 카탈로그 자산의 배열 |
+| `catalog_presentation` | allowlist와 동일한 자산만 담는 표시용 제목·설명·카테고리·안전한 상세 링크 배열. F30의 카탈로그 기반 적용 계획 카드에 사용됩니다. |
 | `catalog_reference_policy` | 후보 자산 참조 정책. 샘플은 `allow_candidate_allowlist` |
 | `catalog_candidate_status` | 후보 탐색 결과 상태. 샘플은 `available` |
 | `empty_result_reason` | 후보가 없을 때만 나타날 수 있는 이유 설명 |
@@ -238,6 +239,8 @@ Envelope의 `generation_requests`가 존재하면 F30 View Model은 `blueprint.g
   "port_contract_sha256": "입출력 포트 계약 hash"
 }
 ```
+
+`catalog_presentation`은 실행 권한을 늘리는 목록이 아닙니다. 각 항목은 `candidate_allowlist`의 `asset_id`, `version`, `asset_type`, `technical_contract_status`, `port_contract_sha256`와 정확히 일치할 때만 F30에 표시됩니다. 따라서 보고서에서 카탈로그 상세 링크가 보이더라도 해당 URL로 임의의 실행 자산을 추가하거나 바꿀 수는 없습니다. 입력 카탈로그에 `catalog_url`(또는 `detail_url`, `asset_url`, `link`, `url`)이 있으면 안전한 HTTP(S) 링크만 `카탈로그 상세 열기`로 표시됩니다.
 
 Blueprint가 `catalog_component` 또는 `catalog_flow`를 구현 출처로 사용한다면, 그 자산은 이 allowlist 안에 존재하고 `port_contract_sha256`도 일치해야 합니다.
 

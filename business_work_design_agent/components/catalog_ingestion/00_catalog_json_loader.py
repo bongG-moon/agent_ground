@@ -7,6 +7,7 @@ import re
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
+from urllib.parse import parse_qsl, urlsplit, urlunsplit
 
 from lfx.custom import Component
 from lfx.io import FileInput, IntInput, Output
@@ -38,6 +39,20 @@ _SUPPORTED_SUFFIXES = {".json", ".jsonl", ".ndjson"}
 _INGEST_CONTRACT_VERSION = "catalog-file-vector-ingest/v1"
 _TENANT_ID = "default"
 _CATALOG_ID = "internal-assets"
+_CATALOG_URL_FIELDS = ("catalog_url", "detail_url", "asset_url", "link", "url")
+_SECRET_URL_QUERY_KEY_PATTERN = re.compile(
+    r"(?:^|[_-])(api[_-]?key|authorization|cookie|credential|password|passwd|secret|session|token)(?:$|[_-])",
+    re.IGNORECASE,
+)
+
+
+def _has_secret_url_query_key(value: Any) -> bool:
+    key = str(value or "").casefold()
+    compact = re.sub(r"[^a-z0-9]", "", key)
+    return bool(_SECRET_URL_QUERY_KEY_PATTERN.search(key)) or any(
+        marker in compact
+        for marker in ("apikey", "authorization", "cookie", "credential", "password", "passwd", "secret", "session", "token")
+    )
 
 
 def _bounded_int(value: Any, default: int, minimum: int, maximum: int) -> int:
@@ -221,6 +236,61 @@ def _normalize_datetime(value: Any) -> str | None:
     return parsed.astimezone(timezone.utc).isoformat().replace("+00:00", "Z")
 
 
+def _normalize_catalog_url(value: Any) -> str:
+    """Return one safe catalog-detail URL or an empty string for an optional invalid value.
+
+    A catalog URL is presentation metadata, never an execution endpoint.  It
+    must therefore be an ordinary HTTP(S) URL with no credentials, control
+    characters, or secret-looking query parameter.  Invalid optional metadata
+    is omitted rather than blocking the complete catalog ingest.
+    """
+
+    if not isinstance(value, str):
+        return ""
+    text = value.strip()
+    if not text or len(text) > 2048 or any(ord(character) < 32 or ord(character) == 127 for character in text):
+        return ""
+    # Whitespace inside an URL makes its destination ambiguous and can be used
+    # to make a link look different from its actual target.
+    if any(character.isspace() for character in text):
+        return ""
+    try:
+        parsed = urlsplit(text)
+        port = parsed.port
+    except ValueError:
+        return ""
+    scheme = parsed.scheme.casefold()
+    hostname = parsed.hostname
+    if scheme not in {"http", "https"} or not hostname or parsed.username is not None or parsed.password is not None:
+        return ""
+    if len(hostname) > 253 or any(ord(character) < 33 or ord(character) == 127 for character in hostname):
+        return ""
+    # Do not surface a link that appears to contain an access token or other
+    # credential.  The source record remains safely redacted by the normal
+    # catalog sanitization path; this derived display URL is simply omitted.
+    try:
+        query_pairs = parse_qsl(parsed.query, keep_blank_values=True, strict_parsing=False)
+    except ValueError:
+        return ""
+    if any(_has_secret_url_query_key(key) for key, _ in query_pairs):
+        return ""
+    normalized_host = hostname.casefold()
+    if ":" in normalized_host and not normalized_host.startswith("["):
+        normalized_host = f"[{normalized_host}]"
+    netloc = normalized_host if port is None else f"{normalized_host}:{port}"
+    return urlunsplit((scheme, netloc, parsed.path, parsed.query, ""))
+
+
+def _catalog_detail_url(safe_record: dict[str, Any]) -> str:
+    """Read the first safe detail URL from common uploaded metadata fields."""
+
+    for field in _CATALOG_URL_FIELDS:
+        normalized = _normalize_catalog_url(safe_record.get(field))
+        if normalized:
+            return normalized
+    return ""
+
+
 def _nonnegative_int(value: Any) -> int:
     try:
         return max(0, int(value))
@@ -324,6 +394,7 @@ def _normalize_records(
         description = str(safe.get("description") or "").strip()
         category = str(safe.get("category") or "Uncategorized").strip() or "Uncategorized"
         readme = str(safe.get("readme") or "").strip()
+        catalog_url = _catalog_detail_url(safe)
         technical_status, ports, technical_contract = _normalize_ports(safe)
         acl = _normalize_acl(safe.get("acl"))
         relations = safe.get("relations") if isinstance(safe.get("relations"), list) else []
@@ -361,6 +432,7 @@ def _normalize_records(
                 "description": description,
                 "category": category,
                 "readme": readme,
+                "catalog_url": catalog_url,
                 "acl": acl,
                 "technical_contract_status": technical_status,
                 "technical_contract": technical_contract,

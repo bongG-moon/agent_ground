@@ -150,6 +150,38 @@ def test_design_invocation_is_the_single_authority_bound_f20_input(modules: dict
     assert strict_json_result["work_definition"]["work_definition_id"] == invocation["work_definition_id"]
 
 
+def test_design_invocation_accepts_only_verified_f10_run_flow_transport_shell(
+    modules: dict[str, ModuleType],
+) -> None:
+    """F10 Component 36's canonical text bridge remains strict in F20."""
+
+    invocation = design_invocation(modules)
+    transport_shell = copy.deepcopy(invocation)
+    transport_shell["text"] = json.dumps(
+        invocation,
+        ensure_ascii=False,
+        sort_keys=True,
+        separators=(",", ":"),
+        allow_nan=False,
+    )
+    transport_shell["default_value"] = ""
+
+    accepted = modules["planner"].validate_design_invocation(transport_shell)
+    assert accepted["ok"] is True
+    assert accepted["work_definition"]["work_definition_id"] == invocation["work_definition_id"]
+    assert accepted["work_definition"]["approved_hash"] == invocation["approved_hash"]
+
+    unexpected_field = copy.deepcopy(transport_shell)
+    unexpected_field["browser_override"] = True
+    rejected_field = modules["planner"].validate_design_invocation(unexpected_field)
+    assert rejected_field["error"]["code"] == "DESIGN_INVOCATION_FIELDS_INVALID"
+
+    mismatched_copy = copy.deepcopy(transport_shell)
+    mismatched_copy["approved_hash"] = "sha256:" + "0" * 64
+    rejected_copy = modules["planner"].validate_design_invocation(mismatched_copy)
+    assert rejected_copy["error"]["code"] == "DESIGN_INVOCATION_FIELDS_INVALID"
+
+
 def test_design_invocation_accepts_verified_legacy_or_empty_search_seed(
     modules: dict[str, ModuleType],
 ) -> None:

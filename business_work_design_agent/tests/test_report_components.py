@@ -25,6 +25,7 @@ COMPONENT_PATHS = [
     REPORT_DIR / "30_report_view_model_builder.py",
     REPORT_DIR / "31_responsive_report_renderer.py",
     REPORT_DIR / "32_report_publisher.py",
+    REPORT_DIR / "37_report_publication_message.py",
 ]
 
 
@@ -131,6 +132,217 @@ def test_30_renders_legacy_sealed_blueprint_with_blank_presentation_text(
     assert detail["reuse_decision_reason"]
 
 
+def test_30_uses_blueprint_current_work_for_an_empty_as_is_shell_and_localizes_machine_titles(
+    modules: dict[str, ModuleType],
+    sample_contracts: tuple[dict[str, Any], dict[str, Any], dict[str, Any]],
+) -> None:
+    """A skipped F10 clarification must not reduce the report to Start → End.
+
+    The fallback is intentionally presentation-only: it takes the sealed
+    Blueprint's existing ``current_work`` text and labels the result as a
+    design-reference flow.  It does not modify the approved WorkDefinition or
+    turn a metadata candidate into an executable catalog asset.
+    """
+
+    module = modules["30_report_view_model_builder"]
+    work, _, candidate_context = copy.deepcopy(sample_contracts)
+    terminal = read_json("agent_blueprint_terminal.json")
+    blueprint = terminal["blueprint"]
+    work["steps"] = []
+    work["as_is_graph"] = {
+        "schema_version": "work-graph/v1",
+        "nodes": [
+            {"id": "start", "kind": "start", "label": "업무 시작"},
+            {"id": "end", "kind": "end", "label": "업무 종료"},
+        ],
+        "edges": [{"id": "start-end", "source": "start", "target": "end", "branch_label": "시작"}],
+    }
+    approved_hash = module._approved_semantic_hash(work)
+    work["approved_hash"] = approved_hash
+    blueprint["approved_hash"] = approved_hash
+    candidate_context["retrieval_trace"]["approved_hash"] = approved_hash
+    # The presentation-only fixture changes the approved WorkDefinition.  Keep
+    # the strict F20 request contract intact by re-sealing every generated
+    # component request against that new approved hash; do not bypass the
+    # production integrity validation for this test.
+    for request in blueprint["generation_requests"]:
+        target = next(
+            node
+            for node in blueprint["nodes"]
+            if node.get("generation_request_ref") == request["generation_request_id"]
+        )
+        request_text = module._expected_generation_request_text(
+            target["generation_contract"], target["node_id"], blueprint
+        )
+        digest = hashlib.sha256(request_text.encode("utf-8")).hexdigest()
+        request["generation_request_id"] = "gen-" + digest[:20]
+        request["target_node_id"] = target["node_id"]
+        request["template_version"] = module.GENERATION_TEMPLATE_VERSION
+        request["prompt_pack"] = target["generation_contract"]["prompt_pack"]
+        request["component_filename"] = target["generation_contract"]["component_filename"]
+        request["class_name"] = target["generation_contract"]["class_name"]
+        request["request_text"] = request_text
+        request["prompt_sha256"] = "sha256:" + digest
+        target["generation_request_ref"] = request["generation_request_id"]
+    terminal["generation_requests"] = blueprint["generation_requests"]
+    candidate_context["retrieval_trace"]["catalog_presentation"][0]["detail_url"] = (
+        "https://catalog.internal.example/assets/47d41a8d-9208-48c2-b79b-9d84d7ce199d?tab=details"
+    )
+
+    view_model = dict(
+        module.ReportViewModelBuilderComponent(
+            work_definition=work,
+            agent_blueprint=terminal,
+            retrieval_trace=candidate_context["retrieval_trace"],
+            report_title="AS-IS 보정 흐름 검증",
+        ).build_report_view_model().data
+    )
+
+    assert len(view_model["as_is_graph"]["nodes"]) == len(blueprint["nodes"])
+    assert any(node["node_kind"] == "human_gate" for node in view_model["as_is_graph"]["nodes"])
+    machine_node = {
+        "node_id": "node-mail-ingest-sanitize",
+        "title": "node-mail-ingest-sanitize",
+        "current_work": "담당자가 메일 본문과 첨부 문서를 수작업으로 읽고 필요한 문구를 복사하여 정리함",
+        "improvement": "메일 파싱, 중복 제거 및 보안 마스킹을 일원화된 Custom Component에서 자동 처리",
+    }
+    assert module._presentation_title(machine_node, "to_be", 2) == "메일 수집·정제"
+    assert "node-" not in module._presentation_summary(machine_node, "to_be")
+    assert any("메일" in node["title"] for node in view_model["to_be_graph"]["nodes"])
+    assert any("승인" in node["title"] for node in view_model["to_be_graph"]["nodes"])
+    assert all("node-" not in node["summary"] for node in view_model["to_be_graph"]["nodes"])
+
+    report = view_model["sections"][0]["items"][0]
+    basis = report["as_is_analysis"]["procedure_basis"]
+    assert basis["source"] == "blueprint_current_work_fallback"
+    assert basis["requires_confirmation"] is True
+    assert "설계 참고용" in basis["message"]
+
+    catalog = next(section for section in view_model["sections"] if section["section_id"] == "catalog_recommendations")
+    references = [item for item in catalog["items"] if item.get("status") == "reference_candidate_for_stage"]
+    assert references
+    first = next(item for item in references if item["asset_id"] == "47d41a8d-9208-48c2-b79b-9d84d7ce199d")
+    assert first["stage_title"]
+    assert first["version"] == "v1.0.0"
+    assert first["catalog_url"] == "https://catalog.internal.example/assets/47d41a8d-9208-48c2-b79b-9d84d7ce199d?tab=details"
+    assert first["catalog_link_status"] == "카탈로그 메타데이터에 등록된 상세 링크"
+    assert "직접 재사용으로 확정하지 않습니다" in first["reuse_decision_reason"]
+    stage_references = report["implementation_allocation"]["stage_catalog_references"]
+    assert any(item["asset_id"] == first["asset_id"] and item["version"] == first["version"] for item in stage_references)
+
+
+def test_30_keeps_metadata_candidates_out_of_unrelated_business_stages(
+    modules: dict[str, ModuleType],
+    sample_contracts: tuple[dict[str, Any], dict[str, Any], dict[str, Any]],
+) -> None:
+    """Keyword overlap must not make a mail Flow look like approval/publish reuse.
+
+    The sample email report Flow contains the generic word "업무보고".  It
+    is a relevant *mail collection* reference, but it has no approved
+    metadata evidence for draft, approval, publication, or result delivery.
+    Those stages must remain unassigned rather than receiving a misleading
+    catalog recommendation.
+    """
+
+    view_model = build_view_model(modules, sample_contracts)
+    report = view_model["sections"][0]["items"][0]
+    references = report["implementation_allocation"]["stage_catalog_references"]
+    email_flow_id = "47d41a8d-9208-48c2-b79b-9d84d7ce199d"
+    email_references = [item for item in references if item["asset_id"] == email_flow_id]
+
+    assert [item["stage_title"] for item in email_references] == ["Outlook 업무 메일 수집"]
+    assert email_references[0]["matched_catalog_terms"] == ["mail", "email", "메일"]
+    assert email_references[0]["match_basis"] == "메일·첨부 수집 관련 핵심 용어 mail, email, 메일 일치"
+    assert email_references[0]["selection_status"].startswith("참고 후보(직접 적용 미확정)")
+    assert email_references[0]["technical_contract_label"].startswith("메타데이터만 확인됨")
+    assert not {
+        "근거 연결형 보고서 초안 생성",
+        "민감정보 및 내용 승인",
+        "승인 보고서 게시",
+        "보고서 링크 전달",
+    } & {item["stage_title"] for item in email_references}
+
+    # The Outlook schedule candidate is not silently discarded.  It remains
+    # visible as a general candidate because its metadata alone does not
+    # establish that it reads mail.
+    candidates = report["implementation_allocation"]["catalog_candidates"]
+    assert any(item["asset_id"] == "e21931b2-1093-4f32-b55a-36ac66ef5b59" for item in candidates)
+    assert "직접 재사용 0건" in report["implementation_allocation"]["summary"]
+
+    # The reader-facing roadmap is deliberately short.  Node/edge-specific
+    # warnings remain available as a technical appendix rather than becoming
+    # a wall of implementation steps in the main report.
+    assert 3 <= len(report["next_steps"]) <= 5
+    assert any(item["title"] == "카탈로그 참고 후보 적합성 확인" for item in report["next_steps"])
+    assert any(item["title"] == "승인·예외 경로 검증" for item in report["next_steps"])
+    technical_preflight = report["technical_preflight_actions"]
+    assert len(technical_preflight) > len(report["next_steps"])
+    assert any(item["reference"] == "보안 설정 필요" for item in technical_preflight)
+    assert "mail_api_credential_ref" not in json.dumps(technical_preflight, ensure_ascii=False)
+
+
+def test_30_builds_complete_deterministic_business_report_section(
+    modules: dict[str, ModuleType],
+    sample_contracts: tuple[dict[str, Any], dict[str, Any], dict[str, Any]],
+) -> None:
+    """F30 must carry a complete business report, not only graph geometry."""
+
+    view_model = build_view_model(modules, sample_contracts)
+    assert view_model["sections"][0]["section_id"] == "business_report"
+    report_section = view_model["sections"][0]
+    assert report_section["title"] == "업무 방식 및 개선 실행 보고서"
+    assert len(report_section["items"]) == 1
+    report = report_section["items"][0]
+    assert report["report_type"] == "business_report"
+    assert report["report_version"] == "business-report/v1"
+    assert report["work_overview"]["goal"] == (
+        "지난 한 주의 업무 메일을 근거로 주간 업무보고 초안을 만들고 담당자 검토 후 공유한다."
+    )
+    assert report["work_overview"]["trigger"] == "매주 금요일 15시 또는 담당자의 수동 실행"
+    assert [item["title"] for item in report["operating_context"]["actors"]] == ["업무 담당자", "팀 리더"]
+    assert [item["title"] for item in report["as_is_analysis"]["procedure"]] == [
+        "금요일 보고 준비 시작",
+        "Outlook 메일 수동 검색",
+        "업무보고 수동 작성",
+        "민감정보와 내용 검토",
+        "업무보고 공유 완료",
+    ]
+    assert report["as_is_analysis"]["risks_controls"][0]["control"] == "게시 전 담당자 승인과 민감정보 확인을 필수화"
+    assert report["improvement_direction"]["objectives"]
+    assert report["to_be_operating_plan"]["human_review_points"][0]["title"] == "민감정보 및 내용 승인"
+    assert {item["component_filename"] for item in report["implementation_allocation"]["new_standalone_components"]} == {
+        "40_outlook_mail_collector.py",
+        "41_evidence_linked_report_adapter.py",
+    }
+    assert report["implementation_allocation"]["catalog_candidates"]
+    assert report["next_steps"]
+    assert report["validation_plan"]
+    assert report["open_items"] == []
+    serialized = json.dumps(report, ensure_ascii=False, sort_keys=True)
+    assert "request_text" not in serialized
+    assert "mail_api_credential_ref" not in serialized
+
+
+def test_30_business_report_marks_missing_facts_as_needing_confirmation(
+    modules: dict[str, ModuleType],
+) -> None:
+    module = modules["30_report_view_model_builder"]
+    report_section = module._business_report_section(
+        work={},
+        blueprint={"readiness_assessment": {}},
+        as_is_graph={},
+        to_be_graph={},
+        readiness="design_only",
+        catalog_section=None,
+    )
+    report = report_section["items"][0]
+    assert report["work_overview"]["goal"] == "미확정/추가 확인 필요"
+    assert report["work_overview"]["trigger"] == "미확정/추가 확인 필요"
+    assert report["as_is_analysis"]["procedure"][0]["title"] == "미확정/추가 확인 필요"
+    assert report["to_be_operating_plan"]["recommended_procedure"][0]["title"] == "미확정/추가 확인 필요"
+    assert {item["title"] for item in report["open_items"]} >= {"업무 목표 확인", "실행 시점 확인", "자동화 의도 확인"}
+
+
 def render_view_model(modules: dict[str, ModuleType], view_model: dict[str, Any]) -> dict[str, Any]:
     component = modules["31_responsive_report_renderer"].ResponsiveReportRendererComponent(
         report_view_model=view_model,
@@ -211,6 +423,17 @@ def terminal_with_authoritative_candidate_ports() -> tuple[dict[str, Any], dict[
         contract_items.append({**item, "port_contract_sha256": item_port_hash})
     trace["candidate_allowlist"] = contract_items
     trace["candidate_allowlist_sha256"] = canonical_hash(contract_items)
+    contract_hashes = {
+        (item["asset_id"], item["version"]): item["port_contract_sha256"]
+        for item in contract_items
+    }
+    # ``catalog_presentation`` is display-only, but it must keep the same
+    # port-contract binding as the executable allowlist it explains.
+    trace["catalog_presentation"] = [
+        {**item, "port_contract_sha256": contract_hashes[(item["asset_id"], item["version"])]}
+        for item in trace.get("catalog_presentation", [])
+        if isinstance(item, dict) and (item.get("asset_id"), item.get("version")) in contract_hashes
+    ]
     terminal["blueprint"]["candidate_allowlist_sha256"] = trace["candidate_allowlist_sha256"]
 
     allowed = contract_items[0]
@@ -254,6 +477,7 @@ def test_report_component_sources_build_as_langflow_111_standalone_components() 
         "30_report_view_model_builder": "ReportViewModelBuilder",
         "31_responsive_report_renderer": "ResponsiveReportRenderer",
         "32_report_publisher": "ReportPublisher",
+        "37_report_publication_message": "ReportPublicationMessage",
     }
     for path in COMPONENT_PATHS:
         source = path.read_text(encoding="utf-8")
@@ -1048,12 +1272,19 @@ def test_report_pipeline_never_echoes_secret_literals_embedded_in_mapping_keys(
 
 
 def test_committed_view_model_and_html_are_reproducible_from_30_to_31(
-    modules: dict[str, ModuleType],
-    sample_contracts: tuple[dict[str, Any], dict[str, Any], dict[str, Any]],
 ) -> None:
-    view_model = build_view_model(modules, sample_contracts)
+    """The committed F30 samples must reproduce the actual handoff path.
+
+    ``business_report`` deliberately includes approved WorkDefinition details
+    that are not part of the old independent candidate-context fixture.  The
+    canonical sample path is therefore the same sealed F20 handoff used by
+    ``scripts/render_sample_report.py``, rather than a reconstructed mix of
+    nearby sample files.
+    """
+
+    script = load_component(PROJECT_ROOT / "scripts" / "render_sample_report.py")
+    view_model, rendered = script.build_sample_artifacts()
     assert view_model == read_json("report_view_model.json")
-    rendered = render_view_model(modules, view_model)
     assert rendered["html"] == (SAMPLES_DIR / "generated_sample_report.html").read_text(encoding="utf-8")
 
 
@@ -1086,6 +1317,195 @@ def test_31_returns_self_contained_hash_and_csp_verifiable_html(
     assert "검색 근거와 snapshot trace" in document
 
 
+def test_31_accepts_branch_and_merge_graphs_for_interactive_layout(
+    modules: dict[str, ModuleType],
+) -> None:
+    """A report must keep a real parallel branch visible, not flatten it to a list."""
+
+    view_model = read_json("report_view_model.json")
+    graph = view_model["to_be_graph"]
+    mail_collector = next(node for node in graph["nodes"] if node["node_id"] == "mail-collector")
+    human_approval = next(node for node in graph["nodes"] if node["node_id"] == "human-approval")
+    risk_input = copy.deepcopy(mail_collector["output_ports"][0])
+    risk_input.update(
+        {
+            "port_id": "risk-check:in:mail-messages",
+            "label": "메일 원문",
+            "name": "mail-messages",
+            "semantic_role": "mail_documents",
+        }
+    )
+    risk_output = copy.deepcopy(risk_input)
+    risk_output.update(
+        {
+            "port_id": "risk-check:out:risk-status",
+            "source_port_id": "risk-status",
+            "label": "점검 결과",
+            "name": "risk-status",
+            "semantic_role": "risk_check_result",
+        }
+    )
+    risk_node = {
+        "node_id": "risk-check",
+        "source_node_id": "risk-check",
+        "node_kind": "decision",
+        "title": "민감정보·누락 병렬 점검",
+        "sequence": 3,
+        "implementation_source": "builtin",
+        "implementation_label": "기본 요소",
+        "technical_contract_status": None,
+        "port_contract_sha256": None,
+        "summary": "보고서 초안 생성과 병렬로 민감정보와 누락 가능성을 점검합니다.",
+        "input_ports": [risk_input],
+        "output_ports": [risk_output],
+        "applied_skills": [],
+        "detail_ref": "detail-risk-check",
+        "generation_request_ref": None,
+    }
+    graph["nodes"].append(risk_node)
+    graph["details"]["detail-risk-check"] = {
+        "title": risk_node["title"],
+        "current_work": "담당자가 초안을 만든 뒤 별도로 민감정보와 누락을 확인한다.",
+        "problems": ["점검이 늦어지면 승인 단계에서 재작업이 발생한다."],
+        "improvement": "초안 생성과 병렬로 점검 결과를 모아 승인자가 함께 판단한다.",
+        "reuse_decision_reason": "현재 업무 요구에는 Langflow 기본 분기 요소로 충분하다.",
+        "asset_ref": None,
+        "inputs": copy.deepcopy(risk_node["input_ports"]),
+        "outputs": copy.deepcopy(risk_node["output_ports"]),
+        "config": {},
+        "secrets_permissions": [],
+        "failure_policy": {},
+        "human_review": None,
+        "tests": [],
+        "applied_skills": [],
+    }
+    graph["edges"].extend(
+        [
+            {
+                "edge_id": "agent-e-risk-branch",
+                "source_node_id": "mail-collector",
+                "source_port_id": mail_collector["output_ports"][0]["port_id"],
+                "target_node_id": "risk-check",
+                "target_port_id": risk_input["port_id"],
+                "edge_kind": "branch",
+                "label": "병렬 점검",
+                "condition": None,
+                "is_default": False,
+                "connection_validation_status": "contract_compatible",
+                "mapping": {},
+                "retry_policy": {},
+            },
+            {
+                "edge_id": "agent-e-risk-merge",
+                "source_node_id": "risk-check",
+                "source_port_id": risk_output["port_id"],
+                "target_node_id": "human-approval",
+                "target_port_id": human_approval["input_ports"][0]["port_id"],
+                "edge_kind": "branch",
+                "label": "이슈가 있으면 함께 검토",
+                "condition": "risk_found == true",
+                "is_default": False,
+                "connection_validation_status": "contract_compatible",
+                "mapping": {},
+                "retry_policy": {},
+            },
+        ]
+    )
+    rendered = render_view_model(modules, reseal_view_model(view_model))
+    assert rendered["status"] == "RENDERED"
+    assert "function graphLayout" in rendered["html"]
+    assert ".edge-path.edge-branch" in rendered["html"]
+    assert "카탈로그 기반 적용 계획" in rendered["html"]
+    assert "function renderCatalog" in rendered["html"]
+    assert "민감정보·누락 병렬 점검" in rendered["html"]
+
+
+def test_31_renders_complete_business_narrative_before_flow_visuals(
+    modules: dict[str, ModuleType],
+) -> None:
+    """The reader gets a Korean work-design report, not only a graph canvas."""
+
+    view_model = read_json("report_view_model.json")
+    view_model["sections"].append(
+        {
+            "section_id": "business_report",
+            "title": "주간 업무보고 완성 업무 설계 보고서",
+            "items": [
+                {
+                    "report_type": "business_report",
+                    "report_version": "business-report/v1",
+                    "executive_summary": {
+                        "title": "주간 업무보고 자동화 설계",
+                        "overview": "메일 수집부터 팀장 공유까지의 업무를 승인 가능한 Agent 운영 방식으로 정리합니다.",
+                        "approval_basis": "업무 담당자 검토 후 승인",
+                        "build_readiness": "proposed_unverified",
+                    },
+                    "work_overview": {
+                        "goal": "금요일 오후까지 근거가 연결된 주간 업무보고 초안을 만듭니다.",
+                        "trigger": "매주 금요일 14:00",
+                        "scope_in": ["프로젝트 업무 메일", "승인된 보고 포털 게시"],
+                        "scope_out": ["승인 없는 자동 게시"],
+                    },
+                    "operating_context": {
+                        "actors": ["업무 담당자", "팀장"],
+                        "systems": ["Outlook", "사내 보고 포털"],
+                        "inputs": ["업무 메일", "프로젝트 분류 기준"],
+                        "outputs": ["검토 가능한 주간 업무보고 초안"],
+                    },
+                    "as_is_analysis": {
+                        "procedure": ["메일 검색", "프로젝트별 수작업 분류", "보고서 초안 작성"],
+                        "pain_points": ["중복 메일과 자동 알림을 다시 확인해야 합니다."],
+                        "decision_points": ["민감정보 포함 여부", "팀장 승인 여부"],
+                        "exception_paths": ["메일 조회 실패 시 게시를 중단합니다."],
+                    },
+                    "improvement_direction": {
+                        "summary": "반복 정리는 Agent가 수행하고, 게시 승인과 민감정보 판단은 사람이 담당합니다.",
+                        "objectives": ["근거 메일 링크 보존", "재작업 감소"],
+                        "principles": ["승인 전 게시 금지", "실패 건수 표시"],
+                    },
+                    "to_be_operating_plan": {
+                        "recommended_procedure": ["메일 수집", "분류·초안 생성", "민감정보 점검", "담당자 승인", "게시·팀장 공유"],
+                        "branch_and_exception_plan": ["조회 실패 또는 인증 만료 시 게시하지 않고 실패 원인을 표시"],
+                        "human_review_points": ["담당자가 누락·민감정보·게시 여부를 최종 승인"],
+                    },
+                    "implementation_allocation": {
+                        "catalog_reuse": ["Outlook 일정/메일 조회 Component 검토"],
+                        "catalog_candidates": ["email기반 자동 업무보고 만들기 Flow"],
+                        "new_standalone_components": ["메일 중복 제거·근거 링크 정리 Component"],
+                        "builtin_components": ["조건 분기", "Human Input"],
+                        "human_tasks": ["최종 게시 승인"],
+                    },
+                    "next_steps": ["카탈로그 포트 계약 확인", "샘플 메일로 분기 테스트", "운영 승인 후 배포"],
+                    "validation_plan": ["승인 전 게시가 발생하지 않는지 확인", "조회 실패 시 실패 건수를 표시하는지 확인"],
+                    "open_items": ["메일 접근 권한 신청 범위를 확정"],
+                }
+            ],
+        }
+    )
+
+    rendered = render_view_model(modules, reseal_view_model(view_model))
+    document = rendered["html"]
+
+    assert rendered["status"] == "RENDERED"
+    assert 'id="business-report"' in document
+    assert "function renderBusinessReport" in document
+    assert "업무 개요" in document
+    assert "현행 절차 및 문제" in document
+    assert "개선 방향" in document
+    assert "권장 운영 방식" in document
+    assert "구현 분담 및 카탈로그 적용" in document
+    assert "구현 로드맵" in document
+    assert "메일 수집부터 팀장 공유까지의 업무를 승인 가능한 Agent 운영 방식으로 정리합니다." in document
+    body = document.split("</head>", 1)[1]
+    technical_reference = body.index('<details class="technical-reference static-fallback">')
+    static_report = body.index('<div class="business-report-static">')
+    assert static_report > technical_reference
+    assert (
+        '<section id="business-report" class="business-report" '
+        'aria-live="polite" aria-busy="true"></section>'
+    ) in body
+
+
 def test_31_escapes_untrusted_text_and_keeps_json_non_executable(
     modules: dict[str, ModuleType],
 ) -> None:
@@ -1095,6 +1515,19 @@ def test_31_escapes_untrusted_text_and_keeps_json_non_executable(
     view_model["to_be_graph"]["nodes"][0]["title"] = malicious
     detail_ref = view_model["to_be_graph"]["nodes"][0]["detail_ref"]
     view_model["to_be_graph"]["details"][detail_ref]["improvement"] = malicious
+    view_model["sections"].append(
+        {
+            "section_id": "business_report",
+            "title": malicious,
+            "items": [
+                {
+                    "report_type": "business_report",
+                    "report_version": "business-report/v1",
+                    "executive_summary": {"overview": malicious},
+                }
+            ],
+        }
+    )
     view_model = reseal_view_model(view_model)
     document = render_view_model(modules, view_model)["html"]
 
@@ -1353,6 +1786,15 @@ def test_f30_and_f31_share_the_port_bound_candidate_allowlist_hash(
     assert view_model["retrieval_trace"]["candidate_allowlist_sha256"] == expected_hash
     assert render_view_model(modules, view_model)["status"] == "RENDERED"
 
+    stale_presentation = copy.deepcopy(trace)
+    stale_presentation["catalog_presentation"][0]["port_contract_sha256"] = "sha256:" + "e" * 64
+    with pytest.raises(ValueError, match="catalog_presentation port contract"):
+        modules["30_report_view_model_builder"].ReportViewModelBuilderComponent(
+            work_definition=work,
+            agent_blueprint=terminal,
+            retrieval_trace=stale_presentation,
+        ).build_report_view_model()
+
     stale_terminal = copy.deepcopy(terminal)
     stale_catalog_node = next(
         node for node in stale_terminal["blueprint"]["nodes"]
@@ -1431,21 +1873,34 @@ def test_31_declares_layout_contract_for_360_through_1920_widths(
     assert style
     css = style.group(1).replace(" ", "")
     assert '<metaname="viewport"content="width=device-width,initial-scale=1">' in document.replace(" ", "")
-    assert "@media(max-width:850px)" in css
-    assert ".intro{display:grid;grid-template-columns:minmax(0,1fr)" in css
+    assert "@media(max-width:900px)" in css
+    assert "@media(max-width:520px)" in css
+    assert ".intro{position:relative;overflow:hidden" in css
     assert ".graph-viewport{position:absolute;inset:0;overflow:auto" in css
-    assert ".shell{max-width:1540px" in css
-    assert ".tabs{margin:0010px" in css
-    assert ".js.static-fallback{display:none}" in css
-    assert ".static-fallback{display:block}" in css
+    assert ".shell{max-width:1480px" in css
+    assert ".catalog-more>summary" in css
+    assert ".technical-reference.static-fallback{display:block}" in css
     assert "@media(prefers-reduced-motion:reduce)" in css
     assert "@mediaprint" in css
     assert "document.documentElement.classList.add('js')" in document
     assert 'id="flow-panel"' in document
-    assert 'class="support static-fallback"' in document
+    assert (
+        '<section id="business-report" class="business-report" '
+        'aria-live="polite" aria-busy="true"></section>'
+    ) in document
+    assert '<details class="technical-reference static-fallback">' in document
+    assert "원시 데이터 및 순서형 전체 내용 (기술 참고)" in document
     assert '<div id="support"></div>' in document
+    assert "Math.min(1,horizontal,vertical)" in document
+    assert "requestAnimationFrame(fitAll)" in document
+    assert "function compactGraphLayout" in document
+    assert "Math.max(.62,allNodesScale)" in document
+    assert "const stageTitles=" in document
+    assert "상세 링크 미등록" in document
+    assert document.index('id="flow-panel"') < document.index('id="business-report"')
+    assert document.index('id="business-report"') < document.index('id="design-reference-title"')
     assert "min-width:1920px" not in css and "min-width:768px" not in css
-    assert 360 <= 850 < 1920
+    assert 360 <= 520 < 900 < 1920
 
 
 def test_31_rejects_failed_envelope_and_cross_section_provenance_mismatch(
@@ -1647,3 +2102,88 @@ def test_32_posts_reference_report_api_contract_and_returns_structured_failures(
         "message": "Report API connection failed: offline",
         "retryable": True,
     }
+
+
+def test_34_renders_publisher_result_as_concise_message_with_real_links(
+    modules: dict[str, ModuleType],
+) -> None:
+    module = modules["37_report_publication_message"]
+    published = module.ReportPublicationMessageComponent(
+        publish_result={
+            "ok": True,
+            "status": "published",
+            "report_id": "20260901205152_262cdb5318cd8546828493515534e1e8",
+            # Accept the Markdown-looking legacy transport value too, but
+            # render one normal Markdown link rather than nesting syntax.
+            "view_url": "[**http://127.0.0.1:5000/reports/view/report-1**](http://127.0.0.1:5000/reports/view/report-1)",
+            "download_url": "http://127.0.0.1:5000/reports/download/report-1",
+            "expires_at": "2026-09-02T00:51:52+09:00",
+            "ttl_hours": 4,
+            "storage": {
+                "backend": "mongodb_collection",
+                "database": "datagov",
+                "collection": "report_save_db",
+            },
+        }
+    ).build_message().text
+    assert "## 업무 Agent 설계 보고서가 게시되었습니다" in published
+    assert "[보고서 열기](http://127.0.0.1:5000/reports/view/report-1)" in published
+    assert "[HTML 다운로드](http://127.0.0.1:5000/reports/download/report-1)" in published
+    assert "[**" not in published
+    assert "보고서 ID: `20260901205152_262cdb5318cd8546828493515534e1e8`" in published
+    assert "저장 위치: mongodb_collection · datagov.report_save_db" in published
+
+
+def test_34_explains_test_and_failure_without_dumping_raw_payload(
+    modules: dict[str, ModuleType],
+) -> None:
+    module = modules["37_report_publication_message"]
+    test_run = module.render_report_publication_message(
+        {
+            "ok": True,
+            "status": "would_publish",
+            "renderer_report_id": "report-test",
+            "content_bytes": 12345,
+            "ttl_hours": 4,
+        }
+    )
+    assert "테스트 실행이 완료되었습니다" in test_run
+    assert "Report API에는 저장하지 않았고" in test_run
+    assert "12,345 bytes" in test_run
+    assert "{" not in test_run
+
+    failed = module.render_report_publication_message(
+        {
+            "ok": False,
+            "status": "PUBLISH_FAILED",
+            "message": "mongodb://user:password@internal/report failed",
+            "error": {
+                "code": "REPORT_API_CONNECTION_FAILED",
+                "message": "token=very-secret-value connection failed",
+                "retryable": True,
+            },
+        }
+    )
+    assert "## 보고서 게시에 실패했습니다" in failed
+    assert "REPORT_API_CONNECTION_FAILED" in failed
+    assert "[민감정보 제거]" in failed
+    assert "mongodb://" not in failed
+    assert "{" not in failed
+
+
+def test_34_omits_untrusted_links_and_handles_empty_output(
+    modules: dict[str, ModuleType],
+) -> None:
+    module = modules["37_report_publication_message"]
+    message = module.render_report_publication_message(
+        {
+            "ok": True,
+            "status": "published",
+            "view_url": "javascript:alert(1)",
+            "download_url": "https://example.test/report#fragment-is-not-allowed",
+        }
+    )
+    assert "보고서 링크를 받지 못했습니다" in message
+    assert "javascript:" not in message
+    assert "example.test" not in message
+    assert "게시 결과가 없습니다" in module.render_report_publication_message()

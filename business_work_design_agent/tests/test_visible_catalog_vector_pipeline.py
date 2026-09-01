@@ -78,6 +78,7 @@ def _sample_records() -> list[dict[str, Any]]:
             "version": "v1.0.0",
             "description": "Owner user@example.com",
             "password": "never-store-this",
+            "detail_url": "https://catalog.internal.example/assets/component-1?tab=overview",
             "readme": "Read messages and create a weekly report. " * 30,
             "stars_count": 4,
             "ports": {"inputs": [{"name": "messages"}], "outputs": [{"name": "report"}]},
@@ -187,10 +188,48 @@ def test_loader_preserves_redacted_raw_parent_and_is_deterministic(
     assert "never-store-this" not in parent["raw_text_redacted"]
     assert "user@example.com" not in parent["lexical_text_redacted"]
     assert parent["asset_type"] == "component"
+    assert parent["catalog_url"] == "https://catalog.internal.example/assets/component-1?tab=overview"
     assert parent["technical_contract_status"] == "ports_extracted"
     assert parent["ports"]["inputs"] == [{"name": "messages"}]
     assert parent["source"]["file_sha256"] == first["source_sha256"]
     assert len(parent["raw_record_redacted_sha256"]) == len(parent["content_sha256"]) == 64
+
+
+def test_loader_preserves_only_safe_optional_catalog_detail_urls(
+    modules: dict[str, ModuleType], tmp_path: Path
+) -> None:
+    records = [
+        {
+            "id": "safe-link",
+            "title": "Safe Link",
+            "type": "py",
+            "version": "v1",
+            # A rejected first field must not prevent a later valid field from
+            # becoming the presentation-only catalog link.
+            "catalog_url": "https://user:password@catalog.internal.example/assets/safe-link",
+            "detail_url": "HTTPS://Catalog.Internal.Example/assets/safe-link#details",
+        },
+        {
+            "id": "secret-link",
+            "title": "Secret Link",
+            "type": "json",
+            "version": "v1",
+            "url": "https://catalog.internal.example/assets/secret-link?access_token=not-for-report",
+        },
+        {
+            "id": "not-a-link",
+            "title": "Not a Link",
+            "type": "json",
+            "version": "v1",
+            "link": "javascript:alert(1)",
+        },
+    ]
+
+    bundle = _load_bundle(modules["loader"], _write_catalog(tmp_path, records))
+    by_id = {record["asset_id"]: record for record in bundle["records"]}
+    assert by_id["safe-link"]["catalog_url"] == "https://catalog.internal.example/assets/safe-link"
+    assert by_id["secret-link"]["catalog_url"] == ""
+    assert by_id["not-a-link"]["catalog_url"] == ""
 
 
 def test_chunker_exposes_policy_and_builds_deterministic_parent_chunk_contracts(
@@ -210,6 +249,8 @@ def test_chunker_exposes_policy_and_builds_deterministic_parent_chunk_contracts(
     matching = [item for item in first["chunks"] if item["asset_id"] == parent["asset_id"]]
     assert parent["chunk_count"] == len(matching)
     assert parent["raw_record_redacted"]["password"] == "[REDACTED:SENSITIVE_FIELD]"
+    assert parent["catalog_url"] == "https://catalog.internal.example/assets/component-1?tab=overview"
+    assert matching[0]["catalog_url"] == parent["catalog_url"]
     assert "raw_record_redacted" not in matching[0]
     assert "embedding" not in matching[0]
     assert [item["chunk_ordinal"] for item in matching] == list(range(len(matching)))
@@ -550,6 +591,8 @@ def test_pure_final_document_builder_preserves_f20_storage_contract(
     assert all(item["embedding"]["contract"] == contract for item in chunks)
     assert all(item["embedding"]["input_sha256"] == item["embedding_input_sha256"] for item in chunks)
     assert parents[0]["raw_text_redacted"] == bundle["parents"][0]["raw_text_redacted"]
+    assert parents[0]["catalog_url"] == "https://catalog.internal.example/assets/component-1?tab=overview"
+    assert chunks[0]["catalog_url"] == parents[0]["catalog_url"]
 
 
 def test_writer_stores_f20_compatible_vectors_and_activates_pointer_last(
@@ -665,6 +708,7 @@ def test_writer_stores_f20_compatible_vectors_and_activates_pointer_last(
     assert stored_chunks[0]["embedding"]["contract"]["model_id"] == "embedding-model-a"
     assert stored_chunks[0]["embedding"]["contract"] == result["embedding_contract"]
     assert stored_parents[0]["raw_record_redacted"]["password"] == "[REDACTED:SENSITIVE_FIELD]"
+    assert stored_parents[0]["catalog_url"] == "https://catalog.internal.example/assets/component-1?tab=overview"
     assert stored_parents[0]["embedding_manifest"]["complete"] is True
     assert stored_parents[0]["embedding_manifest"]["embedding_contract"] == result["embedding_contract"]
     pointer_collection = database["catalog_active_pointers"]

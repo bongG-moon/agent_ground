@@ -416,6 +416,7 @@ Catalog ingest는 아래 세 Standalone Component를 서로 다른 생성 요청
 | `31_responsive_report_renderer.py` | `CCP-REPORT` | fixed template version, breakpoint, CSP-compatible output |
 | `32_report_publisher.py` | `CCP-REPORT` | approved host, auth, timeout, artifact hash |
 | `33_f30_report_handoff_loader.py` | `CCP-REPORT` | sealed F20 handoff 검증·F30 report view model 입력 복원 |
+| `37_report_publication_message.py` | `CCP-REPORT` | Publisher 결과를 Playground용 안전한 Markdown 메시지와 보고서/다운로드 링크로 변환 |
 
 ---
 

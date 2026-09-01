@@ -173,8 +173,13 @@ def test_f10_example_is_safe_and_is_embedded_only_in_the_exported_f10_node() -> 
     answer_examples = example["clarification_answer_examples"]
     assert isinstance(answer_examples, list)
     assert len(answer_examples) == 4
-    expected_topics = {"실행 시각과 조회 기간", "메일함 및 프로젝트 분류 범위", "승인·SLA 및 실패 처리", "완료 품질과 성공 기준"}
-    assert {item.get("topic") for item in answer_examples} == expected_topics
+    topics = {item.get("topic") for item in answer_examples}
+    assert len(topics) == 4
+    assert all(isinstance(topic, str) and topic.strip() and len(topic) <= 200 for topic in topics)
+    assert example["scenario_label"] == "주간 생산·프로젝트 리스크 및 실행계획 승인·게시 업무"
+    design_signals = example["expected_design_signals"]
+    assert {"as_is_focus", "to_be_required_branches", "catalog_search_keywords"} == set(design_signals)
+    assert all(design_signals[key] for key in design_signals)
     unsafe_markers = ("password", "api_key", "bearer ", "sk-", "-----begin")
     for item in answer_examples:
         assert set(item) == {"topic", "likely_question", "answer_to_enter"}

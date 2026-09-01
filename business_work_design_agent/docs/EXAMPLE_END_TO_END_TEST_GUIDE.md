@@ -23,7 +23,7 @@ F00은 이 경로가 검색할 참고 자산을 만드는 선행 Flow다. 업로
 | `scripts/seed_example_skill_registry.py` | Skill JSON 계약 검증 및 선택적 MongoDB upsert | 기본 실행은 검증만 수행 |
 | `scripts/verify_example_mongodb.py` | active catalog pointer, parent/chunk/vector와 Skill registry 일관성 확인 | 읽기 전용 |
 
-예제 업무는 “매주 금요일에 업무 메일을 모아 프로젝트별 완료·진행·리스크·다음 주 계획으로 정리하고, 원본 메일 근거와 담당자 승인을 유지한 뒤에만 보고 포털에 게시한다”는 시나리오다. 실행 시각, 조회·분류 범위와 SLA가 일부러 확정되지 않아 F10의 재질문을 확인할 수 있다. 참고 catalog에는 기존 메일 업무보고·Outlook·GoodDocs·JIRA·HiQ1 자산과, 메일·회의·문서·RAG·DataLake·h-API·HITL·승인·CUBE·보고서·제조 업무까지 연결할 수 있는 후보를 포함한 총 100건이 들어 있다. 모두 예제용 `metadata_only` 후보이므로 F20이 재사용 후보와 실제 runtime 검증 필요성을 구분하는지도 확인한다. 예제 Skill은 “근거 우선 주간 업무보고” 정책을 적용해 승인 전 게시와 근거 없는 완료 처리를 금지한다.
+예제 업무는 “메일·CUBE/Teams·JIRA·DataLake 생산 KPI·Hold/설비 이벤트·SOP를 함께 확인해 프로젝트·설비별 주간 리스크와 실행계획을 만들고, 데이터 오류·고위험·근거 상충·승인 반려를 분기 처리한 뒤 사람 승인 후에만 GoodDocs/CUBE에 게시한다”는 복합 시나리오다. 대상 범위·고위험 임계값·권위 데이터·승인/알림 정책·SLA 일부를 일부러 확정하지 않아 F10의 재질문을 확인할 수 있다. 참고 catalog에는 기존 메일 업무보고·Outlook·GoodDocs·JIRA·HiQ1 자산과, 메일·회의·문서·RAG·DataLake·h-API·HITL·승인·CUBE·보고서·제조 업무까지 연결할 수 있는 후보를 포함한 총 100건이 들어 있다. 모두 예제용 `metadata_only` 후보이므로 F20이 재사용 후보와 실제 runtime 검증 필요성을 구분하는지도 확인한다. 예제 Skill은 승인 전 게시와 근거 없는 완료 처리를 금지한다.
 
 세 JSON은 모두 테스트 fixture다. API key, MongoDB credential, 사내 원문, 실제 사용자 정보는 예제 JSON에 추가하지 않는다. Secret은 Langflow Secret/Global 또는 사내 secret manager로 전달한다.
 
@@ -351,7 +351,7 @@ F10 export에는 `samples/f10_work_request_example.json`의 업무 설명과 추
 | `team_name` | 팀 명 |
 | `employee_id` | 사번 (`employee-demo`) |
 
-예제의 `expected_clarification_topics`와 `local_test_note`는 결과를 사람이 확인하기 위한 설명이며 Component 10 입력이 아니다. `language`는 예제 Flow의 기본값 `ko`를 유지한다. `channel_mode`는 입력으로 노출하지 않고 Component 10이 정확히 `native_hitl`로 고정한다. `work_definition_id`, `turn_id`, `submitted_at`은 첫 실행에서는 비워 deterministic/default 생성을 사용할 수 있다. 공용 catalog/Skill 영역은 내부 `default` scope를 계속 사용하므로 `team_name`은 현재 팀별 catalog 격리가 아니라 표시·감사 메타데이터다.
+예제의 `expected_clarification_topics`, `expected_design_signals`, `clarification_skip_guidance`, `local_test_note`는 결과를 사람이 확인하기 위한 설명이며 Component 10 입력이 아니다. `language`는 예제 Flow의 기본값 `ko`를 유지한다. `channel_mode`는 입력으로 노출하지 않고 Component 10이 정확히 `native_hitl`로 고정한다. `work_definition_id`, `turn_id`, `submitted_at`은 첫 실행에서는 비워 deterministic/default 생성을 사용할 수 있다. 공용 catalog/Skill 영역은 내부 `default` scope를 계속 사용하므로 `team_name`은 현재 팀별 catalog 격리가 아니라 표시·감사 메타데이터다.
 
 ## 8. 6단계: F10 Playground-native HITL 전체 실행
 
@@ -370,9 +370,10 @@ F10 export에는 `samples/f10_work_request_example.json`의 업무 설명과 추
 
 질문별 입력칸에 답변을 넣는다. 질문 문구와 카드의 형식 안내를 우선한다. F10 Canvas의 `② 최대 3회 HITL 보완` Sticky Note에도 아래와 같은 값이 표시되며, `samples/f10_work_request_example.json`의 `clarification_answer_examples`와 동일하다.
 
-- 업무 일정/조회 기간 질문: `매주 금요일 오전 9시에 실행합니다. 전주 금요일 00:00부터 이번 주 목요일 23:59까지 수신한 메일을 조회합니다. 공휴일이면 다음 영업일 오전 9시에 실행합니다.`
-- 메일함/프로젝트 범위 질문: `업무자동화팀 공용 메일함과 employee-demo의 받은편지함을 대상으로 합니다. 팀원과 프로젝트 배포 목록에서 온 메일만 포함하고, 제목 또는 본문에 프로젝트 코드가 있으면 해당 프로젝트로 분류합니다. 시스템 자동 알림, 광고, 부재중 알림은 제외하며 같은 Message-ID 또는 동일 제목·발신자·수신일의 메일은 한 건만 남깁니다.`
-- 승인/SLA·실패 처리 질문: `초안 생성 후 담당자가 당일 오후 3시까지 민감정보와 누락 여부를 검토하고 승인합니다. 승인된 경우에만 사내 보고 포털에 게시하고 팀장에게 링크를 전달합니다. 메일 조회 실패나 인증 만료가 있으면 게시와 링크 전달을 모두 중단하고, 실패 원인·영향 받은 메일함·누락 건수를 초안 결과에 표시해 담당자에게 알려 줍니다.`
+- 대상 범위·고위험 임계값 질문: `A공장 확산·식각 공정의 프로젝트 Alpha, Beta와 담당 설비를 대상으로 합니다. Hold 건수가 전주보다 3건 이상 증가하거나 수율이 목표 대비 2% 이상 낮거나, Severity High JIRA 또는 SLA 24시간 초과가 있으면 고위험 검토로 보냅니다.`
+- 권위 데이터·근거 연결 질문: `수율·Hold·설비 이벤트는 DataLake, 이슈 상태와 담당자·목표일은 JIRA, SOP·변경 공지는 승인된 최신 문서를 권위 기준으로 사용합니다. 프로젝트 코드·설비 ID·LOT ID·JIRA Key·주차로 연결하고 키가 맞지 않으면 자동 연결하지 않고 사람 검토로 보냅니다.`
+- 승인·게시·알림 권한 질문: `고위험 항목은 품질 담당자와 공정 책임자가 검토하고, 팀장이 GoodDocs 최종 게시와 전체 보고서를 승인합니다. 승인 전에는 GoodDocs 확정, JIRA 신규 등록, CUBE 또는 Teams 알림을 모두 실행하지 않습니다.`
+- 실패·SLA 질문: `각 데이터 소스 조회와 게시·알림은 5분 간격으로 한 번만 재시도합니다. 필수 데이터가 없으면 게시와 알림을 중단하고 실패 원인·영향 범위·누락 건수를 담당자와 품질 담당자에게만 보여 줍니다.`
 
 선택형 질문은 안내된 선택지 하나를 정확히 입력한다. 복수 선택은 쉼표로 구분하고, boolean은 `true/false` 또는 `예/아니오`, number는 숫자로 입력한다. 기타 설명을 포함하는 단일 선택은 `{"choice":"__other__","text":"설명"}` 형식을 사용한다.
 

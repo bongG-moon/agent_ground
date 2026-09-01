@@ -9,6 +9,7 @@ import unicodedata
 import uuid
 from datetime import datetime
 from typing import Any
+from urllib.parse import parse_qsl, urlsplit, urlunsplit
 
 from lfx.custom import Component
 from lfx.io import DataInput, DropdownInput, IntInput, MessageTextInput, Output, SecretStrInput
@@ -54,6 +55,20 @@ _FALLBACK_STOP_TOKENS = {
 _RUNTIME_CONTRACT_SCHEMA = "embedding-runtime-contract/v2"
 _RUNTIME_CONTRACT_FIELDS = ("schema_version", "runtime_class", "model_id", "dimension", "fingerprint")
 _MAX_EMBEDDING_DIMENSION = 65536
+_CATALOG_URL_FIELDS = ("catalog_url", "detail_url", "asset_url", "link", "url")
+_SECRET_URL_QUERY_KEY_PATTERN = re.compile(
+    r"(?:^|[_-])(api[_-]?key|authorization|cookie|credential|password|passwd|secret|session|token)(?:$|[_-])",
+    re.IGNORECASE,
+)
+
+
+def _has_secret_url_query_key(value: Any) -> bool:
+    key = str(value or "").casefold()
+    compact = re.sub(r"[^a-z0-9]", "", key)
+    return bool(_SECRET_URL_QUERY_KEY_PATTERN.search(key)) or any(
+        marker in compact
+        for marker in ("apikey", "authorization", "cookie", "credential", "password", "passwd", "secret", "session", "token")
+    )
 
 
 def _safe_identifier(value: Any, default: str) -> str:
@@ -164,6 +179,60 @@ def _string_list(value: Any, maximum: int = 100) -> list[str]:
 def _normalize_exact_key(value: Any) -> str:
     text = unicodedata.normalize("NFKC", str(value or "")).casefold().strip()
     return re.sub(r"\s+", " ", text)[:500]
+
+
+def _safe_catalog_url(value: Any) -> str:
+    """Return a bounded, non-credentialed HTTP(S) catalog detail URL.
+
+    Parent documents are data, not trusted UI markup.  Re-validate the
+    optional display URL at retrieval time so a manually modified MongoDB
+    document cannot turn into an unsafe report link downstream.
+    """
+
+    if not isinstance(value, str):
+        return ""
+    text = value.strip()
+    if not text or len(text) > 2048 or any(ord(character) < 32 or ord(character) == 127 for character in text):
+        return ""
+    if any(character.isspace() for character in text):
+        return ""
+    try:
+        parsed = urlsplit(text)
+        port = parsed.port
+    except ValueError:
+        return ""
+    scheme = parsed.scheme.casefold()
+    hostname = parsed.hostname
+    if scheme not in {"http", "https"} or not hostname or parsed.username is not None or parsed.password is not None:
+        return ""
+    if len(hostname) > 253:
+        return ""
+    try:
+        query_pairs = parse_qsl(parsed.query, keep_blank_values=True, strict_parsing=False)
+    except ValueError:
+        return ""
+    if any(_has_secret_url_query_key(key) for key, _ in query_pairs):
+        return ""
+    normalized_host = hostname.casefold()
+    if ":" in normalized_host and not normalized_host.startswith("["):
+        normalized_host = f"[{normalized_host}]"
+    netloc = normalized_host if port is None else f"{normalized_host}:{port}"
+    return urlunsplit((scheme, netloc, parsed.path, parsed.query, ""))
+
+
+def _catalog_detail_url(document: dict[str, Any]) -> str:
+    """Use the normalized parent URL, with a safe legacy-record fallback."""
+
+    sources: list[dict[str, Any]] = [document]
+    raw_record = document.get("raw_record_redacted")
+    if isinstance(raw_record, dict):
+        sources.append(raw_record)
+    for source in sources:
+        for field in _CATALOG_URL_FIELDS:
+            normalized = _safe_catalog_url(source.get(field))
+            if normalized:
+                return normalized
+    return ""
 
 
 def _acl_filter(tenant_id: str, acl: dict[str, Any]) -> dict[str, Any]:
@@ -344,6 +413,7 @@ def _clean_document(document: dict[str, Any], source: str, rank: int, query_ids:
         "description": str(document.get("description") or "")[:2000],
         "category": str(document.get("category") or "")[:200],
         "readme": str(document.get("readme") or document.get("lexical_text_redacted") or "")[:8000],
+        "catalog_url": _catalog_detail_url(document),
         "technical_contract_status": technical_status,
         "ports": ports,
         "relations": document.get("relations") if isinstance(document.get("relations"), list) else [],

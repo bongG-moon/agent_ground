@@ -24,7 +24,7 @@
 15. `node_type`은 `start`, `task`, `decision`, `human_review`, `system_call`, `subflow`, `end`, `exception` 중 하나다. 특별한 유형이 아니면 `task`를 사용한다.
 16. node port의 공식 필드는 `inputs`와 `outputs`다. `input_ports`, `output_ports`는 과거 입력 호환용 alias이므로 새 후보에 출력하지 않는다.
 17. edge는 `label`, `condition`, `is_default`를 명시한다. `branch_label`, `default`는 과거 입력 호환 alias일 뿐 새 후보에 출력하지 않는다.
-18. node `config`에 token, password, secret, credential, API key, authorization, cookie, session 또는 실제 인증 값을 넣지 않는다. secret은 값 없이 `required_secrets`의 `name`, `ref`, `port_id`, `required`, `configured`만 사용한다.
+18. node `config`에 token, password, secret, credential, API key, authorization, cookie, session 또는 실제 인증 값을 넣지 않는다. node의 `required_secrets`와 신규 Custom의 `generation_contract.secret_inputs`에는 secret **값 없이** 선언 정보만 사용한다. 선언 항목의 허용 키와 형식은 아래 New standalone generation contract의 `secret_inputs` 규칙을 따른다.
 19. 각 node에는 클릭 상세용 `current_work`, `problems`, `improvement`를 bounded text/list로 작성한다. 현재 방식과 문제는 승인 WorkDefinition 근거에서 가져오고, 개선 방향은 해당 node 책임과 구현 출처에 맞춰 작성한다.
 20. **실행 가능한 node 연결은 먼저 port 계약으로 정의한 뒤 edge를 작성한다.** 각 node의 `inputs`/`outputs`에는 해당 node가 실제로 받거나 내보내는 모든 연결 port를 선언한다. 각 port는 비어 있지 않은 `port_id`, `data_type`, `cardinality`, `required`를 가지며, 같은 node 안에서 `port_id`를 중복하지 않는다. `source_port_id`는 반드시 source node의 `outputs[].port_id`를, `target_port_id`는 반드시 target node의 `inputs[].port_id`를 정확히 참조한다. 추측한 port ID, 다른 node의 port ID, 빈 문자열(`""`)이나 공백 문자열은 절대 사용하지 않는다.
 21. `edge_kind`가 `data`, `branch`, `human`, `retry`, `error`인 edge와 실제 Langflow 실행 순서를 표현하는 `control` edge는 기본적으로 양쪽 port ID를 모두 가진다. 연결하는 두 port의 `data_type`, `cardinality`, `semantic_role`, `streaming`, secret/permission/network zone 계약도 서로 호환되게 작성한다. required input은 edge, default, 승인된 secret/config 중 하나로 충족되어야 한다.
@@ -41,12 +41,56 @@
 - `responsibility`: 한 문장으로 한 가지 책임
 - `input_contract`: 입력 이름별 type과 required 여부를 담은 비어 있지 않은 object
 - `output_contract`: 출력 이름별 type을 담은 비어 있지 않은 object
-- `secret_inputs`: secret 값 없이 선언만 담은 array, 없으면 `[]`
+- `secret_inputs`: secret 값 없이 선언만 담은 array, 없으면 `[]`. 각 item은 아래 선언 전용 schema를 따라야 한다.
 - `dependencies`: 외부 dependency 선언 array, 없으면 `[]`
 - `timeout_limits`: timeout, retry, 최대 item/size 등 bounded runtime 정책 object
 - `error_codes`: idempotency와 failure route를 포함해 예상 가능한 오류 코드를 적은 비어 있지 않은 array
 - `deployment_mode`: standalone 실행 방식
 - `prompt_pack`: `CCP-CATALOG`, `CCP-WORK`, `CCP-SEARCH-SKILL`, `CCP-BLUEPRINT`, `CCP-REPORT` 중 하나
+
+### `secret_inputs` 선언 전용 schema (반드시 준수)
+
+`secret_inputs`의 각 item은 **string이 아닌 JSON object**여야 한다. item에서 허용하는 키는 정확히 아래 다섯 개뿐이며, 허용 키 목록은 `name`, `ref`, `port_id`, `required`, `configured`로 고정한다.
+
+- `name`: secret의 논리적 이름(string, 선택)
+- `ref`: 환경변수·시크릿 저장소의 참조 이름(string, 선택). 실제 값은 절대 넣지 않는다.
+- `port_id`: Langflow secret input port 이름(string, 선택)
+- `required`: 실행에 반드시 필요한지(boolean, 선택)
+- `configured`: 현재 환경에서 설정되었는지(boolean, 선택)
+
+`name`, `ref`, `port_id` 중 **적어도 하나는 비어 있지 않은 string**이어야 한다. `required`와 `configured`는 생략할 수 있지만, 넣으면 반드시 boolean이다. `value`, `type`, `description`, `secret`, `credential`, `token`, `password` 또는 그 밖의 임의 키는 절대 출력하지 않는다. 실제 인증 값, 예시 값, 마스킹한 값도 포함하지 않는다.
+
+Secret이 필요한 경우의 올바른 **non-empty** 예시:
+
+```json
+"secret_inputs": [
+  {
+    "name": "outlook_auth",
+    "ref": "environment:OUTLOOK_AUTH",
+    "port_id": "outlook_auth_ref",
+    "required": true,
+    "configured": false
+  }
+]
+```
+
+아래는 모두 검증에 실패하는 **금지 예시**이며, 절대 그대로 출력하지 않는다.
+
+```json
+{"secret_inputs": ["OUTLOOK_AUTH"]}
+```
+
+```json
+{"secret_inputs": [{"name": "outlook_auth", "value": "[REDACTED]"}]}
+```
+
+```json
+{"secret_inputs": [{"name": "outlook_auth", "type": "SecretStr"}]}
+```
+
+```json
+{"secret_inputs": [{"name": "outlook_auth", "description": "Outlook authentication secret"}]}
+```
 
 예시:
 
@@ -58,7 +102,15 @@
   "responsibility": "메일 문서를 정규화된 업무 항목으로 변환한다.",
   "input_contract": {"documents": {"type": "Data", "required": true}},
   "output_contract": {"summary": {"type": "Data"}},
-  "secret_inputs": [],
+  "secret_inputs": [
+    {
+      "name": "outlook_auth",
+      "ref": "environment:OUTLOOK_AUTH",
+      "port_id": "outlook_auth_ref",
+      "required": true,
+      "configured": false
+    }
+  ],
   "dependencies": [],
   "timeout_limits": {"execution_seconds": 10, "max_items": 100, "retry_count": 0},
   "error_codes": ["INVALID_DOCUMENTS", "OUTPUT_LIMIT_EXCEEDED"],
