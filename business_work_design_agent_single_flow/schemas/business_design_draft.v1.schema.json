@@ -1,0 +1,41 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "business-design-draft/v1",
+  "title": "Business Design Draft v1",
+  "description": "Untrusted single-call LLM proposal. Component 05 injects all authoritative request and catalog fields.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "work_analysis", "information_gaps", "as_is_graph", "to_be_design", "catalog_decisions"],
+  "properties": {
+    "schema_version": {"const": "business-design-draft/v1"},
+    "work_analysis": {"type": "object", "maxProperties": 30},
+    "information_gaps": {"type": "array", "maxItems": 100, "items": {"$ref": "#/$defs/gap"}},
+    "as_is_graph": {"$ref": "#/$defs/graph"},
+    "to_be_design": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["summary", "principles", "nodes", "edges", "implementation_roadmap", "risks_and_controls", "test_scenarios"],
+      "properties": {
+        "summary": {"type": "string", "maxLength": 20000},
+        "principles": {"$ref": "#/$defs/strings"},
+        "nodes": {"type": "array", "maxItems": 200, "items": {"$ref": "#/$defs/node"}},
+        "edges": {"type": "array", "maxItems": 500, "items": {"$ref": "#/$defs/edge"}},
+        "implementation_roadmap": {"type": "array", "maxItems": 50, "items": {"$ref": "#/$defs/roadmap"}},
+        "risks_and_controls": {"type": "array", "maxItems": 200, "items": {"$ref": "#/$defs/risk"}},
+        "test_scenarios": {"type": "array", "maxItems": 200, "items": {"$ref": "#/$defs/test"}}
+      }
+    },
+    "catalog_decisions": {"type": "array", "maxItems": 50, "items": {"$ref": "#/$defs/decision"}}
+  },
+  "$defs": {
+    "strings": {"type": "array", "maxItems": 100, "items": {"type": "string", "maxLength": 5000}},
+    "gap": {"type": "object", "additionalProperties": false, "properties": {"gap_id": {"type": "string", "maxLength": 128}, "field": {"type": "string", "maxLength": 128}, "severity": {"enum": ["required", "important", "optional"]}, "question": {"type": "string", "maxLength": 5000}, "why_needed": {"type": "string", "maxLength": 5000}, "design_impact": {"type": "string", "maxLength": 5000}, "suggested_description_text": {"type": "string", "maxLength": 5000}}},
+    "node": {"type": "object", "additionalProperties": true, "properties": {"node_id": {"type": "string", "maxLength": 128}, "node_kind": {"enum": ["start", "end", "work_step", "decision", "human_review", "system_call", "exception"]}, "title": {"type": "string", "maxLength": 500}, "summary": {"type": "string", "maxLength": 5000}}},
+    "edge": {"type": "object", "additionalProperties": true, "properties": {"source_node_id": {"type": "string", "maxLength": 128}, "target_node_id": {"type": "string", "maxLength": 128}, "edge_kind": {"enum": ["control", "branch", "error", "retry"]}, "label": {"type": "string", "maxLength": 500}}},
+    "graph": {"type": "object", "additionalProperties": false, "required": ["nodes", "edges"], "properties": {"nodes": {"type": "array", "maxItems": 200, "items": {"$ref": "#/$defs/node"}}, "edges": {"type": "array", "maxItems": 500, "items": {"$ref": "#/$defs/edge"}}}},
+    "decision": {"type": "object", "additionalProperties": false, "required": ["asset_id", "version", "decision", "target_node_ids", "reason", "required_verification"], "properties": {"asset_id": {"type": "string", "pattern": "^[0-9a-fA-F-]{36}$"}, "version": {"type": "string", "maxLength": 100}, "decision": {"enum": ["selected", "considered", "not_used"]}, "target_node_ids": {"type": "array", "maxItems": 100, "items": {"type": "string", "maxLength": 128}}, "reason": {"type": "string", "maxLength": 5000}, "required_verification": {"$ref": "#/$defs/strings"}}},
+    "roadmap": {"type": "object", "additionalProperties": false, "required": ["phase", "title", "actions", "dependencies", "completion_criteria"], "properties": {"phase": {"type": "string", "maxLength": 128}, "title": {"type": "string", "maxLength": 500}, "actions": {"$ref": "#/$defs/strings"}, "dependencies": {"$ref": "#/$defs/strings"}, "completion_criteria": {"$ref": "#/$defs/strings"}}},
+    "risk": {"type": "object", "additionalProperties": false, "required": ["risk_id", "risk", "impact", "control", "owner_role"], "properties": {"risk_id": {"type": "string", "maxLength": 128}, "risk": {"type": "string", "maxLength": 5000}, "impact": {"type": "string", "maxLength": 5000}, "control": {"type": "string", "maxLength": 5000}, "owner_role": {"type": "string", "maxLength": 500}}},
+    "test": {"type": "object", "additionalProperties": false, "required": ["test_id", "title", "given", "when", "then"], "properties": {"test_id": {"type": "string", "maxLength": 128}, "title": {"type": "string", "maxLength": 500}, "given": {"type": "string", "maxLength": 5000}, "when": {"type": "string", "maxLength": 5000}, "then": {"type": "string", "maxLength": 5000}}}
+  }
+}

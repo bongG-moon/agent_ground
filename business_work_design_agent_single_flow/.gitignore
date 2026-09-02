@@ -1,0 +1,14 @@
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.pytest_tmp*/
+.pytest-tmp*/
+tests/.pytest_tmp*/
+tests/.pytest-tmp*/
+.coverage
+htmlcov/
+.venv/
+.env
+*.log
+samples/generated_*.html
+samples/generated_*.json

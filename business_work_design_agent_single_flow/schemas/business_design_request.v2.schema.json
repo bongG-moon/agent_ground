@@ -1,0 +1,52 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://agent-ground.local/schemas/business-design-request.v2.schema.json",
+  "title": "Business Design Request v2",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "description_original_sha256",
+    "description_display_redacted",
+    "description_for_model",
+    "description_normalized",
+    "additional_instructions",
+    "final_refinement_instructions",
+    "language",
+    "redactions",
+    "redaction_count",
+    "description_char_count",
+    "description_for_model_char_count",
+    "warnings",
+    "source_description_sha256",
+    "request_sha256"
+  ],
+  "properties": {
+    "schema_version": {"const": "business-design-request/v2"},
+    "description_original_sha256": {"type": ["string", "null"], "pattern": "^sha256:[0-9a-f]{64}$"},
+    "description_display_redacted": {"type": "string", "minLength": 20, "maxLength": 50000},
+    "description_for_model": {"type": "string", "minLength": 1, "maxLength": 16000},
+    "description_normalized": {"type": "string", "minLength": 1, "maxLength": 50000},
+    "additional_instructions": {"type": "string", "maxLength": 50000},
+    "final_refinement_instructions": {"type": "string", "maxLength": 50000},
+    "language": {"const": "ko"},
+    "redactions": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["kind", "replacement"],
+        "properties": {
+          "kind": {"type": "string", "minLength": 1, "maxLength": 64},
+          "replacement": {"const": "[REDACTED]"}
+        }
+      }
+    },
+    "redaction_count": {"type": "integer", "minimum": 0},
+    "description_char_count": {"type": "integer", "minimum": 20, "maximum": 50000},
+    "description_for_model_char_count": {"type": "integer", "minimum": 1, "maximum": 16000},
+    "warnings": {"type": "array", "items": {"type": "string", "maxLength": 128}, "uniqueItems": true},
+    "source_description_sha256": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
+    "request_sha256": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"}
+  }
+}

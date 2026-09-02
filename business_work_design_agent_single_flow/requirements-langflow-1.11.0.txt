@@ -1,0 +1,4 @@
+# Production/import target for this standalone single-Flow project.
+langflow==1.11.0
+langflow-base==0.11.0
+lfx==1.11.0

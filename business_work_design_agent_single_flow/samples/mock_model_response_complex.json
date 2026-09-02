@@ -1,0 +1,99 @@
+{
+  "schema_version": "business-design-draft/v1",
+  "work_analysis": {
+    "title": "프로젝트별 주간 업무보고 작성 및 게시",
+    "goal": "메일·JIRA·문서의 업무 근거를 프로젝트별 주간보고 초안으로 정리하고, 검토된 결과만 게시한다.",
+    "scope_in": ["이번 주 Outlook 업무 메일", "이번 주 변경된 JIRA 이슈", "회의록과 설계 문서", "프로젝트 담당자 목록"],
+    "scope_out": ["원본 시스템의 데이터 수정", "사람 검토 없이 외부 게시"],
+    "actors": ["프로젝트 운영 담당자", "보고서 검토자", "팀장", "프로젝트 리더"],
+    "systems": ["Outlook", "JIRA", "문서 저장소", "사내 보고 포털", "알림 채널"],
+    "inputs": ["메일", "JIRA 이슈", "회의록", "설계 문서", "담당자 목록"],
+    "outputs": ["프로젝트별 주간 업무보고 초안", "게시용 보고서", "팀장 알림"],
+    "trigger_and_frequency": "매주 금요일 오후에 지난 1주일 데이터를 대상으로 실행한다.",
+    "constraints": ["자동 알림·회의 초대·중복 전달 메일은 제외", "인증 실패 또는 필수 근거 누락 시 게시 금지", "민감정보 검토 후에만 게시"],
+    "success_criteria": ["프로젝트별 완료·진행·리스크·다음 주 계획이 분류됨", "각 문장에 원본 근거가 남음", "사람 검토 후에만 보고서가 게시됨"],
+    "current_steps": [
+      {"step_ref": "collect-mail", "sequence": 1, "title": "업무 메일 수집", "description": "운영 담당자가 Outlook에서 이번 주 업무 관련 메일을 직접 찾는다.", "actor": "프로젝트 운영 담당자", "system": "Outlook", "inputs": ["업무 메일"], "outputs": ["메일 후보"], "evidence_status": "explicit"},
+      {"step_ref": "collect-jira", "sequence": 2, "title": "JIRA 변경 내역 확인", "description": "프로젝트별 이슈를 조회해 상태와 담당자를 정리한다.", "actor": "프로젝트 운영 담당자", "system": "JIRA", "inputs": ["JIRA 이슈"], "outputs": ["이슈 목록"], "evidence_status": "explicit"},
+      {"step_ref": "collect-docs", "sequence": 3, "title": "회의록·문서 확인", "description": "회의록과 설계 문서에서 결정 사항과 Action Item을 찾는다.", "actor": "프로젝트 운영 담당자", "system": "문서 저장소", "inputs": ["회의록", "설계 문서"], "outputs": ["결정·Action Item 후보"], "evidence_status": "explicit"},
+      {"step_ref": "merge-classify", "sequence": 4, "title": "프로젝트별 분류·근거 연결", "description": "여러 근거를 프로젝트별 완료·진행·리스크·다음 주 계획으로 분류한다.", "actor": "프로젝트 운영 담당자", "system": "스프레드시트 또는 문서", "inputs": ["메일 후보", "이슈 목록", "결정·Action Item 후보"], "outputs": ["보고 초안"], "evidence_status": "explicit"},
+      {"step_ref": "review", "sequence": 5, "title": "민감정보·누락 검토", "description": "담당자가 초안의 민감정보와 누락을 확인한다.", "actor": "보고서 검토자", "system": "사내 보고 포털", "inputs": ["보고 초안"], "outputs": ["검토 결과"], "evidence_status": "explicit"},
+      {"step_ref": "publish-notify", "sequence": 6, "title": "게시 및 알림", "description": "승인된 보고서를 포털에 게시하고 팀장과 프로젝트 리더에게 링크를 전달한다.", "actor": "프로젝트 운영 담당자", "system": "사내 보고 포털", "inputs": ["승인된 보고서"], "outputs": ["게시 링크", "알림"], "evidence_status": "explicit"}
+    ],
+    "current_branches": [
+      {"source_step_ref": "merge-classify", "condition": "중복 또는 근거 누락이 발견됨", "target_step_ref": "review", "is_default": false}
+    ],
+    "current_exceptions": [
+      {"source_step_ref": "collect-mail", "condition": "메일 인증이 만료됨", "handling": "원인을 기록하고 게시하지 않는다.", "target_step_ref": "review"},
+      {"source_step_ref": "collect-jira", "condition": "JIRA 조회에 실패함", "handling": "누락 건수를 표시하고 게시하지 않는다.", "target_step_ref": "review"}
+    ],
+    "problems": ["수집·분류·근거 연결을 사람이 반복해 시간이 많이 든다.", "중복 메일과 누락 근거를 사람이 찾아야 한다.", "인증 실패나 누락이 있어도 게시 차단 기준이 일관되지 않을 수 있다."]
+  },
+  "information_gaps": [
+    {"gap_id": "gap-portal-api", "field": "보고 포털 게시 계약", "severity": "required", "question": "보고 포털에 초안을 게시할 때 필요한 API, 입력 필드, 권한은 무엇인가요?", "why_needed": "게시 단계와 오류 시 차단 경로를 구현하려면 정확한 계약이 필요합니다.", "design_impact": "현재는 게시 기능을 검토 단계로만 표시합니다.", "suggested_description_text": "보고 포털에는 보고서 제목, 프로젝트별 섹션, 근거 링크를 API로 전송하며 게시 권한은 운영 담당자 역할에 있습니다."},
+    {"gap_id": "gap-reviewer", "field": "검토자와 승인 기준", "severity": "important", "question": "민감정보와 누락을 누가 어떤 기준으로 검토하나요?", "why_needed": "사람 검토 단계의 책임과 반려 처리 기준을 정해야 합니다.", "design_impact": "검토 node는 역할 기준의 placeholder로 남습니다.", "suggested_description_text": "보고서 검토자는 프로젝트별 담당자이며, 고객사명·수치·근거 누락이 없는지 확인한 뒤 게시 가능 상태로 변경합니다."},
+    {"gap_id": "gap-mail-filter", "field": "메일 선별 규칙", "severity": "important", "question": "프로젝트 코드, 고객사명, 제외 키워드의 공식 목록은 어디에 있나요?", "why_needed": "자동 수집 후보의 오탐과 누락을 줄이기 위해 필요합니다.", "design_impact": "현재는 규칙 관리 기능을 신규 구현 후보로 둡니다.", "suggested_description_text": "메일은 프로젝트 코드 또는 고객사명으로 찾고, 자동 발송·회의 초대·중복 전달은 공식 제외 키워드 목록으로 필터링합니다."}
+  ],
+  "as_is_graph": {
+    "nodes": [
+      {"node_id": "as-start", "node_kind": "start", "title": "금요일 업무 시작", "summary": "주간 업무보고 작성 시작", "sequence": 0, "actor": "프로젝트 운영 담당자", "system": "", "inputs": [], "outputs": [], "implementation_source": "human_task", "catalog_asset_refs": []},
+      {"node_id": "as-mail", "node_kind": "work_step", "title": "Outlook 메일 수동 검색", "summary": "업무 관련 메일을 찾아 제외 대상과 중복을 수동으로 거른다.", "sequence": 1, "actor": "프로젝트 운영 담당자", "system": "Outlook", "inputs": ["메일"], "outputs": ["메일 후보"], "implementation_source": "human_task", "catalog_asset_refs": []},
+      {"node_id": "as-jira", "node_kind": "work_step", "title": "JIRA 이슈 수동 조회", "summary": "프로젝트별 변경 이슈를 조회한다.", "sequence": 2, "actor": "프로젝트 운영 담당자", "system": "JIRA", "inputs": ["JIRA 이슈"], "outputs": ["이슈 목록"], "implementation_source": "human_task", "catalog_asset_refs": []},
+      {"node_id": "as-merge", "node_kind": "work_step", "title": "자료 합치기와 분류", "summary": "메일·이슈·문서를 프로젝트별 보고 항목으로 분류한다.", "sequence": 3, "actor": "프로젝트 운영 담당자", "system": "문서", "inputs": ["여러 근거"], "outputs": ["보고 초안"], "implementation_source": "human_task", "catalog_asset_refs": []},
+      {"node_id": "as-review", "node_kind": "human_review", "title": "민감정보·누락 검토", "summary": "사람이 게시 가능 여부를 확인한다.", "sequence": 4, "actor": "보고서 검토자", "system": "보고 포털", "inputs": ["보고 초안"], "outputs": ["승인 또는 반려"], "implementation_source": "human_task", "catalog_asset_refs": []},
+      {"node_id": "as-end", "node_kind": "end", "title": "보고서 공유 완료", "summary": "게시 및 링크 전달 완료", "sequence": 5, "actor": "", "system": "", "inputs": [], "outputs": [], "implementation_source": "human_task", "catalog_asset_refs": []}
+    ],
+    "edges": [
+      {"edge_id": "as-e1", "source_node_id": "as-start", "target_node_id": "as-mail", "edge_kind": "control", "label": "시작", "condition": "", "is_default": false, "retry_policy": {}},
+      {"edge_id": "as-e2", "source_node_id": "as-mail", "target_node_id": "as-jira", "edge_kind": "control", "label": "다음", "condition": "", "is_default": false, "retry_policy": {}},
+      {"edge_id": "as-e3", "source_node_id": "as-jira", "target_node_id": "as-merge", "edge_kind": "control", "label": "다음", "condition": "", "is_default": false, "retry_policy": {}},
+      {"edge_id": "as-e4", "source_node_id": "as-merge", "target_node_id": "as-review", "edge_kind": "control", "label": "검토", "condition": "", "is_default": false, "retry_policy": {}},
+      {"edge_id": "as-e5", "source_node_id": "as-review", "target_node_id": "as-end", "edge_kind": "control", "label": "게시 후 종료", "condition": "승인", "is_default": true, "retry_policy": {}}
+    ]
+  },
+  "to_be_design": {
+    "summary": "근거 수집·중복 제거·프로젝트 분류는 자동화 후보로 만들고, 민감정보·누락·게시 판단은 사람이 수행하도록 분리합니다.",
+    "principles": ["카탈로그 자산은 실제 포트와 권한을 확인한 뒤 연결", "실패 또는 근거 누락이면 게시 경로를 차단", "사람 검토는 실행 중 HITL이 아니라 구현된 업무 절차의 승인 단계로 유지"],
+    "nodes": [
+      {"node_id": "tb-start", "node_kind": "start", "title": "주간보고 실행 시작", "summary": "금요일 일정에 따라 보고 초안 생성을 시작한다.", "sequence": 0, "actor": "프로젝트 운영 담당자", "system": "", "inputs": [], "outputs": [], "implementation_source": "human_task", "catalog_asset_refs": []},
+      {"node_id": "tb-collect", "node_kind": "system_call", "title": "메일·JIRA·문서 근거 수집", "summary": "기간·프로젝트 조건으로 승인된 원천의 후보 데이터를 수집한다.", "sequence": 1, "actor": "업무 자동화", "system": "Outlook / JIRA / 문서 저장소", "inputs": ["기간", "프로젝트 목록"], "outputs": ["원천 후보"], "implementation_source": "catalog_flow", "catalog_asset_refs": []},
+      {"node_id": "tb-quality", "node_kind": "decision", "title": "인증·필수 근거 점검", "summary": "인증 실패와 필수 근거 누락을 확인하고 게시 가능 경로를 분리한다.", "sequence": 2, "actor": "업무 자동화", "system": "품질 점검", "inputs": ["원천 후보"], "outputs": ["정상 후보", "오류 목록"], "implementation_source": "builtin", "catalog_asset_refs": []},
+      {"node_id": "tb-compose", "node_kind": "system_call", "title": "프로젝트별 보고 초안 생성", "summary": "중복을 줄이고 완료·진행·리스크·다음 주 계획에 근거를 연결한다.", "sequence": 3, "actor": "업무 자동화", "system": "보고서 생성", "inputs": ["정상 후보"], "outputs": ["근거 포함 초안"], "implementation_source": "catalog_component", "catalog_asset_refs": []},
+      {"node_id": "tb-review", "node_kind": "human_review", "title": "사람 검토·승인", "summary": "민감정보, 누락, 리스크 표현을 확인하고 게시 여부를 결정한다.", "sequence": 4, "actor": "보고서 검토자", "system": "사내 보고 포털", "inputs": ["근거 포함 초안"], "outputs": ["승인", "반려"], "implementation_source": "human_task", "catalog_asset_refs": []},
+      {"node_id": "tb-publish", "node_kind": "system_call", "title": "승인본 게시·링크 알림", "summary": "승인된 보고서만 포털에 게시하고 링크와 핵심 이슈를 전달한다.", "sequence": 5, "actor": "업무 자동화", "system": "사내 보고 포털 / 알림 채널", "inputs": ["승인본"], "outputs": ["게시 링크", "알림"], "implementation_source": "catalog_component", "catalog_asset_refs": []},
+      {"node_id": "tb-blocked", "node_kind": "exception", "title": "게시 차단·오류 알림", "summary": "인증 실패나 누락 건수를 보여 주고 게시하지 않는다.", "sequence": 6, "actor": "업무 자동화", "system": "알림 채널", "inputs": ["오류 목록"], "outputs": ["실패 안내"], "implementation_source": "catalog_flow", "catalog_asset_refs": []},
+      {"node_id": "tb-end", "node_kind": "end", "title": "주간보고 처리 종료", "summary": "게시 또는 오류 안내 후 종료한다.", "sequence": 7, "actor": "", "system": "", "inputs": [], "outputs": [], "implementation_source": "human_task", "catalog_asset_refs": []}
+    ],
+    "edges": [
+      {"edge_id": "tb-e1", "source_node_id": "tb-start", "target_node_id": "tb-collect", "edge_kind": "control", "label": "수집 시작", "condition": "", "is_default": false, "retry_policy": {}},
+      {"edge_id": "tb-e2", "source_node_id": "tb-collect", "target_node_id": "tb-quality", "edge_kind": "control", "label": "후보 점검", "condition": "", "is_default": false, "retry_policy": {}},
+      {"edge_id": "tb-e3", "source_node_id": "tb-quality", "target_node_id": "tb-compose", "edge_kind": "branch", "label": "정상", "condition": "인증과 필수 근거가 모두 확인됨", "is_default": true, "retry_policy": {}},
+      {"edge_id": "tb-e4", "source_node_id": "tb-quality", "target_node_id": "tb-blocked", "edge_kind": "branch", "label": "차단", "condition": "인증 실패 또는 필수 근거 누락", "is_default": false, "retry_policy": {}},
+      {"edge_id": "tb-e5", "source_node_id": "tb-compose", "target_node_id": "tb-review", "edge_kind": "control", "label": "검토 요청", "condition": "", "is_default": false, "retry_policy": {}},
+      {"edge_id": "tb-e6", "source_node_id": "tb-review", "target_node_id": "tb-publish", "edge_kind": "branch", "label": "승인", "condition": "게시 가능", "is_default": true, "retry_policy": {}},
+      {"edge_id": "tb-e7", "source_node_id": "tb-review", "target_node_id": "tb-blocked", "edge_kind": "branch", "label": "반려", "condition": "수정 또는 보완 필요", "is_default": false, "retry_policy": {}},
+      {"edge_id": "tb-e8", "source_node_id": "tb-publish", "target_node_id": "tb-end", "edge_kind": "control", "label": "게시 완료", "condition": "", "is_default": false, "retry_policy": {}},
+      {"edge_id": "tb-e9", "source_node_id": "tb-blocked", "target_node_id": "tb-end", "edge_kind": "control", "label": "오류 안내 후 종료", "condition": "", "is_default": false, "retry_policy": {}}
+    ],
+    "implementation_roadmap": [
+      {"phase": "1", "title": "원천 접근·입력 계약 확인", "actions": ["Outlook·JIRA·문서 접근 권한 확인", "프로젝트 코드와 제외 규칙을 관리할 위치 결정"], "dependencies": ["시스템 소유자 협의"], "completion_criteria": ["테스트 계정에서 원천 후보를 수집할 수 있음"]},
+      {"phase": "2", "title": "초안 생성과 품질 규칙 검증", "actions": ["중복 제거·근거 연결 규칙 구현", "누락·인증 실패 시 게시 차단 검증"], "dependencies": ["표준 보고서 양식"], "completion_criteria": ["정상·누락·인증 실패 테스트를 통과함"]},
+      {"phase": "3", "title": "검토·게시·알림 연결", "actions": ["검토자 승인 절차 연결", "포털 게시와 알림 링크 형식 검증"], "dependencies": ["보고 포털 API 계약"], "completion_criteria": ["승인본만 게시되고 링크가 전달됨"]}
+    ],
+    "risks_and_controls": [
+      {"risk_id": "risk-auth", "risk": "메일 또는 JIRA 인증 만료", "impact": "근거가 불완전한 보고서가 생성될 수 있음", "control": "오류를 기록하고 게시 경로를 차단한다.", "owner_role": "시스템 소유자"},
+      {"risk_id": "risk-sensitive", "risk": "민감정보 또는 고객사 정보 노출", "impact": "보고서 공유 범위 위반", "control": "게시 전 검토자 확인과 마스킹 규칙을 적용한다.", "owner_role": "보고서 검토자"}
+    ],
+    "test_scenarios": [
+      {"test_id": "test-normal", "title": "정상 주간보고 생성", "given": "메일·JIRA·문서 접근 권한과 근거가 준비됨", "when": "주간보고 Flow를 실행함", "then": "근거 포함 초안이 생성되고 승인 후 게시된다."},
+      {"test_id": "test-auth", "title": "인증 만료 차단", "given": "Outlook 인증이 만료됨", "when": "주간보고 Flow를 실행함", "then": "실패 원인과 누락 건수를 표시하고 게시하지 않는다."},
+      {"test_id": "test-duplicate", "title": "중복 메일 처리", "given": "같은 내용의 전달 메일이 여러 개 있음", "when": "초안을 생성함", "then": "중복 후보를 표시하고 한 번만 집계한다."}
+    ]
+  },
+  "catalog_decisions": [
+    {"asset_id": "a395f7e2-10ae-4d06-9b28-d79b49bc7e50", "version": "v0.1.0-sample", "decision": "selected", "target_node_ids": ["tb-collect"], "reason": "메일·JIRA 근거를 모아 주간보고 초안을 만드는 목적이 직접 일치한다.", "required_verification": ["실제 Flow 입력·출력과 Outlook/JIRA 인증 계약 확인"]},
+    {"asset_id": "4d42d60d-ff74-42a0-8dca-7ea15a912b44", "version": "v0.1.0-sample", "decision": "selected", "target_node_ids": ["tb-compose"], "reason": "여러 근거를 프로젝트별 보고 항목으로 분류하는 역할과 일치한다.", "required_verification": ["분류 기준과 실제 포트 계약 확인"]},
+    {"asset_id": "81bb3d7f-6a5e-41e9-ac00-8635b2c1df48", "version": "v0.1.0-sample", "decision": "selected", "target_node_ids": ["tb-quality", "tb-review"], "reason": "누락·오류·미승인 결과를 게시 경로와 분리하는 목적에 적합하다.", "required_verification": ["운영 환경에서의 승인 절차와 포트 계약 확인"]},
+    {"asset_id": "7010c070-8d2f-48d4-a9f9-8c3b9f693247", "version": "v0.1.0-sample", "decision": "considered", "target_node_ids": ["tb-publish"], "reason": "보고 포털 초안 등록 가능성이 있으나 실제 포털 계약이 부족하다.", "required_verification": ["포털 API와 권한 확인"]}
+  ]
+}

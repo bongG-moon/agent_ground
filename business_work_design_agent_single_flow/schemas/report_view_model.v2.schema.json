@@ -1,0 +1,33 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "report-view-model/v2",
+  "title": "Report View Model v2",
+  "description": "Closed presentation contract for the fixed business-report-renderer.v2; no raw URLs or secret material are permitted.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "renderer_version", "report_id", "source_contract_hash", "title", "source_input", "refinement_summary", "completion_status", "business_report", "information_gaps", "as_is_graph", "to_be_graph", "catalog_application_plan", "implementation_plan", "risks_and_controls", "validation_plan", "technical_trace"],
+  "properties": {
+    "schema_version": {"const": "report-view-model/v2"},
+    "renderer_version": {"const": "business-report-renderer.v2"},
+    "report_id": {"type": "string", "pattern": "^report-[0-9a-f]{24}$"},
+    "source_contract_hash": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
+    "title": {"type": "string", "maxLength": 500},
+    "source_input": {"type": "object", "additionalProperties": false, "required": ["description_original_sha256", "description_display_redacted", "additional_instructions", "redactions", "redaction_count"], "properties": {"description_original_sha256": {"type": ["string", "null"]}, "description_display_redacted": {"type": "string", "maxLength": 50000}, "additional_instructions": {"type": "string", "maxLength": 4000}, "redactions": {"type": "array", "maxItems": 100}, "redaction_count": {"type": "integer", "minimum": 0}}},
+    "refinement_summary": {"type": "object", "additionalProperties": false, "required": ["status", "status_provided", "status_label", "summary", "final_refinement_instructions_provided", "final_refinement_instructions"], "properties": {"status": {"enum": ["APPLIED", "SKIPPED", "NONE"]}, "status_provided": {"type": "boolean"}, "status_label": {"type": "string", "maxLength": 500}, "summary": {"type": "string", "maxLength": 2000}, "final_refinement_instructions_provided": {"type": "boolean"}, "final_refinement_instructions": {"type": "string", "maxLength": 1200}}},
+    "completion_status": {"type": "object", "additionalProperties": false, "required": ["code", "label", "information_gap_count", "catalog_candidate_count", "catalog_selected_count"], "properties": {"code": {"enum": ["COMPLETED", "COMPLETED_WITH_GAPS"]}, "label": {"type": "string", "maxLength": 500}, "information_gap_count": {"type": "integer", "minimum": 0}, "catalog_candidate_count": {"type": "integer", "minimum": 0}, "catalog_selected_count": {"type": "integer", "minimum": 0}}},
+    "business_report": {"type": "object", "additionalProperties": false, "required": ["executive_summary", "work_overview", "operating_context", "as_is_analysis", "improvement_direction", "to_be_operating_plan", "implementation_allocation", "implementation_roadmap", "risks_and_controls", "validation_plan", "open_items"], "properties": {"executive_summary": {"$ref": "#/$defs/reportBlock"}, "work_overview": {"$ref": "#/$defs/reportBlock"}, "operating_context": {"$ref": "#/$defs/reportBlock"}, "as_is_analysis": {"$ref": "#/$defs/reportBlock"}, "improvement_direction": {"$ref": "#/$defs/reportBlock"}, "to_be_operating_plan": {"$ref": "#/$defs/reportBlock"}, "implementation_allocation": {"$ref": "#/$defs/reportBlock"}, "implementation_roadmap": {"$ref": "#/$defs/reportBlock"}, "risks_and_controls": {"$ref": "#/$defs/reportBlock"}, "validation_plan": {"$ref": "#/$defs/reportBlock"}, "open_items": {"$ref": "#/$defs/reportBlock"}}},
+    "information_gaps": {"type": "array", "maxItems": 100},
+    "as_is_graph": {"$ref": "#/$defs/graph"},
+    "to_be_graph": {"$ref": "#/$defs/graph"},
+    "catalog_application_plan": {"type": "object", "additionalProperties": false, "required": ["selected", "considered", "not_used"], "properties": {"selected": {"type": "array", "items": {"$ref": "#/$defs/catalogItem"}}, "considered": {"type": "array", "items": {"$ref": "#/$defs/catalogItem"}}, "not_used": {"type": "array", "items": {"$ref": "#/$defs/catalogItem"}}}},
+    "implementation_plan": {"type": "array", "maxItems": 50},
+    "risks_and_controls": {"type": "array", "maxItems": 200},
+    "validation_plan": {"type": "array", "maxItems": 200},
+    "technical_trace": {"type": "object", "additionalProperties": false, "required": ["source_description_sha256", "request_sha256", "catalog_file_sha256", "candidate_set_sha256", "top_n", "ranking_algorithm", "model_identifier", "renderer_version"]}
+  },
+  "$defs": {
+    "reportBlock": {"type": "object", "additionalProperties": false, "required": ["summary", "facts", "bullets"], "properties": {"summary": {"type": "string", "maxLength": 20000}, "facts": {"type": "array", "maxItems": 100, "items": {"type": "object", "additionalProperties": false, "required": ["label", "value", "source"], "properties": {"label": {"type": "string", "maxLength": 500}, "value": {"type": "string", "maxLength": 5000}, "source": {"enum": ["description", "analysis", "catalog", "assumption"]}}}}, "bullets": {"type": "array", "maxItems": 100, "items": {"type": "string", "maxLength": 5000}}}},
+    "graph": {"type": "object", "additionalProperties": false, "required": ["nodes", "edges", "details", "text_fallback"], "properties": {"nodes": {"type": "array", "maxItems": 500}, "edges": {"type": "array", "maxItems": 1000}, "details": {"type": "object"}, "text_fallback": {"type": "array", "items": {"type": "string"}}}},
+    "catalogItem": {"type": "object", "additionalProperties": false, "required": ["asset_id", "version", "title", "asset_type", "technical_contract_status", "catalog_url", "target_node_ids", "reason", "required_verification", "decision_source"], "properties": {"asset_id": {"type": "string", "pattern": "^[0-9a-fA-F-]{36}$"}, "version": {"type": "string"}, "title": {"type": "string"}, "asset_type": {"enum": ["component", "flow"]}, "technical_contract_status": {"type": "string"}, "catalog_url": {"type": "string", "pattern": "^https://agent-hub\\.skhynix\\.com/#/(component|flow)/[0-9a-fA-F-]{36}$"}, "target_node_ids": {"type": "array"}, "reason": {"type": "string"}, "required_verification": {"type": "array"}, "decision_source": {"enum": ["llm", "default_fill"]}}}
+  }
+}

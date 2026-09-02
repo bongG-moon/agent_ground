@@ -1,0 +1,93 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://agent-ground.local/schemas/local-catalog-retrieval.v1.schema.json",
+  "title": "Local Catalog Retrieval v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version", "algorithm", "request_sha256", "catalog_file_sha256",
+    "top_n_requested", "top_n_returned", "candidate_set_sha256",
+    "retrieval_quality", "expanded_detail_count_requested", "expanded_detail_count_returned",
+    "candidates", "expanded_candidate_details"
+  ],
+  "properties": {
+    "schema_version": {"const": "local-catalog-retrieval/v1"},
+    "algorithm": {"const": "local-multisignal-rrf/v1"},
+    "request_sha256": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
+    "catalog_file_sha256": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
+    "top_n_requested": {"type": "integer", "minimum": 1, "maximum": 100},
+    "top_n_returned": {"type": "integer", "minimum": 0, "maximum": 100},
+    "expanded_detail_count_requested": {"type": "integer", "minimum": 1, "maximum": 30},
+    "expanded_detail_count_returned": {"type": "integer", "minimum": 0, "maximum": 30},
+    "candidate_set_sha256": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
+    "retrieval_quality": {"enum": ["matched", "weak_matches", "no_direct_match"]},
+    "candidates": {"type": "array", "maxItems": 100, "items": {"$ref": "#/$defs/candidate"}},
+    "expanded_candidate_details": {"type": "array", "maxItems": 30, "items": {"$ref": "#/$defs/expandedCandidateDetail"}}
+  },
+  "$defs": {
+    "candidate": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "rank", "asset_id", "version", "asset_type", "title", "description", "category",
+        "technical_contract_status", "score", "match_level", "matched_terms", "matched_fields"
+      ],
+      "properties": {
+        "rank": {"type": "integer", "minimum": 1},
+        "asset_id": {"type": "string", "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"},
+        "version": {"type": "string", "minLength": 1, "maxLength": 100},
+        "asset_type": {"enum": ["component", "flow"]},
+        "title": {"type": "string", "minLength": 1, "maxLength": 500},
+        "description": {"type": "string", "maxLength": 10000},
+        "category": {"type": "string", "maxLength": 500},
+        "technical_contract_status": {"enum": ["metadata_only", "ports_extracted", "flow_graph_extracted", "verified_runtime", "unknown"]},
+        "score": {"type": "number", "minimum": 0, "maximum": 1},
+        "match_level": {"enum": ["strong", "moderate", "weak", "none"]},
+        "matched_terms": {"type": "array", "items": {"type": "string"}},
+        "matched_fields": {"type": "array", "items": {"type": "string"}}
+      }
+    },
+    "expandedCandidateDetail": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "rank", "asset_id", "version", "description", "aliases", "capabilities",
+        "systems", "tags", "use_cases", "limitations", "readme_excerpt", "ports",
+        "retrieval_reason", "lane_scores", "lane_ranks"
+      ],
+      "properties": {
+        "rank": {"type": "integer", "minimum": 1},
+        "asset_id": {"type": "string", "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"},
+        "version": {"type": "string", "minLength": 1, "maxLength": 100},
+        "description": {"type": "string", "maxLength": 10000},
+        "aliases": {"type": "array", "items": {"type": "string"}},
+        "capabilities": {"type": "array", "items": {"type": "string"}},
+        "systems": {"type": "array", "items": {"type": "string"}},
+        "tags": {"type": "array", "items": {"type": "string"}},
+        "use_cases": {"type": "array", "items": {"type": "string"}},
+        "limitations": {"type": "array", "items": {"type": "string"}},
+        "readme_excerpt": {"type": "string", "maxLength": 1600},
+        "ports": {"type": "object"},
+        "retrieval_reason": {"type": "string", "minLength": 1, "maxLength": 1000},
+        "lane_scores": {
+          "type": "object", "additionalProperties": false,
+          "required": ["exact_phrase", "token_bm25", "character_ngram"],
+          "properties": {
+            "exact_phrase": {"type": "number", "minimum": 0},
+            "token_bm25": {"type": "number", "minimum": 0},
+            "character_ngram": {"type": "number", "minimum": 0, "maximum": 1}
+          }
+        },
+        "lane_ranks": {
+          "type": "object", "additionalProperties": false,
+          "required": ["exact_phrase", "token_bm25", "character_ngram"],
+          "properties": {
+            "exact_phrase": {"type": ["integer", "null"], "minimum": 1},
+            "token_bm25": {"type": ["integer", "null"], "minimum": 1},
+            "character_ngram": {"type": ["integer", "null"], "minimum": 1}
+          }
+        }
+      }
+    }
+  }
+}
