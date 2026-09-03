@@ -25,7 +25,7 @@ class SingleFlowPayloadTests(unittest.TestCase):
         self.assertTrue(summary["ok"])
         self.assertEqual(summary["execution_nodes"], 16)
         self.assertEqual(summary["sticky_notes"], 4)
-        self.assertEqual(summary["edges"], 23)
+        self.assertEqual(summary["edges"], 24)
         self.assertEqual(summary["standalone_components"], 14)
 
     def test_exact_edges_and_terminal_data_leaf(self) -> None:
@@ -104,6 +104,7 @@ class SingleFlowPayloadTests(unittest.TestCase):
         self.assertIn(("language_model", "model_output", "refinement_output", "model"), actual)
         self.assertIn(("refinement_output", "refined_design_draft", "final_normalizer", "model_response"), actual)
         self.assertIn(("result_normalizer", "design_result", "final_normalizer", "fallback_design_result"), actual)
+        self.assertIn(("result_normalizer", "design_result", "final_normalizer", "fixed_catalog_shortlist"), actual)
         self.assertIn(("final_normalizer", "design_result", "view_model", "design_result"), actual)
         self.assertNotIn(("language_model", "text_output", "result_normalizer", "model_response"), actual)
         self.assertNotIn(("language_model", "text_output", "final_normalizer", "model_response"), actual)
@@ -112,6 +113,9 @@ class SingleFlowPayloadTests(unittest.TestCase):
         fallback_input = by_key["final_normalizer"]["data"]["node"]["template"]["fallback_design_result"]
         self.assertFalse(fallback_input["required"])
         self.assertTrue({"Data", "JSON"}.issubset(set(fallback_input["input_types"])))
+        fixed_catalog_input = by_key["final_normalizer"]["data"]["node"]["template"]["fixed_catalog_shortlist"]
+        self.assertFalse(fixed_catalog_input["required"])
+        self.assertTrue({"Data", "JSON"}.issubset(set(fixed_catalog_input["input_types"])))
 
     def test_candidate_pool_and_detail_limit_are_visible_canvas_inputs(self) -> None:
         _, by_key = build_single_flow._node_map(self.flow)
@@ -122,6 +126,10 @@ class SingleFlowPayloadTests(unittest.TestCase):
         self.assertEqual(ranker["expanded_detail_count"]["value"], 12)
         self.assertFalse(ranker["expanded_detail_count"]["advanced"])
         self.assertNotEqual(ranker["expanded_detail_count"]["show"], False)
+        selection_limit = by_key["prompt_builder"]["data"]["node"]["template"]["max_shortlisted_catalog_items"]
+        self.assertEqual(selection_limit["value"], 12)
+        self.assertFalse(selection_limit["advanced"])
+        self.assertNotEqual(selection_limit["show"], False)
         self.assertEqual(business_input["final_refinement_instructions"]["required"], False)
         self.assertNotEqual(business_input["final_refinement_instructions"]["value"], "")
 

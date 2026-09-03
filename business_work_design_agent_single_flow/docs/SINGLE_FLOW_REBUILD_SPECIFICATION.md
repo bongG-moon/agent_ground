@@ -15,7 +15,7 @@
 | --- | --- |
 | 실행 버전 | langflow 1.11.0, langflow-base 0.11.0, lfx 1.11.0을 실제 운영 기준으로 사용 |
 | 사용자 입력 | 업무 설명 원문, 기능 카탈로그 JSON 파일 |
-| 선택 입력 | 추가 설계 요청, **최종 설계 보완 지시**, 검색 후보 수, Report API 주소 |
+| 선택 입력 | 추가 설계 요청, **최종 설계 보완 지시**, 검색 후보 수, 상세 후보 수, **LLM 선별 후보 최대 수**, Report API 주소 |
 | HITL | 사용하지 않음 |
 | 추가 질문 | 실행 중 질문하지 않고 보고서에 추가 보완 필요 항목으로 표시 |
 | 수정 방식 | 사용자가 업무 설명을 보완한 뒤 Flow 전체를 새로 실행 |
@@ -25,7 +25,8 @@
 | 카탈로그 검색 | 업로드 JSON 전체를 메모리에서 정규화한 뒤 로컬 다중 신호 검색으로 상위 N개 선정 |
 | 기본 후보 수 | 100개, 허용 범위 1~100개. 모든 후보 identity를 유지한 압축 목록 + 상위 후보 상세 정보로 전달 |
 | 상세 후보 최대 수 | 기본 12개, 허용 범위 1~30개. 상위 후보의 README·기능·제약·포트 요약을 추가 전달하며 100개 전체 압축 목록에는 영향을 주지 않음 |
-| LLM 호출 | 1차 구조화 설계 1회 + 품질 보완 구조화 설계 1회. 2차 실패 시 검증된 1차 결과로 안전하게 계속 |
+| LLM 선별 후보 최대 수 | 기본 12개, 허용 범위 1~30개. 1차 LLM이 후속 설계 검토 후보로 선별할 카탈로그 수의 상한이며 검색·상세 후보 수와 독립적. 선별되었다고 해서 실제 적용되지는 않음 |
+| LLM 호출 | 1차 구조화 설계 1회 + 품질 보완 구조화 설계 1회. 1차 LLM은 관련 후보 shortlist만 선별하고, 2차 LLM은 그 후보 범위 안에서 실제 적용·검토·미사용을 판단한다. 2차 실패 시 shortlist를 직접 적용으로 표시하지 않고 검토 후보로만 보존 |
 | Flow 분리 | Run Flow 없이 단일 Flow JSON 하나로 구성 |
 | HTML | LLM이 HTML을 만들지 않고 검증된 View Model을 고정 Renderer가 HTML로 변환 |
 | 보고서 게시 | 핵심 생성과 분리된 선택 기능. URL이 없거나 게시가 실패해도 생성된 HTML은 보존 |
@@ -74,7 +75,7 @@
 2. 기능 카탈로그 JSON 파일
 3. 필요한 경우 추가 설계 요청
 4. 필요한 경우 **최종 설계 보완 지시**(1차 설계에는 반영하지 않음)
-5. 필요한 경우 상위 후보 수 또는 상세 후보 최대 수 변경
+5. 필요한 경우 상위 후보 수, 상세 후보 최대 수 또는 **LLM 선별 후보 최대 수** 변경
 6. 필요한 경우 Report API 주소 설정
 
 Run을 누르면 Flow는 중간에 멈추지 않고 끝까지 실행한다.
@@ -111,20 +112,20 @@ Playground에는 읽기 쉬운 결과 안내 Message가 표시된다. Flow API�
 
 ### 2.4 1차 설계와 최종 보완의 분리
 
-초기 모델은 업무 설명, 추가 설계 요청, 로컬 검색 후보만 근거로 **1차 완전 설계 JSON**을 작성한다. `최종 설계 보완 지시`는 이 단계에 전달하지 않는다. 이후 결정론적 품질 점검 component가 다음을 확인한다.
+초기 모델은 업무 설명, 추가 설계 요청, 로컬 검색 후보만 근거로 **1차 완전 설계 JSON**을 작성한다. 이 모델은 Canvas에서 지정한 `LLM 선별 후보 최대 수` 이내에서 후속 설계가 검토할 관련 카탈로그 후보를 `selected`로 선별한다. 이 1차 `selected`는 실제 적용 확정이 아니며, `최종 설계 보완 지시`는 이 단계에 전달하지 않는다. 이후 결정론적 품질 점검 component가 다음을 확인한다.
 
 - 현재 업무와 TO-BE Flow의 단계 수가 지나치게 적은지
 - 업무 원문에 승인·반려·오류·누락·재시도 같은 신호가 있는데 분기·예외 경로가 빠졌는지
 - 선택·검토 카탈로그가 실제 TO-BE node에 연결되었는지
 - 미확인 사실을 `information_gaps`로 유지했는지
 
-두 번째 모델은 이 품질 점검과 선택적 보완 지시를 받아 **부분 patch가 아닌 완전한 `business-design-draft/v1` JSON**을 다시 작성한다. 마지막 normalizer는 처음과 같은 100개 후보 registry만 허용한다. 새 후보를 임의로 만들거나 근거 없는 사실을 확정하지 못한다.
+두 번째 모델은 이 품질 점검과 선택적 보완 지시를 받아 **부분 patch가 아닌 완전한 `business-design-draft/v1` JSON**을 다시 작성한다. 다만 1차가 선별한 후보 범위만 고정된다. 2차 모델은 그 후보 안에서 실제 적용(`selected`)·연결 검토(`considered`)·미사용(`not_used`)을 업무 적합성에 따라 다시 판단할 수 있고, 모든 후보를 미사용으로 남길 수 있다. shortlist 밖 자산을 새로 가져오거나, 근거 없는 사실을 확정하지는 못한다.
 
 두 번째 호출의 provider·schema·JSON 오류는 사용자 보고서의 실패가 아니다. 해당 component는 오류 상세나 credential을 노출하지 않는 fallback envelope만 반환하고, 마지막 normalizer가 request hash와 candidate-set hash가 일치하는 1차 검증 결과를 사용한다. 보고서에는 `보완 반영 완료` 또는 `기본 초안 사용`만 표시한다.
 
 ### 2.5 현재 구현 대비 목표 규모
 
-현재 build manifest 기준 F10은 53개 node와 126개 edge, F20은 23개 node와 27개 edge, F30은 9개 node와 9개 edge다. 새 F01은 보고서 게시까지 포함해 실행 node 16개, edge 23개로 유지한다. 2차 품질 보완은 별도 Run Flow나 HITL loop가 아니라 같은 단일 Flow 안의 두 standalone component와 재사용 normalizer만 추가한다.
+현재 build manifest 기준 F10은 53개 node와 126개 edge, F20은 23개 node와 27개 edge, F30은 9개 node와 9개 edge다. 새 F01은 보고서 게시까지 포함해 실행 node 16개, edge 24개로 유지한다. 추가 edge는 1차 normalizer 결과를 최종 normalizer의 고정 카탈로그 shortlist 입력으로 전달하는 용도이며, 2차 품질 보완은 별도 Run Flow나 HITL loop가 아니라 같은 단일 Flow 안의 두 standalone component와 재사용 normalizer만 추가한다.
 
 현재 manifest는 1.11.1/1.11.5 개발 기준으로 생성되어 있으므로 새 Flow의 운영 호환 증거로 재사용하지 않는다.
 
@@ -328,6 +329,7 @@ Langflow 1.11.0의 `FileInput`이 전달하는 업로드 경로는 Component의 
 | --- | --- | --- | --- | --- |
 | 업무 요청 | DataInput | 예 | 자동 연결 | Component 00 출력 |
 | 카탈로그 검색 결과 | DataInput | 예 | 자동 연결 | Component 02 출력 |
+| LLM 선별 후보 최대 수 | IntInput | 예 | 12 | 사용자가 보는 일반 입력, 범위 1~30. 1차 LLM이 후속 설계 검토 후보로 선별하는 최대 개수이며 상세 후보 수와 독립적 |
 | 전체 Prompt 최대 문자 수 | IntInput | 예 | 64,000 | advanced |
 | 예상 token 상한 | IntInput | 예 | 20,000 | advanced |
 
@@ -1585,6 +1587,9 @@ metadata_only는 바로 적용 가능 또는 검증 완료로 표시하면 안 �
 
 - 후보 중 일부만 selected여도 성공
 - 후보를 하나도 사용하지 않아도 성공
+- 1차 shortlist의 `selected` 수가 03의 `LLM 선별 후보 최대 수`를 넘지 않음
+- 1차 LLM의 선택 순서에서 상한을 넘긴 shortlisted 후보는 `considered`로 안전하게 전환되고 경고가 남음
+- 2차 LLM은 1차 shortlist 밖 자산을 실제 적용·검토 대상으로 가져올 수 없지만, shortlist 안의 자산을 모두 `not_used`로 남길 수 있음
 - selected asset ID가 후보 목록 안에만 존재
 - 후보 밖 ID는 제거되고 warning 기록
 - selected, considered, not_used가 후보 전체를 중복 없이 완전 분할
@@ -1724,7 +1729,7 @@ metadata_only는 바로 적용 가능 또는 검증 완료로 표시하면 안 �
 1. `04 Language Model`은 이미 생성된 `LanguageModel` 객체만 전달한다. `05 업무 설계 JSON 생성`은 고정 `business-design-draft/v1` Pydantic object만 반환하고, `06`은 임시 node ID를 정규화 ID로 바꾼 뒤 edge와 `target_node_ids`도 같은 mapping으로 일괄 변환한다.
 2. provider 자체 오류는 05의 native structured-output 호출에서 발생할 수 있다. JSON schema·tool calling 기능 미지원 또는 schema 거부로 분류된 경우에만 동일한 고정 지시로 일반 `model.invoke()` 호환 경로를 한 번 시도하고, 응답 전체 JSON object와 Pydantic 계약을 모두 검증한다. credential·quota·network 오류는 재호출하지 않으며, Playground에는 원인 유형과 redaction된 축약 문구만 표시한다.
 3. `00`의 redacted 원문, 원문 hash, truncation 경고와 `02`의 retrieval trace는 `06`이 모델 결과에 의존하지 않고 직접 결합한다. 원 secret 값은 어떤 Data, HTML, trace, prompt에도 저장하지 않는다.
-4. 모든 ranked 후보는 `selected`, `considered`, `not_used` 중 정확히 하나에 들어간다. 모델이 누락한 후보는 `not_used`와 `decision_source=default_fill`로 채워, 모델이 해당 결정을 내린 것처럼 보이지 않게 한다.
+4. 모든 ranked 후보는 `selected`, `considered`, `not_used` 중 정확히 하나에 들어간다. 1차 LLM의 `selected`는 03 Canvas의 `LLM 선별 후보 최대 수`(기본 12, 범위 1~30)를 넘을 수 없으며, 이 단계에서는 후속 검토 후보 shortlist를 뜻한다. 초과 항목은 원래 순서를 보존해 `considered`로 전환하고 경고를 남긴다. 2차 LLM은 shortlist 안에서 실제 적용 여부를 다시 판단하며 모든 후보를 `not_used`로 남길 수 있다. 모델이 누락한 후보는 `not_used`와 `decision_source=default_fill`로 채워, 모델이 해당 결정을 내린 것처럼 보이지 않게 한다.
 5. 후보 집합 hash는 rank 순서대로 `[asset_id, version, asset_type, content_sha256, rounded_score]` projection을 canonical JSON으로 직렬화한 SHA-256이다. RRF는 `sum(weight / (60 + lane_rank))`를 사용하고 동점은 asset_id, version으로 정렬한다.
 6. `request.description_for_model`은 주 검색 신호이고, 추가 설계 요청은 prompt 규칙으로만 사용한다. 검색 점수에는 추가 설계 요청을 넣지 않아 업무와 무관한 정책성 자산이 과다 노출되지 않게 한다.
 7. `10 Report Artifact Output`은 게시 여부와 관계없이 Renderer의 HTML, hash, report_id를 보존한 Data를 terminal output으로 반환한다. `GENERATED_ONLY`와 `PUBLISH_FAILED`도 보고서 생성 자체의 실패가 아니다.
@@ -1743,7 +1748,7 @@ metadata_only는 바로 적용 가능 또는 검증 완료로 표시하면 안 �
 4. Pydantic 계약은 `schema_version`, `work_analysis`, `information_gaps`, `as_is_graph`, `to_be_design`, `catalog_decisions` 여섯 최상위 field를 강제하며 다중 row wrapper를 만들지 않는다. 상세 graph·카탈로그 ID 검증과 안전 정규화는 이후 standalone `06 설계 결과 정규화·검증`이 담당한다.
 5. 06의 `model_response`는 `DataInput`으로 `JSON`/`Data`를 받고, 직접 테스트 호환 경로에서만 전체 JSON Message를 허용한다. 설명문 속 일부 중괄호를 찾아 설계 결과로 추정하지 않는다.
 6. native 구조화 출력을 지원하지 않는 provider/model도 일반 `model.invoke()`가 가능하면 엄격한 JSON 호환 경로를 사용할 수 있다. 이 경로는 전체 응답 또는 하나의 완전한 JSON code fence만 허용하고, prose 내부에서 JSON 일부를 검색하지 않으며 Pydantic 검증 실패 시 차단한다. 일반 호출도 불가능하거나 JSON 검증에 실패하면 모델을 교체하거나 JSON 응답 설정을 확인해야 한다.
-7. 현재 구현 Flow는 실행 node 16개, edge 23개이며, custom component 14개는 모두 standalone source로 embed된다. 2차 보완은 동일 Flow에서 실행되고 Run Flow를 추가하지 않는다.
+7. 현재 구현 Flow는 실행 node 16개, edge 24개이며, custom component 14개는 모두 standalone source로 embed된다. 06의 검증된 1차 결과는 09의 `fixed_catalog_shortlist` 입력으로도 전달되며, 09는 1차 shortlist 밖 자산을 차단한다. 09는 shortlist 안에서의 실제 적용·검토·미사용 결정은 2차 보완 결과를 존중하므로 후보 사용을 강제하지 않는다. 2차 보완은 동일 Flow에서 실행되고 Run Flow를 추가하지 않는다.
 8. 05의 `BusinessDesignDraftV1`은 `from __future__ import annotations`에 의존하지 않고 class 선언 직후 `_BUSINESS_DESIGN_DRAFT_SCHEMA_READY = model_rebuild(_types_namespace={"Any": Any, "Literal": Literal})` 대입문으로 계약을 재구성한다. Langflow 1.11의 dynamic custom-component loader는 최상위 bare expression을 실행하지 않을 수 있고 별도 exec namespace를 쓰므로, 이 대입문과 direct type annotation이 없으면 provider 호출 시 `Literal is not fully defined` Pydantic 오류가 날 수 있다.
 
 ### 23.2 Provider 오류 표기

@@ -40,13 +40,14 @@ FIXED_SYSTEM_PROMPT = """
 - 이 응답은 사용자가 입력한 업무 자체를 분석합니다. WorkDefinition, 업무 설명 정규화, HITL, 추가 질문, 승인 상태 저장, Run Flow, MongoDB 적재, tenant/session/revision처럼 이 설계 Flow의 내부 구조를 업무 대상으로 다시 설계하지 마세요.
 - 업무 설명이 부족해도 Human Input 또는 재질문 loop를 새로 제안하지 마세요. information_gaps에 사용자가 다음 실행 전 업무 설명에 보완할 문장 예시를 기록하세요.
 - 카탈로그 후보는 재사용 가능성을 검토하기 위한 목록입니다. 후보가 있다고 해서 반드시 사용하지 않아도 됩니다. 후보 외 기능은 implementation_source를 new_component 또는 external_service로 표시하고 검증 필요 사항을 남기세요.
+- 사용자 요청에 포함된 `selected` 후보 최대 수는 **후속 설계에 전달할 관련 후보 shortlist**의 상한입니다. 이 수를 채우기 위해 후보를 억지로 선별하지 마세요. 이 1차 응답의 selected는 실제 Flow 적용 확정이 아니며, 최종 보완 설계는 shortlist 안에서도 업무와 무관한 자산을 사용하지 않을 수 있습니다.
 - 확인되지 않은 사실은 추정 사실처럼 쓰지 말고 information_gaps에 기록하세요. 비밀번호, 토큰, 인증 정보, 개인식별정보를 재현하거나 요청하지 마세요.
 
 ## 작성 목표
 
 1. 사용자가 입력한 업무를 현재(AS-IS) 단계, 분기, 예외, 담당자, 시스템, 입력과 출력 관점에서 구체적으로 정리합니다.
 2. 사람이 검토해야 하는 판단과 자동화해도 되는 반복 작업을 구분합니다.
-3. 카탈로그 후보 중 실제 적용을 권하는 항목에는 명확한 대상 단계와 선택 이유를 남깁니다. 후보 외 기능은 억지로 연결하지 않습니다.
+3. 카탈로그 후보 중 후속 설계에서 더 검토할 가치가 있는 관련 항목만 shortlist로 선별합니다. 이 1차 응답의 selected는 실제 적용 권고가 아니므로 target_node_ids는 비워 둘 수 있으며, 후보 외 기능은 억지로 연결하지 않습니다.
 4. TO-BE 업무 Flow에는 정상 경로뿐 아니라 승인/반려, 데이터 누락, 인증 만료, 재시도 또는 예외 처리처럼 해당 업무에 필요한 분기를 포함합니다.
 5. 사용자가 다음 실행 전에 업무 설명에 보완해야 할 내용을 실행 가능한 문장 예시와 함께 표시합니다.
 
@@ -85,7 +86,7 @@ FIXED_SYSTEM_PROMPT = """
 - graph node_kind는 start, end, work_step, decision, human_review, system_call, exception 중 하나입니다.
 - graph implementation_source는 human_task, builtin, catalog_component, catalog_flow, new_component, external_service 중 하나입니다.
 - graph edge_kind는 control, branch, error, retry 중 하나이며 edge에는 edge_id, source_node_id, target_node_id, edge_kind, label, condition, is_default, retry_policy를 넣으세요.
-- catalog_decisions의 decision은 selected, considered, not_used 중 하나입니다. asset_id와 version은 제공된 후보와 정확히 일치할 때만 사용하세요. 후보의 제목, URL, technical status를 JSON에 복사하지 마세요.
+- catalog_decisions의 decision은 selected, considered, not_used 중 하나입니다. 이 1차 응답에서 selected는 후속 보완에 전달할 shortlist이며 실제 적용을 뜻하지 않습니다. asset_id와 version은 제공된 후보와 정확히 일치할 때만 사용하세요. 후보의 제목, URL, technical status를 JSON에 복사하지 마세요.
 
 ## 최종 출력 게이트
 
@@ -127,6 +128,74 @@ class BusinessDesignDraftV1(BaseModel):
 _BUSINESS_DESIGN_DRAFT_SCHEMA_READY = BusinessDesignDraftV1.model_rebuild(
     _types_namespace={"Any": Any, "Literal": Literal}
 )
+
+
+_DEFAULT_MAX_SHORTLISTED_CATALOG_ITEMS = 12
+_MAX_SHORTLISTED_CATALOG_ITEMS = 30
+_CATALOG_SHORTLIST_POLICY_BLOCK = re.compile(
+    r"<catalog_shortlist_policy>\s*(?P<body>\{.*?\})\s*</catalog_shortlist_policy>",
+    re.DOTALL,
+)
+
+
+def _catalog_shortlist_policy(value: Any, *, prompt_text: str = "") -> dict[str, Any]:
+    """Carry the Canvas-owned shortlist cap through the LLM call.
+
+    The first normalizer needs the user-configured shortlist limit in order to
+    enforce it deterministically. The policy originates in 03's Message.data,
+    not in the model response, so an LLM cannot enlarge the candidate scope.
+    """
+
+    def _policy(candidate: Any, depth: int = 0) -> dict[str, Any] | None:
+        if depth > 4 or candidate is None:
+            return None
+        if isinstance(candidate, Message):
+            return _policy(candidate.data, depth + 1)
+        payload = candidate if isinstance(candidate, dict) else getattr(candidate, "data", None)
+        if not isinstance(payload, dict):
+            return None
+        found = payload.get("catalog_shortlist_policy")
+        if isinstance(found, dict):
+            return found
+        for key in ("data", "message", "input_value"):
+            nested = payload.get(key)
+            nested_policy = _policy(nested, depth + 1)
+            if nested_policy is not None:
+                return nested_policy
+        return None
+
+    raw = _policy(value)
+    # A few Langflow 1.11 execution paths materialize a Message edge as text.
+    # The policy is also carried in a small locally generated JSON block inside
+    # 03's prompt so the Canvas value survives either transport shape.
+    if raw is None and prompt_text:
+        match = _CATALOG_SHORTLIST_POLICY_BLOCK.search(prompt_text)
+        if match is not None:
+            try:
+                parsed = json.loads(match.group("body"))
+            except json.JSONDecodeError as exc:
+                raise ValueError(
+                    "CATALOG_SHORTLIST_POLICY_INVALID: 03의 카탈로그 후보 정책 JSON을 읽지 못했습니다."
+                ) from exc
+            if isinstance(parsed, dict):
+                raw = parsed
+    if raw is None:
+        return {
+            "max_shortlisted_catalog_items": _DEFAULT_MAX_SHORTLISTED_CATALOG_ITEMS,
+            "selection_scope": "shortlist_only",
+            "selection_source": "default",
+        }
+    requested = raw.get("max_shortlisted_catalog_items")
+    if type(requested) is not int or not 1 <= requested <= _MAX_SHORTLISTED_CATALOG_ITEMS:
+        raise ValueError(
+            "CATALOG_SHORTLIST_POLICY_INVALID: 03의 선별 후보 수는 "
+            f"1~{_MAX_SHORTLISTED_CATALOG_ITEMS} 사이의 정수여야 합니다."
+        )
+    return {
+        "max_shortlisted_catalog_items": requested,
+        "selection_scope": "shortlist_only",
+        "selection_source": "canvas_node_03",
+    }
 
 
 def _prompt_text(value: Any) -> str:
@@ -345,7 +414,9 @@ class BusinessDesignStructuredOutputComponent(Component):
             raise ValueError(
                 "STRUCTURED_OUTPUT_UNSUPPORTED: 04에서 Structured Output/tool calling을 지원하는 Language Model을 선택하세요."
             )
-        prompt = _prompt_text(getattr(self, "input_value", None))
+        input_value = getattr(self, "input_value", None)
+        prompt = _prompt_text(input_value)
+        catalog_shortlist_policy = _catalog_shortlist_policy(input_value, prompt_text=prompt)
         callbacks = self.get_langchain_callbacks()
         compatibility_mode = False
         if not hasattr(model, "with_structured_output"):
@@ -377,5 +448,9 @@ class BusinessDesignStructuredOutputComponent(Component):
                 "BUSINESS_DESIGN_STRUCTURED_OUTPUT_INVALID: 모델이 고정 business-design-draft/v1 객체 계약을 충족하지 않았습니다."
             ) from exc
         result = draft.model_dump(mode="json")
+        # This field is injected after Pydantic validation, rather than added to
+        # the LLM's response schema. It is authoritative transport metadata
+        # from 03, not a model-controlled design claim.
+        result["catalog_shortlist_policy"] = catalog_shortlist_policy
         self.status = "business-design-draft/v1 JSON 생성 완료 (호환성 JSON 경로)" if compatibility_mode else "business-design-draft/v1 JSON 생성 완료 (native 경로)"
         return Data(data=result)

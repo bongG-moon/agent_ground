@@ -157,13 +157,19 @@ def test_fixed_component_accepts_langflow_message_transport_shapes(prompt_value)
 
     result = component.build_structured_output().data
 
-    assert result == {
+    expected = {
         "schema_version": "business-design-draft/v1",
         "work_analysis": {"title": "주간 보고"},
         "information_gaps": [],
         "as_is_graph": {"nodes": [], "edges": []},
         "to_be_design": {"nodes": [], "edges": []},
         "catalog_decisions": [],
+    }
+    assert {key: value for key, value in result.items() if key != "catalog_shortlist_policy"} == expected
+    assert result["catalog_shortlist_policy"] == {
+        "max_shortlisted_catalog_items": 12,
+        "selection_scope": "shortlist_only",
+        "selection_source": "default",
     }
     assert list(model.schema.model_fields) == [
         "schema_version",
@@ -310,7 +316,7 @@ def test_fixed_component_uses_validated_json_compatibility_fallback_when_native_
 
     result = component.build_structured_output().data
 
-    assert result == {
+    expected = {
         "schema_version": "business-design-draft/v1",
         "work_analysis": {"title": "일일 보고"},
         "information_gaps": [],
@@ -318,6 +324,8 @@ def test_fixed_component_uses_validated_json_compatibility_fallback_when_native_
         "to_be_design": {"nodes": [], "edges": []},
         "catalog_decisions": [],
     }
+    assert {key: value for key, value in result.items() if key != "catalog_shortlist_policy"} == expected
+    assert result["catalog_shortlist_policy"]["max_shortlisted_catalog_items"] == 12
     assert model.plain_messages[0].content == module.FIXED_SYSTEM_PROMPT
     assert model.plain_messages[1].content == "사용자 업무 설명"
     assert model.plain_config == {"callbacks": []}

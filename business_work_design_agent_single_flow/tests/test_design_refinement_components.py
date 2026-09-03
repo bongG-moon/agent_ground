@@ -215,7 +215,10 @@ def test_refinement_prompt_is_bounded_structured_and_uses_final_instruction_only
     assert "<quality_findings>" in message.text
     assert "branch-exception-coverage" in message.text
     assert "11111111-1111-1111-1111-111111111111" in message.text
-    assert "22222222-2222-2222-2222-222222222222" in message.text
+    assert "22222222-2222-2222-2222-222222222222" not in message.text
+    assert "<locked_catalog_candidate_shortlist>" in message.text
+    assert "하나도 selected로 적용하지 않아도 됩니다" in message.text
+    assert "<candidate_pool_index>" not in message.text
     assert "승인 전 누락·오류 분기" in message.text
     assert "secret-value-that-must-not-leak" not in message.text
     assert "[REDACTED]" in message.text
@@ -233,7 +236,7 @@ def test_refinement_prompt_declares_portable_data_inputs_and_no_sibling_imports(
     assert "import components" not in source
 
 
-def test_refinement_prompt_keeps_all_100_candidate_id_version_pairs_in_the_compact_index():
+def test_refinement_prompt_does_not_reexpose_unselected_candidates_to_the_second_llm():
     module = _module(PROMPT_COMPONENT, "design_refinement_prompt_component_100_candidates_test")
     retrieval = _retrieval_result()
     prototype = retrieval["candidates"][0]
@@ -251,8 +254,11 @@ def test_refinement_prompt_keeps_all_100_candidate_id_version_pairs_in_the_compa
     message = component.build_refinement_prompt()
 
     assert message.data["candidate_count"] == 100
-    assert "00000003-0000-4000-8000-000000000000" in message.text
-    assert "00000100-0000-4000-8000-000000000000" in message.text
+    assert "11111111-1111-1111-1111-111111111111" in message.text
+    assert "00000003-0000-4000-8000-000000000000" not in message.text
+    assert "00000100-0000-4000-8000-000000000000" not in message.text
+    assert "<candidate_pool_index>" not in message.text
+    assert "<locked_catalog_candidate_shortlist>" in message.text
     assert len(message.text) <= module._MAX_PROMPT_CHARS
 
 
@@ -271,6 +277,17 @@ def test_refinement_structured_output_returns_a_valid_second_draft_from_native_m
     assert model.runnable.messages[1].content == "<required_output>JSON only</required_output>"
     assert model.runnable.config == {"callbacks": []}
     assert "native" in component.status
+
+
+def test_refinement_system_prompt_locks_only_shortlist_and_allows_not_used_decisions():
+    module = _module(OUTPUT_COMPONENT, "design_refinement_output_component_shortlist_contract_test")
+
+    prompt = module.FIXED_REFINEMENT_SYSTEM_PROMPT
+
+    assert "catalog_candidate_shortlist" in prompt
+    assert "후보 밖 자산" in prompt
+    assert "모든 후보를 not_used" in prompt
+    assert "decision·target_node_ids를 동일하게 유지" not in prompt
 
 
 def test_refinement_structured_output_uses_strict_json_compatibility_when_native_schema_is_unsupported():

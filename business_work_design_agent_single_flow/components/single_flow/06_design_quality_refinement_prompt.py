@@ -194,23 +194,20 @@ def _base_projection(initial: dict[str, Any], *, compactness: int) -> dict[str, 
         if gap is not None
     ]
     decisions = initial.get("catalog_application") if isinstance(initial.get("catalog_application"), dict) else {}
-    catalog_decisions: dict[str, list[dict[str, Any]]] = {}
-    for decision_type in ("selected", "considered"):
-        catalog_decisions[decision_type] = []
-        for raw in (decisions.get(decision_type) if isinstance(decisions.get(decision_type), list) else [])[:30]:
-            if not isinstance(raw, dict):
-                continue
-            catalog_decisions[decision_type].append(
-                {
-                    "asset_id": _safe_text(raw.get("asset_id"), 64),
-                    "version": _safe_text(raw.get("version"), 100),
-                    "title": _safe_text(raw.get("title"), 180),
-                    "asset_type": _safe_text(raw.get("asset_type"), 32),
-                    "target_node_ids": _text_list(raw.get("target_node_ids"), maximum=12, item_limit=128),
-                    "reason": _safe_text(raw.get("reason"), text_limit),
-                    "required_verification": _text_list(raw.get("required_verification"), maximum=8, item_limit=160),
-                }
-            )
+    shortlist: list[dict[str, Any]] = []
+    for raw in (decisions.get("selected") if isinstance(decisions.get("selected"), list) else [])[:30]:
+        if not isinstance(raw, dict):
+            continue
+        shortlist.append(
+            {
+                "asset_id": _safe_text(raw.get("asset_id"), 64),
+                "version": _safe_text(raw.get("version"), 100),
+                "title": _safe_text(raw.get("title"), 180),
+                "asset_type": _safe_text(raw.get("asset_type"), 32),
+                "reason": _safe_text(raw.get("reason"), text_limit),
+                "required_verification": _text_list(raw.get("required_verification"), maximum=8, item_limit=160),
+            }
+        )
     return {
         "source_description": _safe_text(
             request.get("description_display_redacted") or request.get("description_for_model"),
@@ -267,7 +264,10 @@ def _base_projection(initial: dict[str, Any], *, compactness: int) -> dict[str, 
                 if isinstance(item, dict)
             ],
         },
-        "catalog_decisions": catalog_decisions,
+        "catalog_candidate_shortlist": {
+            "policy": decisions.get("selection_policy") if isinstance(decisions.get("selection_policy"), dict) else {},
+            "candidates": shortlist,
+        },
     }
 
 
@@ -318,19 +318,17 @@ def _minimal_base_projection(initial: dict[str, Any]) -> dict[str, Any]:
             if isinstance(edge, dict)
         ]
 
-    decisions = full.get("catalog_decisions") if isinstance(full.get("catalog_decisions"), dict) else {}
-    compact_decisions: dict[str, list[dict[str, Any]]] = {}
-    for kind in ("selected", "considered"):
-        compact_decisions[kind] = [
-            {
-                "asset_id": _safe_text(item.get("asset_id"), 64),
-                "version": _safe_text(item.get("version"), 100),
-                "target_node_ids": _text_list(item.get("target_node_ids"), maximum=8, item_limit=128),
-                "reason": _safe_text(item.get("reason"), 100),
-            }
-            for item in decisions.get(kind, [])[:30]
-            if isinstance(item, dict)
-        ]
+    shortlist = full.get("catalog_candidate_shortlist") if isinstance(full.get("catalog_candidate_shortlist"), dict) else {}
+    compact_shortlist = [
+        {
+            "asset_id": _safe_text(item.get("asset_id"), 64),
+            "version": _safe_text(item.get("version"), 100),
+            "title": _safe_text(item.get("title"), 100),
+            "reason": _safe_text(item.get("reason"), 100),
+        }
+        for item in (shortlist.get("candidates") if isinstance(shortlist.get("candidates"), list) else [])[:30]
+        if isinstance(item, dict)
+    ]
     return {
         "source_description": _safe_text(full.get("source_description"), 2_000),
         "initial_status": _safe_text(full.get("initial_status"), 64),
@@ -362,7 +360,10 @@ def _minimal_base_projection(initial: dict[str, Any]) -> dict[str, Any]:
             "summary": _safe_text(to_be.get("summary"), 240),
             "graph": {"nodes": tiny_nodes(to_be_graph), "edges": tiny_edges(to_be_graph)},
         },
-        "catalog_decisions": compact_decisions,
+        "catalog_candidate_shortlist": {
+            "policy": shortlist.get("policy") if isinstance(shortlist.get("policy"), dict) else {},
+            "candidates": compact_shortlist,
+        },
     }
 
 
@@ -481,23 +482,7 @@ def _quality_findings(initial: dict[str, Any]) -> list[dict[str, Any]]:
     source = _safe_text(request.get("description_display_redacted") or request.get("description_for_model"), _MAX_SOURCE_DESCRIPTION_CHARS)
     source_has_branch_signal = bool(_BRANCH_OR_EXCEPTION_TERMS.search(source))
     decisions = initial.get("catalog_application") if isinstance(initial.get("catalog_application"), dict) else {}
-    selected = decisions.get("selected") if isinstance(decisions.get("selected"), list) else []
-    considered = decisions.get("considered") if isinstance(decisions.get("considered"), list) else []
-    target_ids = {
-        _safe_text(node.get("node_id"), 128)
-        for node in (to_be.get("nodes") if isinstance(to_be.get("nodes"), list) else [])
-        if isinstance(node, dict)
-    }
-    mapped = 0
-    unmapped = 0
-    for decision in [*selected, *considered]:
-        if not isinstance(decision, dict):
-            continue
-        targets = decision.get("target_node_ids") if isinstance(decision.get("target_node_ids"), list) else []
-        if targets and all(_safe_text(target, 128) in target_ids for target in targets):
-            mapped += 1
-        else:
-            unmapped += 1
+    shortlisted = decisions.get("selected") if isinstance(decisions.get("selected"), list) else []
     gaps = initial.get("information_gaps") if isinstance(initial.get("information_gaps"), list) else []
     findings = [
         {
@@ -529,12 +514,12 @@ def _quality_findings(initial: dict[str, Any]) -> list[dict[str, Any]]:
             "required_action": "원문에 승인·반려·오류·누락·인증·재시도 조건이 있으면 TO-BE edge와 대응 통제를 명시하고, 없으면 information_gaps에 확인할 내용을 남기세요.",
         },
         {
-            "finding_id": "catalog-decision-mapping",
-            "category": "catalog_decision_mapping",
-            "severity": "important" if unmapped else "info",
-            "status": "needs_mapping" if unmapped else "mapped_or_not_selected",
-            "message": f"카탈로그 선택·검토 결정 {len(selected) + len(considered)}건 중 대상 TO-BE 노드에 매핑된 결정은 {mapped}건, 미매핑 결정은 {unmapped}건입니다.",
-            "required_action": "카탈로그 자산을 선택하면 해당 TO-BE node_id와 선택 이유를 연결하세요. 후보 밖 자산 ID나 version은 만들지 마세요.",
+            "finding_id": "catalog-shortlist-scope",
+            "category": "catalog_shortlist_scope",
+            "severity": "info",
+            "status": "shortlist_ready" if shortlisted else "no_shortlist",
+            "message": f"1차 LLM이 후속 설계 검토 후보로 선별한 카탈로그 자산은 {len(shortlisted)}개입니다.",
+            "required_action": "최종 설계에서는 이 선별 후보 안에서만 실제 적용 여부를 판단하세요. 모든 후보를 사용해야 하는 것은 아니며, 업무와 맞지 않으면 not_used로 남기세요.",
         },
         {
             "finding_id": "information-gaps-preservation",
@@ -564,7 +549,7 @@ def _make_prompt(
             "</refinement_security_boundary>",
             "<refinement_objective>",
             "1차 정규화 설계를 더 읽기 쉽고 완전하게 보완합니다. 업무의 사실관계와 미확인 항목은 보존합니다.",
-            "특히 현재 업무 단계, TO-BE 단계, 분기·예외·재시도, 카탈로그 적용 위치와 검증 필요 사항을 점검합니다.",
+            "특히 현재 업무 단계, TO-BE 단계, 분기·예외·재시도, 그리고 선별 카탈로그 후보를 실제로 적용할지의 근거와 검증 필요 사항을 점검합니다.",
             "</refinement_objective>",
             "<quality_findings>",
             _canonical(findings),
@@ -572,10 +557,11 @@ def _make_prompt(
             "<initial_normalized_design>",
             _canonical(base_design),
             "</initial_normalized_design>",
-            "<candidate_pool_index>",
-            "이 목록은 선택 가능한 후보의 압축 인덱스입니다. asset_id와 version은 이 목록의 정확한 조합만 사용하세요. 후보 사용은 선택 사항입니다.",
-            _canonical(candidate_index),
-            "</candidate_pool_index>",
+            "<locked_catalog_candidate_shortlist>",
+            "initial_normalized_design.catalog_candidate_shortlist.candidates는 1차 LLM이 100개 검색 후보 중 관련성이 있다고 선별한 고정 검토 후보입니다.",
+            "2차 보완은 이 목록 밖 자산을 catalog_decisions에 넣지 마세요. 단, 이 목록 안의 자산도 실제 업무 단계와 맞지 않으면 not_used로 남길 수 있으며, 하나도 selected로 적용하지 않아도 됩니다.",
+            "실제 적용한다고 판단한 자산만 selected로 표시하고 해당 TO-BE node_id와 이유를 연결하세요. considered는 연결 전 검토가 필요한 후보이며, shortlist 자체를 확장하는 용도로 사용하지 마세요.",
+            "</locked_catalog_candidate_shortlist>",
             "<final_refinement_instructions>",
             final_instructions or "(추가 최종 보완 지시 없음)",
             "</final_refinement_instructions>",
@@ -584,6 +570,7 @@ def _make_prompt(
             "초안의 일부만 반환하거나 변경 사항 설명문·Markdown·코드 펜스를 반환하지 마세요.",
             "최상위 키는 schema_version, work_analysis, information_gaps, as_is_graph, to_be_design, catalog_decisions 여섯 개만 사용하세요.",
             "1차 설계의 미확인 항목은 사실로 바꾸지 말고 information_gaps에 유지하세요.",
+            "catalog_decisions에는 고정된 선별 후보 안의 자산만 기록하세요. 실제 적용 여부는 업무 적합성에 따라 다시 판단하며, 모든 선별 후보를 사용하지 않아도 됩니다.",
             "</required_output>",
         )
     )
@@ -635,6 +622,8 @@ class DesignQualityRefinementPromptComponent(Component):
         final_instructions = _safe_text(request.get("final_refinement_instructions"), _MAX_FINAL_INSTRUCTION_CHARS)
         base_design = _bounded_base_projection(initial)
         candidate_index = _bounded_candidate_index(retrieval)
+        shortlist = base_design.get("catalog_candidate_shortlist") if isinstance(base_design.get("catalog_candidate_shortlist"), dict) else {}
+        shortlisted_candidate_count = len(shortlist.get("candidates") if isinstance(shortlist.get("candidates"), list) else [])
         findings = _quality_findings(initial)
         prompt = _make_prompt(base_design, candidate_index, findings, final_instructions)
         if len(prompt) > _MAX_PROMPT_CHARS:
@@ -654,6 +643,7 @@ class DesignQualityRefinementPromptComponent(Component):
             "request_sha256": request_hash or None,
             "candidate_set_sha256": _safe_text(retrieval.get("candidate_set_sha256"), 80) or None,
             "candidate_count": len(candidate_index),
+            "shortlisted_candidate_count": shortlisted_candidate_count,
             "quality_finding_count": len(findings),
             "quality_attention_count": sum(1 for finding in findings if finding.get("status") in {"needs_detail", "needs_review", "needs_mapping", "must_preserve"}),
             "final_refinement_instruction_present": bool(final_instructions),
@@ -661,7 +651,7 @@ class DesignQualityRefinementPromptComponent(Component):
             "prompt_char_count": len(prompt),
         }
         self.status = (
-            f"1차 설계 품질 점검 완료 · 후보 {len(candidate_index)}개 · "
+            f"1차 설계 품질 점검 완료 · 검색 후보 {len(candidate_index)}개 · 선별 후보 {shortlisted_candidate_count}개 · "
             f"확인 항목 {metadata['quality_attention_count']}건"
         )
         return Message(text=prompt, data=metadata)

@@ -82,6 +82,11 @@ EXPECTED_EDGES = (
     ("business_input", "request", "final_normalizer", "request"),
     ("catalog_ranker", "retrieval_result", "final_normalizer", "retrieval_result"),
     ("result_normalizer", "design_result", "final_normalizer", "fallback_design_result"),
+    # The final refinement may improve the workflow prose, but catalog selection
+    # The first LLM's related-candidate shortlist is authoritative as the
+    # second pass's scope. The final LLM still decides whether any short-listed
+    # asset belongs in the actual Flow.
+    ("result_normalizer", "design_result", "final_normalizer", "fixed_catalog_shortlist"),
     ("final_normalizer", "design_result", "view_model", "design_result"),
     ("view_model", "report_view_model", "renderer", "report_view_model"),
     ("renderer", "render_result", "publisher", "rendered_report"),
@@ -464,7 +469,7 @@ class FlowBuilder:
                 "nodes": [*self.notes, *(node.wrapper for node in self.nodes.values())],
                 "viewport": {"x": 80, "y": 80, "zoom": 0.58},
             },
-            "description": "업무 설명과 로컬 기능 카탈로그 JSON을 한 번 입력해, 100개 후보의 1차 설계·품질 보완·최종 정규화를 거쳐 카탈로그 기반 개선안을 포함한 HTML 보고서를 생성하는 Langflow 1.11.0 단일 Flow.",
+            "description": "업무 설명과 로컬 기능 카탈로그 JSON을 한 번 입력해, 키워드 기반 상위 100개 후보 중 LLM이 정한 최대 적용 후보만 확정하고, 품질 보완·최종 정규화를 거쳐 카탈로그 기반 개선안을 포함한 HTML 보고서를 생성하는 Langflow 1.11.0 단일 Flow.",
             "endpoint_name": "business-work-design-single",
             "icon": None,
             "icon_bg_color": None,
@@ -492,7 +497,8 @@ class FlowBuilder:
                 "required_configuration": [
                     "00 업무 설명 입력의 업무 설명과 선택적인 추가 설계 요청",
                     "01 기능 카탈로그 JSON 파일의 UTF-8 JSON 파일 하나",
-                    "02 관련 기능 카탈로그 검색의 상위 후보 수(기본 100)",
+                    "02 관련 기능 카탈로그 검색의 검색 후보 수(기본 100)와 LLM 상세 검토 후보 수(기본 12)",
+                    "03 1차 업무 설계 요청 구성의 LLM 선별 후보 최대 수(기본 12, 1~30)",
                     "04 Language Model의 provider/model/credential (05 1차 생성과 08 최종 보완 생성에 같은 모델 객체를 사용)",
                     "05·08의 고정 Pydantic 계약·시스템 지시는 standalone source 안에 있으므로 별도 설정이 필요하지 않음",
                     "선택 사항: 00의 최종 설계 보완 지시(2차 보완 단계에만 반영)",
@@ -550,14 +556,14 @@ def build_flow() -> dict[str, Any]:
     )
     builder.note(
         "retrieval",
-        "## 검색\n\n상위 100개는 적용 확정 목록이 아니라 LLM이 검토할 후보입니다. 모든 후보의 식별 정보는 유지하고, 상세 정보는 우선순위에 따라 압축합니다. 실제 사용 개수는 0개 이상일 수 있습니다.",
+        "## 검색·선정\n\n검색 후보 수(기본 100)는 키워드 유사도로 찾는 풀입니다. LLM 상세 검토 후보 수(기본 12)는 설명을 더 많이 보여 주는 수이며, 실제 적용 개수가 아닙니다. 03의 LLM 선별 후보 최대 수는 1차 LLM이 후속 설계에 전달할 관련 후보 shortlist 수만 제한합니다.",
         (260, -660),
         width=860,
         height=210,
     )
     builder.note(
         "design",
-        "## 설계\n\n04에서 provider/model/credential을 선택합니다. 05는 1차 설계 JSON을 만들고, 07·08은 부족한 단계·분기·예외·카탈로그 적용 근거를 점검해 한 번 더 보완합니다. 2차 보완이 실패해도 이미 검증한 1차 결과만 안전하게 사용합니다. editable table schema·숨김 프롬프트 설정·자유형 설명문은 다음 단계로 전달되지 않습니다.",
+        "## 설계\n\n04에서 provider/model/credential을 선택합니다. 05는 100개 후보 중 관련성이 높은 후보만 shortlist로 선별합니다. 07·08은 이 shortlist 안에서만 실제 적용 여부를 다시 판단하되, 업무와 무관한 후보를 억지로 사용하지 않습니다. 2차 보완이 실패해도 이미 검증한 1차 결과만 안전하게 사용합니다.",
         (1180, -660),
         width=920,
         height=210,
@@ -594,13 +600,13 @@ def build_flow() -> dict[str, Any]:
         CUSTOM_COMPONENTS["catalog_ranker"],
         (-260, 180),
         {"top_n": 100, "expanded_detail_count": 12, "max_candidate_chars": 700, "max_context_chars": 56_000},
-    ).relabel("02 관련 기능 카탈로그 검색", "로컬 JSON 안에서 업무 설명과 관련된 상위 100개 후보를 찾고, 상세 후보 최대 수(1~30)를 Canvas에서 조절합니다.")
+    ).relabel("02 관련 기능 카탈로그 검색", "로컬 JSON 안에서 키워드 유사도 기반 검색 후보(기본 100개)를 찾고, LLM 상세 검토 후보 수(기본 12개)를 Canvas에서 조절합니다.")
     builder.custom(
         "prompt_builder",
         CUSTOM_COMPONENTS["prompt_builder"],
         (160, 180),
-        {"max_prompt_chars": 64_000, "max_estimated_tokens": 20_000},
-    ).relabel("03 1차 업무 설계 요청 구성", "안전한 업무 설명과 100개 카탈로그 후보를 압축해 LLM 1차 설계 요청으로 조립합니다.")
+        {"max_shortlisted_catalog_items": 12, "max_prompt_chars": 64_000, "max_estimated_tokens": 20_000},
+    ).relabel("03 1차 업무 설계 요청 구성", "안전한 업무 설명과 100개 카탈로그 후보를 압축하고, LLM이 후속 설계에서 검토할 관련 후보 최대 수를 정해 1차 설계 요청으로 조립합니다.")
     language_model = builder.builtin(
         "language_model",
         "lfx.components.models_and_agents.language_model",
@@ -650,7 +656,7 @@ def build_flow() -> dict[str, Any]:
         "final_normalizer",
         CUSTOM_COMPONENTS["final_normalizer"],
         (2660, 180),
-    ).relabel("09 최종 설계 정규화·검증", "2차 설계 JSON을 다시 검증합니다. 보완 호출이 실패하면 동일 요청·후보 집합의 1차 검증 결과만 유지합니다.")
+    ).relabel("09 최종 설계 정규화·검증", "2차 설계 JSON을 다시 검증하되, 1차에서 선별한 카탈로그 후보 범위만 고정합니다. 후보 안의 실제 적용 여부는 2차 설계가 업무 적합성에 따라 결정합니다.")
     builder.custom(
         "view_model",
         CUSTOM_COMPONENTS["view_model"],
@@ -909,6 +915,12 @@ def _validate_builtins(by_key: dict[str, dict[str, Any]], prompt: str) -> None:
             raise ValueError("Both normalizer instances must expose the optional verified fallback input")
         if not {"Data", "JSON"}.issubset(set(fallback.get("input_types") or [])):
             raise ValueError("Normalizer fallback input must accept Data and JSON")
+    final_normalizer_template = by_key["final_normalizer"]["data"]["node"].get("template", {})
+    fixed_catalog_shortlist = final_normalizer_template.get("fixed_catalog_shortlist")
+    if not isinstance(fixed_catalog_shortlist, dict) or fixed_catalog_shortlist.get("required") is not False:
+        raise ValueError("Final normalizer must expose the optional fixed catalog shortlist input")
+    if not {"Data", "JSON"}.issubset(set(fixed_catalog_shortlist.get("input_types") or [])):
+        raise ValueError("Final normalizer fixed catalog shortlist input must accept Data and JSON")
     ranker_template = by_key["catalog_ranker"]["data"]["node"].get("template", {})
     if ranker_template.get("top_n", {}).get("value") != 100:
         raise ValueError("Catalog Ranker default top_n must be 100")
@@ -917,6 +929,12 @@ def _validate_builtins(by_key: dict[str, dict[str, Any]], prompt: str) -> None:
         raise ValueError("Catalog Ranker default expanded_detail_count must be 12")
     if expanded_detail_count.get("advanced") is True or expanded_detail_count.get("show") is False:
         raise ValueError("Catalog Ranker expanded_detail_count must be a visible Canvas input")
+    prompt_builder_template = by_key["prompt_builder"]["data"]["node"].get("template", {})
+    max_shortlisted_catalog_items = prompt_builder_template.get("max_shortlisted_catalog_items")
+    if not isinstance(max_shortlisted_catalog_items, dict) or max_shortlisted_catalog_items.get("value") != 12:
+        raise ValueError("Prompt Builder default max_shortlisted_catalog_items must be 12")
+    if max_shortlisted_catalog_items.get("advanced") is True or max_shortlisted_catalog_items.get("show") is False:
+        raise ValueError("Prompt Builder max_shortlisted_catalog_items must be a visible Canvas input")
     prompt_builder_source = (PROJECT_ROOT / "components" / "single_flow" / CUSTOM_COMPONENTS["prompt_builder"]).read_text(encoding="utf-8")
     prompt_hash = "sha256:" + _sha256_text(prompt)
     if prompt_hash not in prompt_builder_source:

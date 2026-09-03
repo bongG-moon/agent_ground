@@ -50,8 +50,8 @@ FIXED_REFINEMENT_SYSTEM_PROMPT = """
 
 1. 업무 원문과 1차 설계에 근거해 AS-IS 절차, 담당자, 시스템, 입력·출력, 문제를 더 명확히 정리합니다.
 2. TO-BE 설계에 필요한 자동화·사람 검토·시스템 호출·정상/분기/오류/재시도 경로를 구체화하되 근거 없는 단계를 만들지 마세요.
-3. 카탈로그 적용은 제공된 candidate_pool_index의 asset_id와 version 조합만 사용하세요. 후보가 반드시 선택될 필요는 없으며, 후보 밖 ID·version·링크를 만들지 마세요.
-4. 선택 또는 검토한 카탈로그 자산에는 대상 TO-BE node_id, 선택 이유, 실제 연결 전 확인 사항을 기록하세요.
+3. initial_normalized_design의 catalog_candidate_shortlist는 1차 LLM이 100개 검색 후보 중 선별한 고정 검토 후보입니다. catalog_decisions에는 이 후보 밖 자산을 넣지 마세요.
+4. 선별 후보라고 해서 실제 Flow에 반드시 적용할 필요는 없습니다. 업무 단계와 직접 맞는 자산만 selected로 표시하고 TO-BE node_id와 연결하세요. 맞지 않으면 considered 또는 not_used로 남기며, 모든 후보를 not_used로 남겨도 됩니다.
 5. 품질 점검 finding과 최종 보완 지시는 강조할 관점일 뿐, 업무 사실의 근거를 대체하지 않습니다.
 
 ## 고정 반환 계약
@@ -74,7 +74,7 @@ FIXED_REFINEMENT_SYSTEM_PROMPT = """
   "catalog_decisions": [{"asset_id": "candidate asset_id", "version": "candidate version", "decision": "selected", "target_node_ids": [], "reason": "선택 이유", "required_verification": []}]
 }
 
-값 제약: evidence_status는 explicit, inferred, unknown 중 하나입니다. severity는 required, important, optional 중 하나입니다. node_kind는 start, end, work_step, decision, human_review, system_call, exception 중 하나입니다. implementation_source는 human_task, builtin, catalog_component, catalog_flow, new_component, external_service 중 하나입니다. edge_kind는 control, branch, error, retry 중 하나입니다. catalog decision은 selected, considered, not_used 중 하나입니다.
+값 제약: evidence_status는 explicit, inferred, unknown 중 하나입니다. severity는 required, important, optional 중 하나입니다. node_kind는 start, end, work_step, decision, human_review, system_call, exception 중 하나입니다. implementation_source는 human_task, builtin, catalog_component, catalog_flow, new_component, external_service 중 하나입니다. edge_kind는 control, branch, error, retry 중 하나입니다. catalog decision은 selected, considered, not_used 중 하나이며, catalog_decisions에는 고정 shortlist 밖 자산을 추가하지 않습니다.
 """.strip()
 
 
