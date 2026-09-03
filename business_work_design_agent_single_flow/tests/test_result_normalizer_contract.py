@@ -195,7 +195,10 @@ def test_final_normalizer_component_uses_fallback_envelope_without_stopping_repo
         "request_sha256": "sha256:" + "1" * 64,
         "final_refinement_instructions": "분기 처리를 보강해 주세요.",
     }
-    retrieval = {"candidate_set_sha256": "sha256:" + "2" * 64}
+    retrieval = {
+        "candidate_set_sha256": "sha256:" + "2" * 64,
+        "catalog_file_sha256": "sha256:" + "3" * 64,
+    }
     initial = {
         "schema_version": "business-design-result/v2",
         "status": "COMPLETED",
@@ -214,6 +217,28 @@ def test_final_normalizer_component_uses_fallback_envelope_without_stopping_repo
     )
     component.request = Data(data=request)
     component.retrieval_result = Data(data=retrieval)
+    component.catalog_shortlist = Data(
+        data={
+            "ok": True,
+            "status": "COMPLETED",
+            "schema_version": "catalog-shortlist/v1",
+            "request_sha256": request["request_sha256"],
+            "candidate_set_sha256": retrieval["candidate_set_sha256"],
+            "catalog_file_sha256": retrieval["catalog_file_sha256"],
+            "selection_policy": {
+                "max_shortlisted_catalog_items": 12,
+                "zero_shortlist_allowed": True,
+                "selection_scope": "candidate_shortlist_only",
+                "selection_method": "llm-structured-shortlist/v1",
+                "selection_source": "canvas_node_03",
+            },
+            "shortlisted_candidates": [],
+            "shortlisted_count": 0,
+            "unshortlisted_candidate_count": 0,
+            "warnings": [],
+            "trace": {},
+        }
+    )
     component.fallback_design_result = Data(data=initial)
 
     result = component.normalize_design().data

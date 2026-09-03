@@ -193,13 +193,18 @@ def _base_projection(initial: dict[str, Any], *, compactness: int) -> dict[str, 
         )
         if gap is not None
     ]
-    decisions = initial.get("catalog_application") if isinstance(initial.get("catalog_application"), dict) else {}
+    shortlist_result = (
+        initial.get("catalog_candidate_shortlist")
+        if isinstance(initial.get("catalog_candidate_shortlist"), dict)
+        else {}
+    )
     shortlist: list[dict[str, Any]] = []
-    for raw in (decisions.get("selected") if isinstance(decisions.get("selected"), list) else [])[:30]:
+    for raw in (shortlist_result.get("candidates") if isinstance(shortlist_result.get("candidates"), list) else [])[:30]:
         if not isinstance(raw, dict):
             continue
         shortlist.append(
             {
+                "shortlist_rank": raw.get("shortlist_rank") if isinstance(raw.get("shortlist_rank"), int) else len(shortlist) + 1,
                 "asset_id": _safe_text(raw.get("asset_id"), 64),
                 "version": _safe_text(raw.get("version"), 100),
                 "title": _safe_text(raw.get("title"), 180),
@@ -265,7 +270,7 @@ def _base_projection(initial: dict[str, Any], *, compactness: int) -> dict[str, 
             ],
         },
         "catalog_candidate_shortlist": {
-            "policy": decisions.get("selection_policy") if isinstance(decisions.get("selection_policy"), dict) else {},
+            "policy": shortlist_result.get("policy") if isinstance(shortlist_result.get("policy"), dict) else {},
             "candidates": shortlist,
         },
     }
@@ -443,6 +448,33 @@ def _minimal_candidate_index(candidates: list[dict[str, Any]]) -> list[dict[str,
     ]
 
 
+def _shortlist_candidate_index(initial: dict[str, Any]) -> list[dict[str, Any]]:
+    """Return only the fixed 03 shortlist, never the original 100 results."""
+
+    shortlist = (
+        initial.get("catalog_candidate_shortlist")
+        if isinstance(initial.get("catalog_candidate_shortlist"), dict)
+        else {}
+    )
+    candidates = shortlist.get("candidates") if isinstance(shortlist.get("candidates"), list) else []
+    result: list[dict[str, Any]] = []
+    for index, raw in enumerate(candidates[:30], start=1):
+        if not isinstance(raw, dict):
+            continue
+        result.append(
+            {
+                "rank": raw.get("shortlist_rank") if isinstance(raw.get("shortlist_rank"), int) else index,
+                "asset_id": _safe_text(raw.get("asset_id"), 64),
+                "version": _safe_text(raw.get("version"), 100),
+                "asset_type": _safe_text(raw.get("asset_type"), 20),
+                "title": _safe_text(raw.get("title"), 160),
+                "reason": _safe_text(raw.get("reason"), 180),
+                "technical_contract_status": _safe_text(raw.get("technical_contract_status"), 32),
+            }
+        )
+    return result
+
+
 def _meaningful_node_count(graph: Any) -> int:
     if not isinstance(graph, dict) or not isinstance(graph.get("nodes"), list):
         return 0
@@ -481,8 +513,12 @@ def _quality_findings(initial: dict[str, Any]) -> list[dict[str, Any]]:
     to_be_edges = _edge_counts(to_be)
     source = _safe_text(request.get("description_display_redacted") or request.get("description_for_model"), _MAX_SOURCE_DESCRIPTION_CHARS)
     source_has_branch_signal = bool(_BRANCH_OR_EXCEPTION_TERMS.search(source))
-    decisions = initial.get("catalog_application") if isinstance(initial.get("catalog_application"), dict) else {}
-    shortlisted = decisions.get("selected") if isinstance(decisions.get("selected"), list) else []
+    shortlist_result = (
+        initial.get("catalog_candidate_shortlist")
+        if isinstance(initial.get("catalog_candidate_shortlist"), dict)
+        else {}
+    )
+    shortlisted = shortlist_result.get("candidates") if isinstance(shortlist_result.get("candidates"), list) else []
     gaps = initial.get("information_gaps") if isinstance(initial.get("information_gaps"), list) else []
     findings = [
         {
@@ -518,7 +554,7 @@ def _quality_findings(initial: dict[str, Any]) -> list[dict[str, Any]]:
             "category": "catalog_shortlist_scope",
             "severity": "info",
             "status": "shortlist_ready" if shortlisted else "no_shortlist",
-            "message": f"1차 LLM이 후속 설계 검토 후보로 선별한 카탈로그 자산은 {len(shortlisted)}개입니다.",
+            "message": f"03 LLM 카탈로그 후보 선별이 후속 설계 검토 후보로 선별한 자산은 {len(shortlisted)}개입니다.",
             "required_action": "최종 설계에서는 이 선별 후보 안에서만 실제 적용 여부를 판단하세요. 모든 후보를 사용해야 하는 것은 아니며, 업무와 맞지 않으면 not_used로 남기세요.",
         },
         {
@@ -558,7 +594,7 @@ def _make_prompt(
             _canonical(base_design),
             "</initial_normalized_design>",
             "<locked_catalog_candidate_shortlist>",
-            "initial_normalized_design.catalog_candidate_shortlist.candidates는 1차 LLM이 100개 검색 후보 중 관련성이 있다고 선별한 고정 검토 후보입니다.",
+            "initial_normalized_design.catalog_candidate_shortlist.candidates는 03 LLM 카탈로그 후보 선별이 100개 검색 후보 중 관련성이 있다고 선별한 고정 검토 후보입니다.",
             "2차 보완은 이 목록 밖 자산을 catalog_decisions에 넣지 마세요. 단, 이 목록 안의 자산도 실제 업무 단계와 맞지 않으면 not_used로 남길 수 있으며, 하나도 selected로 적용하지 않아도 됩니다.",
             "실제 적용한다고 판단한 자산만 selected로 표시하고 해당 TO-BE node_id와 이유를 연결하세요. considered는 연결 전 검토가 필요한 후보이며, shortlist 자체를 확장하는 용도로 사용하지 마세요.",
             "</locked_catalog_candidate_shortlist>",
@@ -577,9 +613,9 @@ def _make_prompt(
 
 
 class DesignQualityRefinementPromptComponent(Component):
-    """06. Build a deterministic second-pass instruction from normalized data."""
+    """Build a deterministic second-pass instruction from normalized data."""
 
-    display_name = "06 설계 품질 점검·최종 보완 요청"
+    display_name = "설계 품질 점검·최종 보완 요청"
     description = "1차 정규화 설계의 누락·분기·카탈로그 매핑을 점검하고, 두 번째 LLM용 안전한 최종 보완 요청을 만듭니다."
     icon = "ClipboardCheck"
     name = "DesignQualityRefinementPrompt"
@@ -590,7 +626,7 @@ class DesignQualityRefinementPromptComponent(Component):
             display_name="1차 정규화 설계 결과",
             required=True,
             input_types=["Data", "JSON"],
-            info="05 설계 결과 정규화·검증의 정규화 설계 결과를 연결합니다.",
+            info="07 1차 설계 정규화·검증의 정규화 설계 결과를 연결합니다.",
         ),
         DataInput(
             name="retrieval_result",
@@ -621,7 +657,9 @@ class DesignQualityRefinementPromptComponent(Component):
         # accidentally treating an old request as a second instruction.
         final_instructions = _safe_text(request.get("final_refinement_instructions"), _MAX_FINAL_INSTRUCTION_CHARS)
         base_design = _bounded_base_projection(initial)
-        candidate_index = _bounded_candidate_index(retrieval)
+        # 02's 100-item search pool ends at 03.  The refinement model sees
+        # only the fixed LLM shortlist carried by the normalized result.
+        candidate_index = _shortlist_candidate_index(initial)
         shortlist = base_design.get("catalog_candidate_shortlist") if isinstance(base_design.get("catalog_candidate_shortlist"), dict) else {}
         shortlisted_candidate_count = len(shortlist.get("candidates") if isinstance(shortlist.get("candidates"), list) else [])
         findings = _quality_findings(initial)
@@ -629,7 +667,7 @@ class DesignQualityRefinementPromptComponent(Component):
         if len(prompt) > _MAX_PROMPT_CHARS:
             # A rare oversized source description or 100-gap result should not
             # prevent the report path from running.  Reduce prose, never the
-            # candidate identity/version registry or quality findings.
+            # fixed shortlist identity/version registry or quality findings.
             base_design = _minimal_base_projection(initial)
             prompt = _make_prompt(base_design, candidate_index, findings, final_instructions)
         if len(prompt) > _MAX_PROMPT_CHARS:

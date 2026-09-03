@@ -23,10 +23,10 @@ class SingleFlowPayloadTests(unittest.TestCase):
     def test_one_flow_has_expected_graph_contract(self) -> None:
         summary = build_single_flow.validate_flow_payload(self.flow, check_graph=True)
         self.assertTrue(summary["ok"])
-        self.assertEqual(summary["execution_nodes"], 16)
+        self.assertEqual(summary["execution_nodes"], 17)
         self.assertEqual(summary["sticky_notes"], 4)
-        self.assertEqual(summary["edges"], 24)
-        self.assertEqual(summary["standalone_components"], 14)
+        self.assertEqual(summary["edges"], 29)
+        self.assertEqual(summary["standalone_components"], 15)
 
     def test_exact_edges_and_terminal_data_leaf(self) -> None:
         by_id, by_key = build_single_flow._node_map(self.flow)
@@ -95,6 +95,12 @@ class SingleFlowPayloadTests(unittest.TestCase):
     def test_two_pass_model_path_revalidates_second_draft_and_has_safe_fallback_input(self) -> None:
         by_id, by_key = build_single_flow._node_map(self.flow)
         actual = tuple(build_single_flow._edge_tuple(edge, by_id) for edge in self.flow["data"]["edges"])
+        self.assertIn(("business_input", "request", "catalog_shortlister", "request"), actual)
+        self.assertIn(("catalog_ranker", "retrieval_result", "catalog_shortlister", "retrieval_result"), actual)
+        self.assertIn(("language_model", "model_output", "catalog_shortlister", "model"), actual)
+        self.assertIn(("catalog_shortlister", "catalog_shortlist", "prompt_builder", "catalog_shortlist"), actual)
+        self.assertIn(("catalog_shortlister", "catalog_shortlist", "result_normalizer", "catalog_shortlist"), actual)
+        self.assertIn(("catalog_shortlister", "catalog_shortlist", "final_normalizer", "catalog_shortlist"), actual)
         self.assertIn(("prompt_builder", "prompt", "structured_output", "input_value"), actual)
         self.assertIn(("language_model", "model_output", "structured_output", "model"), actual)
         self.assertIn(("structured_output", "structured_output", "result_normalizer", "model_response"), actual)
@@ -104,7 +110,7 @@ class SingleFlowPayloadTests(unittest.TestCase):
         self.assertIn(("language_model", "model_output", "refinement_output", "model"), actual)
         self.assertIn(("refinement_output", "refined_design_draft", "final_normalizer", "model_response"), actual)
         self.assertIn(("result_normalizer", "design_result", "final_normalizer", "fallback_design_result"), actual)
-        self.assertIn(("result_normalizer", "design_result", "final_normalizer", "fixed_catalog_shortlist"), actual)
+        self.assertNotIn(("result_normalizer", "design_result", "final_normalizer", "fixed_catalog_shortlist"), actual)
         self.assertIn(("final_normalizer", "design_result", "view_model", "design_result"), actual)
         self.assertNotIn(("language_model", "text_output", "result_normalizer", "model_response"), actual)
         self.assertNotIn(("language_model", "text_output", "final_normalizer", "model_response"), actual)
@@ -113,23 +119,26 @@ class SingleFlowPayloadTests(unittest.TestCase):
         fallback_input = by_key["final_normalizer"]["data"]["node"]["template"]["fallback_design_result"]
         self.assertFalse(fallback_input["required"])
         self.assertTrue({"Data", "JSON"}.issubset(set(fallback_input["input_types"])))
-        fixed_catalog_input = by_key["final_normalizer"]["data"]["node"]["template"]["fixed_catalog_shortlist"]
-        self.assertFalse(fixed_catalog_input["required"])
-        self.assertTrue({"Data", "JSON"}.issubset(set(fixed_catalog_input["input_types"])))
+        for normalizer_key in ("result_normalizer", "final_normalizer"):
+            catalog_shortlist_input = by_key[normalizer_key]["data"]["node"]["template"]["catalog_shortlist"]
+            self.assertTrue(catalog_shortlist_input["required"])
+            self.assertTrue({"Data", "JSON"}.issubset(set(catalog_shortlist_input["input_types"])))
 
-    def test_candidate_pool_and_detail_limit_are_visible_canvas_inputs(self) -> None:
+    def test_candidate_pool_and_shortlist_limit_are_visible_canvas_inputs(self) -> None:
         _, by_key = build_single_flow._node_map(self.flow)
         ranker = by_key["catalog_ranker"]["data"]["node"]["template"]
         business_input = by_key["business_input"]["data"]["node"]["template"]
 
         self.assertEqual(ranker["top_n"]["value"], 100)
-        self.assertEqual(ranker["expanded_detail_count"]["value"], 12)
-        self.assertFalse(ranker["expanded_detail_count"]["advanced"])
-        self.assertNotEqual(ranker["expanded_detail_count"]["show"], False)
-        selection_limit = by_key["prompt_builder"]["data"]["node"]["template"]["max_shortlisted_catalog_items"]
+        self.assertNotIn("expanded_detail_count", ranker)
+        selection_limit = by_key["catalog_shortlister"]["data"]["node"]["template"]["max_shortlisted_catalog_items"]
         self.assertEqual(selection_limit["value"], 12)
         self.assertFalse(selection_limit["advanced"])
         self.assertNotEqual(selection_limit["show"], False)
+        prompt_builder = by_key["prompt_builder"]["data"]["node"]["template"]
+        self.assertNotIn("max_shortlisted_catalog_items", prompt_builder)
+        self.assertTrue(prompt_builder["catalog_shortlist"]["required"])
+        self.assertTrue({"Data", "JSON"}.issubset(set(prompt_builder["catalog_shortlist"]["input_types"])))
         self.assertEqual(business_input["final_refinement_instructions"]["required"], False)
         self.assertNotEqual(business_input["final_refinement_instructions"]["value"], "")
 

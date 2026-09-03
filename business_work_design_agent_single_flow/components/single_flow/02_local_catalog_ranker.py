@@ -33,8 +33,9 @@ _LANE_WEIGHTS = {"exact_phrase": 0.25, "token_bm25": 0.55, "character_ngram": 0.
 _DEFAULT_TOP_N = 100
 _DEFAULT_MAX_CANDIDATE_CHARS = 700
 _DEFAULT_MAX_CONTEXT_CHARS = 56_000
+# This is an internal context budget, not a Canvas selection control. The
+# separate 03 LLM shortlister decides which keyword candidates are in scope.
 _DEFAULT_EXPANDED_DETAIL_COUNT = 12
-_MAX_EXPANDED_CANDIDATE_DETAILS = 30
 _MAX_EXPANDED_DETAIL_CHARS = 900
 _FIELD_WEIGHTS = {
     "title": 6.0,
@@ -253,7 +254,7 @@ def _updated_sort_value(item: dict[str, Any]) -> float:
 
 class LocalCatalogRankerComponent(Component):
     display_name = "02 관련 기능 카탈로그 검색"
-    description = "업무 설명과 로컬 카탈로그를 비교해 LLM에 전달할 상위 후보를 결정론적으로 선정합니다."
+    description = "업무 설명과 로컬 카탈로그를 비교해 키워드 기반 후보 100개를 결정론적으로 정렬합니다. 실제 후보 선별은 03 LLM 노드가 수행합니다."
     icon = "ListFilter"
     name = "LocalCatalogRanker"
 
@@ -268,13 +269,6 @@ class LocalCatalogRankerComponent(Component):
             info="키워드 기반으로 넓게 후보를 확보한 뒤 LLM이 실제 적용할 항목만 추립니다.",
         ),
         IntInput(
-            name="expanded_detail_count",
-            display_name="상세 후보 최대 수",
-            value=_DEFAULT_EXPANDED_DETAIL_COUNT,
-            required=True,
-            info="상위 후보 중 설명·README·포트 요약까지 함께 전달할 최대 개수입니다. 1~30 범위에서 조절할 수 있습니다.",
-        ),
-        IntInput(
             name="max_candidate_chars",
             display_name="후보당 최대 문자 수",
             value=_DEFAULT_MAX_CANDIDATE_CHARS,
@@ -285,7 +279,7 @@ class LocalCatalogRankerComponent(Component):
             display_name="전체 후보 context 최대 문자 수",
             value=_DEFAULT_MAX_CONTEXT_CHARS,
             advanced=True,
-            info="후보별 상세 내용은 이 상한 안에서 축약됩니다. 첫 설계 Prompt는 별도의 압축 후보 인덱스를 사용합니다.",
+            info="내부 상세 문맥은 이 안전 상한 안에서 자동 축약됩니다. 실제 후보 선별은 03 LLM 노드가 수행합니다.",
         ),
     ]
     outputs = [Output(name="retrieval_result", display_name="카탈로그 검색 결과", method="rank_catalog")]
@@ -309,15 +303,13 @@ class LocalCatalogRankerComponent(Component):
             raise ValueError("CATALOG_EMPTY: normalized catalog must contain at least one item")
 
         top_n = int(getattr(self, "top_n", _DEFAULT_TOP_N) or _DEFAULT_TOP_N)
-        expanded_detail_count = int(
-            getattr(self, "expanded_detail_count", _DEFAULT_EXPANDED_DETAIL_COUNT)
-            or _DEFAULT_EXPANDED_DETAIL_COUNT
-        )
+        # Bounded rich README/port context for 03; deliberately not a Canvas
+        # setting so it cannot be mistaken for a candidate-selection limit.
+        expanded_detail_count = _DEFAULT_EXPANDED_DETAIL_COUNT
         max_candidate_chars = int(getattr(self, "max_candidate_chars", _DEFAULT_MAX_CANDIDATE_CHARS) or _DEFAULT_MAX_CANDIDATE_CHARS)
         max_context_chars = int(getattr(self, "max_context_chars", _DEFAULT_MAX_CONTEXT_CHARS) or _DEFAULT_MAX_CONTEXT_CHARS)
         if not (
             1 <= top_n <= 100
-            and 1 <= expanded_detail_count <= _MAX_EXPANDED_CANDIDATE_DETAILS
             and 500 <= max_candidate_chars <= 1_600
             and 4_000 <= max_context_chars <= 64_000
         ):
@@ -566,6 +558,6 @@ class LocalCatalogRankerComponent(Component):
         }
         self.status = (
             f"카탈로그 {len(items):,}개 중 관련 후보 {len(candidates):,}개와 "
-            f"상세 후보 {len(expanded_candidate_details):,}개를 선정했습니다."
+            f"내부 상세 문맥 {len(expanded_candidate_details):,}개를 준비했습니다."
         )
         return Data(data=result)

@@ -24,6 +24,7 @@ from lfx.schema import Data
 _SCHEMA = "business-design-result/v2"
 _DRAFT_SCHEMA = "business-design-draft/v1"
 _REFINEMENT_FALLBACK_SCHEMA = "business-design-refinement-fallback/v1"
+_CATALOG_SHORTLIST_SCHEMA = "catalog-shortlist/v1"
 _UUID = re.compile(r"^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$", re.I)
 _IDENTITY = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$")
 _NODE_KINDS = {"start", "end", "work_step", "decision", "human_review", "system_call", "exception"}
@@ -32,7 +33,6 @@ _SOURCES = {"human_task", "builtin", "catalog_component", "catalog_flow", "new_c
 _SEVERITIES = {"required", "important", "optional"}
 _DECISIONS = {"selected", "considered", "not_used"}
 _TECHNICAL = {"metadata_only", "ports_extracted", "flow_graph_extracted", "verified_runtime", "unknown"}
-_DEFAULT_MAX_SHORTLISTED_CATALOG_ITEMS = 12
 _MAX_SHORTLISTED_CATALOG_ITEMS = 30
 _SECRET_KEY = re.compile(r"(?i)(?:api[_-]?key|authorization|bearer|client[_-]?secret|cookie|credential|password|passwd|private[_-]?key|secret|token)")
 _SECRET_VALUE = re.compile(
@@ -137,10 +137,10 @@ def _model_output_not_json_error(text: str, *, issue: str = "JSON object를 찾�
     shape = _model_response_shape(text)
     return ValueError(
         "[MODEL_OUTPUT_NOT_JSON] model_response가 유효한 JSON object가 아닙니다. "
-        "05 설계 결과 정규화는 설명문을 설계 결과로 추정·변환하지 않고 안전하게 중단했습니다. "
+        "업무 설계 결과 정규화는 설명문을 설계 결과로 추정·변환하지 않고 안전하게 중단했습니다. "
         f"진단: {shape}; 응답 길이 {len(text)}자; 응답 지문 sha256:{response_hash[:16]}. "
         f"문제: {issue}. "
-        "조치: 04 Language Model에서 제공된다면 JSON/Structured Output을 활성화하고, "
+        "조치: 05 Language Model에서 제공된다면 JSON/Structured Output을 활성화하고, "
         "System Message의 JSON 전용 계약을 유지한 뒤 다시 실행하세요. "
         "재시도 지시문: 반드시 schema_version이 business-design-draft/v1인 JSON object 하나만 반환하세요. "
         "Markdown, 설명, 코드 펜스, 주석, 앞뒤 문장을 포함하지 마세요. "
@@ -186,8 +186,8 @@ def _unwrap_structured_output_envelope(value: dict[str, Any]) -> dict[str, Any]:
     results = value.get("results")
     if not isinstance(results, list):
         raise ValueError(
-            "[STRUCTURED_OUTPUT_SCHEMA_MISMATCH] 05 Structured Output의 results 값이 목록이 아닙니다. "
-            "최신 F01 Flow를 다시 import하고 05의 Output Schema가 business-design-draft/v1 계약인지 확인해 주세요."
+            "[STRUCTURED_OUTPUT_SCHEMA_MISMATCH] 06 Structured Output의 results 값이 목록이 아닙니다. "
+            "최신 F01 Flow를 다시 import하고 06의 Output Schema가 business-design-draft/v1 계약인지 확인해 주세요."
         )
     if len(results) == 1 and isinstance(results[0], dict):
         item = _safe_json(results[0], "model_response.results[0]")
@@ -204,16 +204,16 @@ def _unwrap_structured_output_envelope(value: dict[str, Any]) -> dict[str, Any]:
     )
     if default_field_shape:
         raise ValueError(
-            "[STRUCTURED_OUTPUT_SCHEMA_MISMATCH] 구버전 05 Structured Output이 기본 Output Schema(field)로 실행되었습니다. "
+            "[STRUCTURED_OUTPUT_SCHEMA_MISMATCH] 구버전 06 Structured Output이 기본 Output Schema(field)로 실행되었습니다. "
             "현재 results.field 목록은 업무 설계 JSON이 아니므로 안전하게 사용하지 않았습니다. "
-            "최신 F01 JSON을 새 Flow로 import한 뒤 05가 `업무 설계 JSON 생성` standalone component인지 확인해 주세요. "
-            "최신 05는 editable Output Schema를 사용하지 않으며 schema_version, work_analysis, information_gaps, "
+            "최신 F01 JSON을 새 Flow로 import한 뒤 06이 `업무 설계 JSON 생성` standalone component인지 확인해 주세요. "
+            "최신 06은 editable Output Schema를 사용하지 않으며 schema_version, work_analysis, information_gaps, "
             "as_is_graph, to_be_design, catalog_decisions의 6개 필드를 고정합니다."
         )
     raise ValueError(
-        "[STRUCTURED_OUTPUT_SCHEMA_MISMATCH] 05 Structured Output이 여러 개의 결과를 반환했습니다. "
+        "[STRUCTURED_OUTPUT_SCHEMA_MISMATCH] 06 Structured Output이 여러 개의 결과를 반환했습니다. "
         "이 Flow는 업무 설명 하나당 business-design-draft/v1 객체 하나만 허용하며, 여러 결과 중 하나를 임의로 선택하지 않습니다. "
-        "05의 Output Schema와 연결을 확인한 뒤 다시 실행해 주세요."
+        "06의 Output Schema와 연결을 확인한 뒤 다시 실행해 주세요."
     )
 
 
@@ -328,51 +328,10 @@ def _use_verified_initial_result(
     warning = f"REFINEMENT_SKIPPED_{reason}"
     if warning not in warnings:
         warnings.append(warning)
-    # In the first pass `selected` is a candidate shortlist, not an actual
-    # catalog application. If the refinement pass is unavailable, do not let
-    # that internal shortlist appear in the final report as a direct-use
-    # recommendation. Keep it as review-only context instead.
-    application = result.get("catalog_application") if isinstance(result.get("catalog_application"), dict) else None
-    if application is not None:
-        shortlisted = application.get("selected") if isinstance(application.get("selected"), list) else []
-        considered = application.get("considered") if isinstance(application.get("considered"), list) else []
-        short_keys = {
-            (_bounded_text(item.get("asset_id"), 64).lower(), _bounded_text(item.get("version") or "unknown", 100) or "unknown")
-            for item in shortlisted
-            if isinstance(item, dict)
-        }
-        considered_keys = {
-            (_bounded_text(item.get("asset_id"), 64).lower(), _bounded_text(item.get("version") or "unknown", 100) or "unknown")
-            for item in considered
-            if isinstance(item, dict)
-        }
-        for item in shortlisted:
-            if not isinstance(item, dict):
-                continue
-            moved = dict(item)
-            key = (_bounded_text(moved.get("asset_id"), 64).lower(), _bounded_text(moved.get("version") or "unknown", 100) or "unknown")
-            moved["target_node_ids"] = []
-            moved["decision_source"] = "shortlist_unapplied_fallback"
-            moved["reason"] = _bounded_text(moved.get("reason"), 4_700) or "1차 LLM이 관련 후보로 선별했지만 최종 적용 여부는 확인하지 못했습니다."
-            if key not in considered_keys:
-                considered.append(moved)
-                considered_keys.add(key)
-        application["selected"] = []
-        application["considered"] = considered
-        to_be = result.get("to_be_design") if isinstance(result.get("to_be_design"), dict) else {}
-        for node in to_be.get("nodes") if isinstance(to_be.get("nodes"), list) else []:
-            if not isinstance(node, dict):
-                continue
-            refs = node.get("catalog_asset_refs") if isinstance(node.get("catalog_asset_refs"), list) else []
-            if any(
-                (_bounded_text(ref.get("asset_id"), 64).lower(), _bounded_text(ref.get("version") or "unknown", 100) or "unknown") in short_keys
-                for ref in refs
-                if isinstance(ref, dict)
-            ):
-                node["catalog_asset_refs"] = []
-                if node.get("implementation_source") in {"catalog_component", "catalog_flow"}:
-                    node["implementation_source"] = "builtin"
-        warnings.append("CATALOG_SHORTLIST_NOT_APPLIED_REFINEMENT_SKIPPED")
+    # Catalog decisions in the first pass already mean an actual mapped
+    # application, not a preliminary candidate shortlist.  When refinement
+    # cannot run, preserve that validated first-pass decision exactly; moving
+    # it to a different partition here would make the fallback report lie.
     result["warnings"] = sorted(set(warnings))
     result["refinement"] = {
         "status": "SKIPPED",
@@ -704,16 +663,13 @@ def _normalize_tobe(raw: Any, warnings: list[str], gaps: list[dict[str, str]]) -
 
 
 def _catalog_shortlist_policy(draft: dict[str, Any], warnings: list[str]) -> dict[str, Any]:
-    """Read the Canvas-owned shortlist cap carried by 04's transport metadata."""
+    """Read the Canvas-owned cap from the dedicated 03 shortlist result."""
 
     raw = draft.get("catalog_shortlist_policy")
     if raw is None:
-        warnings.append("CATALOG_SHORTLIST_POLICY_DEFAULTED")
-        return {
-            "max_shortlisted_catalog_items": _DEFAULT_MAX_SHORTLISTED_CATALOG_ITEMS,
-            "selection_scope": "shortlist_only",
-            "selection_source": "default",
-        }
+        raise ValueError(
+            "[CATALOG_SHORTLIST_POLICY_INVALID] 03 LLM 카탈로그 후보 선별 결과의 정책이 없습니다."
+        )
     if not isinstance(raw, dict):
         raise ValueError(
             "[CATALOG_SHORTLIST_POLICY_INVALID] 선별 후보 수 정책이 object가 아닙니다. "
@@ -727,8 +683,8 @@ def _catalog_shortlist_policy(draft: dict[str, Any], warnings: list[str]) -> dic
         )
     return {
         "max_shortlisted_catalog_items": maximum,
-        "selection_scope": "shortlist_only",
-        "selection_source": "canvas_node_03",
+        "selection_scope": "candidate_shortlist_only",
+        "selection_source": "llm_catalog_shortlister",
     }
 
 
@@ -742,11 +698,9 @@ def _normalize_decisions(
     shortlist_policy: dict[str, Any],
     allowed_candidate_keys: set[tuple[str, str]] | None = None,
     decision_source: str = "llm",
-    preserve_selected_without_target: bool = False,
 ) -> dict[str, Any]:
     raw_items = raw if isinstance(raw, list) else []
     proposals: dict[tuple[str, str], dict[str, Any]] = {}
-    selected_proposal_order: list[tuple[str, str]] = []
     known_registry_keys = {(candidate["asset_id"], candidate["version"]) for candidate in registry}
     allowed_keys = set(allowed_candidate_keys) if allowed_candidate_keys is not None else None
     for item in raw_items:
@@ -757,34 +711,21 @@ def _normalize_decisions(
         key = (asset_id, version)
         if asset_id:
             proposals.setdefault(key, item)
-        if (
-            key in known_registry_keys
-            and (allowed_keys is None or key in allowed_keys)
-            and _bounded_text(item.get("decision"), 32) == "selected"
-            and key not in selected_proposal_order
-        ):
-            # The order in the LLM's JSON array is its explicit selection
-            # priority.  Do not silently substitute lexical retrieval rank.
-            selected_proposal_order.append(key)
-    maximum = shortlist_policy["max_shortlisted_catalog_items"]
-    overflow_selected_keys = set(selected_proposal_order[maximum:])
-    if overflow_selected_keys:
-        warnings.append("CATALOG_SHORTLIST_LIMIT_APPLIED")
+    if allowed_keys is not None:
+        for key, proposal in proposals.items():
+            if key in known_registry_keys and key not in allowed_keys and _bounded_text(proposal.get("decision"), 32) != "not_used":
+                warnings.append("CATALOG_DECISION_OUTSIDE_SHORTLIST")
     known_node_ids = {node["node_id"] for node in tobe_nodes}
     partitions: dict[str, list[dict[str, Any]]] = {"selected": [], "considered": [], "not_used": []}
     for candidate in registry:
         key = (candidate["asset_id"], candidate["version"])
         proposal = proposals.get(key)
         if allowed_keys is not None and key not in allowed_keys:
-            proposed_decision = _bounded_text(proposal.get("decision"), 32) if proposal is not None else ""
-            if proposed_decision and proposed_decision != "not_used":
-                warnings.append("CATALOG_DECISION_OUTSIDE_SHORTLIST")
-            decision = "not_used"
-            source = "outside_shortlist"
-            reason = "1차 LLM이 후속 설계 후보로 선별하지 않아 이번 설계의 직접 적용 대상에서 제외했습니다."
-            required = []
-            targets: list[str] = []
-        elif proposal is None:
+            # The 100-item lexical pool is evidence for 03 only.  Do not
+            # expose the remaining 100-N assets as report candidates or let a
+            # later design decision quietly turn them into not-used choices.
+            continue
+        if proposal is None:
             decision = "not_used"
             source = "default_fill"
             reason = "모델이 적용 또는 연결 검토 대상으로 지정하지 않았습니다."
@@ -807,26 +748,12 @@ def _normalize_decisions(
                     targets.append(normalized)
                 elif raw_target:
                     warnings.append("CATALOG_TARGET_NODE_INVALID")
-            if decision == "selected" and key in overflow_selected_keys:
-                decision = "considered"
-                source = "selection_limit"
-                reason = (
-                    _bounded_text(proposal.get("reason"), 4_500)
-                    or "후속 설계 후보로 검토했지만 선별 후보 상한을 초과했습니다."
-                )
-                required = [
-                    *required,
-                    "선별 후보 상한 내 우선순위를 다시 확인합니다.",
-                ][:100]
             if decision == "selected" and not targets:
-                if preserve_selected_without_target:
-                    # In the first pass selected means candidate shortlist, not
-                    # actual application. A Flow node mapping is intentionally
-                    # not required until the final design decides to use it.
-                    pass
-                else:
-                    decision = "considered"
-                    warnings.append("CATALOG_SELECTED_WITHOUT_TARGET_NORMALIZED")
+                # The separate 03 LLM is responsible for candidate
+                # shortlisting.  Here selected has one meaning only: this
+                # asset is actually applied to a concrete TO-BE node.
+                decision = "considered"
+                warnings.append("CATALOG_SELECTED_WITHOUT_TARGET_NORMALIZED")
             if decision == "not_used":
                 targets = []
         value = {**candidate, "target_node_ids": targets, "reason": reason, "required_verification": required, "decision_source": source}
@@ -841,70 +768,88 @@ def _normalize_decisions(
         if refs and node["implementation_source"] == "builtin":
             node["implementation_source"] = "catalog_component" if any((asset_id, version) in selected_keys and next(candidate for candidate in partitions["selected"] if candidate["asset_id"] == asset_id and candidate["version"] == version)["asset_type"] == "component" for asset_id, version in [(ref["asset_id"], ref["version"]) for ref in refs]) else "catalog_flow"
     return {
-        "candidate_count": len(registry),
+        "candidate_count": len(registry) if allowed_keys is None else len(allowed_keys),
+        "retrieval_candidate_count": len(registry),
         "selection_policy": _safe_json(shortlist_policy, "catalog_shortlist_policy"),
         **partitions,
     }
 
 
-def _locked_catalog_shortlist(
-    fixed_design_result: dict[str, Any],
+def _validated_catalog_shortlist(
+    shortlist_result: dict[str, Any],
     *,
     request: dict[str, Any],
     retrieval: dict[str, Any],
     registry: list[dict[str, Any]],
     warnings: list[str],
-) -> tuple[dict[str, Any], set[tuple[str, str]]]:
-    """Reuse only the first-pass candidate scope, never its application choices.
+) -> tuple[dict[str, Any], set[tuple[str, str]], list[dict[str, Any]]]:
+    """Validate the direct 03 LLM shortlist against the current 02 registry.
 
-    The first LLM decides which related assets deserve a closer look from the
-    100-item retrieval pool. The final LLM may use, merely consider, or reject
-    every one of those shortlisted assets. It cannot introduce an unrelated
-    asset from outside the shortlist.
+    The shortlist is the fixed *review scope* for both design-model calls. It
+    is deliberately separate from ``catalog_decisions``: later models may use,
+    merely consider, or reject every shortlisted asset, but cannot add a
+    retrieved asset that 03 did not select.
     """
 
-    fixed = _safe_json(fixed_design_result, "fixed_catalog_shortlist")
-    if fixed.get("schema_version") != _SCHEMA or not isinstance(fixed.get("request"), dict):
+    fixed = _safe_json(shortlist_result, "catalog_shortlist")
+    if fixed.get("schema_version") != _CATALOG_SHORTLIST_SCHEMA:
         raise ValueError(
-            "[CATALOG_SHORTLIST_LOCK_INVALID] 고정 카탈로그 후보 입력은 1차 검증된 business-design-result/v2여야 합니다."
+            "[CATALOG_SHORTLIST_LOCK_INVALID] 고정 카탈로그 후보 입력은 03의 catalog-shortlist/v1 결과여야 합니다."
         )
-    fixed_request_sha = _bounded_text(fixed["request"].get("request_sha256"), 80)
+    if fixed.get("ok") is not True or fixed.get("status") != "COMPLETED":
+        raise ValueError("[CATALOG_SHORTLIST_LOCK_INVALID] 03 LLM 카탈로그 후보 선별이 완료되지 않았습니다.")
+    fixed_request_sha = _bounded_text(fixed.get("request_sha256"), 80)
     request_sha = _bounded_text(request.get("request_sha256"), 80)
-    fixed_trace = fixed.get("trace") if isinstance(fixed.get("trace"), dict) else {}
-    fixed_candidate_sha = _bounded_text(fixed_trace.get("candidate_set_sha256"), 80)
+    fixed_candidate_sha = _bounded_text(fixed.get("candidate_set_sha256"), 80)
     candidate_sha = _bounded_text(retrieval.get("candidate_set_sha256"), 80)
     if not request_sha or fixed_request_sha != request_sha or not candidate_sha or fixed_candidate_sha != candidate_sha:
         raise ValueError(
-            "[CATALOG_SHORTLIST_LOCK_INVALID] 1차 선별 후보의 업무 요청 또는 후보 집합이 현재 실행과 일치하지 않습니다."
+            "[CATALOG_SHORTLIST_LOCK_INVALID] 03 선별 후보의 업무 요청 또는 후보 집합이 현재 실행과 일치하지 않습니다."
         )
-    application = fixed.get("catalog_application")
-    if not isinstance(application, dict):
-        raise ValueError("[CATALOG_SHORTLIST_LOCK_INVALID] 1차 검증 결과에 catalog_application이 없습니다.")
-    policy_raw = application.get("selection_policy")
+    fixed_catalog_sha = _bounded_text(fixed.get("catalog_file_sha256"), 80)
+    catalog_sha = _bounded_text(retrieval.get("catalog_file_sha256") or retrieval.get("file_sha256"), 80)
+    if not catalog_sha or fixed_catalog_sha != catalog_sha:
+        raise ValueError("[CATALOG_SHORTLIST_LOCK_INVALID] 03 선별 후보의 카탈로그 파일이 현재 검색 결과와 일치하지 않습니다.")
+    policy_raw = fixed.get("selection_policy")
+    if not isinstance(policy_raw, dict) or policy_raw.get("selection_scope") != "candidate_shortlist_only":
+        raise ValueError("[CATALOG_SHORTLIST_LOCK_INVALID] 03 선별 후보의 selection_policy가 유효하지 않습니다.")
     policy = _catalog_shortlist_policy({"catalog_shortlist_policy": policy_raw}, warnings)
     registry_keys = {(item["asset_id"], item["version"]) for item in registry}
     shortlist_keys: set[tuple[str, str]] = set()
-    selected = application.get("selected") if isinstance(application.get("selected"), list) else []
-    for item in selected:
+    normalized_candidates: list[dict[str, Any]] = []
+    shortlisted = fixed.get("shortlisted_candidates") if isinstance(fixed.get("shortlisted_candidates"), list) else None
+    if shortlisted is None or fixed.get("shortlisted_count") != len(shortlisted):
+        raise ValueError("[CATALOG_SHORTLIST_LOCK_INVALID] 03 선별 후보 목록 또는 후보 수 계약이 유효하지 않습니다.")
+    if len(shortlisted) > policy["max_shortlisted_catalog_items"]:
+        raise ValueError("[CATALOG_SHORTLIST_LOCK_INVALID] 03 선별 후보 수가 Canvas 상한을 초과했습니다.")
+    registry_by_key = {(item["asset_id"], item["version"]): item for item in registry}
+    for index, item in enumerate(shortlisted, start=1):
         if not isinstance(item, dict):
-            continue
+            raise ValueError("[CATALOG_SHORTLIST_LOCK_INVALID] 03 선별 후보에 object가 아닌 항목이 있습니다.")
         asset_id = _bounded_text(item.get("asset_id"), 64).lower()
         version = _bounded_text(item.get("version") or "unknown", 100) or "unknown"
         key = (asset_id, version)
-        if key not in registry_keys:
-            raise ValueError("[CATALOG_SHORTLIST_LOCK_INVALID] 1차 선별 후보에 현재 검색 후보 밖 자산이 있습니다.")
+        if item.get("shortlist_rank") != index or key not in registry_keys or key in shortlist_keys:
+            raise ValueError("[CATALOG_SHORTLIST_LOCK_INVALID] 03 선별 후보의 순서·식별자 또는 중복이 유효하지 않습니다.")
         shortlist_keys.add(key)
-    if len(shortlist_keys) > policy["max_shortlisted_catalog_items"]:
-        raise ValueError("[CATALOG_SHORTLIST_LOCK_INVALID] 1차 선별 후보 수가 Canvas 상한을 초과했습니다.")
+        source = registry_by_key[key]
+        normalized_candidates.append(
+            {
+                **source,
+                "shortlist_rank": index,
+                "reason": _bounded_text(item.get("reason"), 2_000)
+                or "업무 설명과 카탈로그 후보 정보를 바탕으로 후속 설계 검토 대상으로 선별했습니다.",
+            }
+        )
     warnings.append("CATALOG_CANDIDATE_SHORTLIST_PRESERVED")
-    return policy, shortlist_keys
+    return policy, shortlist_keys, normalized_candidates
 
 
 class BusinessDesignResultNormalizerComponent(Component):
-    """05. Make an LLM draft safe, complete, and bound to local candidate data."""
+    """Make an LLM draft safe, complete, and bound to the fixed shortlist."""
 
-    display_name = "05 설계 결과 정규화·검증"
-    description = "모델 설계 초안을 검증하고, 입력·카탈로그 후보를 권위 데이터로 다시 결합합니다."
+    display_name = "업무 설계 결과 정규화·검증"
+    description = "모델 설계 초안을 검증하고, 입력·카탈로그 registry·03의 고정 shortlist를 권위 데이터로 다시 결합합니다."
     icon = "ShieldCheck"
     name = "BusinessDesignResultNormalizer"
 
@@ -912,26 +857,26 @@ class BusinessDesignResultNormalizerComponent(Component):
         DataInput(
             name="model_response",
             display_name="모델 구조화 설계 응답",
-            info="04 Language Model의 Structured Output(JSON/Data)을 연결합니다. Message 텍스트도 직접 테스트·호환 경로에서 안전하게 처리합니다.",
+            info="06 또는 09의 Structured Output(JSON/Data)을 연결합니다. Message 텍스트도 직접 테스트·호환 경로에서 안전하게 처리합니다.",
             required=True,
             input_types=["Data", "JSON"],
         ),
         DataInput(name="request", display_name="업무 요청", required=True),
         DataInput(name="retrieval_result", display_name="카탈로그 검색 결과", required=True),
         DataInput(
-            name="fallback_design_result",
-            display_name="1차 검증 설계 결과(보완 실패 시 사용)",
-            info="최종 보완 모델을 사용할 수 없을 때 이미 검증된 1차 설계 결과를 안전하게 유지합니다. 일반 실행에서는 07의 1차 정규화 결과를 연결합니다.",
-            required=False,
+            name="catalog_shortlist",
+            display_name="고정 LLM 선별 카탈로그 후보",
+            info=(
+                "03 LLM 카탈로그 후보 선별 결과를 연결합니다. 이후 설계 모델은 이 목록 안에서만 "
+                "실제 적용·검토·미사용을 판단할 수 있으며, 후보 사용은 강제되지 않습니다."
+            ),
+            required=True,
             input_types=["Data", "JSON"],
         ),
         DataInput(
-            name="fixed_catalog_shortlist",
-            display_name="고정 1차 선별 카탈로그 후보(최종 보완용)",
-            info=(
-                "최종 보완 단계에서만 06의 1차 검증 설계 결과를 연결합니다. "
-                "2차 LLM은 이 후보 안에서 실제 적용·검토·미사용을 다시 판단하며, 후보 밖 자산을 가져올 수는 없습니다."
-            ),
+            name="fallback_design_result",
+            display_name="1차 검증 설계 결과(보완 실패 시 사용)",
+            info="최종 보완 모델을 사용할 수 없을 때 이미 검증된 1차 설계 결과를 안전하게 유지합니다. 최종 정규화 인스턴스에만 07의 결과를 연결합니다.",
             required=False,
             input_types=["Data", "JSON"],
         ),
@@ -946,10 +891,7 @@ class BusinessDesignResultNormalizerComponent(Component):
             getattr(self, "fallback_design_result", None),
             "fallback_design_result",
         )
-        fixed_catalog_shortlist = _optional_transport_object(
-            getattr(self, "fixed_catalog_shortlist", None),
-            "fixed_catalog_shortlist",
-        )
+        catalog_shortlist = _transport_object(getattr(self, "catalog_shortlist", None), "catalog_shortlist")
         if draft.get("schema_version") == _REFINEMENT_FALLBACK_SCHEMA:
             result = _use_verified_initial_result(
                 fallback_design_result,
@@ -971,34 +913,22 @@ class BusinessDesignResultNormalizerComponent(Component):
         gaps = _normalize_gaps(draft.get("information_gaps"), warnings)
         as_is_graph, _ = _graph_from_raw(draft.get("as_is_graph"), prefix="as-is", fallback_steps=work_analysis["current_steps"], warnings=warnings, add_gap=gaps)
         to_be_design, node_mapping, _ = _normalize_tobe(draft.get("to_be_design"), warnings, gaps)
-        if fixed_catalog_shortlist is not None:
-            shortlist_policy, allowed_candidate_keys = _locked_catalog_shortlist(
-                fixed_catalog_shortlist,
-                request=request,
-                retrieval=retrieval,
-                registry=registry,
-                warnings=warnings,
-            )
-            catalog_application = _normalize_decisions(
-                draft.get("catalog_decisions"),
-                registry,
-                node_mapping,
-                to_be_design["nodes"],
-                warnings,
-                shortlist_policy=shortlist_policy,
-                allowed_candidate_keys=allowed_candidate_keys,
-            )
-        else:
-            shortlist_policy = _catalog_shortlist_policy(draft, warnings)
-            catalog_application = _normalize_decisions(
-                draft.get("catalog_decisions"),
-                registry,
-                node_mapping,
-                to_be_design["nodes"],
-                warnings,
-                shortlist_policy=shortlist_policy,
-                preserve_selected_without_target=True,
-            )
+        shortlist_policy, allowed_candidate_keys, shortlisted_candidates = _validated_catalog_shortlist(
+            catalog_shortlist,
+            request=request,
+            retrieval=retrieval,
+            registry=registry,
+            warnings=warnings,
+        )
+        catalog_application = _normalize_decisions(
+            draft.get("catalog_decisions"),
+            registry,
+            node_mapping,
+            to_be_design["nodes"],
+            warnings,
+            shortlist_policy=shortlist_policy,
+            allowed_candidate_keys=allowed_candidate_keys,
+        )
         if not work_analysis["current_steps"]:
             work_analysis["current_steps"] = [
                 {"step_ref": node["node_id"], "sequence": node["sequence"], "title": node["title"], "description": node["summary"], "actor": node["actor"], "system": node["system"], "inputs": node["inputs"], "outputs": node["outputs"], "evidence_status": "inferred"}
@@ -1024,6 +954,11 @@ class BusinessDesignResultNormalizerComponent(Component):
             "information_gaps": gaps[:100],
             "as_is_graph": as_is_graph,
             "to_be_design": to_be_design,
+            "catalog_candidate_shortlist": {
+                "schema_version": _CATALOG_SHORTLIST_SCHEMA,
+                "policy": shortlist_policy,
+                "candidates": shortlisted_candidates,
+            },
             "catalog_application": catalog_application,
             "warnings": sorted(set(warnings)),
             "trace": trace,
@@ -1041,6 +976,6 @@ class BusinessDesignResultNormalizerComponent(Component):
             }
         self.status = (
             f"설계 결과 정규화 완료 · 보완 필요 {len(gaps)}건 · 카탈로그 후보 {len(registry)}개 · "
-            f"{'선별 후보' if fixed_catalog_shortlist is None else '적용 권고'} {len(catalog_application['selected'])}개"
+            f"LLM 선별 후보 {len(shortlisted_candidates)}개 · 실제 적용 권고 {len(catalog_application['selected'])}개"
         )
         return Data(data=result)

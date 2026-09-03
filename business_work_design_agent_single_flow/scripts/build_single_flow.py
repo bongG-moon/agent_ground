@@ -44,6 +44,7 @@ CUSTOM_COMPONENTS = {
     "business_input": "00_business_design_input.py",
     "catalog_loader": "01_catalog_json_loader.py",
     "catalog_ranker": "02_local_catalog_ranker.py",
+    "catalog_shortlister": "03_catalog_candidate_shortlister.py",
     "prompt_builder": "03_business_design_prompt_builder.py",
     "structured_output": "04_business_design_structured_output.py",
     "result_normalizer": "05_business_design_result_normalizer.py",
@@ -64,8 +65,12 @@ CUSTOM_COMPONENTS = {
 EXPECTED_EDGES = (
     ("business_input", "request", "catalog_ranker", "request"),
     ("catalog_loader", "catalog_bundle", "catalog_ranker", "catalog_bundle"),
+    ("business_input", "request", "catalog_shortlister", "request"),
+    ("catalog_ranker", "retrieval_result", "catalog_shortlister", "retrieval_result"),
+    ("language_model", "model_output", "catalog_shortlister", "model"),
     ("business_input", "request", "prompt_builder", "request"),
     ("catalog_ranker", "retrieval_result", "prompt_builder", "retrieval_result"),
+    ("catalog_shortlister", "catalog_shortlist", "prompt_builder", "catalog_shortlist"),
     # The Language Model node supplies only the configured model object.  The
     # Structured Output node owns the actual call so prose cannot be passed to
     # the result normalizer in place of the required JSON object.
@@ -74,6 +79,7 @@ EXPECTED_EDGES = (
     ("structured_output", "structured_output", "result_normalizer", "model_response"),
     ("business_input", "request", "result_normalizer", "request"),
     ("catalog_ranker", "retrieval_result", "result_normalizer", "retrieval_result"),
+    ("catalog_shortlister", "catalog_shortlist", "result_normalizer", "catalog_shortlist"),
     ("result_normalizer", "design_result", "quality_prompt", "initial_design_result"),
     ("catalog_ranker", "retrieval_result", "quality_prompt", "retrieval_result"),
     ("quality_prompt", "refinement_prompt", "refinement_output", "input_value"),
@@ -81,12 +87,8 @@ EXPECTED_EDGES = (
     ("refinement_output", "refined_design_draft", "final_normalizer", "model_response"),
     ("business_input", "request", "final_normalizer", "request"),
     ("catalog_ranker", "retrieval_result", "final_normalizer", "retrieval_result"),
+    ("catalog_shortlister", "catalog_shortlist", "final_normalizer", "catalog_shortlist"),
     ("result_normalizer", "design_result", "final_normalizer", "fallback_design_result"),
-    # The final refinement may improve the workflow prose, but catalog selection
-    # The first LLM's related-candidate shortlist is authoritative as the
-    # second pass's scope. The final LLM still decides whether any short-listed
-    # asset belongs in the actual Flow.
-    ("result_normalizer", "design_result", "final_normalizer", "fixed_catalog_shortlist"),
     ("final_normalizer", "design_result", "view_model", "design_result"),
     ("view_model", "report_view_model", "renderer", "report_view_model"),
     ("renderer", "render_result", "publisher", "rendered_report"),
@@ -469,7 +471,7 @@ class FlowBuilder:
                 "nodes": [*self.notes, *(node.wrapper for node in self.nodes.values())],
                 "viewport": {"x": 80, "y": 80, "zoom": 0.58},
             },
-            "description": "업무 설명과 로컬 기능 카탈로그 JSON을 한 번 입력해, 키워드 기반 상위 100개 후보 중 LLM이 정한 최대 적용 후보만 확정하고, 품질 보완·최종 정규화를 거쳐 카탈로그 기반 개선안을 포함한 HTML 보고서를 생성하는 Langflow 1.11.0 단일 Flow.",
+            "description": "업무 설명과 로컬 기능 카탈로그 JSON을 한 번 입력해, 키워드 기반 상위 100개 후보를 별도 LLM이 최대 N개로 선별하고, 그 고정 후보 범위 안에서만 품질 보완·최종 정규화를 거쳐 카탈로그 기반 개선안을 포함한 HTML 보고서를 생성하는 Langflow 1.11.0 단일 Flow.",
             "endpoint_name": "business-work-design-single",
             "icon": None,
             "icon_bg_color": None,
@@ -497,12 +499,12 @@ class FlowBuilder:
                 "required_configuration": [
                     "00 업무 설명 입력의 업무 설명과 선택적인 추가 설계 요청",
                     "01 기능 카탈로그 JSON 파일의 UTF-8 JSON 파일 하나",
-                    "02 관련 기능 카탈로그 검색의 검색 후보 수(기본 100)와 LLM 상세 검토 후보 수(기본 12)",
-                    "03 1차 업무 설계 요청 구성의 LLM 선별 후보 최대 수(기본 12, 1~30)",
-                    "04 Language Model의 provider/model/credential (05 1차 생성과 08 최종 보완 생성에 같은 모델 객체를 사용)",
-                    "05·08의 고정 Pydantic 계약·시스템 지시는 standalone source 안에 있으므로 별도 설정이 필요하지 않음",
+                    "02 관련 기능 카탈로그 검색의 키워드 검색 후보 수(기본 100); 상세 문맥은 내부 기준으로 자동 제한",
+                    "03 LLM 카탈로그 후보 선별의 LLM 선별 후보 최대 수(기본 12, 1~30)",
+                    "05 Language Model의 provider/model/credential (03 후보 선별·06 1차 생성·09 최종 보완에 같은 모델 객체를 사용)",
+                    "03·06·09의 고정 Pydantic 계약·시스템 지시는 standalone source 안에 있으므로 별도 설정이 필요하지 않음",
                     "선택 사항: 00의 최종 설계 보완 지시(2차 보완 단계에만 반영)",
-                    "선택 사항: 12 보고서 링크 게시의 Report API URL",
+                    "선택 사항: 13 보고서 링크 게시의 Report API URL",
                 ],
                 "architecture": {
                     "single_flow": True,
@@ -513,6 +515,7 @@ class FlowBuilder:
                     "stateful_resume": False,
                     "custom_components_standalone": True,
                     "structured_output": True,
+                    "llm_catalog_shortlist": True,
                     "quality_refinement": True,
                 },
                 "custom_sources_embedded": True,
@@ -525,7 +528,7 @@ class FlowBuilder:
 def _prompt_text() -> str:
     if not PROMPT_PATH.is_file():
         raise FileNotFoundError(f"System prompt is missing: {PROMPT_PATH}")
-    prompt = PROMPT_PATH.read_text(encoding="utf-8")
+    prompt = PROMPT_PATH.read_text(encoding="utf-8").strip()
     if not prompt.strip():
         raise ValueError("System prompt must not be blank")
     if len(prompt) > 12_000:
@@ -556,14 +559,14 @@ def build_flow() -> dict[str, Any]:
     )
     builder.note(
         "retrieval",
-        "## 검색·선정\n\n검색 후보 수(기본 100)는 키워드 유사도로 찾는 풀입니다. LLM 상세 검토 후보 수(기본 12)는 설명을 더 많이 보여 주는 수이며, 실제 적용 개수가 아닙니다. 03의 LLM 선별 후보 최대 수는 1차 LLM이 후속 설계에 전달할 관련 후보 shortlist 수만 제한합니다.",
+        "## 검색·선정\n\n02는 키워드 기반으로 최대 100개 후보를 찾습니다. 03은 연결된 LLM으로 그 100개 중 관련 후보만 최대 N개로 선별합니다. 이 N은 실제 적용 개수가 아니라 후속 설계 LLM이 검토할 고정 범위입니다.",
         (260, -660),
         width=860,
         height=210,
     )
     builder.note(
         "design",
-        "## 설계\n\n04에서 provider/model/credential을 선택합니다. 05는 100개 후보 중 관련성이 높은 후보만 shortlist로 선별합니다. 07·08은 이 shortlist 안에서만 실제 적용 여부를 다시 판단하되, 업무와 무관한 후보를 억지로 사용하지 않습니다. 2차 보완이 실패해도 이미 검증한 1차 결과만 안전하게 사용합니다.",
+        "## 설계\n\n05에서 provider/model/credential을 선택합니다. 03이 LLM으로 후보 범위를 고정하면 04·06·09는 그 shortlist 안에서만 실제 적용 여부를 판단합니다. 후보를 반드시 사용할 필요는 없고 모두 미사용으로 남길 수 있습니다. 2차 보완이 실패하면 검증된 1차 결과를 사용합니다.",
         (1180, -660),
         width=920,
         height=210,
@@ -599,25 +602,36 @@ def build_flow() -> dict[str, Any]:
         "catalog_ranker",
         CUSTOM_COMPONENTS["catalog_ranker"],
         (-260, 180),
-        {"top_n": 100, "expanded_detail_count": 12, "max_candidate_chars": 700, "max_context_chars": 56_000},
-    ).relabel("02 관련 기능 카탈로그 검색", "로컬 JSON 안에서 키워드 유사도 기반 검색 후보(기본 100개)를 찾고, LLM 상세 검토 후보 수(기본 12개)를 Canvas에서 조절합니다.")
-    builder.custom(
-        "prompt_builder",
-        CUSTOM_COMPONENTS["prompt_builder"],
-        (160, 180),
-        {"max_shortlisted_catalog_items": 12, "max_prompt_chars": 64_000, "max_estimated_tokens": 20_000},
-    ).relabel("03 1차 업무 설계 요청 구성", "안전한 업무 설명과 100개 카탈로그 후보를 압축하고, LLM이 후속 설계에서 검토할 관련 후보 최대 수를 정해 1차 설계 요청으로 조립합니다.")
+        {"top_n": 100, "max_candidate_chars": 700, "max_context_chars": 56_000},
+    ).relabel("02 관련 기능 카탈로그 검색", "로컬 JSON 안에서 키워드 유사도 기반 검색 후보(기본 100개)를 찾습니다. 상세 문맥은 내부 상한으로 자동 준비하고, 실제 후보 선별은 03 LLM이 수행합니다.")
     language_model = builder.builtin(
         "language_model",
         "lfx.components.models_and_agents.language_model",
-        (580, 180),
+        (160, -40),
         {"stream": False, "temperature": 0.1, "max_tokens": 8192},
     )
-    # 04 is deliberately a provider/model configuration node.  It only emits
-    # its model object; the actual provider invocation and fixed prompt live in
-    # the following standalone 05 component.
+    # 05 only supplies the configured model object.  The standalone 03, 06,
+    # and 09 components own their own fixed contracts and actual LLM calls.
     _hide_build_controlled_field(language_model.node, "system_message", "")
-    language_model.relabel("04 Language Model (모델 설정)", "provider, model, credential을 선택해 05 1차 생성과 08 최종 보완 생성에 같은 모델 객체를 전달합니다.")
+    language_model.relabel("05 Language Model (모델 설정)", "provider, model, credential을 선택해 03 후보 선별·06 1차 설계·09 최종 보완에 같은 모델 객체를 전달합니다.")
+    builder.custom(
+        "catalog_shortlister",
+        CUSTOM_COMPONENTS["catalog_shortlister"],
+        (200, 180),
+        {"max_shortlisted_catalog_items": 12},
+    ).relabel(
+        "03 LLM 카탈로그 후보 선별",
+        "02의 키워드 기반 100개 후보를 LLM이 업무 관련성 기준으로 최대 N개까지 선별합니다. 이 후보는 검토 범위일 뿐 실제 Flow 적용을 강제하지 않습니다.",
+    )
+    builder.custom(
+        "prompt_builder",
+        CUSTOM_COMPONENTS["prompt_builder"],
+        (620, 180),
+        {"max_prompt_chars": 64_000, "max_estimated_tokens": 20_000},
+    ).relabel(
+        "04 업무 설계 요청 구성",
+        "안전한 업무 설명과 03이 고정한 후보만 1차 업무 설계 LLM 요청으로 조립합니다. 100개 검색 풀 전체를 다시 전달하지 않습니다.",
+    )
     # Langflow 1.11's built-in Structured Output represents its schema as an
     # editable table of extraction rows.  After an import or model-settings
     # refresh it can revert to the stock ``field`` row, which produces
@@ -627,69 +641,69 @@ def build_flow() -> dict[str, Any]:
     structured_output = builder.custom(
         "structured_output",
         CUSTOM_COMPONENTS["structured_output"],
-        (980, 180),
+        (1040, 180),
     )
     structured_output.relabel(
-        "05 1차 업무 설계 JSON 생성",
-        "04의 모델 객체와 03의 업무 설계 요청을 고정 Pydantic 계약으로 호출해 business-design-draft/v1 JSON Data 하나만 생성합니다.",
+        "06 1차 업무 설계 JSON 생성",
+        "05의 모델 객체와 04의 업무 설계 요청을 고정 Pydantic 계약으로 호출해 business-design-draft/v1 JSON Data 하나만 생성합니다.",
     )
     builder.custom(
         "result_normalizer",
         CUSTOM_COMPONENTS["result_normalizer"],
-        (1400, 180),
-    ).relabel("06 1차 설계 정규화·검증", "1차 업무 설계 JSON을 검증하고 권위 있는 업무 요청·100개 카탈로그 registry를 다시 결합합니다.")
+        (1460, 180),
+    ).relabel("07 1차 설계 정규화·검증", "1차 업무 설계 JSON을 검증하고 업무 요청·카탈로그 registry·03의 고정 shortlist를 다시 결합합니다.")
     builder.custom(
         "quality_prompt",
         CUSTOM_COMPONENTS["quality_prompt"],
-        (1820, 180),
-    ).relabel("07 설계 품질 점검·보완 요청", "1차 결과의 업무 단계·분기·예외·카탈로그 적용 근거를 점검하고 2차 보완 요청을 만듭니다.")
+        (1880, 180),
+    ).relabel("08 설계 품질 점검·보완 요청", "1차 결과의 업무 단계·분기·예외·카탈로그 적용 근거를 점검하고 2차 보완 요청을 만듭니다.")
     refinement_output = builder.custom(
         "refinement_output",
         CUSTOM_COMPONENTS["refinement_output"],
-        (2240, 180),
+        (2300, 180),
     )
     refinement_output.relabel(
-        "08 최종 업무 설계 JSON 보완",
-        "04의 같은 모델 객체로 07의 보완 요청을 고정 Pydantic 계약으로 실행합니다. 보완 호출이 불가능하면 1차 결과를 사용하도록 안전한 fallback envelope만 반환합니다.",
+        "09 최종 업무 설계 JSON 보완",
+        "05의 같은 모델 객체로 08의 보완 요청을 고정 Pydantic 계약으로 실행합니다. 보완 호출이 불가능하면 1차 결과를 사용하도록 안전한 fallback envelope만 반환합니다.",
     )
     builder.custom(
         "final_normalizer",
         CUSTOM_COMPONENTS["final_normalizer"],
-        (2660, 180),
-    ).relabel("09 최종 설계 정규화·검증", "2차 설계 JSON을 다시 검증하되, 1차에서 선별한 카탈로그 후보 범위만 고정합니다. 후보 안의 실제 적용 여부는 2차 설계가 업무 적합성에 따라 결정합니다.")
+        (2720, 180),
+    ).relabel("10 최종 설계 정규화·검증", "2차 설계 JSON을 다시 검증하되, 03이 선별한 카탈로그 후보 범위만 고정합니다. 후보 안의 실제 적용 여부는 2차 설계가 업무 적합성에 따라 결정합니다.")
     builder.custom(
         "view_model",
         CUSTOM_COMPONENTS["view_model"],
-        (3080, 180),
-    ).relabel("10 Report View Model 생성", "최종 검증된 업무 분석, Flow, 카탈로그 적용 계획을 화면용 계약으로 투영합니다.")
+        (3140, 180),
+    ).relabel("11 Report View Model 생성", "최종 검증된 업무 분석, Flow, 카탈로그 적용 계획을 화면용 계약으로 투영합니다.")
     builder.custom(
         "renderer",
         CUSTOM_COMPONENTS["renderer"],
-        (3500, 180),
-    ).relabel("11 업무 설계 HTML 보고서", "고정 CSS·JS로 안전한 self-contained HTML 보고서를 생성합니다.")
+        (3560, 180),
+    ).relabel("12 업무 설계 HTML 보고서", "고정 CSS·JS로 안전한 self-contained HTML 보고서를 생성합니다.")
     builder.custom(
         "publisher",
         CUSTOM_COMPONENTS["publisher"],
-        (3920, 180),
+        (3980, 180),
         {"report_api_url": "", "ttl_hours": 24, "http_timeout_seconds": 30},
-    ).relabel("12 보고서 링크 게시", "Report API URL이 있을 때만 보고서를 게시하며 실패해도 HTML은 보존합니다.")
+    ).relabel("13 보고서 링크 게시", "Report API URL이 있을 때만 보고서를 게시하며 실패해도 HTML은 보존합니다.")
     builder.custom(
         "result_message",
         CUSTOM_COMPONENTS["result_message"],
-        (4340, 80),
-    ).relabel("13 결과 안내 Message", "보고서 상태, 보완 항목 수, 카탈로그 적용 수와 링크를 사람이 읽기 쉽게 만듭니다.")
+        (4400, 80),
+    ).relabel("14 결과 안내 Message", "보고서 상태, 보완 항목 수, 카탈로그 적용 수와 링크를 사람이 읽기 쉽게 만듭니다.")
     builder.custom(
         "artifact_output",
         CUSTOM_COMPONENTS["artifact_output"],
-        (4340, 440),
-    ).relabel("14 보고서 결과 Data", "API와 자동 테스트가 HTML, hash, report ID를 회수하는 terminal Data output입니다.")
+        (4400, 440),
+    ).relabel("15 보고서 결과 Data", "API와 자동 테스트가 HTML, hash, report ID를 회수하는 terminal Data output입니다.")
     chat_output = builder.builtin(
         "chat_output",
         "lfx.components.input_output.chat_output",
-        (4760, 80),
+        (4820, 80),
         {"should_store_message": False, "session_id": "", "context_id": ""},
     )
-    chat_output.relabel("15 Chat Output", "Playground에 짧고 읽기 쉬운 최종 결과 안내를 표시합니다.")
+    chat_output.relabel("16 Chat Output", "Playground에 짧고 읽기 쉬운 최종 결과 안내를 표시합니다.")
 
     for source, output, target, field in EXPECTED_EDGES:
         builder.connect(source, output, target, field)
@@ -834,7 +848,7 @@ def _validate_builtins(by_key: dict[str, dict[str, Any]], prompt: str) -> None:
     model_template = language_model.get("template", {})
     system_field = model_template.get("system_message")
     if not isinstance(system_field, dict) or system_field.get("value") != "":
-        raise ValueError("Language Model system_message must be blank because standalone 05 owns the fixed prompt")
+        raise ValueError("Language Model system_message must be blank because standalone 03/06/09 own fixed prompts")
     if system_field.get("show") is not False or system_field.get("advanced") is not True:
         raise ValueError("Language Model system_message must be hidden advanced configuration")
     if model_template.get("stream", {}).get("value") is not False:
@@ -843,6 +857,38 @@ def _validate_builtins(by_key: dict[str, dict[str, Any]], prompt: str) -> None:
         raise ValueError("Language Model max_tokens must be 8192")
     if model_template.get("temperature", {}).get("value") != 0.1:
         raise ValueError("Language Model temperature must be 0.1")
+
+    shortlister = by_key["catalog_shortlister"]
+    if shortlister["data"].get("type") != "CatalogCandidateShortlister":
+        raise ValueError("Catalog shortlister must use the fixed standalone LLM component")
+    shortlister_template = shortlister["data"]["node"].get("template", {})
+    shortlister_model = shortlister_template.get("model")
+    if not isinstance(shortlister_model, dict) or set(shortlister_model.get("input_types") or []) != {"LanguageModel"}:
+        raise ValueError("Catalog shortlister model input must accept only LanguageModel")
+    for field_name in ("request", "retrieval_result"):
+        field = shortlister_template.get(field_name)
+        if not isinstance(field, dict) or field.get("required") is not True:
+            raise ValueError(f"Catalog shortlister {field_name} must be required")
+    shortlister_limit = shortlister_template.get("max_shortlisted_catalog_items")
+    if not isinstance(shortlister_limit, dict) or shortlister_limit.get("value") != 12:
+        raise ValueError("Catalog shortlister default max_shortlisted_catalog_items must be 12")
+    if shortlister_limit.get("advanced") is True or shortlister_limit.get("show") is False:
+        raise ValueError("Catalog shortlister max_shortlisted_catalog_items must be a visible Canvas input")
+    shortlister_output = next(
+        (item for item in (shortlister["data"]["node"].get("outputs") or []) if item.get("name") == "catalog_shortlist"),
+        None,
+    )
+    if not isinstance(shortlister_output, dict) or "Data" not in set(shortlister_output.get("types") or []):
+        raise ValueError("Catalog shortlister must expose a Data catalog_shortlist handle")
+    shortlister_source = (PROJECT_ROOT / "components" / "single_flow" / CUSTOM_COMPONENTS["catalog_shortlister"]).read_text(encoding="utf-8")
+    for required_marker in (
+        "FIXED_SHORTLIST_SYSTEM_PROMPT",
+        "CatalogShortlistDraftV1.model_rebuild",
+        "candidate_shortlist_only",
+        "max_shortlisted_catalog_items",
+    ):
+        if required_marker not in shortlister_source:
+            raise ValueError(f"Catalog shortlister source is missing {required_marker}")
 
     structured_output = by_key["structured_output"]["data"]["node"]
     if by_key["structured_output"]["data"].get("type") != "BusinessDesignStructuredOutput":
@@ -910,38 +956,36 @@ def _validate_builtins(by_key: dict[str, dict[str, Any]], prompt: str) -> None:
     for key in ("result_normalizer", "final_normalizer"):
         normalizer = by_key[key]["data"]["node"]
         normalizer_template = normalizer.get("template", {})
+        catalog_shortlist = normalizer_template.get("catalog_shortlist")
+        if not isinstance(catalog_shortlist, dict) or catalog_shortlist.get("required") is not True:
+            raise ValueError("Both normalizer instances must require the 03 catalog shortlist input")
+        if not {"Data", "JSON"}.issubset(set(catalog_shortlist.get("input_types") or [])):
+            raise ValueError("Normalizer catalog shortlist input must accept Data and JSON")
         fallback = normalizer_template.get("fallback_design_result")
         if not isinstance(fallback, dict) or fallback.get("required") is not False:
             raise ValueError("Both normalizer instances must expose the optional verified fallback input")
         if not {"Data", "JSON"}.issubset(set(fallback.get("input_types") or [])):
             raise ValueError("Normalizer fallback input must accept Data and JSON")
-    final_normalizer_template = by_key["final_normalizer"]["data"]["node"].get("template", {})
-    fixed_catalog_shortlist = final_normalizer_template.get("fixed_catalog_shortlist")
-    if not isinstance(fixed_catalog_shortlist, dict) or fixed_catalog_shortlist.get("required") is not False:
-        raise ValueError("Final normalizer must expose the optional fixed catalog shortlist input")
-    if not {"Data", "JSON"}.issubset(set(fixed_catalog_shortlist.get("input_types") or [])):
-        raise ValueError("Final normalizer fixed catalog shortlist input must accept Data and JSON")
     ranker_template = by_key["catalog_ranker"]["data"]["node"].get("template", {})
     if ranker_template.get("top_n", {}).get("value") != 100:
         raise ValueError("Catalog Ranker default top_n must be 100")
-    expanded_detail_count = ranker_template.get("expanded_detail_count")
-    if not isinstance(expanded_detail_count, dict) or expanded_detail_count.get("value") != 12:
-        raise ValueError("Catalog Ranker default expanded_detail_count must be 12")
-    if expanded_detail_count.get("advanced") is True or expanded_detail_count.get("show") is False:
-        raise ValueError("Catalog Ranker expanded_detail_count must be a visible Canvas input")
+    if "expanded_detail_count" in ranker_template:
+        raise ValueError("Catalog Ranker must not expose expanded_detail_count as a Canvas input")
     prompt_builder_template = by_key["prompt_builder"]["data"]["node"].get("template", {})
-    max_shortlisted_catalog_items = prompt_builder_template.get("max_shortlisted_catalog_items")
-    if not isinstance(max_shortlisted_catalog_items, dict) or max_shortlisted_catalog_items.get("value") != 12:
-        raise ValueError("Prompt Builder default max_shortlisted_catalog_items must be 12")
-    if max_shortlisted_catalog_items.get("advanced") is True or max_shortlisted_catalog_items.get("show") is False:
-        raise ValueError("Prompt Builder max_shortlisted_catalog_items must be a visible Canvas input")
+    builder_shortlist = prompt_builder_template.get("catalog_shortlist")
+    if not isinstance(builder_shortlist, dict) or builder_shortlist.get("required") is not True:
+        raise ValueError("Prompt Builder must require the 03 catalog shortlist input")
+    if not {"Data", "JSON"}.issubset(set(builder_shortlist.get("input_types") or [])):
+        raise ValueError("Prompt Builder catalog shortlist input must accept Data and JSON")
+    if "max_shortlisted_catalog_items" in prompt_builder_template:
+        raise ValueError("Prompt Builder must not duplicate the shortlister's visible candidate limit input")
     prompt_builder_source = (PROJECT_ROOT / "components" / "single_flow" / CUSTOM_COMPONENTS["prompt_builder"]).read_text(encoding="utf-8")
     prompt_hash = "sha256:" + _sha256_text(prompt)
     if prompt_hash not in prompt_builder_source:
-        raise ValueError("03 Prompt Builder must embed the fixed system-message SHA-256 constant")
+        raise ValueError("04 Prompt Builder must embed the fixed system-message SHA-256 constant")
     prompt_length_pattern = rf"SYSTEM_MESSAGE_CHAR_COUNT\s*=\s*{str(len(prompt))[:-3]}_?{str(len(prompt))[-3:]}\b"
     if not re.search(prompt_length_pattern, prompt_builder_source):
-        raise ValueError("03 Prompt Builder must embed the fixed system-message character-count constant")
+        raise ValueError("04 Prompt Builder must embed the fixed system-message character-count constant")
     chat_output = by_key["chat_output"]["data"]["node"].get("template", {})
     if chat_output.get("should_store_message", {}).get("value") is not False:
         raise ValueError("Chat Output should_store_message must be false")
@@ -967,6 +1011,7 @@ def validate_flow_payload(flow: dict[str, Any], *, check_graph: bool = True) -> 
         "stateful_resume": False,
         "custom_components_standalone": True,
         "structured_output": True,
+        "llm_catalog_shortlist": True,
         "quality_refinement": True,
     }
     if architecture != expected_architecture:

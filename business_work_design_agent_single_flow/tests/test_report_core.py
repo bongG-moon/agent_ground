@@ -65,6 +65,41 @@ def _design_result():
             ],
         }
     )
+    component.catalog_shortlist = Data(
+        data={
+            "ok": True,
+            "status": "COMPLETED",
+            "schema_version": "catalog-shortlist/v1",
+            "request_sha256": "sha256:" + "2" * 64,
+            "candidate_set_sha256": "sha256:" + "4" * 64,
+            "catalog_file_sha256": "sha256:" + "3" * 64,
+            "selection_policy": {
+                "max_shortlisted_catalog_items": 12,
+                "zero_shortlist_allowed": True,
+                "selection_scope": "candidate_shortlist_only",
+                "selection_method": "llm-structured-shortlist/v1",
+                "selection_source": "canvas_node_03",
+            },
+            "shortlisted_candidates": [
+                {
+                    "asset_id": "4deabfbd-b270-49ee-92e5-38b86cc5f908",
+                    "version": "v1.1.1",
+                    "shortlist_rank": 1,
+                    "reason": "메일 본문과 첨부 텍스트를 업무보고 근거로 검토합니다.",
+                },
+                {
+                    "asset_id": "a395f7e2-10ae-4d06-9b28-d79b49bc7e50",
+                    "version": "v0.1.0",
+                    "shortlist_rank": 2,
+                    "reason": "메일과 JIRA를 통합하는 보고 Flow를 검토합니다.",
+                },
+            ],
+            "shortlisted_count": 2,
+            "unshortlisted_candidate_count": 0,
+            "warnings": [],
+            "trace": {},
+        }
+    )
     component.model_response = Message(
         text=json.dumps(
             {
@@ -179,6 +214,15 @@ def test_report_pipeline_smoke_and_catalog_links():
     assert first["status"] == "RENDERED"
     assert first["html"] == second["html"]
     assert first["content_sha256"] == second["content_sha256"]
+    # The top of the report is an implementation brief only.  Detailed
+    # analysis, catalog, roadmap, risks, tests, and gaps are shown once in
+    # their dedicated sections below instead of being duplicated as 11 cards.
+    assert "Agent 구현 한눈에 보기" in first["html"]
+    assert "Agent가 자동으로 처리할 일" in first["html"]
+    assert "Agent를 조립하는 방식" in first["html"]
+    assert "사람 검토와 차단 경계" in first["html"]
+    assert "업무 목적, 현재 문제, 개선 방향, 실행 분담을 짧게 확인합니다." not in first["html"]
+    assert "const blockNames=" not in first["html"]
     assert "카탈로그 기반 적용 계획" in first["html"]
     assert "Agent Hub 상세 보기" in first["html"]
     assert "https://agent-hub.skhynix.com/#/flow/a395f7e2-10ae-4d06-9b28-d79b49bc7e50" in first["html"]

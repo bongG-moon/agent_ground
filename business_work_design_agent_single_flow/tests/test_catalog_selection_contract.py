@@ -1,16 +1,14 @@
-"""Contracts for the LLM-owned, bounded catalog-shortlist phase.
+"""Contracts for the fixed LLM catalog-shortlist boundary.
 
-The retrieval ranker intentionally remains deterministic: it produces the
-candidate pool.  These tests cover the separate policy that lets the first LLM
-shortlist at most a visible, user-configured number of assets.  The second LLM
-then decides whether each shortlisted asset is actually selected, merely
-considered, or not used; only the candidate *scope* is fixed.
+02 owns the lexical retrieval pool, 03 owns the LLM shortlist, and the two
+design-model passes can only make actual apply/consider/not-use decisions
+inside that fixed shortlist. A shortlist therefore never means that an asset
+must be used in the final design.
 """
 
 from __future__ import annotations
 
 import importlib.util
-import json
 import sys
 from pathlib import Path
 
@@ -85,6 +83,44 @@ def _retrieval(count: int = 4) -> dict:
     }
 
 
+def _catalog_shortlist(numbers: list[int], *, maximum: int = 2) -> dict:
+    """The authoritative Data envelope emitted by node 03.
+
+    Keep this independent of the initial design response: the decision LLM
+    cannot manufacture or expand the candidate scope by echoing a policy.
+    """
+
+    retrieval = _retrieval()
+    return {
+        "ok": True,
+        "status": "COMPLETED",
+        "schema_version": "catalog-shortlist/v1",
+        "request_sha256": _request()["request_sha256"],
+        "candidate_set_sha256": retrieval["candidate_set_sha256"],
+        "catalog_file_sha256": retrieval["catalog_file_sha256"],
+        "selection_policy": {
+            "max_shortlisted_catalog_items": maximum,
+            "zero_shortlist_allowed": True,
+            "selection_scope": "candidate_shortlist_only",
+            "selection_method": "llm-structured-shortlist/v1",
+            "selection_source": "canvas_node_03",
+        },
+        "shortlisted_candidates": [
+            {
+                "asset_id": _candidate(number)["asset_id"],
+                "version": _candidate(number)["version"],
+                "shortlist_rank": rank,
+                "reason": f"후보 {number}를 설계 검토 대상으로 선별했습니다.",
+            }
+            for rank, number in enumerate(numbers, start=1)
+        ],
+        "shortlisted_count": len(numbers),
+        "unshortlisted_candidate_count": len(retrieval["candidates"]) - len(numbers),
+        "warnings": [],
+        "trace": {},
+    }
+
+
 def _draft(decisions: list[dict]) -> dict:
     nodes = [
         {
@@ -118,14 +154,13 @@ def _decision(number: int, decision: str, *, target: int | None = None) -> dict:
     }
 
 
-def _normalized_result(model_response: dict, *, fixed_catalog_shortlist=None) -> dict:
+def _normalized_result(model_response: dict, *, catalog_shortlist: dict | None = None) -> dict:
     module = _module("05_business_design_result_normalizer.py")
     component = module.BusinessDesignResultNormalizerComponent()
     component.request = Data(data=_request())
     component.retrieval_result = Data(data=_retrieval())
     component.model_response = Data(data=model_response)
-    if fixed_catalog_shortlist is not None:
-        component.fixed_catalog_shortlist = Data(data=fixed_catalog_shortlist)
+    component.catalog_shortlist = Data(data=catalog_shortlist or _catalog_shortlist([1, 2]))
     return component.normalize_design().data
 
 
@@ -133,46 +168,64 @@ def _identities(application: dict, bucket: str) -> list[tuple[str, str]]:
     return [(item["asset_id"], item["version"]) for item in application[bucket]]
 
 
-def test_first_prompt_exposes_visible_shortlist_limit_and_emits_a_machine_readable_policy():
+def _shortlist_identities(result: dict) -> list[tuple[str, str]]:
+    return [
+        (item["asset_id"], item["version"])
+        for item in result["catalog_candidate_shortlist"]["candidates"]
+    ]
+
+
+def test_prompt_builder_consumes_the_fixed_llm_shortlist_not_a_visible_limit_of_its_own():
     module = _module("03_business_design_prompt_builder.py")
     inputs = {item.name: item for item in module.BusinessDesignPromptBuilderComponent.inputs}
 
-    shortlist_input = inputs["max_shortlisted_catalog_items"]
-    assert shortlist_input.value == 12
-    assert shortlist_input.advanced is False
-    assert shortlist_input.show is not False
+    assert "max_shortlisted_catalog_items" not in inputs
+    shortlist_input = inputs["catalog_shortlist"]
+    assert shortlist_input.required is True
+    assert {"Data", "JSON"}.issubset(set(shortlist_input.input_types))
 
     component = module.BusinessDesignPromptBuilderComponent()
     component.request = Data(data=_request())
     component.retrieval_result = Data(data=_retrieval())
+    component.catalog_shortlist = Data(data=_catalog_shortlist([4, 2]))
     component.max_prompt_chars = 64_000
     component.max_estimated_tokens = 20_000
-    component.max_shortlisted_catalog_items = 2
 
     prompt = component.build_prompt()
 
-    assert prompt.data["catalog_shortlist_policy"]["max_shortlisted_catalog_items"] == 2
-    assert prompt.data["catalog_shortlist_policy"]["selection_scope"] == "shortlist_only"
-    assert "<catalog_shortlist_policy>" in prompt.text
-    assert "최대 2개" in prompt.text
+    assert prompt.data["catalog_shortlist_policy"] == {
+        "max_shortlisted_catalog_items": 2,
+        "selection_scope": "candidate_shortlist_only",
+        "selection_source": "llm_catalog_shortlister",
+    }
+    assert prompt.data["candidate_count"] == 2
+    assert prompt.data["retrieval_candidate_count"] == 4
+    assert [item["asset_id"] for item in prompt.data["catalog_shortlist"]["shortlisted_candidates"]] == [
+        _candidate(4)["asset_id"],
+        _candidate(2)["asset_id"],
+    ]
+    assert _candidate(4)["asset_id"] in prompt.text
+    assert _candidate(2)["asset_id"] in prompt.text
+    assert _candidate(1)["asset_id"] not in prompt.text
+    assert _candidate(3)["asset_id"] not in prompt.text
     assert "catalog_decisions" in prompt.text
 
 
-@pytest.mark.parametrize("limit", [0, 31])
-def test_first_prompt_rejects_an_unsafe_catalog_shortlist_limit(limit: int):
+def test_prompt_builder_rejects_a_shortlist_with_an_identity_outside_the_retrieval_pool():
     module = _module("03_business_design_prompt_builder.py")
     component = module.BusinessDesignPromptBuilderComponent()
     component.request = Data(data=_request())
     component.retrieval_result = Data(data=_retrieval())
+    component.catalog_shortlist = Data(data=_catalog_shortlist([1, 2]))
+    component.catalog_shortlist.data["shortlisted_candidates"][1]["version"] = "v-not-in-retrieval"
     component.max_prompt_chars = 64_000
     component.max_estimated_tokens = 20_000
-    component.max_shortlisted_catalog_items = limit
 
-    with pytest.raises(ValueError, match="CATALOG_SHORTLIST_LIMIT_INVALID"):
+    with pytest.raises(ValueError, match="CATALOG_SHORTLIST_INVALID"):
         component.build_prompt()
 
 
-def test_first_structured_output_preserves_the_shortlist_policy_from_03_for_the_normalizer():
+def test_first_structured_output_preserves_the_shortlist_policy_from_04_for_the_normalizer():
     module = _module("04_business_design_structured_output.py")
 
     class Runnable:
@@ -188,52 +241,64 @@ def test_first_structured_output_preserves_the_shortlist_policy_from_03_for_the_
     component.model = Model()
     component.input_value = Message(
         text="<response_contract>JSON 하나만 반환</response_contract>",
-        data={"catalog_shortlist_policy": {"max_shortlisted_catalog_items": 2}},
+        data={
+            "catalog_shortlist_policy": {
+                "max_shortlisted_catalog_items": 2,
+                "selection_scope": "candidate_shortlist_only",
+                "selection_source": "llm_catalog_shortlister",
+            }
+        },
     )
 
     result = component.build_structured_output().data
 
-    assert result["catalog_shortlist_policy"]["max_shortlisted_catalog_items"] == 2
-    assert result["catalog_shortlist_policy"]["selection_scope"] == "shortlist_only"
+    assert result["catalog_shortlist_policy"] == {
+        "max_shortlisted_catalog_items": 2,
+        "selection_scope": "candidate_shortlist_only",
+        "selection_source": "llm_catalog_shortlister",
+    }
     assert result["schema_version"] == "business-design-draft/v1"
 
 
-def test_first_normalizer_caps_llm_shortlist_in_llm_priority_order_and_keeps_a_complete_partition():
-    # The order here is the LLM's explicit recommendation priority, not the
-    # retrieval rank.  The cap must retain the first two valid selections in
-    # this order; a local ranker must not silently replace that judgment.
+def test_first_normalizer_uses_03_shortlist_as_the_only_allowed_design_decision_scope():
+    # The direct 03 output, not the order or policy echoed by the design LLM,
+    # determines which candidates it may apply. LLM order remains meaningful
+    # within the scope, but no lexical-rank replacement happens here.
     response = _draft(
         [
             _decision(4, "selected", target=4),
             _decision(2, "selected", target=2),
             _decision(1, "selected", target=1),
-            _decision(3, "selected", target=3),
+            _decision(3, "considered"),
         ]
     )
-    response["catalog_shortlist_policy"] = {"max_shortlisted_catalog_items": 2}
+    response["catalog_shortlist_policy"] = {"max_shortlisted_catalog_items": 30}
 
-    result = _normalized_result(response)
+    result = _normalized_result(response, catalog_shortlist=_catalog_shortlist([4, 2]))
     application = result["catalog_application"]
 
-    assert set(_identities(application, "selected")) == {
-        (_candidate(4)["asset_id"], "v4"),
+    assert _identities(application, "selected") == [
         (_candidate(2)["asset_id"], "v2"),
-    }
-    assert {(_candidate(1)["asset_id"], "v1"), (_candidate(3)["asset_id"], "v3")} <= set(
-        _identities(application, "considered")
-    )
-    all_identities = [
+        (_candidate(4)["asset_id"], "v4"),
+    ]
+    report_identities = {
         identity
         for bucket in ("selected", "considered", "not_used")
         for identity in _identities(application, bucket)
-    ]
-    assert len(all_identities) == 4
-    assert len(set(all_identities)) == 4
-    assert "CATALOG_SHORTLIST_LIMIT_APPLIED" in result["warnings"]
+    }
+    assert {(_candidate(1)["asset_id"], "v1"), (_candidate(3)["asset_id"], "v3")}.isdisjoint(report_identities)
+    assert application["candidate_count"] == 2
+    assert application["retrieval_candidate_count"] == 4
+    assert "CATALOG_DECISION_OUTSIDE_SHORTLIST" in result["warnings"]
     assert result["trace"]["catalog_shortlist_policy"]["max_shortlisted_catalog_items"] == 2
+    assert _shortlist_identities(result) == [
+        (_candidate(4)["asset_id"], "v4"),
+        (_candidate(2)["asset_id"], "v2"),
+    ]
 
 
-def test_final_normalizer_locks_only_first_pass_shortlist_and_allows_every_shortlisted_asset_to_be_not_used():
+def test_final_normalizer_keeps_first_shortlist_fixed_but_allows_every_shortlisted_asset_to_be_unused():
+    fixed_shortlist = _catalog_shortlist([1, 2])
     first_response = _draft(
         [
             _decision(1, "selected", target=1),
@@ -242,16 +307,15 @@ def test_final_normalizer_locks_only_first_pass_shortlist_and_allows_every_short
             _decision(4, "not_used"),
         ]
     )
-    first_response["catalog_shortlist_policy"] = {"max_shortlisted_catalog_items": 2}
-    shortlist = _normalized_result(first_response)
-    assert _identities(shortlist["catalog_application"], "selected") == [
+    first = _normalized_result(first_response, catalog_shortlist=fixed_shortlist)
+    assert _shortlist_identities(first) == [
         (_candidate(1)["asset_id"], "v1"),
         (_candidate(2)["asset_id"], "v2"),
     ]
 
-    # The final LLM is free to decide that the sole shortlisted candidate is
-    # not useful after it sees the refined process.  It also tries to apply
-    # candidates 3 and 4, which were outside the first LLM's shortlist.
+    # The second LLM may conclude that neither of the fixed candidates helps
+    # the refined design. It must not turn either into selected merely because
+    # 03 shortlisted it. Its attempted use of 3/4 is safely downgraded.
     refinement_response = _draft(
         [
             _decision(1, "not_used"),
@@ -260,23 +324,21 @@ def test_final_normalizer_locks_only_first_pass_shortlist_and_allows_every_short
             _decision(4, "selected", target=4),
         ]
     )
-    # The policy is intentionally ignored on the second pass: the fixed first
-    # result owns the candidate scope and prevents an LLM from expanding it.
     refinement_response["catalog_shortlist_policy"] = {"max_shortlisted_catalog_items": 30}
-    refined = _normalized_result(refinement_response, fixed_catalog_shortlist=shortlist)
+    refined = _normalized_result(refinement_response, catalog_shortlist=fixed_shortlist)
     application = refined["catalog_application"]
 
-    # No candidate is forced into selected merely because it was on the first
-    # shortlist.  Candidate 1 may be explicitly not_used by the final LLM.
     assert _identities(application, "selected") == []
-    assert (_candidate(1)["asset_id"], "v1") in _identities(application, "not_used")
-
-    # Both first-pass shortlisted candidates can remain unused. Candidates 3/4
-    # are outside that shortlist and are ignored/downgraded even when the
-    # final LLM attempts to use them.
-    assert (_candidate(2)["asset_id"], "v2") in _identities(application, "not_used")
-    assert (_candidate(3)["asset_id"], "v3") in _identities(application, "not_used")
-    assert (_candidate(4)["asset_id"], "v4") in _identities(application, "not_used")
+    assert {(_candidate(1)["asset_id"], "v1"), (_candidate(2)["asset_id"], "v2")} <= set(
+        _identities(application, "not_used")
+    )
+    report_identities = {
+        identity
+        for bucket in ("selected", "considered", "not_used")
+        for identity in _identities(application, bucket)
+    }
+    assert {(_candidate(3)["asset_id"], "v3"), (_candidate(4)["asset_id"], "v4")}.isdisjoint(report_identities)
+    assert _shortlist_identities(refined) == _shortlist_identities(first)
     assert "CATALOG_CANDIDATE_SHORTLIST_PRESERVED" in refined["warnings"]
     assert "CATALOG_DECISION_OUTSIDE_SHORTLIST" in refined["warnings"]
     assert application["selection_policy"]["max_shortlisted_catalog_items"] == 2

@@ -55,18 +55,54 @@ def _rank(
     request: dict,
     catalog: dict,
     top_n: int | None = None,
-    expanded_detail_count: int | None = None,
 ) -> dict:
     component = M02.LocalCatalogRankerComponent()
     component.request = request
     component.catalog_bundle = catalog
     if top_n is not None:
         component.top_n = top_n
-    if expanded_detail_count is not None:
-        component.expanded_detail_count = expanded_detail_count
     component.max_candidate_chars = 700
     component.max_context_chars = 56_000
     return component.rank_catalog().data
+
+
+def _shortlist(request: dict, retrieval: dict, *, count: int = 12) -> dict:
+    """Create the authoritative 03 envelope for prompt-builder unit tests.
+
+    These tests intentionally exercise 04 in isolation.  The preceding 03
+    model has already chosen the review scope, so 04 must never substitute the
+    whole 100-item lexical result for this envelope.
+    """
+
+    chosen = retrieval["candidates"][:count]
+    return {
+        "ok": True,
+        "status": "COMPLETED",
+        "schema_version": "catalog-shortlist/v1",
+        "request_sha256": request["request_sha256"],
+        "candidate_set_sha256": retrieval["candidate_set_sha256"],
+        "catalog_file_sha256": retrieval["catalog_file_sha256"],
+        "selection_policy": {
+            "max_shortlisted_catalog_items": count,
+            "zero_shortlist_allowed": True,
+            "selection_scope": "candidate_shortlist_only",
+            "selection_method": "llm-structured-shortlist/v1",
+            "selection_source": "canvas_node_03",
+        },
+        "shortlisted_candidates": [
+            {
+                "asset_id": candidate["asset_id"],
+                "version": candidate["version"],
+                "shortlist_rank": position,
+                "reason": "업무 설명과 관련성이 있어 후속 설계 검토 후보로 선별했습니다.",
+            }
+            for position, candidate in enumerate(chosen, start=1)
+        ],
+        "shortlisted_count": len(chosen),
+        "unshortlisted_candidate_count": len(retrieval["candidates"]) - len(chosen),
+        "warnings": [],
+        "trace": {},
+    }
 
 
 def test_request_redacts_secret_and_keeps_description_hash_when_only_instruction_is_redacted():
@@ -177,16 +213,18 @@ def test_100_item_catalog_ranking_is_deterministic_and_bounded():
     assert not schema_errors, "\n".join(error.message for error in schema_errors)
 
 
-def test_expanded_detail_count_is_canvas_configurable_and_schema_valid():
+def test_internal_detail_context_is_fixed_and_schema_valid():
     catalog = _load_catalog(PROJECT_ROOT / "samples" / "catalog_assets_100_example.json")
     request = _request("업무 보고서의 메일·JIRA 수집, 오류 점검, 승인과 게시 흐름을 개선합니다.")
-    retrieval = _rank(request, catalog, expanded_detail_count=20)
+    retrieval = _rank(request, catalog)
 
+    input_names = {input_spec.name for input_spec in M02.LocalCatalogRankerComponent.inputs}
+    assert "expanded_detail_count" not in input_names
     assert retrieval["top_n_requested"] == 100
-    assert retrieval["expanded_detail_count_requested"] == 20
-    assert retrieval["expanded_detail_count_returned"] == 20
-    assert len(retrieval["expanded_candidate_details"]) == 20
-    assert [detail["rank"] for detail in retrieval["expanded_candidate_details"]] == list(range(1, 21))
+    assert retrieval["expanded_detail_count_requested"] == M02._DEFAULT_EXPANDED_DETAIL_COUNT == 12
+    assert retrieval["expanded_detail_count_returned"] == 12
+    assert len(retrieval["expanded_candidate_details"]) == 12
+    assert [detail["rank"] for detail in retrieval["expanded_candidate_details"]] == list(range(1, 13))
     retrieval_schema = json.loads(
         (PROJECT_ROOT / "schemas" / "local_catalog_retrieval.v1.schema.json").read_text(encoding="utf-8")
     )
@@ -194,46 +232,41 @@ def test_expanded_detail_count_is_canvas_configurable_and_schema_valid():
     assert not schema_errors, "\n".join(error.message for error in schema_errors)
 
 
-def test_maximum_detail_count_reaches_first_prompt_without_losing_the_100_candidate_index():
+def test_fixed_internal_detail_context_reaches_shortlisted_prompt_without_leaking_100_candidate_pool():
     catalog = _load_catalog(PROJECT_ROOT / "samples" / "catalog_assets_100_example.json")
     request = _request("업무 보고서의 메일·JIRA 수집, 오류 점검, 승인과 게시 흐름을 개선합니다.")
-    retrieval = _rank(request, catalog, expanded_detail_count=30)
+    retrieval = _rank(request, catalog)
 
     component = M03.BusinessDesignPromptBuilderComponent()
     component.request = request
     component.retrieval_result = retrieval
+    component.catalog_shortlist = _shortlist(request, retrieval, count=12)
     component.max_prompt_chars = 64_000
     component.max_estimated_tokens = 20_000
     prompt = component.build_prompt()
 
-    assert retrieval["expanded_detail_count_requested"] == 30
-    assert retrieval["expanded_detail_count_returned"] == 30
-    assert prompt.data["candidate_index_count"] == 100
-    assert prompt.data["expanded_candidate_requested_count"] == 30
-    assert prompt.data["expanded_candidate_returned_count"] == 30
-    assert prompt.data["expanded_candidate_count"] == 30
+    assert retrieval["expanded_detail_count_requested"] == M02._DEFAULT_EXPANDED_DETAIL_COUNT == 12
+    assert retrieval["expanded_detail_count_returned"] == 12
+    assert prompt.data["retrieval_candidate_count"] == 100
+    assert prompt.data["candidate_index_count"] == 12
+    assert prompt.data["expanded_candidate_requested_count"] == 12
+    assert prompt.data["expanded_candidate_returned_count"] == 12
+    assert prompt.data["expanded_candidate_count"] == 12
 
 
-def test_expanded_detail_count_rejects_unsafe_bounds():
+def test_ranker_has_no_canvas_detail_limit_but_preserves_100_candidate_retrieval():
     catalog = _load_catalog(PROJECT_ROOT / "samples" / "catalog_assets_100_example.json")
     request = _request("Outlook 메일과 JIRA 작업을 프로젝트별로 정리해 승인 후 게시하는 업무 보고서 자동화")
-    component = M02.LocalCatalogRankerComponent()
-    component.request = request
-    component.catalog_bundle = catalog
-    component.top_n = 100
-    component.expanded_detail_count = 31
-    component.max_candidate_chars = 700
-    component.max_context_chars = 56_000
+    retrieval = _rank(request, catalog, top_n=100)
 
-    try:
-        component.rank_catalog()
-    except ValueError as exc:
-        assert str(exc).startswith("RETRIEVAL_LIMIT_INVALID:")
-    else:
-        raise AssertionError("expanded_detail_count > 30 must be rejected")
+    input_names = {input_spec.name for input_spec in M02.LocalCatalogRankerComponent.inputs}
+    assert "top_n" in input_names
+    assert "expanded_detail_count" not in input_names
+    assert retrieval["top_n_returned"] == 100
+    assert retrieval["expanded_detail_count_returned"] == M02._DEFAULT_EXPANDED_DETAIL_COUNT
 
 
-def test_prompt_has_every_candidate_in_untrusted_boundary_without_system_prompt_duplication():
+def test_prompt_has_only_03_shortlisted_candidates_in_untrusted_boundary_without_system_prompt_duplication():
     catalog = _load_catalog(PROJECT_ROOT / "samples" / "catalog_assets_100_example.json")
     request = _request(
         "매주 수집되는 생산 이슈, Outlook 메일, JIRA 작업을 검토해 보고서 초안을 만들고 오류나 누락이 있으면 게시하지 않는 업무를 개선합니다.",
@@ -244,6 +277,7 @@ def test_prompt_has_every_candidate_in_untrusted_boundary_without_system_prompt_
     component = M03.BusinessDesignPromptBuilderComponent()
     component.request = request
     component.retrieval_result = retrieval
+    component.catalog_shortlist = _shortlist(request, retrieval, count=12)
     component.max_prompt_chars = 64_000
     component.max_estimated_tokens = 20_000
     prompt = component.build_prompt()
@@ -253,11 +287,12 @@ def test_prompt_has_every_candidate_in_untrusted_boundary_without_system_prompt_
     assert "<response_contract>" in prompt.text
     assert prompt.text.rstrip().endswith("</response_contract>")
     fixed_prompt = (PROJECT_ROOT / "prompts" / "single_flow_business_design.md").read_text(encoding="utf-8")
-    assert "사용자가 입력한 **업무 자체**를 분석합니다" in fixed_prompt
-    assert "Human Input·재질문 loop를 새로 제안하지 마세요" in fixed_prompt
-    assert prompt.data["candidate_count"] == retrieval["top_n_returned"]
-    assert prompt.data["candidate_index_count"] == 100
-    assert 0 < prompt.data["expanded_candidate_count"] <= M03._MAX_EXPANDED_CANDIDATES
+    assert "업무 자체를 분석합니다." in fixed_prompt
+    assert "Human Input 또는 재질문 loop를 새로 제안하지 마세요." in fixed_prompt
+    assert prompt.data["retrieval_candidate_count"] == retrieval["top_n_returned"] == 100
+    assert prompt.data["candidate_count"] == 12
+    assert prompt.data["candidate_index_count"] == 12
+    assert 0 < prompt.data["expanded_candidate_count"] <= 12
     assert prompt.data["candidate_context_schema"] == "catalog-candidate-context/v2"
     assert prompt.data["final_refinement_instructions_included"] is False
     assert prompt.data["system_message_sha256"] == M03.SYSTEM_MESSAGE_SHA256
@@ -268,18 +303,20 @@ def test_prompt_has_every_candidate_in_untrusted_boundary_without_system_prompt_
     candidate_context = json.loads(prompt.text[boundary_start:boundary_end].splitlines()[-1])
     assert candidate_context["schema_version"] == "catalog-candidate-context/v2"
     assert candidate_context["candidate_index_record_fields"] == list(M03._INDEX_RECORD_FIELDS)
-    assert len(candidate_context["candidate_index"]) == 100
+    assert len(candidate_context["candidate_index"]) == 12
     assert len(candidate_context["expanded_candidates"]) == prompt.data["expanded_candidate_count"]
     index_asset_position = candidate_context["candidate_index_record_fields"].index("asset_id")
     assert [record[index_asset_position] for record in candidate_context["candidate_index"]] == [
-        candidate["asset_id"] for candidate in retrieval["candidates"]
+        candidate["asset_id"] for candidate in retrieval["candidates"][:12]
     ]
     assert [item["rank"] for item in candidate_context["expanded_candidates"]] == list(
         range(1, len(candidate_context["expanded_candidates"]) + 1)
     )
     assert len(json.dumps(candidate_context, ensure_ascii=False, sort_keys=True, separators=(",", ":"))) <= 32_000
-    for candidate in retrieval["candidates"]:
+    for candidate in retrieval["candidates"][:12]:
         assert candidate["asset_id"] in prompt.text
+    for candidate in retrieval["candidates"][12:]:
+        assert candidate["asset_id"] not in prompt.text
 
     repeated = component.build_prompt()
     assert repeated.text == prompt.text

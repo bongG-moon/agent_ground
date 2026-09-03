@@ -108,6 +108,25 @@ def _initial_design_result():
             "considered": [],
             "not_used": [],
         },
+        "catalog_candidate_shortlist": {
+            "schema_version": "catalog-shortlist/v1",
+            "policy": {
+                "max_shortlisted_catalog_items": 12,
+                "selection_scope": "candidate_shortlist_only",
+                "selection_source": "llm_catalog_shortlister",
+            },
+            "candidates": [
+                {
+                    "asset_id": "11111111-1111-1111-1111-111111111111",
+                    "version": "v1",
+                    "shortlist_rank": 1,
+                    "asset_type": "flow",
+                    "title": "메일·JIRA 통합 Flow",
+                    "reason": "메일과 이슈를 함께 수집하는 업무 단계와 관련됩니다.",
+                    "technical_contract_status": "metadata_only",
+                }
+            ],
+        },
         "warnings": [],
         "trace": {},
     }
@@ -210,7 +229,7 @@ def test_refinement_prompt_is_bounded_structured_and_uses_final_instruction_only
     message = component.build_refinement_prompt()
 
     assert message.data["schema_version"] == "business-design-refinement-prompt/v1"
-    assert message.data["candidate_count"] == 2
+    assert message.data["candidate_count"] == 1
     assert message.data["final_refinement_instruction_present"] is True
     assert "<quality_findings>" in message.text
     assert "branch-exception-coverage" in message.text
@@ -253,7 +272,7 @@ def test_refinement_prompt_does_not_reexpose_unselected_candidates_to_the_second
 
     message = component.build_refinement_prompt()
 
-    assert message.data["candidate_count"] == 100
+    assert message.data["candidate_count"] == 1
     assert "11111111-1111-1111-1111-111111111111" in message.text
     assert "00000003-0000-4000-8000-000000000000" not in message.text
     assert "00000100-0000-4000-8000-000000000000" not in message.text

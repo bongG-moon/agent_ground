@@ -63,7 +63,6 @@ def render_sample(
     model_response_path: Path,
     output_path: Path,
     top_n: int,
-    expanded_detail_count: int,
 ) -> dict[str, Any]:
     description = description_path.read_text(encoding="utf-8")
     additional_request = additional_request_path.read_text(encoding="utf-8")
@@ -95,7 +94,6 @@ def render_sample(
     ranker.request = Data(data=request)
     ranker.catalog_bundle = Data(data=catalog_bundle)
     ranker.top_n = top_n
-    ranker.expanded_detail_count = expanded_detail_count
     ranker.max_candidate_chars = 700
     ranker.max_context_chars = 56_000
     retrieval_result = _data(ranker.rank_catalog(), "02 LocalCatalogRanker")
@@ -138,7 +136,7 @@ def render_sample(
         "content_sha256": render_result.get("content_sha256"),
         "html_bytes": len(html.encode("utf-8")),
         "catalog_candidates": retrieval_result.get("top_n_returned"),
-        "catalog_expanded_details": retrieval_result.get("expanded_detail_count_returned"),
+        "catalog_internal_detail_context": retrieval_result.get("expanded_detail_count_returned"),
         "catalog_selected": len((design_result.get("catalog_application") or {}).get("selected") or []),
         "information_gaps": len(design_result.get("information_gaps") or []),
         "status": design_result.get("status"),
@@ -153,12 +151,9 @@ def main() -> None:
     parser.add_argument("--mock-response", type=Path, default=SAMPLE_ROOT / "mock_model_response_complex.json")
     parser.add_argument("--output", type=Path, default=SAMPLE_ROOT / "generated_sample_report.html")
     parser.add_argument("--top-n", type=int, default=100)
-    parser.add_argument("--expanded-detail-count", type=int, default=12)
     args = parser.parse_args()
     if not 1 <= args.top_n <= 100:
         raise SystemExit("--top-n must be between 1 and 100")
-    if not 1 <= args.expanded_detail_count <= 30:
-        raise SystemExit("--expanded-detail-count must be between 1 and 30")
     result = render_sample(
         description_path=args.description,
         additional_request_path=args.additional_request,
@@ -166,7 +161,6 @@ def main() -> None:
         model_response_path=args.mock_response,
         output_path=args.output,
         top_n=args.top_n,
-        expanded_detail_count=args.expanded_detail_count,
     )
     print(json.dumps(result, ensure_ascii=False, sort_keys=True))
 

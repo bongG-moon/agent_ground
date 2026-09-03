@@ -168,7 +168,7 @@ def test_fixed_component_accepts_langflow_message_transport_shapes(prompt_value)
     assert {key: value for key, value in result.items() if key != "catalog_shortlist_policy"} == expected
     assert result["catalog_shortlist_policy"] == {
         "max_shortlisted_catalog_items": 12,
-        "selection_scope": "shortlist_only",
+        "selection_scope": "candidate_shortlist_only",
         "selection_source": "default",
     }
     assert list(model.schema.model_fields) == [
@@ -332,11 +332,11 @@ def test_fixed_component_uses_validated_json_compatibility_fallback_when_native_
     assert "호환성" in component.status
 
 
-def test_fixed_component_reports_a_missing_03_prompt_without_conflating_it_with_system_prompt():
+def test_fixed_component_reports_a_missing_04_prompt_without_conflating_it_with_system_prompt():
     module = _module()
     component = module.BusinessDesignStructuredOutputComponent()
     component.model = _FakeModel()
     component.input_value = {"data": {}}
 
-    with pytest.raises(ValueError, match="03 업무 설계 요청을 받지 못했습니다"):
+    with pytest.raises(ValueError, match="04 업무 설계 요청을 받지 못했습니다"):
         component.build_structured_output()

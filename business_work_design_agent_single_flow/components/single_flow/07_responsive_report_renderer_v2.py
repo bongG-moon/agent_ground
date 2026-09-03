@@ -167,11 +167,49 @@ REFINEMENT_CSS = r"""
 """
 
 
+IMPLEMENTATION_SUMMARY_CSS = r"""
+.implementation-summary-item{position:relative;min-height:118px;padding:15px 15px 14px 51px;border-color:#e7e4f7;background:linear-gradient(135deg,#fff 0%,#fbfaff 100%)}.implementation-summary-item h3{color:#27303a}.implementation-summary-item p{line-height:1.6}.summary-number{position:absolute;left:14px;top:14px;display:grid;place-items:center;width:26px;height:26px;border-radius:8px;background:var(--violet-soft);color:#6249d0;font-size:11px;font-weight:850}.implementation-summary-item:nth-child(2) .summary-number{background:var(--orange-soft);color:#c24218}.implementation-summary-item:nth-child(3) .summary-number{background:var(--green-soft);color:var(--green)}
+"""
+
+
 JS = r"""
 (()=>{'use strict';const data=JSON.parse(document.getElementById('report-data').textContent);const $=s=>document.querySelector(s);const node=(tag,cls,text)=>{const e=document.createElement(tag);if(cls)e.className=cls;if(text!==undefined)e.textContent=String(text);return e};const text=v=>typeof v==='string'?v:(v==null?'':String(v));const list=v=>Array.isArray(v)?v.filter(x=>text(x).trim()):[];const status=data.completion_status||{};$('#report-title').textContent=data.title||'업무 방식 및 개선 실행 보고서';$('#status-label').textContent=status.label||'설계 결과';$('#status-dot').className='status-dot '+(status.code==='COMPLETED'?'ok':'');$('#status-dot').style.background=status.code==='COMPLETED'?'var(--green)':'var(--amber)';[['보완 필요',status.information_gap_count||0],['검토 후보',status.catalog_candidate_count||0],['적용 권고',status.catalog_selected_count||0]].forEach(([a,b])=>{const s=node('span','',a+' ');const strong=node('b','',b);s.append(strong);$('#quick').append(s)});
 const source=data.source_input||{};$('#source-description').textContent=source.description_display_redacted||'업무 설명이 제공되지 않았습니다.';if((source.redaction_count||0)>0)$('#source-note').textContent='민감정보 '+source.redaction_count+'건은 [REDACTED]로 마스킹되어 표시됩니다.';else $('#source-note').textContent='입력한 업무 설명을 요약으로 대체하지 않고 그대로 표시합니다.';
 const refinement=data.refinement_summary&&typeof data.refinement_summary==='object'?data.refinement_summary:{};const requested=refinement.final_refinement_instructions_provided===true||text(refinement.final_refinement_instructions).trim()!=='';const rawRefinementStatus=text(refinement.status).trim().toUpperCase();const refinementStatus=['APPLIED','SKIPPED','NONE'].includes(rawRefinementStatus)?rawRefinementStatus:'SKIPPED';const refinementHasResult=requested||refinement.status_provided===true||rawRefinementStatus!=='';if(refinementHasResult){const section=$('#refinement-section');const host=$('#refinement-content');const badgeHost=$('#refinement-status');const labels={APPLIED:'보완 반영 완료',SKIPPED:'기본 초안 사용',NONE:'기본 초안 사용'};const badgeClass={APPLIED:'green',SKIPPED:'amber',NONE:'violet'};const fallbackCopy={APPLIED:'초안 점검과 보완 지시를 반영해 최종 설계를 한 번 더 다듬었습니다.',SKIPPED:'2차 보완 결과를 적용하지 못해 검증된 기본 초안을 기준으로 보고서를 작성했습니다.',NONE:requested?'보완 지시는 제공됐지만 2차 보완 결과가 없어 기본 초안을 기준으로 보고서를 작성했습니다.':'2차 보완 단계는 요청되지 않아 기본 초안을 기준으로 보고서를 작성했습니다.'};section.hidden=false;badgeHost.append(node('span','badge '+badgeClass[refinementStatus],labels[refinementStatus]));host.append(node('p','refinement-message',text(refinement.summary).trim()||fallbackCopy[refinementStatus]));const instruction=text(refinement.final_refinement_instructions).trim();if(instruction){const box=node('div','refinement-instruction');box.append(node('h3','', '요청한 보완 방향'),node('p','',instruction));host.append(box)}}
-const blockNames={executive_summary:'핵심 요약',work_overview:'업무 개요',operating_context:'운영 맥락',as_is_analysis:'현재 업무 분석',improvement_direction:'개선 방향',to_be_operating_plan:'Agent 적용 후 운영안',implementation_allocation:'카탈로그·신규 구현 분담',implementation_roadmap:'구현 로드맵',risks_and_controls:'위험과 통제',validation_plan:'검증 계획',open_items:'추가 보완 항목'};const blocks=data.business_report||{};Object.entries(blockNames).forEach(([key,label])=>{const block=blocks[key]||{};const article=node('article','summary-item');article.append(node('h3','',label));article.append(node('p','',block.summary||''));const bullets=list(block.bullets);if(bullets.length){const ul=node('ul','bullet-list');bullets.slice(0,4).forEach(v=>ul.append(node('li','',v)));article.append(ul)};$('#summary-grid').append(article)});
+const blocks=data.business_report||{};
+// The top of the report is intentionally an implementation brief, not a
+// duplicate of the analysis, catalog, roadmap, risks, and gaps shown below.
+const toBeGraph=data.to_be_graph&&typeof data.to_be_graph==='object'?data.to_be_graph:{};
+const toBeNodes=Array.isArray(toBeGraph.nodes)?toBeGraph.nodes:[];
+const relevantNodes=toBeNodes.filter(n=>n&&typeof n==='object'&&!['start','end'].includes(n.node_kind));
+const selectedCatalog=(data.catalog_application_plan&&Array.isArray(data.catalog_application_plan.selected))?data.catalog_application_plan.selected:[];
+const newCustomCount=relevantNodes.filter(n=>n.implementation_source==='new_component').length;
+const externalServiceCount=relevantNodes.filter(n=>n.implementation_source==='external_service').length;
+const humanNodes=relevantNodes.filter(n=>n.node_kind==='human_review'||n.implementation_source==='human_task');
+const exceptionNodes=relevantNodes.filter(n=>n.node_kind==='exception');
+const conciseNames=(names,limit=3)=>{const visible=names.slice(0,limit);return visible.join(' → ')+(names.length>visible.length?' 등':'')};
+const automationCopy=text(blocks.executive_summary?.summary).trim()
+  || text(blocks.improvement_direction?.summary).trim()
+  || '반복 업무를 Agent가 처리하고, 사람 판단이 필요한 단계는 분리합니다.';
+const buildParts=[];
+if(selectedCatalog.length)buildParts.push('카탈로그 자산 '+selectedCatalog.length+'개 재사용 후보');
+if(newCustomCount)buildParts.push('신규 Custom '+newCustomCount+'개');
+if(externalServiceCount)buildParts.push('외부 연동 '+externalServiceCount+'개');
+const buildCopy=buildParts.length
+  ? buildParts.join(' + ')+'로 조립하고, 실제 연결 전 포트·권한을 확인합니다.'
+  : '카탈로그 자산은 후보로만 검토하고, 필요한 기능은 신규 Custom 또는 외부 연동으로 구현합니다.';
+const reviewNames=humanNodes.map(n=>text(n.title).trim()).filter(Boolean);
+const safetyParts=[];
+if(reviewNames.length)safetyParts.push(conciseNames(reviewNames)+'에서 사람 검토·승인');
+if(exceptionNodes.length)safetyParts.push('오류·예외 '+exceptionNodes.length+'개 경로는 자동 차단·안내');
+const safetyCopy=safetyParts.length
+  ? safetyParts.join(', ')+'하도록 운영 경계를 둡니다.'
+  : '사람 검토와 오류 차단 기준은 실제 구현 전에 업무 설명과 함께 확정합니다.';
+[
+  ['01', 'Agent가 자동으로 처리할 일', automationCopy],
+  ['02', 'Agent를 조립하는 방식', buildCopy],
+  ['03', '사람 검토와 차단 경계', safetyCopy],
+].forEach(([number,label,copy])=>{const article=node('article','summary-item implementation-summary-item');const marker=node('span','summary-number',number);article.append(marker,node('h3','',label),node('p','',copy));$('#summary-grid').append(article)});
 const gapHost=$('#gaps');const severity={required:['필수 보완','required'],important:['중요 보완','important'],optional:['선택 보완','optional']};const gaps=Array.isArray(data.information_gaps)?data.information_gaps:[];if(!gaps.length){gapHost.append(node('p','note','현재 확인된 추가 보완 항목이 없습니다. 실제 구현 전에는 권한과 데이터 계약을 다시 확인하세요.'))}else gaps.forEach(g=>{const kind=severity[g.severity]||severity.important;const box=node('article','gap '+kind[1]);const b=node('span','badge '+(kind[1]==='required'?'red':kind[1]==='optional'?'violet':'amber'),kind[0]);box.append(b,node('h3','',g.question||'추가 정보 확인 필요'));[['필요한 이유',g.why_needed],['현재 설계 영향',g.design_impact]].forEach(([label,value])=>{if(text(value).trim())box.append(node('p','',label+' · '+value))});if(text(g.suggested_description_text).trim()){const c=node('div','copy-box',g.suggested_description_text);c.setAttribute('aria-label','다음 실행에서 추가할 문장 예시');box.append(c)}gapHost.append(box)});
 const context=$('#context');const contextRows=[['업무 목적',(data.business_report?.work_overview?.summary)||'확인 필요'],['업무 범위',((blocks.work_overview||{}).facts||[]).map(f=>f.value).join(' · ')||'확인 필요'],['현재 문제',((blocks.as_is_analysis||{}).bullets||[]).join(' · ')||'확인 필요'],['개선 원칙',((blocks.improvement_direction||{}).bullets||[]).join(' · ')||'확인 필요']];contextRows.forEach(([a,b])=>{const d=node('div','detail-card');d.append(node('h3','',a),node('p','',b));context.append(d)});
 const sourceLabels={human_task:'사람 수행',builtin:'기본 요소',catalog_component:'기존 Component',catalog_flow:'기존 Flow',new_component:'신규 Custom',external_service:'외부 서비스'};function catalogUrl(item){if(!item||typeof item!=='object')return null;const id=text(item.asset_id).toLowerCase(),kind=item.asset_type==='flow'?'flow':'component',url=text(item.catalog_url);const pattern=new RegExp('^https://agent-hub\\.skhynix\\.com/#/'+kind+'/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$','i');return pattern.test(url)&&url.toLowerCase().endsWith('/'+id)?url:null}function openDrawer(title,fields){$('#drawer-title').textContent=title;const host=$('#drawer-body');host.replaceChildren();Object.entries(fields||{}).forEach(([label,value])=>{if(value==null||value===''||(Array.isArray(value)&&!value.length))return;const block=node('section','drawer-block');block.append(node('h3','',label));const val=node('div','');if(Array.isArray(value))val.textContent=value.map(v=>typeof v==='string'?'• '+v:'• '+JSON.stringify(v)).join('\n');else if(typeof value==='object')val.textContent=JSON.stringify(value,null,2);else val.textContent=text(value);block.append(val);host.append(block)});$('#drawer').classList.add('open');$('#backdrop').classList.add('open')}function closeDrawer(){$('#drawer').classList.remove('open');$('#backdrop').classList.remove('open')}$('#close').addEventListener('click',closeDrawer);$('#backdrop').addEventListener('click',closeDrawer);document.addEventListener('keydown',e=>{if(e.key==='Escape')closeDrawer()});
@@ -448,9 +486,10 @@ class ResponsiveReportRendererV2Component(Component):
             + CSS
             + DRAWER_CSS
             + REFINEMENT_CSS
+            + IMPLEMENTATION_SUMMARY_CSS
             + "</style></head><body><main class=\"shell\"><header class=\"top\"><div class=\"brand\"><div class=\"mark\">A</div><span>업무 설계 보고서</span></div><div class=\"meta\">단일 Flow · 카탈로그 기반 설계안</div></header>"
             + "<section class=\"hero\"><div class=\"hero-main\"><div class=\"eyebrow\">BUSINESS WORK DESIGN</div><h1 id=\"report-title\">업무 방식 및 개선 실행 보고서</h1><p class=\"lead\">입력한 업무 설명과 기능 카탈로그 후보를 기반으로, 현재 업무와 개선 실행안을 한 화면에서 확인합니다.</p></div><div class=\"hero-status\"><div class=\"status-card\"><span id=\"status-dot\" class=\"status-dot\"></span><span id=\"status-label\">설계 결과</span></div><div id=\"quick\" class=\"quick\"></div></div></section>"
-            + "<div class=\"grid\"><section class=\"card section wide\"><div class=\"section-title\"><div><h2>핵심 요약</h2><p>업무 목적, 현재 문제, 개선 방향, 실행 분담을 짧게 확인합니다.</p></div></div><div id=\"summary-grid\" class=\"summary-grid\"></div></section>"
+            + "<div class=\"grid\"><section class=\"card section wide\"><div class=\"section-title\"><div><h2>Agent 구현 한눈에 보기</h2><p>하단의 업무 분석·Flow·카탈로그 상세와 겹치지 않도록, 실제 구현 방향만 짧게 보여 줍니다.</p></div></div><div id=\"summary-grid\" class=\"summary-grid\"></div></section>"
             + "<section id=\"refinement-section\" class=\"card section wide\" hidden><div class=\"section-title\"><div><h2>설계 보완 반영</h2><p>초안 이후의 보완 요청과 반영 상태를 간단히 확인합니다.</p></div><div id=\"refinement-status\" class=\"badges\"></div></div><div id=\"refinement-content\" class=\"refinement-content\"></div></section>"
             + "<section class=\"card section wide\"><div class=\"section-title\"><div><h2>입력한 업무 설명 원문</h2><p>다음 실행에서 수정할 수 있는 안전한 표시용 원문입니다.</p></div></div><div id=\"source-description\" class=\"source\"></div><p id=\"source-note\" class=\"note\"></p></section>"
             + "<section class=\"card section wide\"><div class=\"section-title\"><div><h2>추가 보완이 필요한 내용</h2><p>질문을 입력받아 멈추지 않습니다. 아래 문장을 업무 설명에 추가한 뒤 전체 Flow를 다시 실행하세요.</p></div></div><div id=\"gaps\" class=\"gap-list\"></div></section>"
@@ -488,7 +527,7 @@ class ResponsiveReportRendererV2Component(Component):
             "html": document,
             "content_sha256": "sha256:" + _sha256(document),
             "script_csp_hash": _csp_hash(JS + DRAWER_INTERACTION_JS),
-            "style_csp_hash": _csp_hash(CSS + DRAWER_CSS + REFINEMENT_CSS),
+            "style_csp_hash": _csp_hash(CSS + DRAWER_CSS + REFINEMENT_CSS + IMPLEMENTATION_SUMMARY_CSS),
             "byte_count": byte_count,
             "report_summary": {
                 "completion_status": completion.get("code") or "COMPLETED",
