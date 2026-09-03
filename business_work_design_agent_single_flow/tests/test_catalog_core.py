@@ -221,10 +221,10 @@ def test_internal_detail_context_is_fixed_and_schema_valid():
     input_names = {input_spec.name for input_spec in M02.LocalCatalogRankerComponent.inputs}
     assert "expanded_detail_count" not in input_names
     assert retrieval["top_n_requested"] == 100
-    assert retrieval["expanded_detail_count_requested"] == M02._DEFAULT_EXPANDED_DETAIL_COUNT == 12
-    assert retrieval["expanded_detail_count_returned"] == 12
-    assert len(retrieval["expanded_candidate_details"]) == 12
-    assert [detail["rank"] for detail in retrieval["expanded_candidate_details"]] == list(range(1, 13))
+    assert retrieval["expanded_detail_count_requested"] == M02._DEFAULT_EXPANDED_DETAIL_COUNT == 30
+    assert retrieval["expanded_detail_count_returned"] == 30
+    assert len(retrieval["expanded_candidate_details"]) == 30
+    assert [detail["rank"] for detail in retrieval["expanded_candidate_details"]] == list(range(1, 31))
     retrieval_schema = json.loads(
         (PROJECT_ROOT / "schemas" / "local_catalog_retrieval.v1.schema.json").read_text(encoding="utf-8")
     )
@@ -245,8 +245,8 @@ def test_fixed_internal_detail_context_reaches_shortlisted_prompt_without_leakin
     component.max_estimated_tokens = 20_000
     prompt = component.build_prompt()
 
-    assert retrieval["expanded_detail_count_requested"] == M02._DEFAULT_EXPANDED_DETAIL_COUNT == 12
-    assert retrieval["expanded_detail_count_returned"] == 12
+    assert retrieval["expanded_detail_count_requested"] == M02._DEFAULT_EXPANDED_DETAIL_COUNT == 30
+    assert retrieval["expanded_detail_count_returned"] == 30
     assert prompt.data["retrieval_candidate_count"] == 100
     assert prompt.data["candidate_index_count"] == 12
     assert prompt.data["expanded_candidate_requested_count"] == 12

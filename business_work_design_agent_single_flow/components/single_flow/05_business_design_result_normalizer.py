@@ -34,6 +34,31 @@ _SEVERITIES = {"required", "important", "optional"}
 _DECISIONS = {"selected", "considered", "not_used"}
 _TECHNICAL = {"metadata_only", "ports_extracted", "flow_graph_extracted", "verified_runtime", "unknown"}
 _MAX_SHORTLISTED_CATALOG_ITEMS = 30
+# The model call is configured for an 8,192-token response.  The fixed
+# Structured Output model intentionally stays fairly open so providers with
+# different JSON-schema support can still call it.  This post-model boundary is
+# therefore responsible for keeping one unusually verbose completion from
+# becoming an oversized graph/report or from consuming excessive CPU while it
+# is normalized.  These are output safety caps, not business-design targets:
+# 04 asks the model for a concise 32-node/48-edge TO-BE diagram, while this
+# boundary keeps deliberate headroom (60 nodes/120 edges) for a valid richer
+# transport without permitting an unbounded payload.
+_MAX_DRAFT_RESPONSE_BYTES = 256_000
+_MAX_COLLECTION_ITEMS = 30
+_MAX_COLLECTION_ITEM_CHARS = 2_000
+_MAX_CURRENT_STEPS = 40
+_MAX_CURRENT_BRANCHES = 40
+_MAX_CURRENT_EXCEPTIONS = 40
+_MAX_INFORMATION_GAPS = 30
+_MAX_GRAPH_NODES = 60
+_MAX_GRAPH_EDGES = 120
+_MAX_IMPLEMENTATION_ROADMAP_ITEMS = 20
+_MAX_RISKS_AND_CONTROLS = 40
+_MAX_TEST_SCENARIOS = 40
+_MAX_CATALOG_DECISIONS = 30
+_MAX_DECISION_TARGET_NODES = 30
+_MAX_NARRATIVE_CHARS = 8_000
+_MAX_DETAIL_CHARS = 2_000
 _SECRET_KEY = re.compile(r"(?i)(?:api[_-]?key|authorization|bearer|client[_-]?secret|cookie|credential|password|passwd|private[_-]?key|secret|token)")
 _SECRET_VALUE = re.compile(
     r"(?i)(?:\b(?:api[_-]?key|password|passwd|secret|access[_-]?token|client[_-]?secret|authorization)\s*[:=]\s*[^\s,;]{8,}|\bbearer\s+\S{8,}|\bsk-[A-Za-z0-9_-]{16,}\b|-----BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY-----)"
@@ -91,7 +116,11 @@ def _bounded_text(value: Any, limit: int = 20_000) -> str:
     return text[:limit]
 
 
-def _bounded_list(value: Any, limit: int = 100, item_limit: int = 5_000) -> list[str]:
+def _bounded_list(
+    value: Any,
+    limit: int = _MAX_COLLECTION_ITEMS,
+    item_limit: int = _MAX_COLLECTION_ITEM_CHARS,
+) -> list[str]:
     if not isinstance(value, list):
         return []
     result: list[str] = []
@@ -100,6 +129,46 @@ def _bounded_list(value: Any, limit: int = 100, item_limit: int = 5_000) -> list
         if text:
             result.append(text)
     return result
+
+
+def _bounded_items(
+    value: Any,
+    *,
+    limit: int,
+    warning_code: str,
+    warnings: list[str],
+) -> list[Any]:
+    """Return a bounded list and record an audit warning when it was clipped.
+
+    We deliberately clip instead of rejecting an otherwise usable design.  The
+    result remains deterministic, and the warning makes the loss visible to
+    the report and run trace without feeding model text back into an error.
+    """
+
+    if not isinstance(value, list):
+        return []
+    if len(value) > limit:
+        warnings.append(warning_code)
+    return value[:limit]
+
+
+def _assert_draft_response_size(draft: dict[str, Any]) -> None:
+    """Reject an implausibly large post-parse model response before projection.
+
+    The cap leaves substantial headroom above a normal 8,192-token JSON
+    completion while preventing nested generic Pydantic fields from expanding
+    into multi-megabyte report payloads.  Do not include the raw model content
+    in the error because it can contain business-sensitive text.
+    """
+
+    material = json.dumps(draft, ensure_ascii=False, sort_keys=True, separators=(",", ":"), allow_nan=False)
+    size = len(material.encode("utf-8"))
+    if size > _MAX_DRAFT_RESPONSE_BYTES:
+        raise ValueError(
+            "[DESIGN_RESULT_TOO_LARGE] 모델 구조화 설계 응답이 안전 상한을 초과했습니다. "
+            f"현재 {size} bytes, 최대 {_MAX_DRAFT_RESPONSE_BYTES} bytes입니다. "
+            "05 Language Model의 출력 길이와 단계·분기·위험·테스트 항목 수를 줄인 뒤 다시 실행하세요."
+        )
 
 
 def _contains_secret(value: Any) -> bool:
@@ -405,24 +474,65 @@ def _candidate_registry(retrieval: dict[str, Any]) -> list[dict[str, Any]]:
     return registry
 
 
-def _normalize_work_analysis(raw: Any) -> dict[str, Any]:
+def _normalize_current_routes(value: Any, *, exception: bool, warnings: list[str]) -> list[dict[str, Any]]:
+    """Project branch/exception records into the small report contract.
+
+    These two fields used to pass raw nested model objects through unchanged.
+    Unlike graph nodes, that left their nested text and arbitrary keys without a
+    size bound.  They are display/audit context only, so preserve the documented
+    fields and discard unneeded model-provided extras.
+    """
+
+    raw_items = _bounded_items(
+        value,
+        limit=_MAX_CURRENT_EXCEPTIONS if exception else _MAX_CURRENT_BRANCHES,
+        warning_code="CURRENT_EXCEPTIONS_TRUNCATED" if exception else "CURRENT_BRANCHES_TRUNCATED",
+        warnings=warnings,
+    )
+    result: list[dict[str, Any]] = []
+    for item in raw_items:
+        if not isinstance(item, dict):
+            continue
+        normalized = {
+            "source_step_ref": _bounded_text(item.get("source_step_ref"), 128),
+            "condition": _bounded_text(item.get("condition"), _MAX_DETAIL_CHARS),
+            "target_step_ref": _bounded_text(item.get("target_step_ref"), 128),
+        }
+        if exception:
+            normalized["handling"] = _bounded_text(item.get("handling"), _MAX_DETAIL_CHARS)
+        else:
+            normalized["is_default"] = bool(item.get("is_default"))
+        result.append(normalized)
+    return result
+
+
+def _normalize_work_analysis(raw: Any, warnings: list[str]) -> dict[str, Any]:
     raw = raw if isinstance(raw, dict) else {}
     result: dict[str, Any] = {
         "title": _bounded_text(raw.get("title") or raw.get("work_name") or "업무 설계 초안", 500),
-        "goal": _bounded_text(raw.get("goal"), 20_000),
+        "goal": _bounded_text(raw.get("goal"), _MAX_NARRATIVE_CHARS),
         "scope_in": _bounded_list(raw.get("scope_in")),
         "scope_out": _bounded_list(raw.get("scope_out")),
         "actors": _bounded_list(raw.get("actors")),
         "systems": _bounded_list(raw.get("systems")),
         "inputs": _bounded_list(raw.get("inputs")),
         "outputs": _bounded_list(raw.get("outputs")),
-        "trigger_and_frequency": _bounded_text(raw.get("trigger_and_frequency") or raw.get("trigger"), 20_000),
+        "trigger_and_frequency": _bounded_text(
+            raw.get("trigger_and_frequency") or raw.get("trigger"), _MAX_NARRATIVE_CHARS
+        ),
         "constraints": _bounded_list(raw.get("constraints")),
         "success_criteria": _bounded_list(raw.get("success_criteria")),
         "problems": _bounded_list(raw.get("problems")),
     }
     steps: list[dict[str, Any]] = []
-    for index, item in enumerate(raw.get("current_steps") if isinstance(raw.get("current_steps"), list) else []):
+    for index, item in enumerate(
+        _bounded_items(
+            raw.get("current_steps"),
+            limit=_MAX_CURRENT_STEPS,
+            warning_code="CURRENT_STEPS_TRUNCATED",
+            warnings=warnings,
+        )
+    ):
         if not isinstance(item, dict):
             continue
         steps.append(
@@ -430,7 +540,7 @@ def _normalize_work_analysis(raw: Any) -> dict[str, Any]:
                 "step_ref": _bounded_text(item.get("step_ref") or item.get("id") or f"current-step-{index + 1}", 128),
                 "sequence": int(item.get("sequence")) if isinstance(item.get("sequence"), int) and item.get("sequence") >= 0 else index + 1,
                 "title": _bounded_text(item.get("title") or item.get("label") or f"현재 업무 단계 {index + 1}", 500),
-                "description": _bounded_text(item.get("description") or item.get("summary"), 5_000),
+                "description": _bounded_text(item.get("description") or item.get("summary"), _MAX_DETAIL_CHARS),
                 "actor": _bounded_text(item.get("actor"), 500),
                 "system": _bounded_text(item.get("system"), 500),
                 "inputs": _bounded_list(item.get("inputs")),
@@ -438,20 +548,31 @@ def _normalize_work_analysis(raw: Any) -> dict[str, Any]:
                 "evidence_status": _bounded_text(item.get("evidence_status"), 32) if _bounded_text(item.get("evidence_status"), 32) in {"explicit", "inferred", "unknown"} else "inferred",
             }
         )
-    result["current_steps"] = steps[:100]
-    result["current_branches"] = [item for item in (raw.get("current_branches") or [])[:100] if isinstance(item, dict)]
-    result["current_exceptions"] = [item for item in (raw.get("current_exceptions") or [])[:100] if isinstance(item, dict)]
+    result["current_steps"] = steps
+    result["current_branches"] = _normalize_current_routes(
+        raw.get("current_branches"), exception=False, warnings=warnings
+    )
+    result["current_exceptions"] = _normalize_current_routes(
+        raw.get("current_exceptions"), exception=True, warnings=warnings
+    )
     return result
 
 
 def _normalize_gaps(raw: Any, warnings: list[str]) -> list[dict[str, str]]:
     result: list[dict[str, str]] = []
     seen: set[tuple[str, str]] = set()
-    for index, item in enumerate(raw if isinstance(raw, list) else []):
+    for index, item in enumerate(
+        _bounded_items(
+            raw,
+            limit=_MAX_INFORMATION_GAPS,
+            warning_code="INFORMATION_GAPS_TRUNCATED",
+            warnings=warnings,
+        )
+    ):
         if not isinstance(item, dict):
             continue
         field = _bounded_text(item.get("field") or f"additional_information_{index + 1}", 128)
-        question = _bounded_text(item.get("question"), 5_000)
+        question = _bounded_text(item.get("question"), _MAX_DETAIL_CHARS)
         if not question or (field, question) in seen:
             continue
         seen.add((field, question))
@@ -465,12 +586,12 @@ def _normalize_gaps(raw: Any, warnings: list[str]) -> list[dict[str, str]]:
                 "field": field,
                 "severity": severity,
                 "question": question,
-                "why_needed": _bounded_text(item.get("why_needed"), 5_000),
-                "design_impact": _bounded_text(item.get("design_impact"), 5_000),
-                "suggested_description_text": _bounded_text(item.get("suggested_description_text"), 5_000),
+                "why_needed": _bounded_text(item.get("why_needed"), _MAX_DETAIL_CHARS),
+                "design_impact": _bounded_text(item.get("design_impact"), _MAX_DETAIL_CHARS),
+                "suggested_description_text": _bounded_text(item.get("suggested_description_text"), _MAX_DETAIL_CHARS),
             }
         )
-        if len(result) >= 100:
+        if len(result) >= _MAX_INFORMATION_GAPS:
             break
     return result
 
@@ -495,7 +616,7 @@ def _node_from_raw(raw: dict[str, Any], *, prefix: str, sequence: int, used: set
         "node_id": node_id,
         "node_kind": kind,
         "title": _bounded_text(raw.get("title") or raw.get("label") or ("업무 시작" if kind == "start" else "업무 종료" if kind == "end" else f"업무 단계 {sequence}"), 500),
-        "summary": _bounded_text(raw.get("summary") or raw.get("description") or raw.get("detail"), 5_000),
+        "summary": _bounded_text(raw.get("summary") or raw.get("description") or raw.get("detail"), _MAX_DETAIL_CHARS),
         "sequence": sequence,
         "actor": _bounded_text(raw.get("actor"), 500),
         "system": _bounded_text(raw.get("system"), 500),
@@ -516,11 +637,16 @@ def _graph_from_raw(
     add_gap: list[dict[str, str]],
 ) -> tuple[dict[str, Any], dict[str, str]]:
     raw = raw if isinstance(raw, dict) else {}
-    raw_nodes = raw.get("nodes") if isinstance(raw.get("nodes"), list) else []
+    raw_nodes = _bounded_items(
+        raw.get("nodes"),
+        limit=_MAX_GRAPH_NODES,
+        warning_code=f"{prefix.upper().replace('-', '_')}_GRAPH_NODES_TRUNCATED",
+        warnings=warnings,
+    )
     used: set[str] = set()
     nodes: list[dict[str, Any]] = []
     original_to_id: dict[str, str] = {}
-    for index, item in enumerate(raw_nodes[:200]):
+    for index, item in enumerate(raw_nodes):
         if not isinstance(item, dict):
             continue
         node, original = _node_from_raw(item, prefix=prefix, sequence=index + 1, used=used)
@@ -536,7 +662,7 @@ def _graph_from_raw(
         used.add("end")
     work_nodes = [node for node in nodes if node["node_kind"] not in {"start", "end"}]
     if not work_nodes and fallback_steps:
-        for index, step in enumerate(fallback_steps[:100], start=1):
+        for index, step in enumerate(fallback_steps[:_MAX_CURRENT_STEPS], start=1):
             node, original = _node_from_raw(
                 {"node_id": step.get("step_ref"), "title": step.get("title"), "summary": step.get("description"), "actor": step.get("actor"), "system": step.get("system"), "inputs": step.get("inputs"), "outputs": step.get("outputs"), "node_kind": "work_step"},
                 prefix=prefix,
@@ -560,10 +686,15 @@ def _graph_from_raw(
     start = next(node for node in nodes if node["node_kind"] == "start")
     end = next(node for node in nodes if node["node_kind"] == "end")
     id_set = {node["node_id"] for node in nodes}
-    raw_edges = raw.get("edges") if isinstance(raw.get("edges"), list) else []
+    raw_edges = _bounded_items(
+        raw.get("edges"),
+        limit=_MAX_GRAPH_EDGES,
+        warning_code=f"{prefix.upper().replace('-', '_')}_GRAPH_EDGES_TRUNCATED",
+        warnings=warnings,
+    )
     edges: list[dict[str, Any]] = []
     seen_edges: set[tuple[str, str, str, str]] = set()
-    for index, item in enumerate(raw_edges[:500]):
+    for index, item in enumerate(raw_edges):
         if not isinstance(item, dict):
             continue
         source_raw = _bounded_text(item.get("source_node_id") or item.get("source") or item.get("from"), 128)
@@ -577,7 +708,7 @@ def _graph_from_raw(
         if edge_kind not in _EDGE_KINDS:
             edge_kind = "control"
         label = _bounded_text(item.get("label") or ("다음" if edge_kind == "control" else "분기"), 500)
-        condition = _bounded_text(item.get("condition"), 5_000)
+        condition = _bounded_text(item.get("condition"), _MAX_DETAIL_CHARS)
         if edge_kind == "branch" and not label:
             label = "분기"
         key = (source, target, edge_kind, label)
@@ -639,7 +770,7 @@ def _normalize_tobe(raw: Any, warnings: list[str], gaps: list[dict[str, str]]) -
     raw = raw if isinstance(raw, dict) else {}
     graph, mapping = _graph_from_raw(raw, prefix="to-be", fallback_steps=[], warnings=warnings, add_gap=gaps)
     result = {
-        "summary": _bounded_text(raw.get("summary"), 20_000),
+        "summary": _bounded_text(raw.get("summary"), _MAX_NARRATIVE_CHARS),
         "principles": _bounded_list(raw.get("principles")),
         "nodes": graph["nodes"],
         "edges": graph["edges"],
@@ -647,18 +778,65 @@ def _normalize_tobe(raw: Any, warnings: list[str], gaps: list[dict[str, str]]) -
         "risks_and_controls": [],
         "test_scenarios": [],
     }
-    for item in raw.get("implementation_roadmap") if isinstance(raw.get("implementation_roadmap"), list) else []:
-        if not isinstance(item, dict) or len(result["implementation_roadmap"]) >= 50:
+    for item in _bounded_items(
+        raw.get("implementation_roadmap"),
+        limit=_MAX_IMPLEMENTATION_ROADMAP_ITEMS,
+        warning_code="IMPLEMENTATION_ROADMAP_TRUNCATED",
+        warnings=warnings,
+    ):
+        if not isinstance(item, dict):
             continue
-        result["implementation_roadmap"].append({"phase": _bounded_text(item.get("phase") or str(len(result["implementation_roadmap"]) + 1), 128), "title": _bounded_text(item.get("title") or "구현 단계", 500), "actions": _bounded_list(item.get("actions"), 100), "dependencies": _bounded_list(item.get("dependencies"), 100), "completion_criteria": _bounded_list(item.get("completion_criteria"), 100)})
-    for item in raw.get("risks_and_controls") if isinstance(raw.get("risks_and_controls"), list) else []:
-        if not isinstance(item, dict) or len(result["risks_and_controls"]) >= 200:
+        result["implementation_roadmap"].append(
+            {
+                "phase": _bounded_text(item.get("phase") or str(len(result["implementation_roadmap"]) + 1), 128),
+                "title": _bounded_text(item.get("title") or "구현 단계", 500),
+                "actions": _bounded_list(item.get("actions")),
+                "dependencies": _bounded_list(item.get("dependencies")),
+                "completion_criteria": _bounded_list(item.get("completion_criteria")),
+            }
+        )
+    for item in _bounded_items(
+        raw.get("risks_and_controls"),
+        limit=_MAX_RISKS_AND_CONTROLS,
+        warning_code="RISKS_AND_CONTROLS_TRUNCATED",
+        warnings=warnings,
+    ):
+        if not isinstance(item, dict):
             continue
-        result["risks_and_controls"].append({"risk_id": _slug(item.get("risk_id") or f"risk-{len(result['risks_and_controls']) + 1}", f"risk-{len(result['risks_and_controls']) + 1}", {risk["risk_id"] for risk in result["risks_and_controls"]}), "risk": _bounded_text(item.get("risk"), 5_000), "impact": _bounded_text(item.get("impact"), 5_000), "control": _bounded_text(item.get("control"), 5_000), "owner_role": _bounded_text(item.get("owner_role"), 500)})
-    for item in raw.get("test_scenarios") if isinstance(raw.get("test_scenarios"), list) else []:
-        if not isinstance(item, dict) or len(result["test_scenarios"]) >= 200:
+        result["risks_and_controls"].append(
+            {
+                "risk_id": _slug(
+                    item.get("risk_id") or f"risk-{len(result['risks_and_controls']) + 1}",
+                    f"risk-{len(result['risks_and_controls']) + 1}",
+                    {risk["risk_id"] for risk in result["risks_and_controls"]},
+                ),
+                "risk": _bounded_text(item.get("risk"), _MAX_DETAIL_CHARS),
+                "impact": _bounded_text(item.get("impact"), _MAX_DETAIL_CHARS),
+                "control": _bounded_text(item.get("control"), _MAX_DETAIL_CHARS),
+                "owner_role": _bounded_text(item.get("owner_role"), 500),
+            }
+        )
+    for item in _bounded_items(
+        raw.get("test_scenarios"),
+        limit=_MAX_TEST_SCENARIOS,
+        warning_code="TEST_SCENARIOS_TRUNCATED",
+        warnings=warnings,
+    ):
+        if not isinstance(item, dict):
             continue
-        result["test_scenarios"].append({"test_id": _slug(item.get("test_id") or f"test-{len(result['test_scenarios']) + 1}", f"test-{len(result['test_scenarios']) + 1}", {test["test_id"] for test in result["test_scenarios"]}), "title": _bounded_text(item.get("title") or "검증 시나리오", 500), "given": _bounded_text(item.get("given"), 5_000), "when": _bounded_text(item.get("when"), 5_000), "then": _bounded_text(item.get("then"), 5_000)})
+        result["test_scenarios"].append(
+            {
+                "test_id": _slug(
+                    item.get("test_id") or f"test-{len(result['test_scenarios']) + 1}",
+                    f"test-{len(result['test_scenarios']) + 1}",
+                    {test["test_id"] for test in result["test_scenarios"]},
+                ),
+                "title": _bounded_text(item.get("title") or "검증 시나리오", 500),
+                "given": _bounded_text(item.get("given"), _MAX_DETAIL_CHARS),
+                "when": _bounded_text(item.get("when"), _MAX_DETAIL_CHARS),
+                "then": _bounded_text(item.get("then"), _MAX_DETAIL_CHARS),
+            }
+        )
     return result, mapping, raw
 
 
@@ -699,7 +877,12 @@ def _normalize_decisions(
     allowed_candidate_keys: set[tuple[str, str]] | None = None,
     decision_source: str = "llm",
 ) -> dict[str, Any]:
-    raw_items = raw if isinstance(raw, list) else []
+    raw_items = _bounded_items(
+        raw,
+        limit=_MAX_CATALOG_DECISIONS,
+        warning_code="CATALOG_DECISIONS_TRUNCATED",
+        warnings=warnings,
+    )
     proposals: dict[tuple[str, str], dict[str, Any]] = {}
     known_registry_keys = {(candidate["asset_id"], candidate["version"]) for candidate in registry}
     allowed_keys = set(allowed_candidate_keys) if allowed_candidate_keys is not None else None
@@ -738,10 +921,16 @@ def _normalize_decisions(
                 decision = "not_used"
                 warnings.append("CATALOG_DECISION_NORMALIZED")
             source = decision_source
-            reason = _bounded_text(proposal.get("reason"), 5_000) or ("카탈로그 후보를 이 단계에 적용하는 방안을 검토합니다." if decision != "not_used" else "현재 설계에서 직접 적용 대상으로 지정하지 않았습니다.")
-            required = _bounded_list(proposal.get("required_verification"), 100)
+            reason = _bounded_text(proposal.get("reason"), _MAX_DETAIL_CHARS) or ("카탈로그 후보를 이 단계에 적용하는 방안을 검토합니다." if decision != "not_used" else "현재 설계에서 직접 적용 대상으로 지정하지 않았습니다.")
+            required = _bounded_list(proposal.get("required_verification"))
             targets = []
-            for target in proposal.get("target_node_ids") if isinstance(proposal.get("target_node_ids"), list) else []:
+            raw_targets = _bounded_items(
+                proposal.get("target_node_ids"),
+                limit=_MAX_DECISION_TARGET_NODES,
+                warning_code="CATALOG_TARGET_NODES_TRUNCATED",
+                warnings=warnings,
+            )
+            for target in raw_targets:
                 raw_target = _bounded_text(target, 128)
                 normalized = node_mapping.get(raw_target, raw_target)
                 if normalized in known_node_ids and normalized not in targets:
@@ -903,13 +1092,14 @@ class BusinessDesignResultNormalizerComponent(Component):
             return Data(data=result)
         if draft.get("schema_version") not in {None, _DRAFT_SCHEMA}:
             raise ValueError("[DESIGN_RESULT_INVALID] 모델 응답의 schema_version이 business-design-draft/v1이 아닙니다. 고정 Prompt를 확인해 주세요.")
+        _assert_draft_response_size(draft)
         if _contains_secret(draft):
             raise ValueError("[DESIGN_RESULT_INVALID] 모델 응답에 민감정보로 의심되는 값이 있습니다. 업무 설명을 마스킹한 뒤 다시 실행해 주세요.")
         if not isinstance(draft.get("work_analysis"), dict) and not isinstance(draft.get("to_be_design"), dict):
             raise ValueError("[DESIGN_RESULT_INVALID] 모델 응답에 업무 분석과 개선 설계가 없습니다. 모델을 다시 실행해 주세요.")
         registry = _candidate_registry(retrieval)
         warnings: list[str] = []
-        work_analysis = _normalize_work_analysis(draft.get("work_analysis"))
+        work_analysis = _normalize_work_analysis(draft.get("work_analysis"), warnings)
         gaps = _normalize_gaps(draft.get("information_gaps"), warnings)
         as_is_graph, _ = _graph_from_raw(draft.get("as_is_graph"), prefix="as-is", fallback_steps=work_analysis["current_steps"], warnings=warnings, add_gap=gaps)
         to_be_design, node_mapping, _ = _normalize_tobe(draft.get("to_be_design"), warnings, gaps)
@@ -951,7 +1141,7 @@ class BusinessDesignResultNormalizerComponent(Component):
             "status": "COMPLETED_WITH_GAPS" if gaps else "COMPLETED",
             "request": request,
             "work_analysis": work_analysis,
-            "information_gaps": gaps[:100],
+            "information_gaps": gaps,
             "as_is_graph": as_is_graph,
             "to_be_design": to_be_design,
             "catalog_candidate_shortlist": {

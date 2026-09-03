@@ -23,7 +23,7 @@
 | MongoDB | 카탈로그 적재와 검색에 사용하지 않음 |
 | Embedding | 1차 버전에서는 사용하지 않음 |
 | 카탈로그 검색 | 업로드 JSON 전체를 메모리에서 정규화한 뒤 로컬 다중 신호 검색으로 상위 N개 선정 |
-| 기본 후보 수 | 100개, 허용 범위 1~100개. 모든 후보 identity를 유지한 압축 목록과 **상위 12개 내부 고정 rich context**를 03 후보 선별에 전달 |
+| 기본 후보 수 | 100개, 허용 범위 1~100개. 모든 후보 identity를 유지한 압축 목록과 **상위 30개 내부 고정 rich context**를 03 후보 선별에 전달 |
 | LLM 선별 후보 최대 수 | 기본 12개, 허용 범위 1~30개. **03 전용 LLM 후보 선별 노드**가 02의 100개 검색 결과에서 후속 설계가 볼 카탈로그 수의 상한을 정한다. 02의 내부 rich context 한도와 별개이며, 선별되었다고 해서 실제 적용되지는 않음 |
 | LLM 호출 | 후보 선별 1회 + 1차 구조화 설계 1회 + 품질 보완 구조화 설계 1회. 03이 고정 shortlist를 만들고, 06·09는 그 범위 안에서만 실제 적용·검토·미사용을 판단한다. 09 실패 시 shortlist를 직접 적용으로 표시하지 않고 07의 검증된 초안을 사용 |
 | Flow 분리 | Run Flow 없이 단일 Flow JSON 하나로 구성 |
@@ -326,7 +326,7 @@ Langflow 1.11.0의 `FileInput`이 전달하는 업로드 경로는 Component의 
 
 출력: retrieval_result
 
-02는 검색 순위 상위 **12개**의 README·기능·제약·포트 요약을 내부 고정 rich context로 유지한다. 이는 LLM의 후보 판단 품질과 prompt 예산을 안정화하기 위한 구현 정책이며 Canvas 입력값이 아니다. Canvas에서 사용자가 조정하는 검색 범위는 `상위 후보 수` 하나뿐이다.
+02는 검색 순위 상위 **30개**의 README·기능·제약·포트 요약을 내부 고정 rich context로 유지한다. 이는 LLM의 후보 판단 품질과 prompt 예산을 안정화하기 위한 구현 정책이며 Canvas 입력값이 아니다. Canvas에서 사용자가 조정하는 검색 범위는 `상위 후보 수` 하나뿐이다.
 
 ### 4.4 03 LLM 카탈로그 후보 선별
 
@@ -1018,7 +1018,7 @@ LLM에 카탈로그 전체 파일을 전달하지 않는다. 후보당 전달하
 - technical_contract_status
 - bounded ports
 
-기본 후보당 최대 700자이며 retrieval_result projection 전체 한도는 56,000자다. 100개 후보의 identity·순위·매칭 근거는 압축 목록으로 유지하고, 검색 순위 상위 **12개**만 README·기능·제약·포트 요약을 포함한 내부 고정 rich context로 확장한다. 이 12개는 Canvas에서 바꾸는 설정이 아니다. **03 후보 선별 LLM만** 이 100개 후보 projection을 받는다. 초과하면 낮은 순위 후보의 readme, limitations, ports 상세, description 순서로 줄이되 rank, asset identity, title, score, match reason, status는 자르지 않는다. Agent Hub URL은 모델 입력에 반복하지 않고, 마지막 정규화 단계에서 선택한 `asset_id`와 `asset_type`으로 다시 만든다.
+기본 후보당 최대 700자이며 retrieval_result projection 전체 한도는 56,000자다. 100개 후보의 identity·순위·매칭 근거는 압축 목록으로 유지하고, 검색 순위 상위 **30개**만 README·기능·제약·포트 요약을 포함한 내부 고정 rich context로 확장한다. 이 30개는 Canvas에서 바꾸는 설정이 아니다. **03 후보 선별 LLM만** 이 100개 후보 projection을 받는다. 초과하면 낮은 순위 후보의 readme, limitations, ports 상세, description 순서로 줄이되 rank, asset identity, title, score, match reason, status는 자르지 않는다. Agent Hub URL은 모델 입력에 반복하지 않고, 마지막 정규화 단계에서 선택한 `asset_id`와 `asset_type`으로 다시 만든다.
 
 03에 실제 들어간 후보 수는 `top_n_returned`와 같아야 하고, `(asset_id, version)` 집합도 retrieval_result와 정확히 같아야 한다. 카탈로그 항목 수가 top_n보다 작으면 `min(top_n, valid_items)`개를 반환한다. 03이 만든 `catalog-shortlist/v1`은 그 집합의 부분집합이어야 하며, 중복 없이 `shortlist_rank` 순서를 가져야 한다. 04·06·09에는 100개 projection을 다시 전달하지 않고, 이 고정 shortlist의 상세 정보만 전달한다.
 
@@ -1057,7 +1057,7 @@ LLM에 카탈로그 전체 파일을 전달하지 않는다. 후보당 전달하
 
 1. 사용자가 입력한 `description_for_model`
 2. redacted 추가 설계 요청
-3. 정규화된 카탈로그 후보 100개(모든 identity)와 검색 순위 상위 12개의 내부 고정 rich context
+3. 정규화된 카탈로그 후보 100개(모든 identity)와 검색 순위 상위 30개의 내부 고정 rich context
 4. 입력이 축약된 경우 그 사실과 원문 전체 문자 수
 
 04가 06에 전달하는 동적 Message에는 업무 설명, 추가 설계 요청, 입력 축약 정보와 **03의 고정 shortlist 상세 정보만** 넣는다. 06과 09는 후보를 새로 검색하거나 추가할 수 없다. 고정 규칙과 출력 schema를 동적 사용자 Message 안에 섞지 않는다. 08은 07의 1차 결과와 고정 shortlist를 바탕으로 별도 보완 Message를 만들고, 09는 그 Message만 받는다.
@@ -1498,7 +1498,7 @@ metadata_only는 바로 적용 가능 또는 검증 완료로 표시하면 안 �
 | 5,000개 카탈로그 load + rank | 3초 이내 |
 | 03 후보 선별 LLM 전달 후보 | 기본 100개, 최대 100개. 모든 후보의 rank/id/version/type/title/match 근거를 유지 |
 | 06·09 설계 LLM 전달 후보 | 03이 고정한 1~30개 shortlist만 전달. 빈 shortlist도 허용 |
-| retrieval 후보 projection | 03에만 100개 identity 압축 index와 검색 순위 상위 12개의 내부 고정 rich-context payload를 예산 안에서 추가 |
+| retrieval 후보 projection | 03에만 100개 identity 압축 index와 검색 순위 상위 30개의 내부 고정 rich-context payload를 예산 안에서 추가 |
 | 전체 LLM Prompt | 각 호출별 기본 64,000자·예상 20,000 input token 이하 |
 | LLM 호출 | 후보 선별 + 1차 설계 + 품질 보완 최대 3회 |
 | LLM 출력 상한 | 기본 max_tokens 8,192, stream 비활성 |
@@ -1511,7 +1511,7 @@ metadata_only는 바로 적용 가능 또는 검증 완료로 표시하면 안 �
 
 ### 14.2 100개 예제 기준
 
-현재 samples/catalog_assets_100_example.json 수준의 100개 카탈로그는 모두 메모리에서 parse하고 rank한다. 상위 100개는 03 후보 선별 LLM에만 전달하되, 후보마다 긴 readme·port·제약을 반복하지 않는다. 03은 모든 후보의 identity와 매칭 근거를 가진 compact index 및 검색 순위 상위 12개의 내부 고정 rich context로 shortlist를 만든다. 06·09에는 그 shortlist의 상세 정보만 전달한다. 따라서 embedding 100회, 1초 간격 대기, checkpoint 재실행은 발생하지 않는다.
+현재 samples/catalog_assets_100_example.json 수준의 100개 카탈로그는 모두 메모리에서 parse하고 rank한다. 상위 100개는 03 후보 선별 LLM에만 전달하되, 후보마다 긴 readme·port·제약을 반복하지 않는다. 03은 모든 후보의 identity와 매칭 근거를 가진 compact index 및 검색 순위 상위 30개의 내부 고정 rich context로 shortlist를 만든다. 06·09에는 그 shortlist의 상세 정보만 전달한다. 따라서 embedding 100회, 1초 간격 대기, checkpoint 재실행은 발생하지 않는다.
 
 ## 15. 파일 구조
 

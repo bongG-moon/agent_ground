@@ -5,8 +5,9 @@ from __future__ import annotations
 This is visual-QA infrastructure for the single Flow.  It deliberately calls
 the same standalone component methods used by F01 for 00 → 01 → 02 → 05 → 06
 → 08 → 09 → 10 → 11, but substitutes the checked-in mock JSON for both
-Language Model passes.  It does not call 03/04, network services, MongoDB, or
-a publisher.
+Language Model passes.  It creates a contract-equivalent, deterministic 03
+shortlist fixture from the mock's catalog decisions instead of calling a model.
+It does not call a provider, network service, MongoDB, or publisher.
 """
 
 import argparse
@@ -55,6 +56,82 @@ def _data(value: Any, name: str) -> dict[str, Any]:
     return payload
 
 
+def _sample_catalog_shortlist(
+    *,
+    request: dict[str, Any],
+    retrieval_result: dict[str, Any],
+    mock_draft: dict[str, Any],
+    maximum: int = 12,
+) -> dict[str, Any]:
+    """Build the exact 03 output envelope needed by the offline visual sample.
+
+    This is intentionally a fixture, not an alternative candidate-selection
+    implementation.  The real Flow still calls 03's Language Model.  Keeping
+    the fixture bound to the current request/retrieval hashes makes the sample
+    exercise the same 05 shortlist lock as a normal execution.
+    """
+
+    candidates = retrieval_result.get("candidates")
+    if not isinstance(candidates, list):
+        raise TypeError("02 LocalCatalogRanker did not return candidates")
+    wanted: list[tuple[str, str]] = []
+    decisions = mock_draft.get("catalog_decisions")
+    if isinstance(decisions, list):
+        for decision in decisions:
+            if not isinstance(decision, dict):
+                continue
+            asset_id = str(decision.get("asset_id") or "").lower()
+            version = str(decision.get("version") or "unknown")
+            if asset_id and (asset_id, version) not in wanted:
+                wanted.append((asset_id, version))
+
+    chosen: list[dict[str, Any]] = []
+    used: set[tuple[str, str]] = set()
+    for candidate in candidates:
+        if not isinstance(candidate, dict):
+            continue
+        key = (str(candidate.get("asset_id") or "").lower(), str(candidate.get("version") or "unknown"))
+        if key in wanted and key not in used:
+            chosen.append(candidate)
+            used.add(key)
+    for candidate in candidates:
+        if not isinstance(candidate, dict) or len(chosen) >= maximum:
+            continue
+        key = (str(candidate.get("asset_id") or "").lower(), str(candidate.get("version") or "unknown"))
+        if key[0] and key not in used:
+            chosen.append(candidate)
+            used.add(key)
+    chosen = chosen[:maximum]
+    return {
+        "ok": True,
+        "status": "COMPLETED",
+        "schema_version": "catalog-shortlist/v1",
+        "request_sha256": request["request_sha256"],
+        "candidate_set_sha256": retrieval_result["candidate_set_sha256"],
+        "catalog_file_sha256": retrieval_result["catalog_file_sha256"],
+        "selection_policy": {
+            "max_shortlisted_catalog_items": maximum,
+            "zero_shortlist_allowed": True,
+            "selection_scope": "candidate_shortlist_only",
+            "selection_method": "llm-structured-shortlist/v1",
+            "selection_source": "canvas_node_03",
+        },
+        "shortlisted_candidates": [
+            {
+                "asset_id": candidate["asset_id"],
+                "version": candidate["version"],
+                "shortlist_rank": index,
+                "reason": "오프라인 시각 검증 fixture에서 모델 설계안의 카탈로그 결정을 재현하기 위해 포함했습니다.",
+            }
+            for index, candidate in enumerate(chosen, start=1)
+        ],
+        "shortlisted_count": len(chosen),
+        "unshortlisted_candidate_count": max(0, len(candidates) - len(chosen)),
+        "warnings": ["SAMPLE_FIXTURE_ONLY"],
+        "trace": {"model_execution_mode": "sample_fixture"},
+    }
+
+
 def render_sample(
     *,
     description_path: Path,
@@ -97,11 +174,17 @@ def render_sample(
     ranker.max_candidate_chars = 700
     ranker.max_context_chars = 56_000
     retrieval_result = _data(ranker.rank_catalog(), "02 LocalCatalogRanker")
+    catalog_shortlist = _sample_catalog_shortlist(
+        request=request,
+        retrieval_result=retrieval_result,
+        mock_draft=parsed_mock,
+    )
 
     normalizer = _component("05_business_design_result_normalizer.py", "BusinessDesignResultNormalizerComponent")
     normalizer.model_response = Message(text=json.dumps(parsed_mock, ensure_ascii=False))
     normalizer.request = Data(data=request)
     normalizer.retrieval_result = Data(data=retrieval_result)
+    normalizer.catalog_shortlist = Data(data=catalog_shortlist)
     initial_design_result = _data(normalizer.normalize_design(), "06 first BusinessDesignResultNormalizer")
 
     # The sample has no provider call.  Reuse the checked-in contract-valid
@@ -111,6 +194,7 @@ def render_sample(
     final_normalizer.model_response = Message(text=json.dumps(parsed_mock, ensure_ascii=False))
     final_normalizer.request = Data(data=request)
     final_normalizer.retrieval_result = Data(data=retrieval_result)
+    final_normalizer.catalog_shortlist = Data(data=catalog_shortlist)
     final_normalizer.fallback_design_result = Data(data=initial_design_result)
     design_result = _data(final_normalizer.normalize_design(), "09 final BusinessDesignResultNormalizer")
 

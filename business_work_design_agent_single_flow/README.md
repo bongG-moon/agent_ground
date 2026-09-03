@@ -25,7 +25,7 @@ Langflow **1.11.0**에서 업무 설명과 기능 카탈로그 JSON 한 개를 �
 16 Chat Output
 ```
 
-`02 → 04`의 내부 Data edge는 03 shortlist의 `asset_id`·`version`을 검색 registry와 대조하고 선택된 항목의 상세 정보를 안전하게 다시 결합하기 위한 것입니다. 02는 상위 후보 12개의 rich context를 내부 고정 한도로만 유지하며, 이 수는 Canvas에서 조정하지 않습니다. 04가 06에 만드는 실제 설계 prompt에는 shortlist 밖 후보를 넣지 않습니다.
+`02 → 04`의 내부 Data edge는 03 shortlist의 `asset_id`·`version`을 검색 registry와 대조하고 선택된 항목의 상세 정보를 안전하게 다시 결합하기 위한 것입니다. 02는 상위 후보 30개의 rich context를 내부 고정 한도로만 유지하며, 이 수는 Canvas에서 조정하지 않습니다. 04가 06에 만드는 실제 설계 prompt에는 shortlist 밖 후보를 넣지 않습니다.
 
 - 실행 노드: 17개, 실행 edge: 29개
 - 최종 결과: Playground용 **16 Chat Output**과 API/테스트용 **15 Report Artifact Data**
@@ -41,7 +41,7 @@ Langflow **1.11.0**에서 업무 설명과 기능 카탈로그 JSON 한 개를 �
 | 00 업무 설명 입력 | 추가 설계 요청 | 선택입니다. 예: `사람 승인 유지, 카탈로그 우선` |
 | 00 업무 설명 입력 | 최종 설계 보완 지시 | 선택입니다. 1차 설계에는 넣지 않고 08·09의 두 번째 품질 보완에만 반영합니다. 예: `분기와 예외 경로를 더 구체적으로 표시` |
 | 01 기능 카탈로그 JSON 파일 | 기능 카탈로그 JSON | UTF-8 JSON 파일 하나를 업로드합니다. |
-| 02 관련 기능 카탈로그 검색 | 검색 후보 수 | 기본 100입니다. 키워드·BM25·문자 n-gram RRF로 찾는 후보 풀이며, 적용 확정 수가 아닙니다. 상위 12개 후보의 rich context는 내부 고정 한도로만 사용합니다. |
+| 02 관련 기능 카탈로그 검색 | 검색 후보 수 | 기본 100입니다. 키워드·BM25·문자 n-gram RRF로 찾는 후보 풀이며, 적용 확정 수가 아닙니다. 상위 30개 후보의 rich context는 내부 고정 한도로만 사용합니다. |
 | 03 LLM 카탈로그 후보 선별 | LLM 선별 후보 최대 수 | 기본 12개, 범위는 1~30개입니다. 02가 검색한 100개에서 후속 설계가 볼 **고정 shortlist**만 만듭니다. 맞는 후보가 적으면 억지로 채우지 않으며, 선별되었다고 해서 실제 적용되지는 않습니다. |
 | 05 Language Model (모델 설정) | provider/model/credential | 후보 선별(03), 1차 설계(06), 최종 보완(09)에 같은 `LanguageModel` 객체를 공급합니다. Structured Output 또는 tool calling을 지원하는 운영 모델을 선택합니다. 32k 이상 context를 권장합니다. |
 | 04 / 06 / 09 설계 노드 | 설정 불필요 | 04는 02 registry로 03 shortlist의 identity를 검증·상세 보강한 뒤 **고정 shortlist만** 담아 설계 요청을 만듭니다. 06·09는 standalone custom component에 내장된 고정 Pydantic 계약으로 설계 JSON을 만듭니다. 실제 적용은 선택 사항이며 shortlist 밖 후보는 추가할 수 없습니다. |

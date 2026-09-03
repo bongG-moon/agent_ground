@@ -162,6 +162,29 @@ DRAWER_CSS = r"""
 """
 
 
+GRAPH_LAYOUT_CSS = r"""
+/* Deterministic left-to-right layout.  The world is fitted on first paint,
+   while the original pan/zoom affordances remain available for inspection. */
+.graph-frame{height:clamp(480px,56vw,640px);background:linear-gradient(180deg,#fcfdfe 0%,#f7f9fb 100%)}
+.graph-viewport{touch-action:none;scrollbar-color:#c6ced8 transparent;scrollbar-width:thin}
+.graph-viewport::-webkit-scrollbar{width:9px;height:9px}.graph-viewport::-webkit-scrollbar-thumb{background:#c6ced8;border:2px solid transparent;background-clip:padding-box;border-radius:99px}.graph-viewport::-webkit-scrollbar-track{background:transparent}
+.edges{overflow:visible}.edge-path{fill:none;stroke-linecap:round;stroke-linejoin:round;vector-effect:non-scaling-stroke}.edge-path.control{stroke:#aeb8c5}.edge-path.branch{stroke:#bd842a}.edge-path.error{stroke:#c85b5b}.edge-path.human{stroke:#8068dc}
+.edge-label{z-index:3;display:block;max-width:112px;padding:4px 7px;border-color:#dce3ea;background:rgba(255,255,255,.96);box-shadow:0 3px 10px rgba(24,34,44,.07);color:#5e6875;font-size:9.5px;line-height:1.25;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;pointer-events:auto;cursor:help}
+.flow-node{min-height:132px;transition:transform .14s ease,box-shadow .14s ease}.flow-node:hover{transform:translateY(-2px);box-shadow:0 12px 24px rgba(25,32,40,.12)}
+.flow-node:focus-visible{outline:3px solid rgba(114,87,232,.42);outline-offset:3px}.flow-node .node-inner{min-height:128px}
+.toolbar button:focus-visible,.toolbar .zoom:focus-visible{outline:3px solid rgba(114,87,232,.35);outline-offset:2px}.toolbar button[aria-label="전체 보기"]{font-size:14px}
+@media(max-width:720px){.graph-frame{height:460px}.edge-label{max-width:104px;font-size:9px}}
+"""
+
+
+DRAWER_IO_CSS = r"""
+/* Keep implementation guidance visually distinct from the port cards.  The
+   generic .drawer-block p rule is intentionally overridden here so these
+   notices retain their own vertical rhythm. */
+.drawer-io-section{padding:18px 0 24px}.drawer-io-section+.drawer-block{padding-top:21px}.drawer-io-intro{margin:0 0 13px;color:#59636f;font-size:12.5px;line-height:1.68}.drawer-io-status{display:inline-flex;align-items:center;margin:0 0 17px;padding:5px 8px;border-radius:999px;background:var(--violet-soft);color:#5f43d5;font-size:11px;font-weight:800}.drawer-io-status.needs-check{background:var(--amber-soft);color:var(--amber)}.drawer-io-grid{display:grid;gap:16px}.drawer-io-card{padding:17px 16px;border:1px solid #e1e7ed;border-radius:14px;background:#fbfcfd}.drawer-io-card h4{margin:0;color:#27303a;font-size:13.5px;line-height:1.5}.drawer-port-meta{display:flex;gap:6px;flex-wrap:wrap;margin:9px 0 0}.drawer-port-type,.drawer-port-required,.drawer-port-optional{display:inline-flex;align-items:center;padding:4px 7px;border-radius:6px;font-size:10.5px;font-weight:780}.drawer-port-type{background:#eef2f6;color:#536170}.drawer-port-required{background:#fff0ea;color:#bf431d}.drawer-port-optional{background:#f2f3f5;color:#697482}.drawer-io-route{margin:14px 0 0;padding:13px 14px;border-left:3px solid #b9c2ce;border-radius:0 10px 10px 0;background:#fff;color:#3f4955;font-size:12.5px;line-height:1.72}.drawer-io-route-label{color:#59636f;font-size:11px}.drawer-stage-name{display:inline;padding:1px 4px;border-radius:5px;background:var(--violet-soft);color:#5c43cc;font-size:12.5px;font-weight:850;line-height:inherit;box-decoration-break:clone;-webkit-box-decoration-break:clone}.drawer-io-route .drawer-stage-name{margin:0 1px}.drawer-io-bindings{display:grid;gap:12px;margin-top:14px}.drawer-io-binding{padding:12px 13px;border:1px dashed #d5dee7;border-radius:10px;background:#fff;font-size:12.5px;line-height:1.72;color:#45515d}.drawer-io-empty{margin:14px 0 0;color:#737d89;font-size:12.5px;line-height:1.62}.drawer-io-notes{display:grid;gap:14px;margin-top:23px}.drawer-io-section .drawer-io-note{margin:0;padding:16px 17px;border:1px solid #f0d8cf;border-radius:12px;background:#fffaf8;color:#684937;font-size:12.5px;line-height:1.72}.drawer-io-section .drawer-io-note.needs-check{border-color:#f1d49e;background:#fffdf8;color:#76511a}.drawer-io-list{margin:10px 0 0;padding-left:19px;color:#45515d;font-size:12.5px;line-height:1.65}.drawer-io-list li{margin:5px 0}@media(max-width:480px){.drawer-io-section{padding-bottom:21px}.drawer-io-section+.drawer-block{padding-top:19px}.drawer-io-grid{gap:13px}.drawer-io-card{padding:15px 14px}.drawer-io-route,.drawer-io-binding{padding:11px 12px}.drawer-io-notes{gap:12px;margin-top:18px}.drawer-io-section .drawer-io-note{padding:14px 15px}}
+"""
+
+
 REFINEMENT_CSS = r"""
 .refinement-content{display:grid;grid-template-columns:minmax(0,1fr) minmax(260px,.9fr);gap:14px;align-items:start}.refinement-message{margin:0;padding:14px 16px;border:1px solid #e5e9ee;border-left:4px solid var(--violet);border-radius:12px;background:#fbfbff;color:#344050;font-size:13px;line-height:1.7}.refinement-instruction{padding:14px 16px;border:1px solid #f0d8cf;border-radius:12px;background:#fffaf8}.refinement-instruction h3{margin:0 0 6px;color:#7d4a37;font-size:12px}.refinement-instruction p{margin:0;color:#4d5762;font-size:13px;line-height:1.65;white-space:pre-wrap;word-break:break-word}@media(max-width:720px){.refinement-content{grid-template-columns:1fr}}
 """
@@ -214,10 +237,486 @@ const gapHost=$('#gaps');const severity={required:['필수 보완','required'],i
 const context=$('#context');const contextRows=[['업무 목적',(data.business_report?.work_overview?.summary)||'확인 필요'],['업무 범위',((blocks.work_overview||{}).facts||[]).map(f=>f.value).join(' · ')||'확인 필요'],['현재 문제',((blocks.as_is_analysis||{}).bullets||[]).join(' · ')||'확인 필요'],['개선 원칙',((blocks.improvement_direction||{}).bullets||[]).join(' · ')||'확인 필요']];contextRows.forEach(([a,b])=>{const d=node('div','detail-card');d.append(node('h3','',a),node('p','',b));context.append(d)});
 const sourceLabels={human_task:'사람 수행',builtin:'기본 요소',catalog_component:'기존 Component',catalog_flow:'기존 Flow',new_component:'신규 Custom',external_service:'외부 서비스'};function catalogUrl(item){if(!item||typeof item!=='object')return null;const id=text(item.asset_id).toLowerCase(),kind=item.asset_type==='flow'?'flow':'component',url=text(item.catalog_url);const pattern=new RegExp('^https://agent-hub\\.skhynix\\.com/#/'+kind+'/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$','i');return pattern.test(url)&&url.toLowerCase().endsWith('/'+id)?url:null}function openDrawer(title,fields){$('#drawer-title').textContent=title;const host=$('#drawer-body');host.replaceChildren();Object.entries(fields||{}).forEach(([label,value])=>{if(value==null||value===''||(Array.isArray(value)&&!value.length))return;const block=node('section','drawer-block');block.append(node('h3','',label));const val=node('div','');if(Array.isArray(value))val.textContent=value.map(v=>typeof v==='string'?'• '+v:'• '+JSON.stringify(v)).join('\n');else if(typeof value==='object')val.textContent=JSON.stringify(value,null,2);else val.textContent=text(value);block.append(val);host.append(block)});$('#drawer').classList.add('open');$('#backdrop').classList.add('open')}function closeDrawer(){$('#drawer').classList.remove('open');$('#backdrop').classList.remove('open')}$('#close').addEventListener('click',closeDrawer);$('#backdrop').addEventListener('click',closeDrawer);document.addEventListener('keydown',e=>{if(e.key==='Escape')closeDrawer()});
 function graphLayout(graph){const nodes=Array.isArray(graph.nodes)?[...graph.nodes].sort((a,b)=>(a.sequence||0)-(b.sequence||0)):[];const edges=Array.isArray(graph.edges)?graph.edges:[];const rows=new Map();nodes.forEach((n,i)=>rows.set(n.node_id,n.node_kind==='exception'?2:0));edges.filter(e=>e.edge_kind==='branch'||e.edge_kind==='error').forEach((e,i)=>{if(rows.has(e.target_node_id))rows.set(e.target_node_id,1+(i%2))});const positions=new Map();nodes.forEach((n,i)=>positions.set(n.node_id,{x:54+i*260,y:64+(rows.get(n.node_id)||0)*152}));return {nodes,edges,positions,width:Math.max(420,72+nodes.length*260),height:Math.max(300,120+(Math.max(0,...[...rows.values()])*152)+150)}}function renderGraph(graph){const host=$('#graph-host');host.replaceChildren();const frame=node('div','graph-frame');const vp=node('div','graph-viewport'),world=node('div','graph-world'),svg=document.createElementNS('http://www.w3.org/2000/svg','svg');svg.classList.add('edges');const layer=node('div','node-layer');world.append(svg,layer);vp.append(world);frame.append(vp);const bar=node('div','toolbar'),minus=node('button','', '−'),read=node('div','zoom',''),plus=node('button','', '+'),fit=node('button','', '↙');fit.title='전체 보기';bar.append(minus,read,plus,fit);frame.append(bar);host.append(frame);const layout=graphLayout(graph);world.style.width=layout.width+'px';world.style.height=layout.height+'px';svg.setAttribute('width',layout.width);svg.setAttribute('height',layout.height);let scale=1;function apply(){world.style.transform='scale('+scale+')';read.textContent=Math.round(scale*100)+'%'}function fitAll(){scale=Math.max(.38,Math.min(1,(vp.clientWidth-34)/layout.width,(vp.clientHeight-34)/layout.height));apply();vp.scrollTo({left:0,top:0})}function zoom(delta){scale=Math.max(.3,Math.min(1.6,Math.round((scale+delta)*100)/100));apply()}minus.addEventListener('click',()=>zoom(-.1));plus.addEventListener('click',()=>zoom(.1));fit.addEventListener('click',fitAll);window.addEventListener('resize',fitAll,{passive:true});const defs=document.createElementNS('http://www.w3.org/2000/svg','defs'),mark=document.createElementNS('http://www.w3.org/2000/svg','marker');mark.setAttribute('id','arrow');mark.setAttribute('viewBox','0 0 10 10');mark.setAttribute('refX','9');mark.setAttribute('refY','5');mark.setAttribute('markerWidth','6');mark.setAttribute('markerHeight','6');mark.setAttribute('orient','auto');const mp=document.createElementNS('http://www.w3.org/2000/svg','path');mp.setAttribute('d','M0,0 L10,5 L0,10 z');mp.setAttribute('fill','#b5bdc8');mark.append(mp);defs.append(mark);svg.append(defs);layout.edges.forEach(edge=>{const s=layout.positions.get(edge.source_node_id),t=layout.positions.get(edge.target_node_id);if(!s||!t)return;const sx=s.x+208,sy=s.y+65,tx=t.x,ty=t.y+65,mid=(sx+tx)/2;const path=document.createElementNS('http://www.w3.org/2000/svg','path');path.setAttribute('d','M '+sx+' '+sy+' C '+(mid)+' '+sy+', '+(mid)+' '+ty+', '+tx+' '+ty);path.setAttribute('fill','none');path.setAttribute('stroke',edge.edge_kind==='error'?'#d66b6b':edge.edge_kind==='branch'?'#c28b30':'#b5bdc8');path.setAttribute('stroke-width','2');path.setAttribute('marker-end','url(#arrow)');svg.append(path);const label=node('div','edge-label',edge.label||'다음');label.style.left=mid+'px';label.style.top=((sy+ty)/2)+'px';layer.append(label)});layout.nodes.forEach(n=>{const pos=layout.positions.get(n.node_id),btn=node('button','flow-node '+(n.node_kind||''));btn.type='button';btn.style.left=pos.x+'px';btn.style.top=pos.y+'px';btn.append(node('div','stripe'));const inner=node('div','node-inner');const meta=node('div','node-meta');meta.append(node('span','',sourceLabels[n.implementation_source]||'업무 단계'),node('span','', 'STEP '+((n.sequence||0)+1)));inner.append(meta,node('h3','',n.title||'업무 단계'),node('p','',n.summary||''));const refs=Array.isArray(n.catalog_refs)?n.catalog_refs:[];if(refs.length){const plan=(data.catalog_application_plan?.selected||[]);const names=refs.map(r=>plan.find(a=>a.asset_id===r.asset_id&&a.version===r.version)?.title).filter(Boolean);inner.append(node('div','node-catalog','카탈로그 · '+names.join(', ')))}btn.append(inner);btn.addEventListener('click',()=>openDrawer(n.title||'업무 단계',graph.details?.[n.detail_ref]||{설명:n.summary||''}));layer.append(btn)});apply();requestAnimationFrame(fitAll);let dragging=false,startX=0,startY=0,scrollX=0,scrollY=0;vp.addEventListener('pointerdown',e=>{if(e.target.closest('button'))return;dragging=true;startX=e.clientX;startY=e.clientY;scrollX=vp.scrollLeft;scrollY=vp.scrollTop;vp.setPointerCapture(e.pointerId)});vp.addEventListener('pointermove',e=>{if(dragging){vp.scrollLeft=scrollX-(e.clientX-startX);vp.scrollTop=scrollY-(e.clientY-startY)}});vp.addEventListener('pointerup',()=>dragging=false);vp.addEventListener('wheel',e=>{if(e.ctrlKey||e.metaKey){e.preventDefault();zoom(e.deltaY<0?.1:-.1)}},{passive:false})}
-let active='to_be_graph';function setTab(which){active=which;document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('active',t.dataset.graph===which));const title=which==='to_be_graph'?'Agent 적용 후 권장 Flow':'현재 업무 Flow';$('#graph-title').textContent=title;$('#graph-copy').textContent=which==='to_be_graph'?'반복 작업은 자동화 후보로, 중요한 판단과 승인 기준은 사람이 확인하도록 분리했습니다.':'현재 사람이 수행하는 업무 단계와 분기·예외를 입력 설명 기반으로 정리했습니다.';renderGraph(data[which]||{})}document.querySelectorAll('.tab').forEach(t=>t.addEventListener('click',()=>setTab(t.dataset.graph)));setTab(active);
+/* Graph rendering is supplied by GRAPH_LAYOUT_JS below.  The legacy helper
+   functions stay in this compatibility bundle only for old cached reports;
+   they are deliberately not invoked for newly rendered reports. */
 function statusText(value){return ({verified_runtime:'실행 검증 이력 있음',ports_extracted:'포트 계약 확인 필요',flow_graph_extracted:'Flow 구조 확인됨',metadata_only:'설명 기반 검토 후보',unknown:'상세 확인 필요'})[value]||'상세 확인 필요'}function catalogCard(item,selected){const card=node('article','catalog-card '+(selected?'selected':''));card.append(node('h4','',item.title||'카탈로그 자산'));card.append(node('div','catalog-meta',(item.asset_type==='flow'?'Flow':'Component')+' · '+(item.version||'unknown')));card.append(node('div','catalog-meta',item.asset_id||''));const badge=node('span','badge '+(selected?'orange':'violet'),statusText(item.technical_contract_status));card.append(badge);if(text(item.reason).trim())card.append(node('p','',item.reason));if(Array.isArray(item.target_node_ids)&&item.target_node_ids.length)card.append(node('p','', '적용 위치 · '+item.target_node_ids.join(', ')));const href=catalogUrl(item);if(href){const a=node('a','', 'Agent Hub 상세 보기');a.href=href;a.target='_blank';a.rel='noopener noreferrer';card.append(a)}else card.append(node('div','invalid','Agent Hub 링크 검증 실패'));return card}const plans=data.catalog_application_plan||{};[['selected','적용 권고','이 단계에 직접 적용을 권고하는 후보입니다.',true],['considered','연결 검토 후보','관련성은 있으나 포트·권한·실행 조건을 확인해야 합니다.',false],['not_used','사용하지 않은 검색 후보','검색 후보였지만 이번 설계에는 적용하지 않았습니다.',false]].forEach(([key,title,copy,sel])=>{const items=Array.isArray(plans[key])?plans[key]:[];const sec=node('section','');const head=node('div','catalog-head');head.append(node('h3','',title),node('span','badge '+(sel?'orange':'violet'),items.length+'개'));sec.append(head,node('p','note',copy));const grid=node('div','catalog-grid');const visible=key==='not_used'?items.slice(0,6):items;visible.forEach(item=>grid.append(catalogCard(item,sel)));sec.append(grid);if(key==='not_used'&&items.length>visible.length){const more=node('details','more'),summary=node('summary','', '나머지 '+(items.length-visible.length)+'개 검색 후보 보기'),moreGrid=node('div','catalog-grid');items.slice(visible.length).forEach(item=>moreGrid.append(catalogCard(item,false)));more.append(summary,moreGrid);sec.append(more)}$('#catalog-groups').append(sec)});
 const road=$('#roadmap');const impl=Array.isArray(data.implementation_plan)?data.implementation_plan:[];if(!impl.length)road.append(node('p','note','구현 로드맵은 업무 설명의 보완 항목을 반영한 뒤 구체화하세요.'));impl.forEach((item,i)=>{const row=node('article','roadmap-item');row.append(node('div','phase',''+(item.phase||i+1)));const body=node('div','');body.append(node('h3','',item.title||'구현 단계'));const bits=[];if(list(item.actions).length)bits.push('실행 · '+list(item.actions).join(' · '));if(list(item.dependencies).length)bits.push('선행 · '+list(item.dependencies).join(' · '));if(list(item.completion_criteria).length)bits.push('완료 기준 · '+list(item.completion_criteria).join(' · '));body.append(node('p','',bits.join('\n')));row.append(body);road.append(row)});
 const risk=$('#risks'),tests=$('#tests');const two=(host,items,kind)=>{if(!items.length){host.append(node('p','note','현재 추가 항목이 없습니다.'));return}items.forEach(item=>{const d=node('article','detail-card');const title=kind==='risk'?item.risk:item.title;const body=kind==='risk'?('영향 · '+text(item.impact)+'\n통제 · '+text(item.control)+'\n담당 · '+text(item.owner_role)):('Given · '+text(item.given)+'\nWhen · '+text(item.when)+'\nThen · '+text(item.then));d.append(node('h3','',title||'확인 항목'),node('p','',body));host.append(d)})};two(risk,Array.isArray(data.risks_and_controls)?data.risks_and_controls:[],'risk');two(tests,Array.isArray(data.validation_plan)?data.validation_plan:[],'test');const trace=$('#trace');trace.textContent=JSON.stringify(data.technical_trace||{},null,2);})();
+"""
+
+
+GRAPH_LAYOUT_JS = r"""
+(() => {
+  "use strict";
+
+  const data = JSON.parse(document.getElementById("report-data").textContent);
+  const host = document.getElementById("graph-host");
+  const nodeWidth = 208;
+  const nodeHeight = 132;
+  const layerGap = 118;
+  const rowGap = 44;
+  const sidePadding = 54;
+  let renderNumber = 0;
+
+  const text = (value) => (typeof value === "string" ? value : (value == null ? "" : String(value)));
+  const cleanText = (value) => text(value).replace(/\s+/g, " ").trim();
+  const element = (tag, className, value) => {
+    const result = document.createElement(tag);
+    if (className) result.className = className;
+    if (value !== undefined) result.textContent = String(value);
+    return result;
+  };
+  const sourceLabels = {
+    human_task: "사람 수행",
+    builtin: "기본 기능",
+    catalog_component: "기존 Component",
+    catalog_flow: "기존 Flow",
+    new_component: "신규 Custom",
+    external_service: "외부 서비스",
+  };
+  const edgeClass = (kind) => ({ branch: "branch", error: "error", human: "human" })[kind] || "control";
+  const edgeLabelMinWidth = 52;
+  const edgeLabelMaxWidth = 112;
+  const edgeLabelHeight = 24;
+  const edgeLabelWidth = (label) => {
+    // A Korean glyph is materially wider than an ASCII character in the
+    // report font.  This deterministic estimate gives ordinary Korean labels
+    // a one-line pill without needing browser-only measurement APIs.
+    const units = [...cleanText(label)].reduce((total, character) => {
+      if (/\s/.test(character)) return total + 0.55;
+      return total + (/[^\x00-\xff]/.test(character) ? 1.65 : 1);
+    }, 0);
+    return Math.min(edgeLabelMaxWidth, Math.max(edgeLabelMinWidth, Math.ceil(units * 6 + 16)));
+  };
+  const stableNodeOrder = (left, right) => {
+    const leftSequence = Number.isFinite(Number(left?.sequence)) ? Number(left.sequence) : Number.MAX_SAFE_INTEGER;
+    const rightSequence = Number.isFinite(Number(right?.sequence)) ? Number(right.sequence) : Number.MAX_SAFE_INTEGER;
+    return leftSequence - rightSequence
+      || cleanText(left?.node_id).localeCompare(cleanText(right?.node_id), "ko")
+      || cleanText(left?.title).localeCompare(cleanText(right?.title), "ko");
+  };
+
+  function buildLayout(graph) {
+    const nodes = (Array.isArray(graph?.nodes) ? graph.nodes : [])
+      .filter((item) => item && typeof item === "object" && cleanText(item.node_id))
+      .slice()
+      .sort(stableNodeOrder);
+    const nodeById = new Map(nodes.map((item) => [item.node_id, item]));
+    const sequenceIndex = new Map(nodes.map((item, index) => [item.node_id, index]));
+    const edges = (Array.isArray(graph?.edges) ? graph.edges : [])
+      .filter((edge) => edge && nodeById.has(edge.source_node_id) && nodeById.has(edge.target_node_id))
+      .map((edge, index) => ({ ...edge, _stableIndex: index }))
+      .sort((left, right) => {
+        const source = (sequenceIndex.get(left.source_node_id) || 0) - (sequenceIndex.get(right.source_node_id) || 0);
+        const target = (sequenceIndex.get(left.target_node_id) || 0) - (sequenceIndex.get(right.target_node_id) || 0);
+        return source || target || cleanText(left.edge_id).localeCompare(cleanText(right.edge_id), "ko") || left._stableIndex - right._stableIndex;
+      });
+    const incoming = new Map(nodes.map((item) => [item.node_id, []]));
+    const outgoing = new Map(nodes.map((item) => [item.node_id, []]));
+    edges.forEach((edge) => {
+      incoming.get(edge.target_node_id).push(edge);
+      outgoing.get(edge.source_node_id).push(edge);
+    });
+
+    // A stable longest-path layer is enough for business Flow diagrams and is
+    // deterministic even if the model returns nodes in a different order.
+    // Back edges are kept as lower return lanes instead of perturbing layers.
+    const rank = new Map(nodes.map((item) => [item.node_id, 0]));
+    nodes.forEach((item) => {
+      const ownIndex = sequenceIndex.get(item.node_id);
+      const forwardParents = incoming.get(item.node_id).filter(
+        (edge) => (sequenceIndex.get(edge.source_node_id) || 0) < ownIndex,
+      );
+      if (forwardParents.length) {
+        rank.set(item.node_id, Math.max(...forwardParents.map((edge) => (rank.get(edge.source_node_id) || 0) + 1)));
+      }
+    });
+    const layers = new Map();
+    nodes.forEach((item) => {
+      const layer = rank.get(item.node_id) || 0;
+      if (!layers.has(layer)) layers.set(layer, []);
+      layers.get(layer).push(item);
+    });
+    const layerNumbers = [...layers.keys()].sort((left, right) => left - right);
+    const orderedLayers = new Map(layerNumbers.map((layer) => [layer, layers.get(layer).slice().sort(stableNodeOrder)]));
+
+    // Two small barycentric sweeps group related branches together.  This is
+    // deliberately bounded: the same view model always produces the same
+    // positions, and no force-layout jitter can make a report change on reload.
+    const orderMap = () => {
+      const values = new Map();
+      layerNumbers.forEach((layer) => (orderedLayers.get(layer) || []).forEach((item, index) => values.set(item.node_id, index)));
+      return values;
+    };
+    for (let pass = 0; pass < 3; pass += 1) {
+      let order = orderMap();
+      layerNumbers.slice(1).forEach((layer) => {
+        const previous = orderedLayers.get(layer).slice();
+        orderedLayers.set(layer, previous.sort((left, right) => {
+          const barycenter = (item) => {
+            const parents = incoming.get(item.node_id).filter((edge) => (rank.get(edge.source_node_id) || 0) < layer);
+            if (!parents.length) return Number.MAX_SAFE_INTEGER;
+            return parents.reduce((total, edge) => total + (order.get(edge.source_node_id) || 0), 0) / parents.length;
+          };
+          return barycenter(left) - barycenter(right) || stableNodeOrder(left, right);
+        }));
+      });
+      order = orderMap();
+      layerNumbers.slice(0, -1).reverse().forEach((layer) => {
+        const current = orderedLayers.get(layer).slice();
+        orderedLayers.set(layer, current.sort((left, right) => {
+          const barycenter = (item) => {
+            const children = outgoing.get(item.node_id).filter((edge) => (rank.get(edge.target_node_id) || 0) > layer);
+            if (!children.length) return Number.MAX_SAFE_INTEGER;
+            return children.reduce((total, edge) => total + (order.get(edge.target_node_id) || 0), 0) / children.length;
+          };
+          return barycenter(left) - barycenter(right) || stableNodeOrder(left, right);
+        }));
+      });
+    }
+
+    const longForward = edges.filter((edge) => (rank.get(edge.target_node_id) || 0) > (rank.get(edge.source_node_id) || 0) + 1);
+    const returnEdges = edges.filter((edge) => (rank.get(edge.target_node_id) || 0) < (rank.get(edge.source_node_id) || 0));
+    // Same-layer links can be upward or downward after barycentric ordering.
+    // Reserve lower lanes for all of them so an upward exception/feedback path
+    // never shares a line with a primary execution edge.
+    const sameLayerEdges = edges.filter((edge) => (rank.get(edge.target_node_id) || 0) === (rank.get(edge.source_node_id) || 0));
+    const lowerRailEdges = returnEdges.concat(sameLayerEdges);
+    const topRail = 48 + longForward.length * 16;
+    const bottomRail = 48 + lowerRailEdges.length * 16;
+    const maxRows = Math.max(1, ...layerNumbers.map((layer) => (orderedLayers.get(layer) || []).length));
+    const nodeAreaHeight = maxRows * nodeHeight + Math.max(0, maxRows - 1) * rowGap;
+    const width = Math.max(440, sidePadding * 2 + (layerNumbers.length || 1) * nodeWidth + Math.max(0, layerNumbers.length - 1) * layerGap);
+    const height = Math.max(320, topRail + nodeAreaHeight + bottomRail);
+    const positions = new Map();
+    layerNumbers.forEach((layer, layerIndex) => {
+      const group = orderedLayers.get(layer) || [];
+      const groupHeight = group.length * nodeHeight + Math.max(0, group.length - 1) * rowGap;
+      const startY = topRail + Math.max(0, (nodeAreaHeight - groupHeight) / 2);
+      group.forEach((item, row) => positions.set(item.node_id, {
+        x: sidePadding + layerIndex * (nodeWidth + layerGap),
+        y: startY + row * (nodeHeight + rowGap),
+        layer,
+        layerIndex,
+        row,
+      }));
+    });
+
+    return {
+      nodes,
+      edges,
+      positions,
+      rank,
+      width,
+      height,
+      topRail,
+      bottomRail,
+      adjacentGroups: new Map(),
+      longForward,
+      returnEdges,
+      lowerRailEdges,
+    };
+  }
+
+  function allocateLanes(layout) {
+    layout.edges.forEach((edge) => {
+      const source = layout.positions.get(edge.source_node_id);
+      const target = layout.positions.get(edge.target_node_id);
+      if (!source || !target) return;
+      if (target.layer === source.layer + 1) {
+        const key = `${source.layer}:${target.layer}`;
+        if (!layout.adjacentGroups.has(key)) layout.adjacentGroups.set(key, []);
+        layout.adjacentGroups.get(key).push(edge);
+      }
+    });
+    layout.adjacentGroups.forEach((edges) => edges.sort((left, right) => {
+      const leftSource = layout.positions.get(left.source_node_id);
+      const rightSource = layout.positions.get(right.source_node_id);
+      const leftTarget = layout.positions.get(left.target_node_id);
+      const rightTarget = layout.positions.get(right.target_node_id);
+      return leftSource.y - rightSource.y || leftTarget.y - rightTarget.y || left._stableIndex - right._stableIndex;
+    }));
+    layout.longForward.sort((left, right) => left._stableIndex - right._stableIndex);
+    layout.returnEdges.sort((left, right) => left._stableIndex - right._stableIndex);
+    layout.lowerRailEdges.sort((left, right) => left._stableIndex - right._stableIndex);
+  }
+
+  function routeForEdge(layout, edge) {
+    const source = layout.positions.get(edge.source_node_id);
+    const target = layout.positions.get(edge.target_node_id);
+    if (!source || !target) return null;
+    const sourceMidX = source.x + nodeWidth / 2;
+    const sourceMidY = source.y + nodeHeight / 2;
+    const targetMidX = target.x + nodeWidth / 2;
+    const targetMidY = target.y + nodeHeight / 2;
+    const sourceRight = source.x + nodeWidth;
+    const targetLeft = target.x;
+    const forwardDistance = target.layer - source.layer;
+    const label = cleanText(edge.label) || cleanText(edge.condition) || "다음 단계";
+
+    if (forwardDistance === 1) {
+      const key = `${source.layer}:${target.layer}`;
+      const siblings = layout.adjacentGroups.get(key) || [edge];
+      const laneIndex = Math.max(0, siblings.indexOf(edge));
+      if (Math.abs(sourceMidY - targetMidY) < 2) {
+        return {
+          d: `M ${sourceRight} ${sourceMidY} H ${targetLeft}`,
+          label,
+          labelX: (sourceRight + targetLeft) / 2,
+          labelY: sourceMidY - 14,
+        };
+      }
+      const gap = Math.max(24, targetLeft - sourceRight);
+      const laneX = sourceRight + gap * ((laneIndex + 1) / (siblings.length + 1));
+      return {
+        d: `M ${sourceRight} ${sourceMidY} H ${laneX} V ${targetMidY} H ${targetLeft}`,
+        label,
+        labelX: laneX,
+        labelY: (sourceMidY + targetMidY) / 2,
+      };
+    }
+
+    if (forwardDistance > 1) {
+      const laneIndex = Math.max(0, layout.longForward.indexOf(edge));
+      const laneY = 28 + laneIndex * 16;
+      return {
+        d: `M ${sourceMidX} ${source.y} V ${laneY} H ${targetMidX} V ${target.y}`,
+        label,
+        labelX: (sourceMidX + targetMidX) / 2,
+        labelY: laneY - 12,
+      };
+    }
+
+    if (forwardDistance === 0 && source.y < target.y) {
+      const sameLayerGap = Math.max(12, target.y - (source.y + nodeHeight));
+      const laneY = source.y + nodeHeight + Math.min(sameLayerGap / 2, 20);
+      return {
+        d: `M ${sourceMidX} ${source.y + nodeHeight} V ${laneY} H ${targetMidX} V ${target.y}`,
+        label,
+        labelX: (sourceMidX + targetMidX) / 2,
+        labelY: laneY - 12,
+      };
+    }
+
+    // Backward links and same-layer upward links stay beneath the content so
+    // they do not cross the primary left-to-right execution route.
+    const laneIndex = Math.max(0, layout.lowerRailEdges.indexOf(edge));
+    const laneY = layout.height - 28 - Math.max(0, laneIndex) * 16;
+    return {
+      d: `M ${sourceMidX} ${source.y + nodeHeight} V ${laneY} H ${targetMidX} V ${target.y + nodeHeight}`,
+      label,
+      labelX: (sourceMidX + targetMidX) / 2,
+      labelY: laneY + 12,
+    };
+  }
+
+  function renderGraph(graph) {
+    if (!host) return;
+    if (typeof host._graphCleanup === "function") host._graphCleanup();
+    host.replaceChildren();
+    const layout = buildLayout(graph);
+    allocateLanes(layout);
+    const frame = element("div", "graph-frame");
+    frame.dataset.nodeCount = String(layout.nodes.length);
+    const viewport = element("div", "graph-viewport");
+    const world = element("div", "graph-world");
+    const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+    svg.classList.add("edges");
+    svg.setAttribute("aria-hidden", "true");
+    const nodeLayer = element("div", "node-layer");
+    world.append(svg, nodeLayer);
+    viewport.append(world);
+    frame.append(viewport);
+    const toolbar = element("div", "toolbar");
+    const minus = element("button", "", "−");
+    const zoomReadout = element("div", "zoom", "");
+    const plus = element("button", "", "+");
+    const fit = element("button", "", "↙");
+    minus.type = plus.type = fit.type = "button";
+    minus.setAttribute("aria-label", "축소");
+    plus.setAttribute("aria-label", "확대");
+    fit.setAttribute("aria-label", "전체 보기");
+    fit.title = "전체 보기";
+    toolbar.append(minus, zoomReadout, plus, fit);
+    frame.append(toolbar);
+    host.append(frame);
+
+    world.style.width = `${layout.width}px`;
+    world.style.height = `${layout.height}px`;
+    svg.setAttribute("width", String(layout.width));
+    svg.setAttribute("height", String(layout.height));
+    svg.setAttribute("viewBox", `0 0 ${layout.width} ${layout.height}`);
+
+    const markerId = `orthogonal-arrow-${++renderNumber}`;
+    const defs = document.createElementNS("http://www.w3.org/2000/svg", "defs");
+    const marker = document.createElementNS("http://www.w3.org/2000/svg", "marker");
+    marker.setAttribute("id", markerId);
+    marker.setAttribute("viewBox", "0 0 10 10");
+    marker.setAttribute("refX", "9");
+    marker.setAttribute("refY", "5");
+    marker.setAttribute("markerWidth", "6");
+    marker.setAttribute("markerHeight", "6");
+    marker.setAttribute("orient", "auto");
+    const markerPath = document.createElementNS("http://www.w3.org/2000/svg", "path");
+    markerPath.setAttribute("d", "M 0 0 L 10 5 L 0 10 z");
+    markerPath.setAttribute("fill", "#aeb8c5");
+    marker.append(markerPath);
+    defs.append(marker);
+    svg.append(defs);
+
+    const labelBoxes = [];
+    const placeLabel = (route) => {
+      const width = edgeLabelWidth(route.label);
+      let x = route.labelX;
+      let y = route.labelY;
+      for (let attempt = 0; attempt < 8; attempt += 1) {
+        const overlaps = labelBoxes.some((box) => (
+          Math.abs(box.x - x) < (box.width + width) / 2 + 6
+          && Math.abs(box.y - y) < (box.height + edgeLabelHeight) / 2 + 6
+        ));
+        if (!overlaps) break;
+        // Alternate above and below the original route rather than stacking
+        // successive labels in the same direction.  It keeps neighbouring
+        // branch labels legible without changing the deterministic routes.
+        const step = Math.floor(attempt / 2) + 1;
+        y = route.labelY + (attempt % 2 === 0 ? -1 : 1) * step * 24;
+      }
+      labelBoxes.push({ x, y, width, height: edgeLabelHeight });
+      return { x, y, width };
+    };
+    layout.edges.forEach((edge) => {
+      const route = routeForEdge(layout, edge);
+      if (!route) return;
+      const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+      path.setAttribute("d", route.d);
+      path.setAttribute("class", `edge-path ${edgeClass(cleanText(edge.edge_kind))}`);
+      path.setAttribute("stroke-width", cleanText(edge.edge_kind) === "branch" ? "2.25" : "2");
+      path.setAttribute("marker-end", `url(#${markerId})`);
+      svg.append(path);
+      const point = placeLabel(route);
+      const label = element("div", "edge-label", route.label);
+      // The visible label is deliberately single-line.  The unabridged text
+      // remains available to both pointer users and assistive technology when
+      // a long branch name is ellipsized to fit safely between nodes.
+      label.title = route.label;
+      label.setAttribute("role", "note");
+      label.setAttribute("aria-label", route.label);
+      label.style.left = `${point.x}px`;
+      label.style.top = `${point.y}px`;
+      label.style.width = `${point.width}px`;
+      nodeLayer.append(label);
+    });
+    layout.nodes.forEach((item) => {
+      const position = layout.positions.get(item.node_id);
+      if (!position) return;
+      const button = element("button", `flow-node ${cleanText(item.node_kind) || "work_step"}`);
+      button.type = "button";
+      button.style.left = `${position.x}px`;
+      button.style.top = `${position.y}px`;
+      button.setAttribute("aria-label", [
+        cleanText(item.title) || "업무 단계",
+        sourceLabels[cleanText(item.implementation_source)] || "업무 단계",
+        cleanText(item.summary),
+      ].filter(Boolean).join(". "));
+      button.append(element("div", "stripe"));
+      const body = element("div", "node-inner");
+      const meta = element("div", "node-meta");
+      meta.append(
+        element("span", "", sourceLabels[cleanText(item.implementation_source)] || "업무 단계"),
+        element("span", "", `STEP ${(Number(item.sequence) || 0) + 1}`),
+      );
+      body.append(meta, element("h3", "", cleanText(item.title) || "업무 단계"), element("p", "", cleanText(item.summary)));
+      const refs = Array.isArray(item.catalog_refs) ? item.catalog_refs : [];
+      if (refs.length) {
+        const selected = Array.isArray(data.catalog_application_plan?.selected) ? data.catalog_application_plan.selected : [];
+        const titles = refs.map((ref) => selected.find((asset) => asset.asset_id === ref.asset_id && asset.version === ref.version)?.title).filter(Boolean);
+        if (titles.length) body.append(element("div", "node-catalog", `카탈로그 · ${titles.join(", ")}`));
+      }
+      button.append(body);
+      nodeLayer.append(button);
+    });
+
+    let scale = 1;
+    const apply = () => {
+      world.style.transform = `scale(${scale})`;
+      zoomReadout.textContent = `${Math.round(scale * 100)}%`;
+    };
+    const fitAll = () => {
+      const usableWidth = Math.max(1, viewport.clientWidth - 32);
+      const usableHeight = Math.max(1, viewport.clientHeight - 32);
+      const fitted = Math.min(1, usableWidth / layout.width, usableHeight / layout.height);
+      // Do not impose a readability floor here: an initial overview must show
+      // every node.  Users can immediately zoom in and pan for large graphs.
+      scale = Number.isFinite(fitted) && fitted > 0 ? fitted : 1;
+      apply();
+      viewport.scrollTo({ left: 0, top: 0 });
+    };
+    const zoom = (delta) => {
+      scale = Math.max(0.05, Math.min(1.8, Math.round((scale + delta) * 100) / 100));
+      apply();
+    };
+    minus.addEventListener("click", () => zoom(-0.1));
+    plus.addEventListener("click", () => zoom(0.1));
+    fit.addEventListener("click", fitAll);
+    let dragging = false;
+    let startX = 0;
+    let startY = 0;
+    let scrollX = 0;
+    let scrollY = 0;
+    viewport.addEventListener("pointerdown", (event) => {
+      if (event.target.closest("button, .edge-label")) return;
+      dragging = true;
+      startX = event.clientX;
+      startY = event.clientY;
+      scrollX = viewport.scrollLeft;
+      scrollY = viewport.scrollTop;
+      viewport.setPointerCapture(event.pointerId);
+    });
+    viewport.addEventListener("pointermove", (event) => {
+      if (!dragging) return;
+      viewport.scrollLeft = scrollX - (event.clientX - startX);
+      viewport.scrollTop = scrollY - (event.clientY - startY);
+    });
+    viewport.addEventListener("pointerup", () => { dragging = false; });
+    viewport.addEventListener("pointercancel", () => { dragging = false; });
+    viewport.addEventListener("wheel", (event) => {
+      if (!event.ctrlKey && !event.metaKey) return;
+      event.preventDefault();
+      zoom(event.deltaY < 0 ? 0.1 : -0.1);
+    }, { passive: false });
+    const resizeObserver = typeof ResizeObserver === "function" ? new ResizeObserver(fitAll) : null;
+    if (resizeObserver) resizeObserver.observe(viewport);
+    host._graphCleanup = () => resizeObserver?.disconnect();
+    apply();
+    requestAnimationFrame(fitAll);
+  }
+
+  function setGraph(graphName) {
+    document.querySelectorAll(".tab").forEach((tab) => tab.classList.toggle("active", tab.dataset.graph === graphName));
+    const title = graphName === "to_be_graph" ? "Agent 적용 후 권장 Flow" : "현재 업무 Flow";
+    const copy = graphName === "to_be_graph"
+      ? "실행 경로는 왼쪽에서 오른쪽으로, 분기·예외는 별도 직선 경로로 정리했습니다. 노드를 선택하면 구현·입출력 연결 설계를 확인할 수 있습니다."
+      : "현재 사람이 수행하는 업무 단계와 분기·예외를 입력 설명 기반으로 정리했습니다. 노드를 선택하면 필요한 정보와 결과를 확인할 수 있습니다.";
+    const titleTarget = document.getElementById("graph-title");
+    const copyTarget = document.getElementById("graph-copy");
+    if (titleTarget) titleTarget.textContent = title;
+    if (copyTarget) copyTarget.textContent = copy;
+    renderGraph(data[graphName] || {});
+  }
+
+  // The base report remains backward compatible, but this capture listener
+  // replaces its curved legacy graph before a reader can interact with it.
+  document.querySelectorAll(".tab").forEach((tab) => {
+    tab.addEventListener("click", (event) => {
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      event.stopPropagation();
+      setGraph(tab.dataset.graph || "to_be_graph");
+    }, true);
+  });
+  setGraph("to_be_graph");
+})();
 """
 
 
@@ -339,6 +838,155 @@ DRAWER_INTERACTION_JS = r"""
     return true;
   }
 
+  function portItems(value) {
+    if (Array.isArray(value)) return value.filter((item) => item && typeof item === "object");
+    if (!value || typeof value !== "object") return [];
+    return Object.entries(value).map(([portId, item]) => (
+      item && typeof item === "object" ? { port_id: portId, ...item } : { port_id: portId, label: item }
+    ));
+  }
+
+  function portLabel(port, fallback) {
+    return nonEmptyText(port?.label)
+      || nonEmptyText(port?.display_name)
+      || nonEmptyText(port?.name)
+      || nonEmptyText(port?.port_id)
+      || fallback;
+  }
+
+  function portType(port) {
+    const raw = port?.data_type ?? port?.type ?? port?.input_type ?? port?.output_type ?? port?.types;
+    if (Array.isArray(raw)) return raw.map(nonEmptyText).filter(Boolean).join(" / ") || "Data";
+    return nonEmptyText(raw) || "Data";
+  }
+
+  function ioStatus(plan) {
+    const value = nonEmptyText(plan?.plan_status || plan?.status).toLowerCase();
+    const requiresCheck = ["metadata", "check", "confirm", "verify", "review", "proposed", "draft"].some((token) => value.includes(token));
+    if (value.includes("verified") || value.includes("ready")) return { label: "연결 설계 준비", requiresCheck: false };
+    if (requiresCheck) return { label: "구현 전 포트 계약 확인", requiresCheck: true };
+    return { label: "Langflow 연결 설계", requiresCheck: true };
+  }
+
+  function appendPortBadges(card, port) {
+    const meta = element("div", "drawer-port-meta");
+    meta.append(element("span", "drawer-port-type", portType(port)));
+    meta.append(element("span", port?.required === true ? "drawer-port-required" : "drawer-port-optional", port?.required === true ? "필수" : "선택"));
+    card.append(meta);
+  }
+
+  function currentStageTitle() {
+    return nonEmptyText(drawerTitle?.textContent) || "현재 단계";
+  }
+
+  function appendRoutePrefix(host, label) {
+    host.append(element("strong", "drawer-io-route-label", label));
+  }
+
+  function appendStageName(host, title) {
+    host.append(element("strong", "drawer-stage-name", title));
+  }
+
+  function appendInputCard(host, port, external) {
+    const card = element("article", "drawer-io-card");
+    const label = portLabel(port, external ? "외부 입력" : "입력 포트");
+    card.append(element("h4", "", `${external ? "외부 입력" : "입력"} · ${label}`));
+    appendPortBadges(card, port);
+    const sourceTitle = nonEmptyText(port?.source_node_title) || nonEmptyText(port?.source_node_id);
+    const sourceOutput = nonEmptyText(port?.source_output_label)
+      || nonEmptyText(port?.source_output_port_id)
+      || "Output";
+    const sourceType = nonEmptyText(port?.source_output_data_type) || "Data";
+    const sourceKind = nonEmptyText(port?.source_kind).toLowerCase();
+    const route = element("p", "drawer-io-route");
+    const stageTitle = currentStageTitle();
+    if (sourceTitle) {
+      appendRoutePrefix(route, "앞 단계 연결 · ");
+      appendStageName(route, sourceTitle);
+      route.append(document.createTextNode(`의 Output ${sourceOutput} (${sourceType}) → `));
+      appendStageName(route, stageTitle);
+      route.append(document.createTextNode(`의 Input ${label} (${portType(port)})`));
+    } else if (external || sourceKind === "external_input" || sourceKind === "chat_input" || sourceKind === "text_input") {
+      appendRoutePrefix(route, "외부 입력 · ");
+      route.append(document.createTextNode("사용자 또는 시작 Input → "));
+      appendStageName(route, stageTitle);
+      route.append(document.createTextNode(`의 Input ${label} (${portType(port)})`));
+    } else {
+      appendRoutePrefix(route, "연결 필요 · ");
+      route.append(document.createTextNode("앞 단계의 호환 Output → "));
+      appendStageName(route, stageTitle);
+      route.append(document.createTextNode(`의 Input ${label} (${portType(port)})`));
+    }
+    card.append(route);
+    const connectionLabel = nonEmptyText(port?.connection_label) || nonEmptyText(port?.description);
+    if (connectionLabel) card.append(element("p", "drawer-io-route", `연결 목적 · ${connectionLabel}`));
+    host.append(card);
+  }
+
+  function appendOutputCard(host, port) {
+    const card = element("article", "drawer-io-card");
+    const label = portLabel(port, "출력 포트");
+    const stageTitle = currentStageTitle();
+    card.append(element("h4", "", `출력 · ${label}`));
+    appendPortBadges(card, port);
+    const bindings = Array.isArray(port?.downstream_bindings)
+      ? port.downstream_bindings.filter((item) => item && typeof item === "object")
+      : [];
+    if (!bindings.length) {
+      const empty = element("p", "drawer-io-empty");
+      appendStageName(empty, stageTitle);
+      empty.append(document.createTextNode(`의 Output ${label} (${portType(port)})은 최종 보고서, Chat Output 또는 다음 Flow의 Input으로 연결합니다.`));
+      card.append(empty);
+    } else {
+      const bindingHost = element("div", "drawer-io-bindings");
+      bindings.forEach((binding) => {
+        const targetTitle = nonEmptyText(binding.target_node_title) || nonEmptyText(binding.target_node_id) || "다음 단계";
+        const targetInput = nonEmptyText(binding.target_input_label) || nonEmptyText(binding.target_input_port_id) || "Input";
+        const targetType = nonEmptyText(binding.target_input_data_type) || "Data";
+        const edgeLabel = nonEmptyText(binding.edge_label);
+        const line = element("div", "drawer-io-binding");
+        appendRoutePrefix(line, "다음 단계 · ");
+        appendStageName(line, stageTitle);
+        line.append(document.createTextNode(`의 Output ${label} (${portType(port)}) → `));
+        appendStageName(line, targetTitle);
+        line.append(document.createTextNode(`의 Input ${targetInput} (${targetType})`));
+        if (edgeLabel) line.append(document.createTextNode(` · 경로: ${edgeLabel}`));
+        bindingHost.append(line);
+      });
+      card.append(bindingHost);
+    }
+    host.append(card);
+  }
+
+  function appendLangflowIoPlan(host, rawPlan) {
+    const plan = rawPlan && typeof rawPlan === "object" ? rawPlan : null;
+    if (!plan) return false;
+    const inputs = portItems(plan.inputs || plan.input_ports);
+    const outputs = portItems(plan.outputs || plan.output_ports);
+    const externalInputs = portItems(plan.external_inputs || plan.externalInputs);
+    const note = nonEmptyText(plan.plan_note) || nonEmptyText(plan.implementation_note);
+    if (!inputs.length && !outputs.length && !externalInputs.length && !note) return false;
+
+    const section = element("section", "drawer-block drawer-io-section");
+    section.append(element("h3", "", "Langflow 1.11 연결 설계"));
+    section.append(element("p", "drawer-io-intro", "이 단계가 받는 Input과 다음 단계로 내보낼 Output을 Langflow Canvas 연결 기준으로 정리했습니다."));
+    const status = ioStatus(plan);
+    section.append(element("span", `drawer-io-status${status.requiresCheck ? " needs-check" : ""}`, status.label));
+    const grid = element("div", "drawer-io-grid");
+    inputs.forEach((port) => appendInputCard(grid, port, false));
+    externalInputs.forEach((port) => appendInputCard(grid, port, true));
+    outputs.forEach((port) => appendOutputCard(grid, port));
+    section.append(grid);
+    const notes = element("div", "drawer-io-notes");
+    if (note) notes.append(element("p", `drawer-io-note${status.requiresCheck ? " needs-check" : ""}`, note));
+    if (status.requiresCheck) {
+      notes.append(element("p", "drawer-io-note needs-check", "카탈로그 자산이 metadata_only이거나 포트 계약이 확정되지 않은 경우에는 실제 Component/Flow의 Input·Output 이름과 타입을 확인한 뒤 Canvas에 연결하세요."));
+    }
+    if (notes.childElementCount) section.append(notes);
+    host.append(section);
+    return true;
+  }
+
   function graphNodeForButton(button) {
     const selectedTab = document.querySelector(".tab.active");
     const graphName = selectedTab?.dataset?.graph || "to_be_graph";
@@ -365,6 +1013,7 @@ DRAWER_INTERACTION_JS = r"""
     count += appendParagraph(drawerBody, "이 단계에서 하는 일", detail.current_work || detail.description) ? 1 : 0;
     count += appendList(drawerBody, "현재 확인된 주의점", detail.problems) ? 1 : 0;
     count += appendParagraph(drawerBody, "개선 방향", detail.improvement) ? 1 : 0;
+    count += appendLangflowIoPlan(drawerBody, detail.implementation_io_plan || detail.langflow_io_plan) ? 1 : 0;
     count += appendList(drawerBody, "필요한 정보", detail.inputs) ? 1 : 0;
     count += appendList(drawerBody, "만드는 결과", detail.outputs) ? 1 : 0;
     count += appendCatalogCards(drawerBody, detail.catalog_recommendations || detail.catalog_application) ? 1 : 0;
@@ -485,6 +1134,8 @@ class ResponsiveReportRendererV2Component(Component):
             "<meta name=\"renderer-version\" content=\"business-report-renderer.v2\"><title>업무 방식 및 개선 실행 보고서</title><style>"
             + CSS
             + DRAWER_CSS
+            + GRAPH_LAYOUT_CSS
+            + DRAWER_IO_CSS
             + REFINEMENT_CSS
             + IMPLEMENTATION_SUMMARY_CSS
             + "</style></head><body><main class=\"shell\"><header class=\"top\"><div class=\"brand\"><div class=\"mark\">A</div><span>업무 설계 보고서</span></div><div class=\"meta\">단일 Flow · 카탈로그 기반 설계안</div></header>"
@@ -509,6 +1160,7 @@ class ResponsiveReportRendererV2Component(Component):
             + payload
             + "</script><script>"
             + JS
+            + GRAPH_LAYOUT_JS
             + DRAWER_INTERACTION_JS
             + "</script></body></html>"
         )
@@ -526,8 +1178,8 @@ class ResponsiveReportRendererV2Component(Component):
             "title": view_model.get("title") or "업무 방식 및 개선 실행 보고서",
             "html": document,
             "content_sha256": "sha256:" + _sha256(document),
-            "script_csp_hash": _csp_hash(JS + DRAWER_INTERACTION_JS),
-            "style_csp_hash": _csp_hash(CSS + DRAWER_CSS + REFINEMENT_CSS + IMPLEMENTATION_SUMMARY_CSS),
+            "script_csp_hash": _csp_hash(JS + GRAPH_LAYOUT_JS + DRAWER_INTERACTION_JS),
+            "style_csp_hash": _csp_hash(CSS + DRAWER_CSS + GRAPH_LAYOUT_CSS + DRAWER_IO_CSS + REFINEMENT_CSS + IMPLEMENTATION_SUMMARY_CSS),
             "byte_count": byte_count,
             "report_summary": {
                 "completion_status": completion.get("code") or "COMPLETED",

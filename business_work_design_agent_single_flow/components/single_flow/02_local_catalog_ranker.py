@@ -35,7 +35,7 @@ _DEFAULT_MAX_CANDIDATE_CHARS = 700
 _DEFAULT_MAX_CONTEXT_CHARS = 56_000
 # This is an internal context budget, not a Canvas selection control. The
 # separate 03 LLM shortlister decides which keyword candidates are in scope.
-_DEFAULT_EXPANDED_DETAIL_COUNT = 12
+_DEFAULT_EXPANDED_DETAIL_COUNT = 30
 _MAX_EXPANDED_DETAIL_CHARS = 900
 _FIELD_WEIGHTS = {
     "title": 6.0,

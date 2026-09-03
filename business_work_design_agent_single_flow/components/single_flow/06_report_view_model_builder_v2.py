@@ -23,9 +23,13 @@ from lfx.schema import Data
 _SCHEMA = "report-view-model/v2"
 _RENDERER = "business-report-renderer.v2"
 _RESULT_SCHEMA = "business-design-result/v2"
+_IO_PLAN_SCHEMA = "langflow-implementation-io-plan/v1"
+_LANGFLOW_VERSION = "1.11.0"
 _UUID = re.compile(r"^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$", re.I)
 _SECRET_KEY = re.compile(r"(?i)(?:api[_-]?key|authorization|bearer|client[_-]?secret|cookie|credential|password|passwd|private[_-]?key|secret|token)")
 _SECRET_VALUE = re.compile(r"(?i)(?:\b(?:api[_-]?key|password|passwd|secret|access[_-]?token|authorization)\s*[:=]\s*[^\s,;]{8,}|\bbearer\s+\S{8,}|\bsk-[A-Za-z0-9_-]{16,}\b|-----BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY-----)")
+_PORT_TYPES = {"Message", "Data", "DataFrame", "환경 설정"}
+_EDGE_KINDS = {"control", "branch", "error", "retry"}
 
 
 def _safe_json(value: Any, path: str = "$") -> Any:
@@ -149,11 +153,787 @@ def _catalog_recommendations(items: list[dict[str, Any]]) -> list[dict[str, Any]
     ]
 
 
+def _safe_plan_text(value: Any, fallback: str, limit: int = 500) -> tuple[str, bool]:
+    """Return a display-safe port label and whether it denotes a hidden setting.
+
+    The design-result contract carries free-form model text.  A port plan must
+    never turn a pasted object or a credential-looking label into drawer text,
+    so non-string and object-looking entries become a short implementation
+    placeholder.  The original design result remains the authoritative source
+    for the next authoring pass; this reader-facing plan stays closed and safe.
+    """
+    if not isinstance(value, str):
+        return fallback, False
+    text = re.sub(r"\s+", " ", value.replace("\x00", "")).strip()[:limit]
+    if not text or text.startswith(("{", "[")):
+        return fallback, False
+    if _SECRET_KEY.search(text) or _SECRET_VALUE.search(text):
+        return "비공개 환경 설정값", True
+    return text, False
+
+
+def _reader_labels(value: Any, *, limit: int = 3) -> list[str]:
+    """Return a short, safe, de-duplicated list for reader-facing prose.
+
+    Node summaries and description-derived port labels both originate from the
+    model response.  The detailed drawer must remain useful without repeating
+    raw objects, long configuration values, or secret-looking strings.  This
+    helper intentionally uses the same sanitisation rule as the Langflow I/O
+    blueprint so the narrative and its port cards cannot disagree about what
+    is safe to show.
+    """
+    values = value if isinstance(value, list) else []
+    labels: list[str] = []
+    for item in values:
+        label, configuration = _safe_plan_text(item, "", limit=240)
+        if not label or configuration or label in labels:
+            continue
+        labels.append(label)
+        if len(labels) >= limit:
+            break
+    return labels
+
+
+def _reader_label_text(value: Any, *, limit: int = 3) -> str:
+    return ", ".join(_reader_labels(value, limit=limit))
+
+
+def _concrete_current_work(
+    *,
+    node: dict[str, Any],
+    detail: dict[str, Any],
+    input_labels: list[str],
+    output_labels: list[str],
+    source_titles: list[str],
+    target_titles: list[str],
+) -> str:
+    """Turn a terse node summary into a compact execution narrative.
+
+    The report reader should be able to answer four practical questions from
+    the first drawer block: what the stage does, what it receives, what it
+    produces, and where that result goes.  This is explanatory text only;
+    exact Langflow port IDs/types stay in ``implementation_io_plan`` below.
+    """
+    safe_title, title_is_configuration = _safe_plan_text(node.get("title"), "이 업무 단계", limit=300)
+    if title_is_configuration:
+        safe_title = "이 업무 단계"
+    summary, summary_is_configuration = _safe_plan_text(
+        detail.get("current_work"),
+        f"{safe_title}에서 필요한 업무를 처리합니다.",
+        limit=3_500,
+    )
+    if summary_is_configuration:
+        summary = f"{safe_title}에서 필요한 업무를 처리합니다."
+
+    input_text = ", ".join(input_labels[:3])
+    output_text = ", ".join(output_labels[:3])
+    source_text = ", ".join(source_titles[:2])
+    target_text = ", ".join(target_titles[:3])
+
+    # Use explicit input/result sentences rather than Korean object-particle
+    # placeholders such as ``을(를)``.  Port labels are free-form, so a fixed
+    # particle is often grammatically wrong and makes an otherwise practical
+    # implementation description harder to scan.
+    input_source = f"앞 단계 {source_text}에서 전달된" if source_text else "실행 시 제공되는"
+    if input_text and output_text:
+        if input_text == output_text:
+            context = (
+                f"{input_source} 입력값은 ‘{input_text}’입니다. "
+                "이를 다음 단계에서 사용할 수 있도록 정리합니다."
+            )
+        else:
+            context = f"{input_source} 입력값은 ‘{input_text}’입니다. 처리 결과는 ‘{output_text}’입니다."
+    elif input_text:
+        context = f"{input_source} 입력값은 ‘{input_text}’입니다. 이를 확인·처리합니다."
+    elif output_text:
+        context = f"이 단계의 처리 결과는 ‘{output_text}’입니다."
+    else:
+        context = ""
+
+    if target_text:
+        handoff = f"완료 후 결과를 {target_text} 단계에 전달합니다."
+    elif output_text:
+        handoff = "완료 후 결과를 사용자에게 표시하거나 다음 Flow에 전달합니다."
+    else:
+        handoff = ""
+    return " ".join(part for part in (summary, context, handoff) if part)[:5_000]
+
+
+def _enrich_current_work_descriptions(
+    *,
+    nodes: list[dict[str, Any]],
+    edges: list[dict[str, Any]],
+    details: dict[str, dict[str, Any]],
+) -> None:
+    """Enrich every detail after graph edges and TO-BE I/O plans are known."""
+    node_by_id = {node["node_id"]: node for node in nodes}
+    incoming: dict[str, list[dict[str, Any]]] = {node["node_id"]: [] for node in nodes}
+    outgoing: dict[str, list[dict[str, Any]]] = {node["node_id"]: [] for node in nodes}
+    for edge in edges:
+        source = edge.get("source_node_id")
+        target = edge.get("target_node_id")
+        if source in node_by_id and target in node_by_id:
+            outgoing[source].append(edge)
+            incoming[target].append(edge)
+
+    for node in nodes:
+        detail = details.get(node["detail_ref"])
+        if not isinstance(detail, dict):
+            continue
+        plan = detail.get("implementation_io_plan")
+        if isinstance(plan, dict):
+            input_records = plan.get("inputs") if isinstance(plan.get("inputs"), list) else []
+            output_records = plan.get("outputs") if isinstance(plan.get("outputs"), list) else []
+            external_records = plan.get("external_inputs") if isinstance(plan.get("external_inputs"), list) else []
+            # ``inputs`` normally includes every external input already.  Keep
+            # ``external_inputs`` in the projection as well so a future plan
+            # variant cannot accidentally make the start-node narrative omit
+            # the value a person supplies when the Flow starts.
+            input_labels = _reader_labels(
+                [
+                    item.get("label")
+                    for item in [*input_records, *external_records]
+                    if isinstance(item, dict) and item.get("data_type") != "환경 설정"
+                ]
+            )
+            output_labels = _reader_labels(
+                [item.get("label") for item in output_records if isinstance(item, dict) and not item.get("configuration")]
+            )
+            source_titles = _reader_labels(
+                [
+                    item.get("source_node_title")
+                    for item in input_records
+                    if isinstance(item, dict) and item.get("binding_kind") == "upstream_output"
+                ],
+                limit=2,
+            )
+            target_titles = _reader_labels(
+                [
+                    binding.get("target_node_title")
+                    for item in output_records
+                    if isinstance(item, dict)
+                    for binding in (item.get("downstream_bindings") if isinstance(item.get("downstream_bindings"), list) else [])
+                    if isinstance(binding, dict) and binding.get("binding_kind") == "downstream_input"
+                ]
+            )
+        else:
+            input_labels = _reader_labels(detail.get("inputs"))
+            output_labels = _reader_labels(detail.get("outputs"))
+            source_titles = _reader_labels(
+                [node_by_id[edge["source_node_id"]]["title"] for edge in incoming[node["node_id"]]],
+                limit=2,
+            )
+            target_titles = _reader_labels(
+                [node_by_id[edge["target_node_id"]]["title"] for edge in outgoing[node["node_id"]]]
+            )
+        detail["current_work"] = _concrete_current_work(
+            node=node,
+            detail=detail,
+            input_labels=input_labels,
+            output_labels=output_labels,
+            source_titles=source_titles,
+            target_titles=target_titles,
+        )
+
+
+def _type_label(data_type: str) -> str:
+    return {
+        "Message": "Message · 대화/설명 텍스트",
+        "Data": "Data · 구조화된 업무 데이터",
+        "DataFrame": "DataFrame · 표 형태의 데이터",
+        "환경 설정": "환경 설정 · 캔버스 연결 없이 별도 설정",
+    }[data_type]
+
+
+def _infer_port_type(label: str, *, node_kind: str, direction: str, configuration: bool = False) -> str:
+    """Use a deliberately small, Langflow 1.11-friendly type vocabulary.
+
+    This is a blueprint recommendation, not a claim about a catalog runtime
+    port.  Structured Data is the safe default; Message is reserved for human
+    text and DataFrame for explicitly tabular payloads.
+    """
+    if configuration:
+        return "환경 설정"
+    lowered = label.casefold()
+    if any(token in lowered for token in ("표", "테이블", "dataframe", "행 목록", "row list")):
+        return "DataFrame"
+    if node_kind == "start" and direction in {"input", "in"}:
+        return "Message"
+    if any(token in lowered for token in ("업무 설명", "자연어", "메시지", "질문", "답변", "프롬프트", "알림", "코멘트", "지시")):
+        return "Message"
+    if node_kind in {"end", "exception"} and direction in {"output", "out"}:
+        return "Message"
+    return "Data"
+
+
+def _component_type(node: dict[str, Any]) -> str:
+    """A concise implementation recommendation for a Langflow 1.11 canvas."""
+    kind = _text(node.get("node_kind"), 64)
+    source = _text(node.get("implementation_source"), 64)
+    if kind == "start":
+        return "Chat Input"
+    if kind == "end":
+        return "Chat Output"
+    if kind == "human_review" or source == "human_task":
+        return "Chat Input 또는 Form 입력 + 조건 분기"
+    if kind == "decision":
+        return "조건 분기 Component"
+    if source == "catalog_component":
+        return "카탈로그 Component"
+    if source == "catalog_flow":
+        return "카탈로그 Flow 연결"
+    if source == "new_component":
+        return "Standalone Custom Component"
+    if source == "external_service":
+        return "Standalone Custom Component + 외부 API"
+    return "기본 Component 조합"
+
+
+def _external_input_node_type(data_type: str) -> tuple[str, str]:
+    if data_type == "Message":
+        return "Chat Input", "input_value"
+    if data_type == "DataFrame":
+        return "DataFrame Input", "input_value"
+    if data_type == "환경 설정":
+        return "SecretStrInput", "value"
+    return "Data Input", "input_value"
+
+
+def _terminal_output_node_type(data_type: str) -> tuple[str, str, str]:
+    if data_type == "Message":
+        return "Chat Output", "inputs", "Message"
+    if data_type == "DataFrame":
+        return "Data Output", "input_value", "DataFrame"
+    return "Data Output", "input_value", "Data"
+
+
+def _port_id(node_id: str, direction: str, index: int) -> str:
+    return f"{node_id}:{direction}:{index}"
+
+
+def _new_port(
+    *,
+    node_id: str,
+    direction: str,
+    index: int,
+    label: str,
+    node_kind: str,
+    definition_source: str,
+    configuration: bool = False,
+    required: bool = True,
+) -> dict[str, Any]:
+    data_type = _infer_port_type(label, node_kind=node_kind, direction=direction, configuration=configuration)
+    return {
+        "port_id": _port_id(node_id, direction, index),
+        "label": label,
+        "data_type": data_type,
+        "type_label": _type_label(data_type),
+        "required": bool(required),
+        "definition_source": definition_source,
+        "configuration": bool(configuration),
+    }
+
+
+def _declared_port_labels(raw: Any, *, prefix: str) -> list[tuple[str, bool]]:
+    values = raw if isinstance(raw, list) else []
+    result: list[tuple[str, bool]] = []
+    for index, value in enumerate(values[:100], start=1):
+        label, configuration = _safe_plan_text(value, f"{prefix} {index}")
+        if (label, configuration) not in result:
+            result.append((label, configuration))
+    return result
+
+
+def _generated_output_label(node: dict[str, Any], edge: dict[str, Any], index: int) -> tuple[str, bool]:
+    kind = _text(node.get("node_kind"), 64)
+    edge_kind = _text(edge.get("edge_kind"), 32)
+    label, _ = _safe_plan_text(edge.get("label"), "다음")
+    if kind == "start":
+        return "업무 설명", False
+    if kind == "human_review" or edge_kind == "branch":
+        return f"{label} 판단 결과", False
+    if edge_kind == "error":
+        return "오류 처리 정보", False
+    if edge_kind == "retry":
+        return "재시도 요청 정보", False
+    return f"{label} 전달 데이터" if label != "다음" else f"다음 단계 전달 데이터 {index}", False
+
+
+def _generated_input_label(edge: dict[str, Any], index: int) -> tuple[str, bool]:
+    label, _ = _safe_plan_text(edge.get("label"), "이전 단계")
+    if label == "다음":
+        return f"이전 단계 결과 {index}", False
+    return f"{label} 결과", False
+
+
+def _edge_matches_declared_input(
+    edge: dict[str, Any],
+    source_port: dict[str, Any],
+    candidate_input: dict[str, Any],
+) -> bool:
+    """Only bind an edge to a named input when the labels support that claim.
+
+    The normalized design contract has business-level labels but not verified
+    Langflow handles.  Positional binding (first edge -> first declared input)
+    can produce misleading plans such as ``업무 설명 -> 기간``.  When the
+    edge/source label and the declared input have no meaningful overlap, keep
+    that declared input as an external Canvas input and create a clearly
+    labelled edge-derived handoff instead.
+    """
+
+    if candidate_input.get("configuration"):
+        return False
+    target_label = _text(candidate_input.get("label"), 500).casefold()
+    source_label = _text(source_port.get("label"), 500).casefold()
+    edge_label, _ = _safe_plan_text(edge.get("label"), "")
+    edge_label = edge_label.casefold()
+    if not target_label:
+        return False
+    if target_label == source_label or target_label == edge_label:
+        return True
+    target_tokens = set(re.findall(r"[0-9a-z가-힣]{2,}", target_label))
+    context_tokens = set(re.findall(r"[0-9a-z가-힣]{2,}", f"{source_label} {edge_label}"))
+    return bool(target_tokens & context_tokens)
+
+
+def _node_plan_status(catalog_items: list[dict[str, Any]]) -> tuple[str, str, str]:
+    statuses = {_text(item.get("technical_contract_status"), 64) for item in catalog_items}
+    if "metadata_only" in statuses:
+        return (
+            "METADATA_ONLY",
+            "설계 초안 · 카탈로그 실제 포트 확인 필요",
+            "선택된 카탈로그가 설명 기반 후보입니다. 아래 포트 ID와 유형은 Langflow 1.11 구현 청사진이며, Agent Hub에서 실제 입력·출력·권한 계약을 확인한 뒤 확정하세요.",
+        )
+    if statuses:
+        return (
+            "CATALOG_REFERENCE",
+            "설계 초안 · 카탈로그 계약 이력 참고",
+            "카탈로그의 기술 계약 이력은 참고할 수 있지만, 이 업무 Flow에 연결하는 포트 매핑은 아직 구현 청사진입니다. 실제 Canvas 연결 전에 자산의 최신 계약을 확인하세요.",
+        )
+    return (
+        "BLUEPRINT",
+        "설계 초안 · 구현 전 포트 정의 필요",
+        "업무 설명과 Flow 연결을 바탕으로 만든 Langflow 1.11 구현 청사진입니다. 실제 Component 입력·출력 포트는 구현 시 확정하세요.",
+    )
+
+
+def _implementation_note(node: dict[str, Any]) -> str:
+    kind = _text(node.get("node_kind"), 64)
+    source = _text(node.get("implementation_source"), 64)
+    if kind == "human_review" or source == "human_task":
+        return "실행 중 Human Input pause를 전제하지 않습니다. 검토 결정은 Chat Input·Form 또는 외부 승인 결과를 입력으로 받아 새 실행에서 처리하도록 설계합니다."
+    if source == "new_component":
+        return "신규 기능은 Langflow 1.11 Standalone Custom Component로 만들고, Data 입력·출력 계약을 명시한 뒤 단위 테스트로 확인합니다."
+    if source == "external_service":
+        return "외부 API 호출은 Standalone Custom Component에 분리하고, 비공개 환경 설정값은 Canvas 연결이 아닌 환경 설정으로 관리합니다."
+    if source in {"catalog_component", "catalog_flow"}:
+        return "카탈로그 자산의 최신 포트·권한 계약을 확인한 뒤 아래 청사진의 입력·출력 이름에 맞게 매핑합니다."
+    return "구현 시 아래 Data/Message 계약을 기준으로 기본 Component를 조합하고, 연결 전후 타입이 달라지면 Type Convert를 명시적으로 둡니다."
+
+
+def _validate_io_text(value: Any, field: str, *, allow_empty: bool = False) -> None:
+    if not isinstance(value, str) or (not allow_empty and not value.strip()) or len(value) > 5_000:
+        raise ValueError(f"[REPORT_VIEW_MODEL_INVALID] 구현 I/O 계획의 {field} 형식이 유효하지 않습니다.")
+    if _SECRET_VALUE.search(value):
+        raise ValueError(f"[REPORT_VIEW_MODEL_INVALID] 구현 I/O 계획의 {field}에 민감정보로 의심되는 값이 있습니다.")
+
+
+def _validate_implementation_io_plan(plan: Any) -> None:
+    """Validate the closed, deterministic plan before it reaches the renderer."""
+    if not isinstance(plan, dict):
+        raise ValueError("[REPORT_VIEW_MODEL_INVALID] 구현 I/O 계획이 object가 아닙니다.")
+    expected = {
+        "schema_version", "langflow_version", "plan_status", "plan_status_label", "plan_note",
+        "component_type", "implementation_note", "inputs", "external_inputs", "outputs",
+    }
+    if set(plan) != expected:
+        raise ValueError("[REPORT_VIEW_MODEL_INVALID] 구현 I/O 계획 필드가 닫힌 계약과 일치하지 않습니다.")
+    if plan["schema_version"] != _IO_PLAN_SCHEMA or plan["langflow_version"] != _LANGFLOW_VERSION:
+        raise ValueError("[REPORT_VIEW_MODEL_INVALID] 구현 I/O 계획 버전이 유효하지 않습니다.")
+    if plan["plan_status"] not in {"BLUEPRINT", "METADATA_ONLY", "CATALOG_REFERENCE"}:
+        raise ValueError("[REPORT_VIEW_MODEL_INVALID] 구현 I/O 계획 상태가 유효하지 않습니다.")
+    for field in ("plan_status_label", "plan_note", "component_type", "implementation_note"):
+        _validate_io_text(plan[field], field)
+    if not isinstance(plan["inputs"], list) or not isinstance(plan["external_inputs"], list) or not isinstance(plan["outputs"], list):
+        raise ValueError("[REPORT_VIEW_MODEL_INVALID] 구현 I/O 계획의 포트 목록이 배열이 아닙니다.")
+    if len(plan["inputs"]) > 100 or len(plan["outputs"]) > 100 or len(plan["external_inputs"]) > 100:
+        raise ValueError("[REPORT_VIEW_MODEL_INVALID] 구현 I/O 계획의 포트 수가 한도를 초과했습니다.")
+
+    input_keys = {
+        "port_id", "label", "data_type", "type_label", "required", "definition_source", "configuration",
+        "binding_kind", "source_node_id", "source_node_title", "source_output_port_id", "source_output_label",
+        "source_output_data_type", "connection_label", "note",
+    }
+    output_keys = {"port_id", "label", "data_type", "type_label", "required", "definition_source", "configuration", "note", "downstream_bindings"}
+    external_keys = {"input_port_id", "label", "data_type", "type_label", "required", "recommended_node_type", "recommended_input_name", "note"}
+    binding_keys = {
+        "binding_kind", "target_node_id", "target_node_title", "target_input_port_id", "target_input_label",
+        "target_input_data_type", "target_node_type", "edge_label", "edge_kind", "connection_label", "note",
+    }
+    seen_input_ids: set[str] = set()
+    for port in plan["inputs"]:
+        if not isinstance(port, dict) or set(port) != input_keys:
+            raise ValueError("[REPORT_VIEW_MODEL_INVALID] 구현 I/O 입력 포트 계약이 유효하지 않습니다.")
+        if port["data_type"] not in _PORT_TYPES or port["type_label"] != _type_label(port["data_type"]):
+            raise ValueError("[REPORT_VIEW_MODEL_INVALID] 구현 I/O 입력 포트 type이 유효하지 않습니다.")
+        if port["binding_kind"] not in {"upstream_output", "external_input", "configuration"}:
+            raise ValueError("[REPORT_VIEW_MODEL_INVALID] 구현 I/O 입력 연결 종류가 유효하지 않습니다.")
+        if not isinstance(port["required"], bool) or not isinstance(port["configuration"], bool):
+            raise ValueError("[REPORT_VIEW_MODEL_INVALID] 구현 I/O 입력 필수 여부가 유효하지 않습니다.")
+        for field in ("port_id", "label", "definition_source", "source_node_id", "source_node_title", "source_output_port_id", "source_output_label", "source_output_data_type", "connection_label", "note"):
+            _validate_io_text(port[field], f"input.{field}", allow_empty=field.startswith("source_"))
+        if port["port_id"] in seen_input_ids:
+            raise ValueError("[REPORT_VIEW_MODEL_INVALID] 구현 I/O 입력 포트 ID가 중복됩니다.")
+        seen_input_ids.add(port["port_id"])
+
+    seen_output_ids: set[str] = set()
+    for port in plan["outputs"]:
+        if not isinstance(port, dict) or set(port) != output_keys:
+            raise ValueError("[REPORT_VIEW_MODEL_INVALID] 구현 I/O 출력 포트 계약이 유효하지 않습니다.")
+        if port["data_type"] not in _PORT_TYPES or port["type_label"] != _type_label(port["data_type"]):
+            raise ValueError("[REPORT_VIEW_MODEL_INVALID] 구현 I/O 출력 포트 type이 유효하지 않습니다.")
+        if not isinstance(port["required"], bool) or not isinstance(port["configuration"], bool) or not isinstance(port["downstream_bindings"], list):
+            raise ValueError("[REPORT_VIEW_MODEL_INVALID] 구현 I/O 출력 포트 형식이 유효하지 않습니다.")
+        for field in ("port_id", "label", "definition_source", "note"):
+            _validate_io_text(port[field], f"output.{field}")
+        if port["port_id"] in seen_output_ids:
+            raise ValueError("[REPORT_VIEW_MODEL_INVALID] 구현 I/O 출력 포트 ID가 중복됩니다.")
+        seen_output_ids.add(port["port_id"])
+        for binding in port["downstream_bindings"]:
+            if not isinstance(binding, dict) or set(binding) != binding_keys:
+                raise ValueError("[REPORT_VIEW_MODEL_INVALID] 구현 I/O 다음 단계 연결 계약이 유효하지 않습니다.")
+            if binding["binding_kind"] not in {"downstream_input", "external_output"} or binding["edge_kind"] not in _EDGE_KINDS:
+                raise ValueError("[REPORT_VIEW_MODEL_INVALID] 구현 I/O 다음 단계 연결 종류가 유효하지 않습니다.")
+            if binding["target_input_data_type"] not in _PORT_TYPES:
+                raise ValueError("[REPORT_VIEW_MODEL_INVALID] 구현 I/O 다음 단계 입력 type이 유효하지 않습니다.")
+            for field in ("target_node_id", "target_node_title", "target_input_port_id", "target_input_label", "target_input_data_type", "target_node_type", "edge_label", "edge_kind", "connection_label", "note"):
+                _validate_io_text(binding[field], f"binding.{field}")
+
+    external_port_ids = set()
+    for item in plan["external_inputs"]:
+        if not isinstance(item, dict) or set(item) != external_keys:
+            raise ValueError("[REPORT_VIEW_MODEL_INVALID] 구현 I/O 외부 입력 계약이 유효하지 않습니다.")
+        if item["data_type"] not in _PORT_TYPES or item["type_label"] != _type_label(item["data_type"]):
+            raise ValueError("[REPORT_VIEW_MODEL_INVALID] 구현 I/O 외부 입력 type이 유효하지 않습니다.")
+        if not isinstance(item["required"], bool) or item["input_port_id"] not in seen_input_ids:
+            raise ValueError("[REPORT_VIEW_MODEL_INVALID] 구현 I/O 외부 입력 포트 연결이 유효하지 않습니다.")
+        if item["input_port_id"] in external_port_ids:
+            raise ValueError("[REPORT_VIEW_MODEL_INVALID] 구현 I/O 외부 입력 포트가 중복됩니다.")
+        external_port_ids.add(item["input_port_id"])
+        for field in ("input_port_id", "label", "recommended_node_type", "recommended_input_name", "note"):
+            _validate_io_text(item[field], f"external.{field}")
+
+
+def _attach_implementation_io_plans(
+    *,
+    nodes: list[dict[str, Any]],
+    edges: list[dict[str, Any]],
+    details: dict[str, dict[str, Any]],
+    raw_nodes: dict[str, dict[str, Any]],
+    catalog_by_node: dict[str, list[dict[str, Any]]],
+) -> None:
+    """Attach one closed Langflow 1.11 I/O blueprint to every TO-BE node.
+
+    The upstream result schema exposes business-level ``inputs``/``outputs``
+    but no verified component-port map.  We therefore generate stable port IDs
+    and bind every graph edge to them deterministically.  The status/note makes
+    that distinction explicit, especially for metadata-only catalog assets.
+    """
+    node_by_id = {node["node_id"]: node for node in nodes}
+    ordered_nodes = sorted(nodes, key=lambda item: (item["sequence"], item["node_id"]))
+    node_index = {node["node_id"]: index for index, node in enumerate(ordered_nodes)}
+    ordered_edges = sorted(
+        edges,
+        key=lambda item: (
+            node_index.get(item["source_node_id"], 10_000),
+            node_index.get(item["target_node_id"], 10_000),
+            item["edge_id"],
+        ),
+    )
+    incoming: dict[str, list[dict[str, Any]]] = {node["node_id"]: [] for node in nodes}
+    outgoing: dict[str, list[dict[str, Any]]] = {node["node_id"]: [] for node in nodes}
+    for edge in ordered_edges:
+        outgoing[edge["source_node_id"]].append(edge)
+        incoming[edge["target_node_id"]].append(edge)
+
+    state: dict[str, dict[str, Any]] = {}
+    for node in ordered_nodes:
+        node_id = node["node_id"]
+        raw = raw_nodes.get(node_id, {})
+        kind = node["node_kind"]
+        input_ports = [
+            _new_port(
+                node_id=node_id,
+                direction="in",
+                index=index,
+                label=label,
+                node_kind=kind,
+                definition_source="description",
+                configuration=configuration,
+            )
+            for index, (label, configuration) in enumerate(_declared_port_labels(raw.get("inputs"), prefix="입력 데이터"), start=1)
+        ]
+        output_ports = [
+            _new_port(
+                node_id=node_id,
+                direction="out",
+                index=index,
+                label=label,
+                node_kind=kind,
+                definition_source="description",
+                configuration=configuration,
+            )
+            for index, (label, configuration) in enumerate(_declared_port_labels(raw.get("outputs"), prefix="출력 데이터"), start=1)
+        ]
+        for edge_index, edge in enumerate(outgoing[node_id], start=1):
+            if edge_index <= len(output_ports):
+                continue
+            label, configuration = _generated_output_label(node, edge, edge_index)
+            output_ports.append(
+                _new_port(
+                    node_id=node_id,
+                    direction="out",
+                    index=len(output_ports) + 1,
+                    label=label,
+                    node_kind=kind,
+                    definition_source="edge_derived",
+                    configuration=configuration,
+                )
+            )
+        if not output_ports and not outgoing[node_id] and kind in {"end", "exception"}:
+            label = "최종 사용자 안내" if kind == "end" else "오류 안내"
+            output_ports.append(
+                _new_port(
+                    node_id=node_id,
+                    direction="out",
+                    index=1,
+                    label=label,
+                    node_kind=kind,
+                    definition_source="implementation_proposal",
+                )
+            )
+        state[node_id] = {"inputs": input_ports, "outputs": output_ports, "input_edge_port": {}, "output_edge_port": {}}
+
+    # Assign source ports first so an edge-derived target input inherits the
+    # source's intended Langflow type instead of arbitrarily becoming Data.
+    for node in ordered_nodes:
+        node_id = node["node_id"]
+        for edge_index, edge in enumerate(outgoing[node_id], start=1):
+            state[node_id]["output_edge_port"][edge["edge_id"]] = state[node_id]["outputs"][edge_index - 1]
+
+    bindings: list[dict[str, Any]] = []
+    for node in ordered_nodes:
+        node_id = node["node_id"]
+        for edge_index, edge in enumerate(incoming[node_id], start=1):
+            source_port = state[edge["source_node_id"]]["output_edge_port"][edge["edge_id"]]
+            target_ports = state[node_id]["inputs"]
+            used_port_ids = {
+                port["port_id"]
+                for port in state[node_id]["input_edge_port"].values()
+            }
+            target_port = next(
+                (
+                    port
+                    for port in target_ports
+                    if port["port_id"] not in used_port_ids
+                    and _edge_matches_declared_input(edge, source_port, port)
+                ),
+                None,
+            )
+            if target_port is None:
+                label, configuration = _generated_input_label(edge, edge_index)
+                target_port = _new_port(
+                    node_id=node_id,
+                    direction="in",
+                    index=len(target_ports) + 1,
+                    label=label,
+                    node_kind=node["node_kind"],
+                    definition_source="edge_derived",
+                    configuration=configuration,
+                )
+                target_port["data_type"] = source_port["data_type"]
+                target_port["type_label"] = _type_label(source_port["data_type"])
+                target_ports.append(target_port)
+            state[node_id]["input_edge_port"][edge["edge_id"]] = target_port
+            bindings.append({"edge": edge, "source_port": source_port, "target_port": target_port})
+
+    # A declared port may fan out to several targets.  When types disagree,
+    # a structured Data handoff is the explicit, safe Langflow 1.11 fallback.
+    changed = True
+    while changed:
+        changed = False
+        for key in ("source_port", "target_port"):
+            grouped: dict[str, list[dict[str, Any]]] = {}
+            for binding in bindings:
+                grouped.setdefault(binding[key]["port_id"], []).append(binding)
+            for group in grouped.values():
+                types = {binding["source_port"]["data_type"] for binding in group} | {binding["target_port"]["data_type"] for binding in group}
+                expected = next(iter(types)) if len(types) == 1 else "Data"
+                for binding in group:
+                    for port_key in ("source_port", "target_port"):
+                        port = binding[port_key]
+                        if port["data_type"] != expected:
+                            port["data_type"] = expected
+                            port["type_label"] = _type_label(expected)
+                            changed = True
+
+    for node in ordered_nodes:
+        node_id = node["node_id"]
+        if not state[node_id]["inputs"] and not incoming[node_id]:
+            label = "업무 설명" if node["node_kind"] == "start" else "구현에 필요한 외부 입력"
+            state[node_id]["inputs"].append(
+                _new_port(
+                    node_id=node_id,
+                    direction="in",
+                    index=1,
+                    label=label,
+                    node_kind=node["node_kind"],
+                    definition_source="implementation_proposal",
+                )
+            )
+
+    # Build the renderer-facing records only after all type reconciliation is
+    # complete, so each "A.Output → B.Input" line is internally consistent.
+    for node in ordered_nodes:
+        node_id = node["node_id"]
+        catalog_items = catalog_by_node.get(node_id, [])
+        plan_status, status_label, plan_note = _node_plan_status(catalog_items)
+        input_records: list[dict[str, Any]] = []
+        external_inputs: list[dict[str, Any]] = []
+        input_bindings = {binding["target_port"]["port_id"]: binding for binding in bindings if binding["edge"]["target_node_id"] == node_id}
+        for port in state[node_id]["inputs"]:
+            binding = input_bindings.get(port["port_id"])
+            if binding is not None:
+                source_node = node_by_id[binding["edge"]["source_node_id"]]
+                source_port = binding["source_port"]
+                connection_label = (
+                    f"{source_node['title']} · {source_port['label']} [{source_port['data_type']}] "
+                    f"→ {node['title']} · {port['label']} [{port['data_type']}]"
+                )
+                input_records.append(
+                    {
+                        **port,
+                        "binding_kind": "upstream_output",
+                        "source_node_id": source_node["node_id"],
+                        "source_node_title": source_node["title"],
+                        "source_output_port_id": source_port["port_id"],
+                        "source_output_label": source_port["label"],
+                        "source_output_data_type": source_port["data_type"],
+                        "connection_label": connection_label,
+                        "note": "그래프 edge를 기준으로 생성한 연결 청사진입니다.",
+                    }
+                )
+                continue
+            recommended_node_type, recommended_input_name = _external_input_node_type(port["data_type"])
+            binding_kind = "configuration" if port["data_type"] == "환경 설정" else "external_input"
+            note = (
+                "Canvas 연결 포트가 아니라 환경 설정에서 비공개 값으로 지정합니다."
+                if binding_kind == "configuration"
+                else "앞 단계 연결이 없으므로 이 Flow 실행 시 외부 입력으로 제공합니다."
+            )
+            input_records.append(
+                {
+                    **port,
+                    "binding_kind": binding_kind,
+                    "source_node_id": "",
+                    "source_node_title": "외부 입력",
+                    "source_output_port_id": "",
+                    "source_output_label": "",
+                    "source_output_data_type": "",
+                    "connection_label": f"{recommended_node_type} · {recommended_input_name} → 이 단계 · {port['label']} [{port['data_type']}]",
+                    "note": note,
+                }
+            )
+            external_inputs.append(
+                {
+                    "input_port_id": port["port_id"],
+                    "label": port["label"],
+                    "data_type": port["data_type"],
+                    "type_label": port["type_label"],
+                    "required": port["required"],
+                    "recommended_node_type": recommended_node_type,
+                    "recommended_input_name": recommended_input_name,
+                    "note": note,
+                }
+            )
+
+        output_records: list[dict[str, Any]] = []
+        for port in state[node_id]["outputs"]:
+            downstream: list[dict[str, Any]] = []
+            for binding in bindings:
+                if binding["source_port"]["port_id"] != port["port_id"]:
+                    continue
+                edge = binding["edge"]
+                target_node = node_by_id[edge["target_node_id"]]
+                target_port = binding["target_port"]
+                downstream.append(
+                    {
+                        "binding_kind": "downstream_input",
+                        "target_node_id": target_node["node_id"],
+                        "target_node_title": target_node["title"],
+                        "target_input_port_id": target_port["port_id"],
+                        "target_input_label": target_port["label"],
+                        "target_input_data_type": target_port["data_type"],
+                        "target_node_type": _component_type(target_node),
+                        "edge_label": _safe_plan_text(edge.get("label"), "다음")[0],
+                        "edge_kind": edge["edge_kind"] if edge["edge_kind"] in _EDGE_KINDS else "control",
+                        "connection_label": (
+                            f"이 단계 · {port['label']} [{port['data_type']}] → "
+                            f"{target_node['title']} · {target_port['label']} [{target_port['data_type']}]"
+                        ),
+                        "note": "그래프 edge를 기준으로 생성한 연결 청사진입니다.",
+                    }
+                )
+            if not downstream and not port["configuration"]:
+                target_node_type, target_input_name, target_input_type = _terminal_output_node_type(port["data_type"])
+                note = "종단 결과를 사용자에게 표시하거나 다음 Flow로 전달하기 위한 출력 노드 제안입니다."
+                downstream.append(
+                    {
+                        "binding_kind": "external_output",
+                        "target_node_id": f"external-output:{node_id}:{port['port_id']}",
+                        "target_node_title": "종단 출력",
+                        "target_input_port_id": target_input_name,
+                        "target_input_label": target_input_name,
+                        "target_input_data_type": target_input_type,
+                        "target_node_type": target_node_type,
+                        "edge_label": "최종 결과 전달",
+                        "edge_kind": "control",
+                        "connection_label": f"이 단계 · {port['label']} [{port['data_type']}] → {target_node_type} · {target_input_name} [{target_input_type}]",
+                        "note": note,
+                    }
+                )
+            output_records.append(
+                {
+                    **port,
+                    "note": "아래 다음 단계 연결 또는 종단 출력 노드에 전달합니다.",
+                    "downstream_bindings": downstream,
+                }
+            )
+
+        plan = {
+            "schema_version": _IO_PLAN_SCHEMA,
+            "langflow_version": _LANGFLOW_VERSION,
+            "plan_status": plan_status,
+            "plan_status_label": status_label,
+            "plan_note": plan_note,
+            "component_type": _component_type(node),
+            "implementation_note": _implementation_note(node),
+            "inputs": input_records,
+            "external_inputs": external_inputs,
+            "outputs": output_records,
+        }
+        _validate_implementation_io_plan(plan)
+        detail_ref = node["detail_ref"]
+        details[detail_ref]["implementation_io_plan"] = plan
+
+
 def _graph_projection(raw: Any, *, selected: list[dict[str, Any]], graph_name: str) -> dict[str, Any]:
     raw = raw if isinstance(raw, dict) else {}
     selected_keys = {(item["asset_id"], item["version"]): item for item in selected}
     details: dict[str, dict[str, Any]] = {}
     nodes: list[dict[str, Any]] = []
+    raw_nodes: dict[str, dict[str, Any]] = {}
+    catalog_by_node: dict[str, list[dict[str, Any]]] = {}
     for index, node in enumerate(raw.get("nodes") if isinstance(raw.get("nodes"), list) else []):
         if not isinstance(node, dict):
             continue
@@ -169,6 +949,8 @@ def _graph_projection(raw: Any, *, selected: list[dict[str, Any]], graph_name: s
                 refs.append({"asset_id": key[0], "version": key[1]})
         detail_ref = f"{graph_name}:{node_id}"
         catalog_info = [selected_keys[(ref["asset_id"], ref["version"])] for ref in refs]
+        raw_nodes[node_id] = node
+        catalog_by_node[node_id] = catalog_info
         # Keep the drawer deliberately task-oriented.  The graph node itself
         # supplies the title; technical fields and raw catalog objects remain in
         # the closed internal view model rather than becoming viewer-facing JSON.
@@ -200,6 +982,15 @@ def _graph_projection(raw: Any, *, selected: list[dict[str, Any]], graph_name: s
         if source not in node_ids or target not in node_ids:
             continue
         edges.append({"edge_id": _text(edge.get("edge_id") or f"{graph_name}-edge-{index + 1}", 128), "source_node_id": source, "target_node_id": target, "edge_kind": _text(edge.get("edge_kind") or "control", 32), "label": _text(edge.get("label") or "다음", 500), "condition": _text(edge.get("condition"), 5_000), "is_default": bool(edge.get("is_default"))})
+    if graph_name == "to-be":
+        _attach_implementation_io_plans(
+            nodes=nodes,
+            edges=edges,
+            details=details,
+            raw_nodes=raw_nodes,
+            catalog_by_node=catalog_by_node,
+        )
+    _enrich_current_work_descriptions(nodes=nodes, edges=edges, details=details)
     fallback = [f"{node['sequence'] + 1}. {node['title']}: {node['summary']}".strip() for node in sorted(nodes, key=lambda item: (item["sequence"], item["node_id"]))]
     return {"nodes": nodes, "edges": edges, "details": details, "text_fallback": fallback}
 

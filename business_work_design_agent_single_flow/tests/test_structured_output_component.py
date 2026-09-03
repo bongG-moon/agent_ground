@@ -8,6 +8,7 @@ import sys
 from pathlib import Path
 
 import pytest
+from langchain_core.exceptions import OutputParserException
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -88,6 +89,73 @@ class _InvalidRawModel:
         return _InvalidRawRunnable()
 
 
+class _NativeParserFailureRunnable:
+    def __init__(self):
+        self.calls = 0
+
+    def invoke(self, messages, *, config):
+        self.calls += 1
+        raise OutputParserException(
+            "native schema parser could not validate the completion",
+            llm_output='{"untrusted_completion":"must not be reused"}',
+        )
+
+
+class _NativeParserFailureThenPlainJsonModel:
+    """The recovery call must be a new ordinary invocation, not error parsing."""
+
+    def __init__(self):
+        self.runnable = _NativeParserFailureRunnable()
+        self.plain_calls = 0
+
+    def with_structured_output(self, schema):
+        return self.runnable
+
+    def invoke(self, messages, *, config):
+        self.plain_calls += 1
+        return json.dumps(
+            {
+                "schema_version": "business-design-draft/v1",
+                "work_analysis": {"title": "재시도 성공"},
+                "information_gaps": [],
+                "as_is_graph": {"nodes": [], "edges": []},
+                "to_be_design": {"nodes": [], "edges": []},
+                "catalog_decisions": [],
+            },
+            ensure_ascii=False,
+        )
+
+
+class _NativeSchemaFailureThenPlainJsonModel:
+    """Some integrations return a raw invalid object instead of parser exception."""
+
+    def __init__(self):
+        self.plain_calls = 0
+
+    def with_structured_output(self, schema):
+        return _InvalidRawRunnable()
+
+    def invoke(self, messages, *, config):
+        self.plain_calls += 1
+        return json.dumps(
+            {
+                "schema_version": "business-design-draft/v1",
+                "work_analysis": {"title": "스키마 재시도 성공"},
+                "information_gaps": [],
+                "as_is_graph": {"nodes": [], "edges": []},
+                "to_be_design": {"nodes": [], "edges": []},
+                "catalog_decisions": [],
+            },
+            ensure_ascii=False,
+        )
+
+
+class _NativeParserFailureAndInvalidPlainJsonModel(_NativeParserFailureThenPlainJsonModel):
+    def invoke(self, messages, *, config):
+        self.plain_calls += 1
+        return "JSON object가 아닌 설명문"
+
+
 class _ProviderResponseError(RuntimeError):
     """Representative provider error with an actionable reason and accidental secret echo."""
 
@@ -100,8 +168,15 @@ class _ProviderFailureRunnable:
 
 
 class _ProviderFailureModel:
+    def __init__(self):
+        self.plain_calls = 0
+
     def with_structured_output(self, schema):
         return _ProviderFailureRunnable()
+
+    def invoke(self, messages, *, config):
+        self.plain_calls += 1
+        return "this must never be called"
 
 
 class _NativeStructuredOutputUnsupportedModel:
@@ -247,6 +322,17 @@ def test_fixed_component_embeds_the_system_prompt_and_exposes_no_import_fragile_
 
     assert module.FIXED_SYSTEM_PROMPT
     assert "business-design-draft/v1" in module.FIXED_SYSTEM_PROMPT
+    assert "응답 분량 제한" in module.FIXED_SYSTEM_PROMPT
+    assert "8,192 tokens" in module.FIXED_SYSTEM_PROMPT
+    # The model target is intentionally larger than the former 16-node
+    # sketch.  This is not the 05 hard safety cap; it is the concise high-level
+    # diagram budget which must remain feasible inside an 8,192-token response.
+    assert module._MODEL_TARGET_MAX_AS_IS_NODES == 24
+    assert module._MODEL_TARGET_MAX_TO_BE_NODES == 32
+    assert module._MODEL_TARGET_MAX_TO_BE_EDGES == 48
+    assert "to_be_design.nodes`는 최대 32개" in module.FIXED_SYSTEM_PROMPT
+    assert "미세 작업은 하나의 업무 단계와 요약으로 묶으세요" in module.FIXED_SYSTEM_PROMPT
+    assert "Input/Output은 전달 계약이 바뀌는 경우에만" in module.FIXED_SYSTEM_PROMPT
     inputs = {item.name: item for item in module.BusinessDesignStructuredOutputComponent.inputs}
     assert "system_prompt" not in inputs
     assert inputs["input_value"].input_types == ["Message", "Data", "JSON"]
@@ -268,15 +354,66 @@ def test_fixed_component_validates_a_raw_dict_before_returning_it():
     component.model = _InvalidRawModel()
     component.input_value = "사용자 업무 설명"
 
-    with pytest.raises(ValueError, match="BUSINESS_DESIGN_STRUCTURED_OUTPUT_INVALID"):
+    with pytest.raises(ValueError, match="BUSINESS_DESIGN_STRUCTURED_OUTPUT_PARSE_FAILED") as raised:
         component.build_structured_output()
+
+    assert "native 원인(ValidationError)" in str(raised.value)
+
+
+def test_fixed_component_retries_once_with_fresh_json_after_native_output_parser_failure():
+    """Do not reuse/scrape malformed native completion text after parser failure."""
+    module = _module()
+    model = _NativeParserFailureThenPlainJsonModel()
+    component = module.BusinessDesignStructuredOutputComponent()
+    component.model = model
+    component.input_value = "사용자 업무 설명"
+
+    result = component.build_structured_output().data
+
+    assert result["work_analysis"]["title"] == "재시도 성공"
+    assert model.runnable.calls == 1
+    assert model.plain_calls == 1
+    assert "호환성 JSON 재시도" in component.status
+
+
+def test_fixed_component_retries_once_after_native_schema_validation_failure():
+    module = _module()
+    model = _NativeSchemaFailureThenPlainJsonModel()
+    component = module.BusinessDesignStructuredOutputComponent()
+    component.model = model
+    component.input_value = "사용자 업무 설명"
+
+    result = component.build_structured_output().data
+
+    assert result["work_analysis"]["title"] == "스키마 재시도 성공"
+    assert model.plain_calls == 1
+    assert "호환성 JSON 재시도" in component.status
+
+
+def test_fixed_component_reports_parser_contract_failure_without_echoing_native_completion():
+    module = _module()
+    model = _NativeParserFailureAndInvalidPlainJsonModel()
+    component = module.BusinessDesignStructuredOutputComponent()
+    component.model = model
+    component.input_value = "사용자 업무 설명"
+
+    with pytest.raises(ValueError, match="BUSINESS_DESIGN_STRUCTURED_OUTPUT_PARSE_FAILED") as raised:
+        component.build_structured_output()
+
+    message = str(raised.value)
+    assert "OutputParserException" in message
+    assert "_CompatibilityJsonContractError" in message
+    assert "untrusted_completion" not in message
+    assert model.runnable.calls == 1
+    assert model.plain_calls == 1
 
 
 def test_fixed_component_preserves_a_sanitized_provider_failure_diagnostic():
     """Users need the actual failure class/reason without a provider leaking credentials."""
     module = _module()
     component = module.BusinessDesignStructuredOutputComponent()
-    component.model = _ProviderFailureModel()
+    model = _ProviderFailureModel()
+    component.model = model
     component.input_value = "사용자 업무 설명"
 
     with pytest.raises(ValueError, match="BUSINESS_DESIGN_STRUCTURED_OUTPUT_FAILED") as raised:
@@ -287,6 +424,7 @@ def test_fixed_component_preserves_a_sanitized_provider_failure_diagnostic():
     assert "HTTP 429 quota exhausted" in message
     assert "api_key" not in message.casefold()
     assert "sk-live-should-never-reach-the-user" not in message
+    assert model.plain_calls == 0
 
 
 def test_fixed_component_identifies_native_structured_output_incompatibility_without_leaking_auth():

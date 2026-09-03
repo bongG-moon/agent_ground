@@ -4,14 +4,16 @@ Langflow 1.11's stock Structured Output component models its schema as a
 *list of rows*.  That is useful for extraction, but it can silently fall back
 to its editable ``field`` row after a Flow import or a model-settings refresh.
 This component has no editable table schema: it first binds one fixed Pydantic
-object to the connected Language Model, then uses a strict whole-response JSON
-compatibility path only when the provider rejects native schema support.
+object to the connected Language Model.  When native schema support is absent
+*or the provider-side output parser rejects one response*, it makes one fresh,
+strict whole-response JSON compatibility call and validates that new response.
 """
 
 import json
 import re
 from typing import Any, Literal
 
+from langchain_core.exceptions import OutputParserException
 from langchain_core.messages import HumanMessage, SystemMessage
 from pydantic import BaseModel, ConfigDict, Field, ValidationError
 
@@ -19,6 +21,49 @@ from lfx.custom import Component
 from lfx.io import HandleInput, Output
 from lfx.schema import Data
 from lfx.schema.message import Message
+
+
+# This is a *model-writing target*, not the post-model safety boundary in 05.
+# The 8,192-token Language Model output needs enough room for a genuinely
+# branching process, but not an unbounded duplicate of every UI click, README,
+# or port schema.  Keeping the values here makes the capacity policy explicit
+# and lets the prompt below stay in sync with focused regression tests.
+_MODEL_OUTPUT_TOKEN_BUDGET = 8_192
+_MODEL_TARGET_MAX_CURRENT_STEPS = 24
+_MODEL_TARGET_MAX_AS_IS_NODES = 24
+_MODEL_TARGET_MAX_AS_IS_EDGES = 36
+_MODEL_TARGET_MAX_TO_BE_NODES = 32
+_MODEL_TARGET_MAX_TO_BE_EDGES = 48
+# Keep supporting lists deliberately compact so complex graph paths, rather
+# than repetitive roadmap prose, get the scarce model-output budget.
+_MODEL_TARGET_MAX_INFORMATION_GAPS = 8
+_MODEL_TARGET_MAX_ROADMAP_ITEMS = 6
+_MODEL_TARGET_MAX_RISKS_AND_CONTROLS = 8
+_MODEL_TARGET_MAX_TEST_SCENARIOS = 10
+_MODEL_TARGET_MAX_CATALOG_DECISIONS = 12
+
+
+def _model_output_budget_text() -> str:
+    """Return the concise-output policy inserted into the fixed model prompt.
+
+    A 32-node TO-BE graph with normal/branch/error paths is materially more
+    expressive than the former 16-node sketch, while concise titles, handoff
+    labels and non-duplicated AS-IS prose keep the one JSON response below the
+    configured model output budget.  05 still has a larger independent safety
+    cap in case a provider ignores this instruction.
+    """
+
+    return f"""
+05 Language Model의 최대 출력은 {_MODEL_OUTPUT_TOKEN_BUDGET:,} tokens입니다. JSON이 잘리지 않도록 아래 한도를 지키고, 불필요한 반복 설명을 쓰지 마세요.
+
+- `current_steps`와 `as_is_graph.nodes`는 같은 현재 업무를 표현합니다. 각각 최대 {_MODEL_TARGET_MAX_CURRENT_STEPS}개/{_MODEL_TARGET_MAX_AS_IS_NODES}개, `as_is_graph.edges`는 최대 {_MODEL_TARGET_MAX_AS_IS_EDGES}개입니다. 두 곳에 긴 설명을 중복하지 말고, 상세 현재 업무 설명은 `current_steps.description`에만 씁니다.
+- `to_be_design.nodes`는 최대 {_MODEL_TARGET_MAX_TO_BE_NODES}개, `to_be_design.edges`는 최대 {_MODEL_TARGET_MAX_TO_BE_EDGES}개입니다. 복잡한 업무는 정상·분기·오류·재시도 경로를 우선 보존하고, 같은 담당자/시스템 안의 미세 작업은 하나의 업무 단계와 요약으로 묶으세요.
+- 각 node title은 60자, node summary/description은 160자 이내로 작성하세요. Input/Output은 전달 계약이 바뀌는 경우에만 각각 최대 2개, 항목당 50자 이내의 짧은 업무 데이터명으로 적으세요. README, 포트 schema 전문, 동일한 역할·시스템·입출력의 반복은 쓰지 마세요.
+- edge label은 50자, condition은 100자 이내로 짧게 쓰고 실제 재시도인 경우에만 retry_policy를 넣으세요.
+- information_gaps는 최대 {_MODEL_TARGET_MAX_INFORMATION_GAPS}개, implementation_roadmap은 최대 {_MODEL_TARGET_MAX_ROADMAP_ITEMS}개, risks_and_controls는 최대 {_MODEL_TARGET_MAX_RISKS_AND_CONTROLS}개, test_scenarios는 최대 {_MODEL_TARGET_MAX_TEST_SCENARIOS}개입니다.
+- catalog_decisions에는 실제로 판단한 후보만 최대 {_MODEL_TARGET_MAX_CATALOG_DECISIONS}개 기록하세요. 후보 전체 목록이나 README, URL, 포트 전문을 반복하지 마세요.
+- 분량이 부족해지면 roadmap·위험·테스트의 설명을 먼저 줄이고, TO-BE Flow의 정상·분기·오류·재시도 연결과 JSON의 마지막 `}}`는 절대 생략하지 마세요.
+""".strip()
 
 
 # This is deliberately embedded in the standalone component instead of being a
@@ -88,10 +133,14 @@ FIXED_SYSTEM_PROMPT = """
 - graph edge_kind는 control, branch, error, retry 중 하나이며 edge에는 edge_id, source_node_id, target_node_id, edge_kind, label, condition, is_default, retry_policy를 넣으세요.
 - catalog_decisions의 decision은 selected, considered, not_used 중 하나입니다. selected에는 실제 TO-BE node_id가 하나 이상 필요합니다. asset_id와 version은 제공된 고정 후보와 정확히 일치할 때만 사용하세요. 후보의 제목, URL, technical status를 JSON에 복사하지 마세요.
 
+## 응답 분량 제한
+
+__BUSINESS_DESIGN_OUTPUT_BUDGET__
+
 ## 최종 출력 게이트
 
 응답의 첫 문자는 {, 마지막 문자는 }여야 합니다. 코드 펜스, 인사말, 해설, 설계 요약, 주석 또는 JSON 이외의 문자 하나라도 붙이지 마세요. 필요한 정보를 알 수 없으면 추측한 설명문을 추가하지 말고 해당 배열을 비우거나 information_gaps에 기록하세요.
-""".strip()
+""".strip().replace("__BUSINESS_DESIGN_OUTPUT_BUDGET__", _model_output_budget_text())
 
 
 class BusinessDesignDraftV1(BaseModel):
@@ -136,6 +185,72 @@ _CATALOG_SHORTLIST_POLICY_BLOCK = re.compile(
     r"<catalog_shortlist_policy>\s*(?P<body>\{.*?\})\s*</catalog_shortlist_policy>",
     re.DOTALL,
 )
+
+
+class _CompatibilityJsonContractError(ValueError):
+    """A fresh compatibility response was received but was not one JSON object.
+
+    This stays separate from provider/auth/network exceptions.  The caller can
+    therefore explain that a native parser failure remained a response-contract
+    problem after a fresh retry, without exposing a malformed completion.
+    """
+
+
+def _exception_chain(error: Exception, *, maximum: int = 4) -> list[Exception]:
+    """Return the bounded explicit cause/context chain without formatting it."""
+
+    chain: list[Exception] = []
+    current: Exception | None = error
+    while current is not None and len(chain) < maximum and all(current is not item for item in chain):
+        chain.append(current)
+        cause = current.__cause__ if isinstance(current.__cause__, Exception) else None
+        context = current.__context__ if isinstance(current.__context__, Exception) else None
+        current = cause or context
+    return chain
+
+
+def _is_native_structured_output_parse_failure(error: Exception) -> bool:
+    """Recognize native parser/schema failures by type, never by scraped output.
+
+    ``OutputParserException`` is emitted by LangChain when a provider response
+    cannot be converted to the requested schema.  Some provider integrations
+    instead surface the same schema conversion as Pydantic ``ValidationError``.
+    Both are safe to retry with a brand-new ordinary JSON model invocation;
+    quota, credentials and network failures intentionally are not.
+    """
+
+    return any(
+        isinstance(item, (OutputParserException, ValidationError))
+        for item in _exception_chain(error)
+    )
+
+
+def _native_parser_failure_message(
+    native_error: Exception,
+    *,
+    retry_error: Exception | None = None,
+    retry_unavailable: bool = False,
+) -> ValueError:
+    """Make parser-contract failures actionable without echoing model text."""
+
+    message = (
+        "BUSINESS_DESIGN_STRUCTURED_OUTPUT_PARSE_FAILED: 05 Language Model의 native Structured Output 응답이 "
+        "business-design-draft/v1 계약으로 해석되지 않았습니다. "
+    )
+    if retry_unavailable:
+        message += (
+            "일반 JSON 호환 재시도를 수행할 model.invoke가 없어 중단했습니다. "
+            "Structured Output과 일반 invoke를 모두 지원하는 모델을 연결하세요."
+        )
+    else:
+        message += (
+            "새 JSON 호환 호출을 1회 수행했지만 계약 검증에 실패했습니다. "
+            "모델의 JSON 응답 설정, 출력 길이, 고정 스키마 준수 여부를 확인한 뒤 다시 실행하세요."
+        )
+    message += f" native 원인({type(native_error).__name__})"
+    if retry_error is not None:
+        message += f"; 호환 호출 원인({type(retry_error).__name__})"
+    return ValueError(message)
 
 
 def _catalog_shortlist_policy(value: Any, *, prompt_text: str = "") -> dict[str, Any]:
@@ -338,7 +453,7 @@ def _response_json_object(value: Any) -> dict[str, Any]:
 
     text = _content(value)
     if not text:
-        raise ValueError(
+        raise _CompatibilityJsonContractError(
             "BUSINESS_DESIGN_COMPATIBILITY_JSON_INVALID: 호환 호출이 비어 있는 응답을 반환했습니다. "
             "05 Language Model이 JSON object 응답을 만들 수 있는지 확인하세요."
         )
@@ -347,12 +462,12 @@ def _response_json_object(value: Any) -> dict[str, Any]:
     try:
         parsed = json.loads(material)
     except json.JSONDecodeError as exc:
-        raise ValueError(
+        raise _CompatibilityJsonContractError(
             "BUSINESS_DESIGN_COMPATIBILITY_JSON_INVALID: 호환 호출 결과가 완전한 JSON object가 아닙니다. "
             "Structured Output 지원 모델을 선택하거나 모델의 JSON 응답 설정을 확인하세요."
         ) from None
     if not isinstance(parsed, dict):
-        raise ValueError(
+        raise _CompatibilityJsonContractError(
             "BUSINESS_DESIGN_COMPATIBILITY_JSON_INVALID: 호환 호출 결과의 최상위 값이 JSON object가 아닙니다."
         )
     return parsed
@@ -381,9 +496,17 @@ def _compatibility_json_result(model: Any, prompt: str, callbacks: list[Any]) ->
     return _response_json_object(response)
 
 
+def _validated_draft(value: Any) -> BusinessDesignDraftV1:
+    """Apply the same strict Pydantic contract to native and fallback output."""
+
+    if isinstance(value, BaseModel):
+        value = value.model_dump(mode="json")
+    return BusinessDesignDraftV1.model_validate(value)
+
+
 class BusinessDesignStructuredOutputComponent(Component):
     display_name = "06 1차 업무 설계 JSON 생성"
-    description = "고정 business-design-draft/v1 계약을 native structured output으로 우선 생성하고, schema 미지원 시 전체 JSON 검증 호환 경로를 사용합니다."
+    description = "고정 business-design-draft/v1 계약을 native structured output으로 우선 생성하고, schema 미지원 또는 native 파서 실패 시 새 JSON 검증 호환 경로를 1회 사용합니다."
     icon = "Braces"
     name = "BusinessDesignStructuredOutput"
 
@@ -419,9 +542,18 @@ class BusinessDesignStructuredOutputComponent(Component):
         catalog_shortlist_policy = _catalog_shortlist_policy(input_value, prompt_text=prompt)
         callbacks = self.get_langchain_callbacks()
         compatibility_mode = False
-        if not hasattr(model, "with_structured_output"):
+        compatibility_retry_after_native_parse = False
+        use_native = callable(getattr(model, "with_structured_output", None))
+        if not use_native:
             result = _compatibility_json_result(model, prompt, callbacks)
             compatibility_mode = True
+            try:
+                draft = _validated_draft(result)
+            except ValidationError as exc:
+                raise ValueError(
+                    "BUSINESS_DESIGN_STRUCTURED_OUTPUT_INVALID: 호환 JSON 호출 결과가 "
+                    "고정 business-design-draft/v1 객체 계약을 충족하지 않았습니다."
+                ) from exc
         else:
             try:
                 runnable = model.with_structured_output(BusinessDesignDraftV1)
@@ -432,25 +564,43 @@ class BusinessDesignStructuredOutputComponent(Component):
                     ],
                     config={"callbacks": callbacks},
                 )
+                draft = _validated_draft(result)
             except Exception as exc:  # noqa: BLE001
-                if not _is_native_structured_output_unsupported(exc):
+                native_parse_failure = _is_native_structured_output_parse_failure(exc)
+                native_unsupported = _is_native_structured_output_unsupported(exc)
+                if not native_parse_failure and not native_unsupported:
                     _raise_model_call_error(exc)
-                if not hasattr(model, "invoke"):
+                if not callable(getattr(model, "invoke", None)):
+                    if native_parse_failure:
+                        raise _native_parser_failure_message(exc, retry_unavailable=True) from None
                     _raise_model_call_error(exc)
-                result = _compatibility_json_result(model, prompt, callbacks)
+                try:
+                    # This is deliberately a fresh ordinary invocation rather
+                    # than trying to parse the malformed native exception text.
+                    result = _compatibility_json_result(model, prompt, callbacks)
+                    draft = _validated_draft(result)
+                except _CompatibilityJsonContractError as retry_exc:
+                    if native_parse_failure:
+                        raise _native_parser_failure_message(exc, retry_error=retry_exc) from None
+                    raise
+                except ValidationError as retry_exc:
+                    if native_parse_failure:
+                        raise _native_parser_failure_message(exc, retry_error=retry_exc) from None
+                    raise ValueError(
+                        "BUSINESS_DESIGN_STRUCTURED_OUTPUT_INVALID: 호환 JSON 호출 결과가 "
+                        "고정 business-design-draft/v1 객체 계약을 충족하지 않았습니다."
+                    ) from retry_exc
                 compatibility_mode = True
-        if isinstance(result, BaseModel):
-            result = result.model_dump(mode="json")
-        try:
-            draft = BusinessDesignDraftV1.model_validate(result)
-        except ValidationError as exc:
-            raise ValueError(
-                "BUSINESS_DESIGN_STRUCTURED_OUTPUT_INVALID: 모델이 고정 business-design-draft/v1 객체 계약을 충족하지 않았습니다."
-            ) from exc
+                compatibility_retry_after_native_parse = native_parse_failure
         result = draft.model_dump(mode="json")
         # This field is injected after Pydantic validation, rather than added to
         # the LLM's response schema. It is authoritative transport metadata
         # from 04, not a model-controlled design claim.
         result["catalog_shortlist_policy"] = catalog_shortlist_policy
-        self.status = "business-design-draft/v1 JSON 생성 완료 (호환성 JSON 경로)" if compatibility_mode else "business-design-draft/v1 JSON 생성 완료 (native 경로)"
+        if compatibility_retry_after_native_parse:
+            self.status = "business-design-draft/v1 JSON 생성 완료 (native 파서 실패 후 호환성 JSON 재시도 경로)"
+        elif compatibility_mode:
+            self.status = "business-design-draft/v1 JSON 생성 완료 (호환성 JSON 경로)"
+        else:
+            self.status = "business-design-draft/v1 JSON 생성 완료 (native 경로)"
         return Data(data=result)

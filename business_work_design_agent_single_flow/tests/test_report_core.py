@@ -180,6 +180,7 @@ def test_report_pipeline_smoke_and_catalog_links():
         "inputs",
         "outputs",
         "catalog_recommendations",
+        "implementation_io_plan",
     }
     assert "catalog_application" not in collect_detail
     assert "actor" not in collect_detail
