@@ -68,9 +68,9 @@
 
 ### 2.1 첫 실행
 
-사용자는 Canvas의 시작 영역에서 다음 값을 입력한다.
+사용자는 Playground 또는 Canvas의 시작 영역에서 다음 값을 입력한다.
 
-1. 업무 설명 원문
+1. Playground 채팅창의 업무 설명 원문 또는 00의 Canvas 직접 입력
 2. 기능 카탈로그 JSON 파일
 3. 필요한 경우 추가 설계 요청
 4. 필요한 경우 **최종 설계 보완 지시**(1차 설계에는 반영하지 않음)
@@ -103,7 +103,7 @@ Playground에는 읽기 쉬운 결과 안내 Message가 표시된다. Flow API�
 
 정보가 부족해도 Flow를 중단하지 않는다. 보고서 상태를 보완 필요로 표시하고 결과를 끝까지 생성한다.
 
-사용자는 보고서의 추가 보완 필요 항목을 확인하고, 업무 설명 원문을 직접 수정한 뒤 동일 Flow를 새로 실행한다. 이전 실행을 재개하지 않으며, 이전 답변이나 숨은 session 값을 가져오지 않는다.
+사용자는 보고서의 추가 보완 필요 항목을 확인하고, 업무 설명 원문을 Canvas에서 직접 수정하거나 Playground에 보완된 원문을 새로 입력한 뒤 동일 Flow를 새로 실행한다. 이전 실행을 재개하지 않으며, 이전 답변이나 숨은 session 값을 가져오지 않는다.
 
 권장 화면 문구는 다음과 같다.
 
@@ -126,7 +126,7 @@ Playground에는 읽기 쉬운 결과 안내 Message가 표시된다. Flow API�
 
 ### 2.5 현재 구현 대비 목표 규모
 
-현재 build manifest 기준 F10은 53개 node와 126개 edge, F20은 23개 node와 27개 edge, F30은 9개 node와 9개 edge다. 새 F01은 보고서 게시까지 포함해 실행 node 17개, edge 29개로 유지한다. 추가 node 03은 100개 검색 후보를 설계 전에 명시적으로 선별하는 전용 standalone component다. 같은 shortlist Data를 04, 07, 10에 각각 연결해 설계 단계가 후보 범위를 바꾸지 못하게 한다. 02→04 edge는 shortlist identity·hash 검증과 선택 상세 정보 재결합 전용이다. 2차 품질 보완은 별도 Run Flow나 HITL loop가 아니라 같은 단일 Flow 안의 두 standalone component와 재사용 normalizer만 추가한다.
+현재 build manifest 기준 F10은 53개 node와 126개 edge, F20은 23개 node와 27개 edge, F30은 9개 node와 9개 edge다. 새 F01은 보고서 게시까지 포함해 실행 node 18개, edge 30개로 유지한다. 추가 node 00A는 Playground 입력을 00의 전용 Message 수신 input으로 전달하며, 00의 Canvas 직접 입력은 Chat 값이 비어 있을 때 fallback으로 사용한다. node 03은 100개 검색 후보를 설계 전에 명시적으로 선별하는 전용 standalone component다. 같은 shortlist Data를 04, 07, 10에 각각 연결해 설계 단계가 후보 범위를 바꾸지 못하게 한다. 02→04 edge는 shortlist identity·hash 검증과 선택 상세 정보 재결합 전용이다. 2차 품질 보완은 별도 Run Flow나 HITL loop가 아니라 같은 단일 Flow 안의 두 standalone component와 재사용 normalizer만 추가한다.
 
 현재 manifest는 1.11.1/1.11.5 개발 기준으로 생성되어 있으므로 새 Flow의 운영 호환 증거로 재사용하지 않는다.
 
@@ -136,6 +136,7 @@ Playground에는 읽기 쉬운 결과 안내 Message가 표시된다. Flow API�
 
 ~~~mermaid
 flowchart LR
+    Z[00A Playground 업무 설명 입력] --> A
     A[00 업무 설명 입력] --> C[02 로컬 카탈로그 Top-N 검색]
     B[01 기능 카탈로그 JSON 로더] --> C
     A --> S[03 LLM 카탈로그 후보 선별]
@@ -167,14 +168,14 @@ flowchart LR
     N --> O[16 Chat Output]
 ~~~
 
-실행 node는 17개다. 03은 단순한 prompt 조립기가 아니라 모델을 실제 호출해 100개 검색 후보를 최대 12개(기본값)로 고정하는 전용 후보 선별 node다. 04에는 02의 retrieval Data가 shortlist identity·hash 검증과 선택 상세 정보 재결합용으로 연결되지만, 06·09가 받는 설계 후보는 이 고정 shortlist뿐이다. Sticky Note는 입력, 검색, LLM 설계, 보고서의 네 구역 설명용으로만 사용하며 edge를 연결하지 않는다. 최종 leaf는 사람이 읽는 Chat Output과 API·테스트가 받는 Report Artifact Data 두 개다.
+실행 node는 18개다. 00A는 저장하지 않는 Chat Input이고 Message를 00의 `playground_description`으로 전달한다. 00은 Chat 값이 비어 있을 때 Canvas `description`을 사용하므로 두 입력 방식을 같은 Flow에서 함께 지원한다. 03은 단순한 prompt 조립기가 아니라 모델을 실제 호출해 100개 검색 후보를 최대 12개(기본값)로 고정하는 전용 후보 선별 node다. 04에는 02의 retrieval Data가 shortlist identity·hash 검증과 선택 상세 정보 재결합용으로 연결되지만, 06·09가 받는 설계 후보는 이 고정 shortlist뿐이다. Sticky Note는 입력, 검색, LLM 설계, 보고서의 네 구역 설명용으로만 사용하며 edge를 연결하지 않는다. 최종 leaf는 사람이 읽는 Chat Output과 API·테스트가 받는 Report Artifact Data 두 개다.
 
 ### 3.1 구조 원칙
 
 - Run Flow node는 존재하지 않는다.
 - Human Input node는 존재하지 않는다.
 - MongoDB, MONGO_URL, Database, Collection 입력은 존재하지 않는다.
-- Chat Input은 사용하지 않는다. 업무 설명은 명시적인 Multiline 입력으로 받는다.
+- 00A Chat Input은 `should_store_message=false`, 빈 `session_id`·`context_id`로 고정한다. 00의 `playground_description`은 Message를 받는 MultilineInput이며, 비어 있지 않은 Chat 원문을 Canvas `description`보다 우선한다.
 - 각 연결형 필수 업무 데이터 input port에는 upstream edge가 정확히 하나만 연결된다. Canvas에서 직접 설정하는 모델·파일·숫자 값은 예외다.
 - 조건부 group output과 여러 branch 합류를 사용하지 않는다.
 - 모든 실행 node는 고정 output을 가지며, 선택되지 않은 output 때문에 downstream이 build되지 않는 구조를 만들지 않는다.
@@ -195,19 +196,33 @@ Canvas에는 실행 node와 혼동되지 않게 다음 네 개 설명 note만 �
 
 ## 4. Canvas 입력 명세
 
-### 4.1 00 업무 설명 입력
+### 4.1 00A Playground 업무 설명 입력
+
+표시명: 00A Playground 업무 설명 입력  
+기본 제공 node: `ChatInput`
+
+| 입력 | 타입 | 필수 | 기본값 | 설명 |
+| --- | --- | --- | --- | --- |
+| Input Text | MultilineInput | 아니오 | 빈 값 | Playground 채팅창에서 사용자가 입력하는 업무 설명 |
+| Store Messages | BoolInput | 예 | false | 입력 메시지를 대화 이력에 저장하지 않음 |
+
+출력 `message: Message`는 00의 `playground_description`으로 연결된다. `session_id`와 `context_id`는 빈 값으로 고정한다. Chat 원문이 비어 있으면 00은 Canvas 직접 입력을 사용하므로, Chat Input을 분리하거나 edge를 바꾸지 않아도 두 실행 방식을 지원한다.
+
+### 4.2 00 업무 설명 입력
 
 파일: components/single_flow/00_business_design_input.py  
 표시명: 00 업무 설명 입력
 
 | 입력 | 타입 | 필수 | 기본값 | 설명 |
 | --- | --- | --- | --- | --- |
-| 업무 설명 원문 | MultilineInput | 예 | 없음 | 사용자가 현재 수행하는 업무를 가능한 한 구체적으로 작성 |
+| 업무 설명 원문 | MultilineInput | 아니오 | 빈 값 | Canvas에서 직접 실행할 때 사용자가 현재 수행하는 업무를 가능한 한 구체적으로 작성 |
+| Playground 업무 설명 (자동 수신) | MultilineInput | 아니오 | 빈 값 | 00A의 `message: Message`를 자동 수신. 필요 시 직접 입력할 수도 있고, 값이 있으면 업무 설명 원문보다 우선 사용 |
 | 추가 설계 요청 | MultilineInput | 아니오 | 빈 값 | 예: 기존 카탈로그 우선, 사람 승인 유지, 게시 전 검증 |
+| 최종 설계 보완 지시 | MultilineInput | 아니오 | 빈 값 | 1차 설계 이후의 2차 보완 단계에만 반영할 강조 사항 |
 | 언어 | DropdownInput | 예 | ko | 1차 구현에서는 ko만 활성화 |
 | LLM 전달 원문 최대 문자 수 | IntInput | 예 | 16,000 | advanced. 보고서 원문은 자르지 않고 모델 입력만 제한 |
 
-업무 설명은 입력한 공백과 줄바꿈을 보존한 표시용 문장과 정규화한 검색용 문장을 각각 만든다. 표시용 문장은 LLM이 다시 만든 요약으로 대체하지 않는다. 다만 secret 또는 credential로 의심되는 값과 NUL·위험 제어문자는 `[REDACTED]`로 바꾸며, 원래 값은 Component 00 실행 메모리 밖으로 전달하지 않는다. 원 입력의 SHA-256, 마스킹 종류·건수만 남기고 secret 원문이나 위치 주변 문맥은 trace에 넣지 않는다. 같은 redaction 규칙을 추가 설계 요청에도 적용한다.
+00A에서 전달된 Chat 원문이 비어 있지 않으면 그것을 사용하고, 그렇지 않으면 Canvas `업무 설명 원문`을 사용한다. 업무 설명은 입력한 공백과 줄바꿈을 보존한 표시용 문장과 정규화한 검색용 문장을 각각 만든다. 표시용 문장은 LLM이 다시 만든 요약으로 대체하지 않는다. 다만 secret 또는 credential로 의심되는 값과 NUL·위험 제어문자는 `[REDACTED]`로 바꾸며, 원래 값은 Component 00 실행 메모리 밖으로 전달하지 않는다. 원 입력의 SHA-256, 마스킹 종류·건수만 남기고 secret 원문이나 위치 주변 문맥은 trace에 넣지 않는다. 같은 redaction 규칙을 추가 설계 요청에도 적용한다.
 
 16,000자를 넘는 안전한 표시용 문장은 문단 경계를 우선해 앞부분과 뒷부분을 결정론적으로 선택한 `description_for_model`로 별도 생성한다. 보고서에는 축약하지 않은 `description_display_redacted`를 표시하고 `DESCRIPTION_TRUNCATED_FOR_MODEL` 경고와 전달·전체 문자 수를 기록한다.
 
@@ -221,7 +236,7 @@ Canvas에는 실행 node와 혼동되지 않게 다음 네 개 설명 note만 �
 
 출력: request
 
-### 4.2 01 기능 카탈로그 JSON 로더
+### 4.3 01 기능 카탈로그 JSON 로더
 
 파일: components/single_flow/01_catalog_json_loader.py  
 표시명: 01 기능 카탈로그 JSON 파일
@@ -311,7 +326,7 @@ Langflow 1.11.0의 `FileInput`이 전달하는 업로드 경로는 Component의 
 
 출력: catalog_bundle
 
-### 4.3 02 로컬 카탈로그 Top-N 검색
+### 4.4 02 로컬 카탈로그 Top-N 검색
 
 파일: components/single_flow/02_local_catalog_ranker.py  
 표시명: 02 관련 기능 카탈로그 검색
@@ -328,7 +343,7 @@ Langflow 1.11.0의 `FileInput`이 전달하는 업로드 경로는 Component의 
 
 02는 검색 순위 상위 **30개**의 README·기능·제약·포트 요약을 내부 고정 rich context로 유지한다. 이는 LLM의 후보 판단 품질과 prompt 예산을 안정화하기 위한 구현 정책이며 Canvas 입력값이 아니다. Canvas에서 사용자가 조정하는 검색 범위는 `상위 후보 수` 하나뿐이다.
 
-### 4.4 03 LLM 카탈로그 후보 선별
+### 4.5 03 LLM 카탈로그 후보 선별
 
 파일: components/single_flow/03_catalog_candidate_shortlister.py  
 표시명: 03 LLM 카탈로그 후보 선별
@@ -342,7 +357,7 @@ Langflow 1.11.0의 `FileInput`이 전달하는 업로드 경로는 Component의 
 
 03은 검색 순위와 업무 설명을 읽어 `catalog-shortlist/v1` Data를 만든다. 출력은 후보의 `asset_id`, `version`, `asset_type`, `title`, `shortlist_rank`, `reason`을 가진다. `asset_type`과 `title`은 모델이 만든 값이 아니라 검색 registry에서 다시 결합한다. 03은 TO-BE Flow·실제 적용·그래프·`selected`/`considered`/`not_used`를 만들지 않는다. 후보가 적합하지 않으면 빈 shortlist를 반환할 수 있으며, 100개 검색 후보 밖 identity·version은 계약 검증에서 거절한다.
 
-### 4.5 04 업무 설계 요청 구성
+### 4.6 04 업무 설계 요청 구성
 
 파일: components/single_flow/03_business_design_prompt_builder.py  
 표시명: 04 업무 설계 요청 구성
@@ -359,7 +374,7 @@ Langflow 1.11.0의 `FileInput`이 전달하는 업로드 경로는 Component의 
 
 Prompt Builder는 06의 build-controlled 고정 system instruction 문자 수와 SHA-256을 build 시 생성된 읽기 전용 상수로 알고 전체 입력량을 preflight한다. 고정 system instruction·JSON schema에 최대 12,000자, `description_for_model`에 최대 16,000자, 추가 설계 요청에 최대 4,000자, **고정 shortlist 상세 정보**에 나머지 예산을 우선 배정한다. 전체 64,000자와 예상 20,000 input token을 넘으면 안 되며, shortlist의 identity를 조용히 버리지 않는다.
 
-### 4.6 05 Language Model
+### 4.7 05 Language Model
 
 Langflow 1.11.0의 built-in Language Model node를 사용한다.
 
@@ -371,7 +386,7 @@ Langflow 1.11.0의 built-in Language Model node를 사용한다.
 - 03, 06, 09의 standalone component가 각자의 고정 Pydantic schema와 system instruction으로 모델을 호출한다. 운영자는 05에서 provider/model/credential만 선택한다.
 - Langflow 1.11.0 built-in Language Model에는 provider 공통 timeout input이 없으므로 240초 timeout을 Flow 계약으로 약속하지 않는다. 전체 300초 목표는 Prompt preflight, 세 번의 bounded 호출, 실제 provider E2E 측정으로 검증한다.
 
-### 4.7 12 Responsive HTML Renderer
+### 4.8 12 Responsive HTML Renderer
 
 파일: components/single_flow/07_responsive_report_renderer_v2.py  
 표시명: 12 업무 설계 HTML 보고서
@@ -385,7 +400,7 @@ Langflow 1.11.0의 built-in Language Model node를 사용한다.
 
 Renderer는 Component 01이 생성하고 normalizer가 registry에서 다시 결합한 Agent Hub `catalog_url`만 링크로 표시한다. URL은 정확히 `https://agent-hub.skhynix.com/#/component/{uuid}` 또는 `https://agent-hub.skhynix.com/#/flow/{uuid}` 패턴과 일치해야 한다. 임의 외부 URL, source URL, userinfo, query parameter, fragment 추가 값은 렌더링하지 않는다.
 
-### 4.8 13 선택적 Report 게시
+### 4.9 13 선택적 Report 게시
 
 파일: components/single_flow/08_report_publisher.py  
 표시명: 13 보고서 링크 게시
@@ -401,7 +416,7 @@ Report API URL이 비어 있으면 상태를 GENERATED_ONLY로 반환한다. URL
 
 기존 Report API는 request body의 추가 최상위 field를 허용하지 않는 closed contract를 사용한다. 따라서 게시 요청은 정확히 `html`, `title`, `question`, `view_request`, `available_datasets`, `report_plan`, `ttl_hours`, `filename_hint`만 포함한다. Renderer의 `report_id`, `renderer_version`, `content_sha256`은 top-level `renderer_*` field로 보내지 않고 허용된 `report_plan` 안에 저장한다. 이 API의 기본 HTML 한도(10 MiB)를 넘는 보고서는 HTTP 요청 전에 Flow에서 명확히 차단한다.
 
-### 4.9 15 Report Artifact Output
+### 4.10 15 Report Artifact Output
 
 파일: components/single_flow/10_report_artifact_output.py  
 표시명: 15 보고서 결과 Data
@@ -412,7 +427,8 @@ Publisher의 `publish_result`를 검증해 동일한 Data로 반환하는 termin
 
 | 순서 | Node | 입력 Port | 출력 Port | 책임 |
 | --- | --- | --- | --- | --- |
-| 00 | 업무 설명 입력 | Canvas text | request: Data | 원문 보존, 길이·secret 검증, request hash 생성 |
+| 00A | Playground 업무 설명 입력 | Input Text: Text (MultilineInput) | message: Message | Playground의 업무 설명을 비저장 Message로 00에 전달 |
+| 00 | 업무 설명 입력 | description: Text, playground_description: Message | request: Data | Chat 원문 우선·Canvas 직접 입력 fallback, 원문 보존, 길이·secret 검증, request hash 생성 |
 | 01 | 카탈로그 JSON 로더 | Canvas file | catalog_bundle: Data | JSON parse, 항목 정규화, secret 제거, file hash 생성 |
 | 02 | 로컬 Top-N 검색 | request, catalog_bundle | retrieval_result: Data | exact·token·부분문자열·문자 n-gram 검색과 후보 순위 생성 |
 | 03 | LLM 카탈로그 후보 선별 | request, retrieval_result, model | catalog_shortlist: Data | 검색된 100개 안에서만 최대 N개의 고정 shortlist 생성. 실제 적용 판단은 하지 않음 |
@@ -436,6 +452,7 @@ Flow generator는 label이 아니라 아래 실제 handle name으로 연결한�
 
 | Source | Source handle | Target | Target handle |
 | --- | --- | --- | --- |
+| 00A Playground 업무 설명 입력 | message | 00 업무 설명 입력 | playground_description |
 | 00 업무 설명 입력 | request | 02 관련 기능 카탈로그 검색 | request |
 | 01 기능 카탈로그 JSON 파일 | catalog_bundle | 02 관련 기능 카탈로그 검색 | catalog_bundle |
 | 00 업무 설명 입력 | request | 03 LLM 카탈로그 후보 선별 | request |
@@ -466,7 +483,7 @@ Flow generator는 label이 아니라 아래 실제 handle name으로 연결한�
 | 13 Report 게시 | publish_result | 15 Report Artifact Output | publish_result |
 | 14 결과 안내 Message | message | 16 Chat Output | input_value |
 
-Components 06과 09는 `DataInput`으로 구조화된 model response를 받고, normalizer 07·10은 Data/JSON 형태를 엄격히 검사한다. 03은 `HandleInput(LanguageModel)`으로 모델 객체를 받고 `catalog-shortlist/v1` Data를 반환한다. 03·06·09 외에 Language Model의 자유 텍스트 output을 실행 경로에 연결하지 않는다. Component 14는 Message를 반환하며 Chat Output은 `input_value`로 받는다. Component 15는 Data를 반환하는 별도 leaf다. `FileInput`, `MultilineInput`, `HandleInput`, `DataInput`, `IntInput`, `StrInput`, `DropdownInput`, `Output`의 실제 import와 template type은 운영 venv에서 각각 검증한다.
+Components 06과 09는 `DataInput`으로 구조화된 model response를 받고, normalizer 07·10은 Data/JSON 형태를 엄격히 검사한다. 00A의 `message: Message`는 00의 `MultilineInput` 연결 전용 field로 전달되며 Langflow 1.11이 `Message.text`로 변환한다. 03은 `HandleInput(LanguageModel)`으로 모델 객체를 받고 `catalog-shortlist/v1` Data를 반환한다. 03·06·09 외에 Language Model의 자유 텍스트 output을 실행 경로에 연결하지 않는다. Component 14는 Message를 반환하며 Chat Output은 `input_value`로 받는다. Component 15는 Data를 반환하는 별도 leaf다. `FileInput`, `MultilineInput`, `HandleInput`, `DataInput`, `IntInput`, `StrInput`, `DropdownInput`, `Output`의 실제 import와 template type은 운영 venv에서 각각 검증한다.
 
 ## 6. 데이터 계약
 
@@ -1625,6 +1642,7 @@ metadata_only는 바로 적용 가능 또는 검증 완료로 표시하면 안 �
 - 05 Language Model의 `model_output` edge가 03 후보 선별·06 1차 설계·09 최종 보완의 `model` handle로 정확히 연결
 - 03·06·09의 고정 system instruction과 Pydantic schema가 각 standalone source 안에 있고, 동적 사용자 context에 중복되지 않음
 - 03의 visible `max_shortlisted_catalog_items` 기본값 12와 범위 1~30, 04·07·10의 `catalog_shortlist` 연결을 확인
+- 00A Chat Input의 `message → 00.playground_description` Message 연결, `should_store_message=false`, 빈 `session_id/context_id`와 Canvas 직접 입력 fallback 확인
 - Chat Output input_value 연결, should_store_message=false, session_id/context_id 빈 값
 - Chat Output과 Report Artifact Data가 각각 terminal leaf이며 publish_result fan-out 외 다중 fan-in이 없음
 
@@ -1639,11 +1657,12 @@ metadata_only는 바로 적용 가능 또는 검증 완료로 표시하면 안 �
 5. Graph.from_payload 또는 동등한 실제 graph 역직렬화
 6. 모든 edge handle type 확인
 7. built-in Language Model의 `model_output` handle 및 03·06·09의 `model` handle 연결 확인
-8. Chat Output의 input_value와 should_store_message=false 확인
-9. Canvas 열기 시 connection removed 경고 0건
-10. 각 node 단독 build
-11. complex sample 전체 Flow 실행
-12. export 후 재import
+8. 00A Chat Input의 `message`와 00의 `playground_description` 연결, Chat 원문 전달 및 빈 Chat 시 Canvas 직접 입력 fallback 확인
+9. Chat Output의 input_value와 should_store_message=false 확인
+10. Canvas 열기 시 connection removed 경고 0건
+11. 각 node 단독 build
+12. complex sample 전체 Flow 실행
+13. export 후 재import
 
 1.11.1 환경 통과만으로 완료 처리하지 않는다.
 
@@ -1838,7 +1857,7 @@ metadata_only는 바로 적용 가능 또는 검증 완료로 표시하면 안 �
 4. 06·09의 Pydantic 계약은 `schema_version`, `work_analysis`, `information_gaps`, `as_is_graph`, `to_be_design`, `catalog_decisions` 여섯 최상위 field를 강제하며 다중 row wrapper를 만들지 않는다. 상세 graph·카탈로그 ID 검증과 안전 정규화는 이후 standalone 07·10 normalizer가 담당한다.
 5. 07·10의 `model_response`는 `DataInput`으로 `JSON`/`Data`를 받고, 직접 테스트 호환 경로에서만 전체 JSON Message를 허용한다. 설명문 속 일부 중괄호를 찾아 설계 결과로 추정하지 않는다.
 6. native 구조화 출력을 지원하지 않는 provider/model도 일반 `model.invoke()`가 가능하면 엄격한 JSON 호환 경로를 사용할 수 있다. 이 경로는 전체 응답 또는 하나의 완전한 JSON code fence만 허용하고, prose 내부에서 JSON 일부를 검색하지 않으며 Pydantic 검증 실패 시 차단한다. 일반 호출도 불가능하거나 JSON 검증에 실패하면 모델을 교체하거나 JSON 응답 설정을 확인해야 한다.
-7. 현재 구현 Flow는 실행 node 17개, edge 29개이며, custom component 15개는 모두 standalone source로 embed된다. 03의 검증된 `catalog-shortlist/v1`은 04·07·10에 직접 연결되고 06·09의 설계 context도 이 범위에서만 만들어진다. 02→04 edge는 후보 전체를 설계 LLM에 주는 용도가 아니라 shortlist identity·hash 검증과 선택 상세 정보 재결합용이다. 09는 shortlist 안에서의 실제 적용·검토·미사용 결정을 존중하므로 후보 사용을 강제하지 않는다. 2차 보완은 동일 Flow에서 실행되고 Run Flow를 추가하지 않는다.
+7. 현재 구현 Flow는 실행 node 18개, edge 30개이며, custom component 15개는 모두 standalone source로 embed된다. 00A의 Chat Message는 00의 전용 입력으로 연결되고, Chat 값이 비어 있을 때만 00 Canvas 직접 입력을 사용한다. 03의 검증된 `catalog-shortlist/v1`은 04·07·10에 직접 연결되고 06·09의 설계 context도 이 범위에서만 만들어진다. 02→04 edge는 후보 전체를 설계 LLM에 주는 용도가 아니라 shortlist identity·hash 검증과 선택 상세 정보 재결합용이다. 09는 shortlist 안에서의 실제 적용·검토·미사용 결정을 존중하므로 후보 사용을 강제하지 않는다. 2차 보완은 동일 Flow에서 실행되고 Run Flow를 추가하지 않는다.
 8. 06·09의 `BusinessDesignDraftV1`과 03의 `CatalogShortlistDraftV1`은 `from __future__ import annotations`에만 의존하지 않고 class 선언 직후 `model_rebuild(...)` 대입문으로 계약을 재구성한다. Langflow 1.11의 dynamic custom-component loader는 최상위 bare expression을 실행하지 않을 수 있고 별도 exec namespace를 쓰므로, 이 대입문과 direct type annotation이 없으면 provider 호출 시 `Literal is not fully defined` Pydantic 오류가 날 수 있다.
 
 ### 23.2 Provider 오류 표기

@@ -357,6 +357,11 @@ def _canonicalize(value: Any, parent_key: str = "") -> Any:
 
 def _approved_work_projection(work: dict[str, Any]) -> tuple[dict[str, Any], str]:
     semantic = {field: copy.deepcopy(work.get(field)) for field in SEMANTIC_FIELDS}
+    # Match Component 17's approval hash without breaking records approved
+    # before F10 stored resumable intake context.  When present, the context
+    # remains in the sealed F20 scope but is never invented from a chat reply.
+    if "f10_design_context" in work:
+        semantic["f10_design_context"] = copy.deepcopy(work.get("f10_design_context"))
     canonical_semantic = _canonicalize(semantic)
     canonical_text = json.dumps(
         canonical_semantic,

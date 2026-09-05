@@ -8,7 +8,7 @@ from datetime import datetime, timezone
 from typing import Any
 
 from lfx.custom import Component
-from lfx.io import IntInput, MessageTextInput, Output
+from lfx.io import DataInput, IntInput, MessageTextInput, Output
 from lfx.schema import Data, Message
 
 
@@ -143,6 +143,12 @@ def build_work_request_envelope(
         name
         for name, value in (
             ("catalog_scope_id", tenant),
+            # F10's later numbered-chat resume uses the same visible employee
+            # ID to authorize the pending batch and final approval action.
+            # Do not silently replace an invalid value with a derived owner
+            # ID: that would make a human-readable input differ from the
+            # durable owner and break an otherwise valid resume.
+            ("employee_id", employee),
             ("owner_id", owner),
             ("session_id", session),
             ("work_definition_id", supplied_work_id),
@@ -271,6 +277,13 @@ class WorkRequestEnvelopeComponent(Component):
     name = "WorkRequestEnvelope"
 
     inputs = [
+        DataInput(
+            name="start_trigger",
+            display_name="새 업무 실행 Trigger (자동 연결)",
+            input_types=["Data", "JSON"],
+            required=False,
+            info="49 F10 Playground 입력 구분 노드가 새 업무 실행을 선택했을 때만 자동으로 전달합니다. 직접 입력하지 않습니다.",
+        ),
         MessageTextInput(
             name="request_text",
             display_name="업무 설명 원문",

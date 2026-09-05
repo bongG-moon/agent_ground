@@ -214,7 +214,14 @@ class WorkDefinitionPipelineTests(unittest.TestCase):
             submitted_at="2026-08-27T00:00:00Z",
         )
         self.assertTrue(accepted["ok"])
-        for invalid_field, invalid_value in (("catalog_scope_id", "a" * 129), ("work_definition_id", "wd/invalid")):
+        for invalid_field, invalid_value in (
+            ("catalog_scope_id", "a" * 129),
+            ("work_definition_id", "wd/invalid"),
+            # The visible F10 employee Text Input is reused by the chat
+            # answer loader/parser/commit.  It must equal the durable owner,
+            # not be silently normalized into a different identity.
+            ("employee_id", "owner a"),
+        ):
             kwargs = {
                 "team_name": "자동화팀",
                 "employee_id": "owner-a",
@@ -273,6 +280,16 @@ class WorkDefinitionPipelineTests(unittest.TestCase):
         self.assertEqual(first["work_definition"]["goal"]["status"], "inferred")
         self.assertEqual(first["work_definition"]["actors"][0]["provenance"]["status"], "inferred")
         self.assertEqual(first["work_definition"]["actors"][0]["id"], second["work_definition"]["actors"][0]["id"])
+        # Component 36 can reconstruct a later numbered-chat resume only
+        # from this canonical, approval-hash-sealed intake fragment.
+        design_context = first["work_definition"]["f10_design_context"]
+        self.assertEqual(design_context["schema_version"], "f10-design-context/v1")
+        self.assertEqual(design_context["source_request_turn_id"], envelope["envelope"]["source_request"]["turn_id"])
+        self.assertEqual(
+            design_context["source_request_sha256"],
+            "sha256:" + envelope["envelope"]["source_request"]["sha256"].removeprefix("sha256:"),
+        )
+        self.assertEqual(design_context["additional_prompt"], envelope["envelope"]["additional_prompt"])
         existing = first["work_definition"]
         existing["goal"] = _fact("사용자 확정 목표")
         preserved = MODULES["11"].normalize_work_definition({"goal": "모델의 다른 목표"}, envelope, existing)

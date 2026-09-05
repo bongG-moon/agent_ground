@@ -1,14 +1,14 @@
-# Langflow 1.11.1 Standalone Custom Component 생성 요청 프롬프트
+# 운영 Langflow 1.11.0 호환 Standalone Custom Component 생성 요청 프롬프트
 
 | 항목 | 값 |
 | --- | --- |
 | 문서 버전 | `1.0.0` |
 | 대상 프로젝트 | `business_work_design_agent` |
-| 대상 런타임 | Langflow OSS `1.11.x`, 검증 기준 `langflow==1.11.1` |
+| 대상 런타임 | **운영 호환 대상** Langflow OSS `1.11.0`, **source-build 검증 기준** `langflow==1.11.1` |
 | 생성 단위 | 요청 1개당 Component `.py` 1개 |
 | 금지 | 로컬/형제 module import, 상대 import, `sys.path` 조작 |
 
-이 문서는 [상세 기술 명세서](TECHNICAL_SPECIFICATION.md)의 구현 분류에서 `new_standalone_component`로 판정된 node에만 사용한다. Langflow built-in, 검증된 catalog Component/Flow, companion service, Human task에는 이 프롬프트로 새 Custom Component를 만들지 않는다.
+이 문서는 [상세 기술 명세서](TECHNICAL_SPECIFICATION.md)의 구현 분류에서 `new_standalone_component`로 판정된 node에만 사용한다. Langflow built-in, 검증된 catalog Component/Flow, companion service, Human task에는 이 프롬프트로 새 Custom Component를 만들지 않는다. **새 생성 요청의 운영 대상은 1.11.0**이며, 1.11.1 source-build은 정적 template/import 검증 기준일 뿐 1.11.0 운영 호환성을 대체하지 않는다. F30 Component 30은 이미 봉인된 과거 `1.11.1` 생성 요청도 hash를 바꾸지 않고 보고서에 표시할 수 있지만, 이는 legacy 호환·표시용일 뿐 새 요청의 target으로 재사용하지 않는다.
 
 ---
 
@@ -31,7 +31,7 @@
 | `DEPLOYMENT_MODE` | 실행 방식 | `inline_bounded` |
 | `PROMPT_PACK` | 아래 그룹별 추가문 | `CCP-SEARCH-SKILL` |
 
-`ONE_RESPONSIBILITY`에 `그리고`, `동시에`, `전체 pipeline`이 반복되면 Component를 나눈다. F00도 예외가 아니며 파일 정규화(`00`), 결정론적 청킹(`01`), embedding·MongoDB 게시(`02`)를 서로 다른 Standalone Component로 구현한다. work `10`~`18`/`27`/`28`/`34`/`35`/`39`~`45`, search·blueprint `19`~`26`/`29`/`36`/`38`, report `30`~`33` 역시 한 파일에 여러 Component subclass로 묶지 않는다. 이 중 현행 F10 Canvas는 `42`·`39`~`45`를 사용하며 `14`·`15`·`27`·`28`·`34`·`35`와 Answer Form/HITL API 연동은 독립 검증 또는 과거 재사용용 historical source/연동이다.
+`ONE_RESPONSIBILITY`에 `그리고`, `동시에`, `전체 pipeline`이 반복되면 Component를 나눈다. F00도 예외가 아니며 파일 정규화(`00`), 결정론적 청킹(`01`), embedding·MongoDB 게시(`02`)를 서로 다른 Standalone Component로 구현한다. work `10`~`18`/`27`/`28`/`34`/`35`/`39`~`49`, search·blueprint `19`~`26`/`29`/`36`/`38`, report `30`~`33` 역시 한 파일에 여러 Component subclass로 묶지 않는다. 이 중 현행 F10 Canvas는 `39`~`49`를 사용하며 `14`·`15`·`27`·`28`·`34`·`35`와 Answer Form/HITL API 연동은 독립 검증 또는 과거 재사용용 historical source/연동이다.
 
 ---
 
@@ -40,7 +40,7 @@
 아래 블록을 그대로 복사한 뒤 `{...}`를 채우고, 3장의 해당 prompt pack을 뒤에 붙인다.
 
 ```text
-Langflow OSS 1.11.1에서 실행되는 Standalone Custom Component 하나를 작성해줘.
+운영 Langflow OSS 1.11.0과 호환되는 Standalone Custom Component 하나를 작성해줘.
 
 [대상]
 - 파일명: {FILE_NAME}
@@ -56,7 +56,7 @@ Langflow OSS 1.11.1에서 실행되는 Standalone Custom Component 하나를 작
 - 배포 mode: {DEPLOYMENT_MODE}
 
 [Langflow·Standalone 필수 규칙]
-1. runtime 기준은 정확히 langflow==1.11.1이다.
+1. 운영 호환 기준은 정확히 Langflow OSS 1.11.0이다. 1.11.0에 없는 API·입력 field·output 계약에 의존하지 않는다. `langflow==1.11.1` source-build은 별도의 정적 검증 기준으로 수행하되 이를 운영 기준으로 바꾸지 않는다.
 2. Langflow 관련 import는 public API인 lfx만 사용한다. Python 표준 라이브러리와 위에서 선언한 승인 외부 의존성은 사용할 수 있다.
    - from lfx.custom import Component
    - 필요한 입력 class만 lfx.io에서 import한다.
@@ -104,7 +104,7 @@ Langflow OSS 1.11.1에서 실행되는 Standalone Custom Component 하나를 작
 1. 완성된 Component .py 전체 코드
 2. 별도 pytest 파일 전체 코드. 이 test 파일은 runtime Component가 import하지 않는다.
 3. input/output/secret/dependency 표
-4. 깨끗한 langflow==1.11.1 환경에서 단독 load와 smoke test 절차
+4. 운영 Langflow 1.11.0에서의 단독 load·smoke test 절차와, 별도 `langflow==1.11.1` source-build 검증 절차
 5. 오류 코드, HTTP 또는 provider 원인, retryable 여부 표
 6. 구현에서 둔 size·timeout·retry 기본값과 변경 방법
 
@@ -112,14 +112,15 @@ Langflow OSS 1.11.1에서 실행되는 Standalone Custom Component 하나를 작
 - AST parse와 py_compile
 - 상대/로컬/private Langflow import가 없음을 정적 검사
 - Component subclass가 한 개임을 검사
-- langflow==1.11.1에서 Component 단독 load
+- 운영 Langflow 1.11.0에서 Component 단독 load와 typed output 노출
+- 별도 `langflow==1.11.1` source-build 검증 통과
 - input template과 typed output method 노출
 - 정상 입력, 빈 입력, 경계값, 잘못된 schema, 외부 장애
 - secret이 log/status/output/error에 나타나지 않음
 - production 설정 누락 시 명시적 실패
 - silent fallback과 demo data 반환이 없음
 
-코드를 작성하기 전에 계약상 모순이나 Langflow 1.11.1 public API로 확인할 수 없는 부분을 먼저 목록으로 알려줘. 모순이 없으면 임의 기능을 추가하지 말고 위 책임 하나만 구현해줘.
+코드를 작성하기 전에 계약상 모순이나 운영 Langflow 1.11.0 public API로 확인할 수 없는 부분을 먼저 목록으로 알려줘. 모순이 없으면 임의 기능을 추가하지 말고 위 책임 하나만 구현해줘.
 ```
 
 ---
@@ -179,15 +180,15 @@ Catalog ingest는 아래 세 Standalone Component를 서로 다른 생성 요청
 ```text
 [CCP-WORK 전용 요구]
 - 이번 Component는 envelope, normalize, completeness, question batch, native clarification answer gate, answer commit, review entry joiner, terminal result message, graph normalize, preview hash, semantic store, clarification route/join, runtime state store, result gate, F20→F30 handoff gate, 또는 F10 인증 context 경계 중 하나만 책임진다.
-- 현행 F10 Canvas의 보완 경로는 최대 3회 `12 → 질문 LLM → 13 → 42 → 39`이고, `42`는 `graph.request_pause`의 `kind=node_input`과 question별 `schema` field로 Playground 답변 카드 및 `Submit Answers`/`추가 입력 건너뛰기`/`Cancel` branch를 만든다. `39`는 native 제출을 감사 저장한 뒤 검증·병합·CAS·재평가하고, 명시적 skip은 audit·unresolved 기록 후 review로 보낸다. `40`은 9개 review entry 중 하나만 결합한다. built-in `Human Input`은 최종 `Approve`/`Reject`/`Cancel` 승인 단계 하나이고, `43`은 선택되지 않은 최종 상태 저장 branch를 즉시 조건부 제외한다. `41`은 모든 intentional cancel/reject/blocked outcome을 event-list로 terminal 표시한다. `45`는 로컬 demo fixture와 운영 trusted gateway 인증 context를 분리하고 `36`은 이 sealed context만 받는다. F11/Playground 분리 Flow와 4차 질문은 현재 경로가 아니다. `14`·`15`·`27`·`28`·`34`·`35` 및 Answer Form/HITL API는 historical standalone source 또는 연동으로 취급하고 현행 F10 Canvas 연결을 요구하지 않는다.
+- 현행 F10 Canvas의 보완 경로는 최대 3회 `12 → 질문 LLM → 13 → 42 → 41 안내 → 같은 Playground Chat Input → 49 → 47 → 46 → 39`이다. Langflow 1.11.0의 `42`는 `graph.request_pause`의 choice-only `kind=node_input`으로 **답변 입력하기** / **추가 입력 건너뛰기** / **Cancel**만 표시하며 질문별 `schema` 입력칸이나 `Submit Answers` 버튼을 만들지 않는다. 답변 입력하기는 `[질문과 입력 안내]`와 `[복사용 답변 양식]`을 표시하고, 사용자는 같은 Chat Input에 `1번: ...`을 보낸다. `49`가 새 업무/번호형 답변을 구분하고, `47`은 같은 사번의 권위 batch를 읽고, `46`이 번호형 답변을 native 제출로 만든다. `39`는 제출을 감사 저장한 뒤 검증·병합·CAS·재평가하고, 명시적 skip은 audit·unresolved 기록 후 review로 보낸다. `48`은 필요한 2차 또는 3차 질문 하나만 열며, 검토 결과는 `39`에서 `40`으로 직접 보낸다. `40`은 10개 review entry 중 하나만 결합한다. built-in `Human Input`은 최종 `Approve`/`Reject`/`Cancel` 승인 단계 하나이고, `43`은 선택되지 않은 최종 상태 저장 branch를 즉시 조건부 제외한다. `41`은 번호형 답변 안내 또는 intentional cancel/reject/blocked outcome을 event-list로 terminal 표시한다. `45`는 로컬 demo fixture와 운영 trusted gateway 인증 context를 분리하고 `36`은 이 sealed context만 받는다. F11/Playground 분리 Flow와 4차 질문은 현재 경로가 아니다. `14`·`15`·`27`·`28`·`34`·`35` 및 Answer Form/HITL API는 historical standalone source 또는 연동으로 취급하고 현행 F10 Canvas 연결을 요구하지 않는다.
 - LLM 응답을 신뢰하지 말고 JSON Schema와 상태 전이 규칙을 결정론적으로 검증한다.
 - 모든 변경에 expected_revision을 요구하고 불일치는 REVISION_CONFLICT로 차단한다.
 - confirmed, inferred, unknown, conflicting 상태와 evidence_turn_ids를 보존한다.
 - 질문을 만드는 책임이면 1·2차에는 최대 3개, 마지막 3차에는 최대 4개의 질문을 만들며 이미 confirmed인 항목을 다시 묻지 않는다. 네 번째 HITL 회차는 만들지 않는다.
 - 1차 질문 batch가 실제로 `WAITING_ANSWER`가 되는 경우에는 revision 0 WorkDefinition을 batch identity와 동일하게 idempotent하게 준비한다. 질문이 없거나 2·3차 batch이면 초기 WorkDefinition을 새로 만들지 않는다.
 - 같은 batch_id와 idempotency key의 중복 답변은 같은 결과를 반환한다.
-- native clarification answer gate 책임이면 안전한 schema field 이름과 원래 `question_id`의 결정론적 mapping을 보존하고, resume values에서 `native-clarification-answer-submission/v1`의 identity, `request_id`, `action_id`, `{question_id,value,evidence_turn_id?}` 배열을 만든다. `skip_additional_input`은 빈 answer submission이 아니라 `native-clarification-skip-submission/v1` event로 만들고 현재 card의 모든 `question_id`를 `skipped_question_ids`에 보존한다. Submit·Skip·Cancel branch는 서로 배타적으로 분리하며, Skip과 Cancel은 answer submission을 내보내지 않는다.
-- F10 intake UI를 만들 때 업무 원문과 추가 설계 프롬프트는 별도 Text Input/Message 입력으로 받고, 화면에는 팀 명·사번만 노출한다. `session_id`는 사용자 입력으로 만들지 않고 Langflow graph runtime session을 사용해 native HITL pending job과 일치시킨다. 현재 공용 catalog scope는 내부 `default`이며 팀 명은 표시·감사 메타데이터다.
+- native clarification answer gate 책임이면 내부 `field_mappings`으로 안전한 field 이름과 원래 `question_id`의 결정론적 mapping을 보존하되, choice card의 browser form 값으로 답을 받지 않는다. `continue_to_chat`은 `WAITING_CHAT_ANSWER`와 복사용 번호형 양식을 내고, 이후 `46`만 `native-clarification-answer-submission/v1`의 identity, `request_id`, `action_id`, `{question_id,value,evidence_turn_id?}` 배열을 만든다. `skip_additional_input`은 빈 answer submission이 아니라 `native-clarification-skip-submission/v1` event로 만들고 현재 card의 모든 `question_id`를 `skipped_question_ids`에 보존한다. 답변 입력하기·Skip·Cancel branch는 서로 배타적으로 분리하며, Skip과 Cancel은 answer submission을 내보내지 않는다.
+- F10 intake UI를 만들 때 팀 명·업무 원문·사번·추가 설계 프롬프트를 네 개의 Canvas Text Input으로 받고, 첫 실행은 Playground Chat Input을 비워 두거나 `새 업무 시작`으로 시작한다. 사번 Text Input은 번호형 답변 재개에도 함께 연결되므로 질문을 받은 뒤에는 같은 값을 유지한다. `session_id`는 사용자 입력으로 만들지 않고 Langflow graph runtime session을 사용해 native HITL pending job과 일치시킨다. 현재 공용 catalog scope는 내부 `default`이며 팀 명은 표시·감사 메타데이터다.
 - request envelope 책임이면 request/additional prompt의 credential assignment, bearer/basic token, JWT, private key, credential URL을 저장 전에 차단하고 값은 error/trace에 반향하지 않는다.
 - native answer commit 책임이면 text/single_choice/single_choice_with_text/multi_choice/boolean/number를 실제 JSON 타입과 choice 계약대로 검증하고, immutable answer_deadline_at과 submitted_at을 사용한다. Component 42의 native 제출을 `clarification_batches` 감사 기록으로 먼저 남긴 뒤 canonical 답변으로 정규화·병합·CAS·재평가한다. `skip_additional_input`은 같은 identity/deadline/CAS/idempotency를 검증해 별도 `work-clarification-skip/v1` audit을 남기고 WorkDefinition `clarification_skip_history`와 질문별 `unresolved`/`unknown` provenance를 기록한 뒤 `READY_FOR_REVIEW`/review path만 연다. 답변을 추정하지 않고, 취소 또는 4차 질문으로 바꾸지 않는다.
 - historical runtime state store 책임이면 work_runtime_states/work_runtime_events를 semantic WorkDefinition 저장소와 분리하고 semantic revision을 증가시키지 않는다. WAITING_ANSWER, MERGING, READY_FOR_REVIEW, WAITING_APPROVAL, CANCELLED, BLOCKED와 새 semantic revision의 MERGING reconciliation checkpoint를 허용 전이로 검증한다. 성공 envelope에는 top-level work_definition을 포함하고 success_path와 blocked_path를 group output으로 분리해 실패 payload가 Component 42/39 보완 경로 또는 다음 의미 단계로 진행하지 못하게 한다.
@@ -223,7 +224,7 @@ Catalog ingest는 아래 세 Standalone Component를 서로 다른 생성 요청
 - 이번 Component는 승인 설계 invocation load, Skill resolve, query plan, hybrid retrieve, candidate context build 중 하나만 책임진다.
 - 승인 설계 invocation loader 책임이면 F10의 `APPROVED` receipt와 원 요청 envelope는 identity hint로만 사용하고, MongoDB canonical `APPROVED` WorkDefinition을 다시 읽어 revision·approved hash·owner/session/channel을 재검증한다. 인증 subject는 owner와 정확히 일치해야 하며 인증 group은 bounded ACL projection으로만 사용한다.
 - 같은 loader가 tenant의 `catalog_active_pointers`와 `status=active` Skill registry를 MongoDB에서 읽어 bounded `agent-design-invocation/v1` 하나를 만든다. caller가 넘긴 WorkDefinition, snapshot 또는 Skill 객체를 권위 데이터로 사용하지 않는다.
-- loader 성공 결과만 F10의 Langflow 1.11.1 `Run Flow` direct mode(`tool_mode=false`)에 연결하고, 실패 output은 child 호출 없이 종료한다. 다른 Flow의 HTTP API를 호출하지 않는다.
+- loader 성공 결과만 운영 Langflow 1.11.0의 `Run Flow` direct mode(`tool_mode=false`)에 연결하고, 실패 output은 child 호출 없이 종료한다. 다른 Flow의 HTTP API를 호출하지 않는다.
 - query planner는 승인 WorkDefinition, tenant/ACL, active snapshot, 별도 추가 설계 프롬프트를 `design_scope_sha256`/`query_plan_sha256`으로 고정한다. Skill/Blueprint 단계는 design scope canonical hash를, Retriever는 query plan canonical hash와 query vector의 두 lock을 재검증하며 embedding 결과도 두 lock을 보존한다.
 - `29_search_query_embedding_batcher.py` 책임이면 `query_plan: Data`와 built-in `Embeddings` handle을 받고 query ID 순서를 보존해 vector를 만든다. HTTP endpoint/token/model/version/dimension 입력을 만들지 않는다. runtime class·configured `available_models` identity 또는 지원된 runtime metadata model ID·첫 vector dimension·fingerprint로 v2 contract를 만들고, F00 active pointer와 완전히 같지 않으면 Retriever가 fail-closed 하게 한다.
 - F00/F20/F90의 built-in Embedding Model에는 같은 승인 provider/model을 설정한다. advanced `Dimensions`는 provider output-size override가 의도적으로 필요한 경우만 설정하며 Writer/Component 29의 저장·검색 계약이 아니다.
@@ -397,10 +398,14 @@ Catalog ingest는 아래 세 Standalone Component를 서로 다른 생성 요청
 | `39_f10_answer_commit.py` | `CCP-WORK` | Component 42 native 제출·skip 감사 저장/재검증, 답변 병합 또는 unresolved 기록, revision CAS, 다음 질문/검토/취소/차단 route |
 | `40_f10_review_entry_joiner.py` | `CCP-WORK` | 9개 review entry 중 유효한 성공 WorkDefinition 하나만 결합 |
 | `41_f10_terminal_result_message.py` | `CCP-WORK` | 취소·반려·차단 terminal 결과 하나를 민감정보 없이 짧은 Message로 투영 |
-| `42_f10_clarification_answer_gate.py` | `CCP-WORK` | `node_input`/`schema` 질문 카드, 안전한 question ID mapping, native 답변 값 또는 explicit skip event, Submit/Skip/Cancel branch |
+| `42_f10_clarification_answer_gate.py` | `CCP-WORK` | choice-only `node_input` 질문 카드, 안전한 question ID mapping, 답변 입력하기/Skip/Cancel branch와 복사용 번호형 양식 |
 | `43_f10_final_approval_route_gate.py` | `CCP-WORK` | built-in Human Input의 final action 판별, non-selected Component 18 branch의 즉시 conditional exclusion, 선택 output 외 빈 payload |
 | `44_f10_report_handoff_gate.py` | `CCP-WORK` | F20 sealed handoff schema/hash 검증, F30 직접 실행 전 fail-closed gate |
 | `45_f10_authentication_context.py` | `CCP-WORK` | local demo fixture와 trusted gateway subject/groups의 명시적 분리, sealed authentication context 출력 |
+| `46_f10_numbered_chat_answer_parser.py` | `CCP-WORK` | `1번: 답변`을 권위 question batch의 native 제출로 검증·변환 |
+| `47_f10_chat_answer_resume_loader.py` | `CCP-WORK` | 같은 사번의 대기 질문 batch와 canonical WorkDefinition identity 재조회 |
+| `48_f10_chat_answer_next_router.py` | `CCP-WORK` | 답변 반영 뒤 2차·3차 질문 하나만 선택 |
+| `49_f10_playground_entry_router.py` | `CCP-WORK` | 빈 채팅/새 업무 시작과 번호형 답변을 상호 배타적으로 분기 |
 | `19_skill_context_resolver.py` | `CCP-SEARCH-SKILL` | registry contract, trigger/near-miss, context limit |
 | `20_search_query_planner.py` | `CCP-SEARCH-SKILL` | exact/capability/type query, additional design prompt, design scope/lock |
 | `29_search_query_embedding_batcher.py` | `CCP-SEARCH-SKILL` | exact query ID coverage, two scope locks, built-in Embeddings handle, runtime v2 contract |
@@ -484,7 +489,7 @@ Catalog ingest는 아래 세 Standalone Component를 서로 다른 생성 요청
 ### 5.2 Historical unused: Work Runtime State Store 생성 요청 시작부
 
 ```text
-Langflow OSS 1.11.1에서 실행되는 Standalone Custom Component 하나를 작성해줘.
+운영 Langflow OSS 1.11.0과 호환되는 Standalone Custom Component 하나를 작성해줘.
 
 [대상]
 - 파일명: 34_work_runtime_state_store.py
@@ -505,7 +510,7 @@ semantic revision은 참조만 하고 증가시키지 말고 별도 runtime_revi
 ### 5.3 Historical unused: Result Gate 생성 요청 시작부
 
 ```text
-Langflow OSS 1.11.1에서 실행되는 Standalone Custom Component 하나를 작성해줘.
+운영 Langflow OSS 1.11.0과 호환되는 Standalone Custom Component 하나를 작성해줘.
 
 [대상]
 - 파일명: 35_result_gate.py
@@ -528,14 +533,14 @@ Langflow OSS 1.11.1에서 실행되는 Standalone Custom Component 하나를 작
 아래 요청은 F10 최종 승인 뒤 F20에 넘길 단일 권위 입력을 만드는 Standalone Component를 재생성할 때 사용한다.
 
 ```text
-Langflow OSS 1.11.1에서 실행되는 Standalone Custom Component 하나를 작성해줘.
+운영 Langflow OSS 1.11.0과 호환되는 Standalone Custom Component 하나를 작성해줘.
 
 [대상]
 - 파일명: 36_approved_design_invocation_loader.py
 - Component class명: ApprovedDesignInvocationLoaderComponent
 - display_name: 36 Approved Design Invocation Loader
 - 한 가지 책임: F10의 sealed authentication context와 승인 receipt를 MongoDB canonical 승인본·활성 catalog pointer·활성 Skill registry와 재검증하여 F20용 `agent-design-invocation/v1` 하나를 만든다.
-- 입력 계약: approval_result(Data, required), request_envelope(Data, required), authentication_context(Data/JSON, required; Component 45 success_path only), mongodb_uri(SecretStrInput, required), mongo_database(MessageTextInput, required), work_collection/pointer_collection/skill_registry_collection(MessageTextInput), timeout_ms(IntInput), max_skill_entries(IntInput), trace_id(MessageTextInput)
+- 입력 계약: approval_result(Data, required), request_envelope(Data, optional; 첫 실행에서는 Component 10에서 자동 연결되고 번호형 채팅 답변 후 재개에서는 의도적으로 비어 있음), authentication_context(Data/JSON, required; Component 45 success_path only), mongodb_uri(SecretStrInput, required), mongo_database(MessageTextInput, required), work_collection/pointer_collection/skill_registry_collection(MessageTextInput), timeout_ms(IntInput), max_skill_entries(IntInput), trace_id(MessageTextInput)
 - 출력 계약: success_path(Data, group output), blocked_path(Data, group output). 정확히 하나만 반환하고 선택하지 않은 output은 self.stop한다.
 - secret 입력: mongodb_uri
 - 외부 의존성: pymongo의 사내 승인 version
@@ -545,13 +550,13 @@ Langflow OSS 1.11.1에서 실행되는 Standalone Custom Component 하나를 작
 
 [권위·검증 계약]
 1. edge의 WorkDefinition body를 신뢰하지 말고 tenant/work/owner/session identity와 승인 receipt를 사용해 `work_definitions`의 canonical 문서를 다시 읽어줘.
-2. canonical 문서가 정확히 `work-definition/v1`, `status=APPROVED`, 같은 revision/approved_hash/owner/session/channel인지 확인하고 의미 hash를 다시 계산해 constant-time 비교해줘.
+2. canonical 문서가 정확히 `work-definition/v1`, `status=APPROVED`, 같은 revision/approved_hash/owner/session/channel인지 확인하고 `f10_design_context`까지 포함한 의미 hash를 다시 계산해 constant-time 비교해줘.
 3. `authentication_context`는 정확히 `f10-authentication-context/v1` sealed envelope만 받게 해줘. `trusted_gateway`는 verified subject/group을, `local_demo_fixture`는 group 없는 unverified sample subject만 허용한다. 사번·Chat Input·고정 문자열을 직접 받지 말고 context의 subject가 canonical owner와 정확히 일치할 때만 group을 ACL projection에 넣어줘.
 4. 같은 tenant의 `catalog_active_pointers`에서 활성 snapshot을, `skill_registry`에서 `status=active`인 bounded 항목만 읽어줘. caller가 제공한 snapshot이나 Skill 객체를 사용하지 마.
-5. 원 request envelope의 별도 additional prompt는 길이/hash/secret-material 검사를 통과한 문자열만 `design_prompt`로 넣어줘.
+5. request_envelope가 현재 입력에 있으면 그 별도 additional prompt를 길이/hash/secret-material 검사 후 `design_prompt`로 넣어줘. 번호형 채팅 답변 후 재개처럼 request_envelope가 비어 있으면 canonical 승인 문서의 hash로 보호된 `f10_design_context`에서만 원문 turn ID·`source_request_sha256`·additional prompt를 복원하고 source_requests의 정확히 한 원문 hash와 비교해줘. 새 Playground Chat Input 문장이나 caller 제공 임의 값을 설계 prompt·검색 원문으로 사용하지 말고, context가 없거나 hash/형식이 틀리면 명확한 BLOCKED 결과를 반환해줘.
 6. 성공 결과는 `ok=true`, `status=READY_FOR_DESIGN`, `schema_version=agent-design-invocation/v1`, canonical WorkDefinition, ACL, active snapshot ID, bounded Skill registry, design prompt, authority source를 포함해줘. Mongo `_id`, mutation receipt, pending action, secret은 제거해줘.
 7. 실패는 secret 없는 canonical `BLOCKED` envelope로 반환하고 success output을 중지해줘. 실패한 결과가 Run Flow 입력으로 진행하면 안 돼.
-8. 이 Component가 F20 HTTP API를 호출하거나 F20 source를 import하지 않게 해줘. 상위 F10이 성공 output을 Langflow 1.11.1 `Run Flow` direct mode(`tool_mode=false`)의 동적 ChatInput port에 연결한다.
+8. 이 Component가 F20 HTTP API를 호출하거나 F20 source를 import하지 않게 해줘. 상위 F10이 성공 output을 운영 Langflow 1.11.0 `Run Flow` direct mode(`tool_mode=false`)의 동적 ChatInput port에 연결한다.
 
 [Standalone 산출 규칙]
 - 실행 Component는 위 한 개의 `.py` 파일만 출력하고 helper·상수·검증 로직을 모두 같은 파일에 둬. 형제/로컬 모듈, 프로젝트 package, 상대 import, `sys.path` 조작을 사용하지 마.
@@ -564,7 +569,7 @@ Langflow OSS 1.11.1에서 실행되는 Standalone Custom Component 하나를 작
 ### 5.5 Hybrid Retriever 생성 요청 시작부
 
 ```text
-Langflow OSS 1.11.1에서 실행되는 Standalone Custom Component 하나를 작성해줘.
+운영 Langflow OSS 1.11.0과 호환되는 Standalone Custom Component 하나를 작성해줘.
 
 [대상]
 - 파일명: 21_catalog_hybrid_retriever.py
@@ -585,7 +590,7 @@ Langflow OSS 1.11.1에서 실행되는 Standalone Custom Component 하나를 작
 ### 5.6 Responsive Report Renderer 생성 요청 시작부
 
 ```text
-Langflow OSS 1.11.1에서 실행되는 Standalone Custom Component 하나를 작성해줘.
+운영 Langflow OSS 1.11.0과 호환되는 Standalone Custom Component 하나를 작성해줘.
 
 [대상]
 - 파일명: 31_responsive_report_renderer.py
@@ -611,7 +616,7 @@ Langflow OSS 1.11.1에서 실행되는 Standalone Custom Component 하나를 작
 
 1. source와 test를 사람이 검토한다.
 2. standalone lint가 로컬/상대/private import를 차단한다.
-3. 고정한 `langflow==1.11.1` 환경에서 단독 load한다.
+3. 운영 Langflow 1.11.0에서 단독 load·smoke test를 통과하고, 별도 고정 `langflow==1.11.1` source-build 검증도 통과한다.
 4. Canvas에서 input/output template과 secret masking을 확인한다.
 5. 정상·경계·오류·외부 장애 test를 실행한다.
 6. 실제 Flow에 embed한 뒤 import, smoke run, export round-trip을 검증한다.

@@ -157,6 +157,52 @@ def _merge_lists(candidate: Any, existing: Any, *, field: str, work_id: str, rev
     return [by_id[item_id] for item_id in order]
 
 
+def _f10_design_context(envelope: dict[str, Any], source: dict[str, Any]) -> dict[str, Any]:
+    """Return the immutable intake fragment needed after a native-HITL resume.
+
+    The first F10 run owns Component 10 and therefore the original request
+    envelope.  A later numbered-chat reply intentionally bypasses Component
+    10, so F20 must be able to rebuild the exact approved request context from
+    MongoDB.  Keep this small, validated object beside the source request and
+    let the approval hash seal it; arbitrary model output never contributes.
+    """
+
+    turn_id = str(source.get("turn_id") or "").strip()
+    source_text = source.get("raw_text")
+    source_hash = source.get("sha256")
+    prompt = envelope.get("additional_prompt")
+    if (
+        not turn_id
+        or not isinstance(source_text, str)
+        or len(source_text) > 50_000
+        or not isinstance(source_hash, str)
+        or not isinstance(prompt, dict)
+        or set(prompt) != {"raw_text", "sha256"}
+    ):
+        raise ValueError("WORK_DEFINITION_DESIGN_CONTEXT_INVALID")
+    source_digest = hashlib.sha256(source_text.encode("utf-8")).hexdigest()
+    if source_hash.removeprefix("sha256:") != source_digest:
+        raise ValueError("WORK_DEFINITION_DESIGN_CONTEXT_INVALID")
+    raw_text = prompt.get("raw_text")
+    supplied_hash = prompt.get("sha256")
+    if not isinstance(raw_text, str) or len(raw_text) > 20_000 or not isinstance(supplied_hash, str):
+        raise ValueError("WORK_DEFINITION_DESIGN_CONTEXT_INVALID")
+    actual_hash = hashlib.sha256(raw_text.encode("utf-8")).hexdigest()
+    normalized_hash = supplied_hash.removeprefix("sha256:")
+    if normalized_hash != actual_hash:
+        raise ValueError("WORK_DEFINITION_DESIGN_CONTEXT_INVALID")
+    return {
+        "schema_version": "f10-design-context/v1",
+        "source_request_turn_id": turn_id,
+        # The source request itself remains in the existing auditable
+        # source_requests list.  Seal its content hash here as well so the
+        # later resume loader cannot be pointed at a different raw text record
+        # with the same turn ID.
+        "source_request_sha256": "sha256:" + source_digest,
+        "additional_prompt": copy.deepcopy(prompt),
+    }
+
+
 def normalize_work_definition(candidate_value: Any, envelope_value: Any, existing_value: Any = None) -> dict[str, Any]:
     try:
         candidate = _unwrap_named(_payload(candidate_value), "work_definition", "candidate")
@@ -226,6 +272,22 @@ def normalize_work_definition(candidate_value: Any, envelope_value: Any, existin
         }
     source = envelope.get("source_request") if isinstance(envelope.get("source_request"), dict) else {}
     turn_id = str(source.get("turn_id") or "")
+    try:
+        design_context = _f10_design_context(envelope, source)
+    except ValueError:
+        return {
+            "ok": False,
+            "status": "BLOCKED",
+            "artifact_refs": [],
+            "error": {
+                "code": "WORK_DEFINITION_DESIGN_CONTEXT_INVALID",
+                "message": "승인 후 설계 호출에 필요한 업무 원문 또는 추가 설계 프롬프트가 유효하지 않습니다.",
+                "retryable": False,
+                "details": {},
+            },
+            "resume": None,
+            "trace_id": trace_id,
+        }
     document: dict[str, Any] = {
         "schema_version": SCHEMA_VERSION,
         "work_definition_id": work_id,
@@ -238,6 +300,7 @@ def normalize_work_definition(candidate_value: Any, envelope_value: Any, existin
         "revision": revision,
         "status": "EXTRACTING",
         "source_requests": copy.deepcopy(existing.get("source_requests", [])) if isinstance(existing.get("source_requests"), list) else [],
+        "f10_design_context": design_context,
         "preview_hash": existing.get("preview_hash"),
         "approved_hash": existing.get("approved_hash"),
         "as_is_graph": copy.deepcopy(existing.get("as_is_graph") or candidate.get("as_is_graph") or {"nodes": [], "edges": []}),

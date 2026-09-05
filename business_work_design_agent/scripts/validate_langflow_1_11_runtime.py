@@ -273,8 +273,52 @@ def _validate_manifest() -> dict[str, Any]:
         raise ValueError("Flow bundle hash mismatch")
     return {
         "schema_version": manifest["schema_version"],
+        "generator_langflow_version": str(manifest.get("langflow_version") or ""),
         "flow_count": len(manifest["flows"]),
         "bundle_sha256": manifest["bundle"]["sha256"],
+    }
+
+
+def _validate_generator_drift(resolved_runtime: dict[str, str], manifest: dict[str, Any]) -> dict[str, Any]:
+    """Run byte-for-byte export drift checks only in the generator runtime.
+
+    The checked-in JSON is intentionally generated from the pinned 1.11.1
+    source templates, while this validator is also run on the user's 1.11.0
+    operating server to prove import/build compatibility.  Rebuilding the
+    export with a different patch release produces harmless template-layout
+    diffs and used to make the 1.11.0 compatibility check fail incorrectly.
+    """
+
+    generator_version = str(manifest.get("generator_langflow_version") or "").strip()
+    active_version = str(resolved_runtime.get("langflow") or "").strip()
+    if not generator_version:
+        raise ValueError("Flow build manifest is missing langflow_version")
+    if active_version != generator_version:
+        return {
+            "status": "skipped_different_patch_runtime",
+            "generator_langflow_version": generator_version,
+            "active_langflow_version": active_version,
+            "reason": (
+                "The Flow JSON is checked against its pinned generator runtime in CI/development; "
+                "this run validates 1.11.x import/build compatibility instead."
+            ),
+        }
+    drift = subprocess.run(
+        [sys.executable, str(PROJECT_ROOT / "scripts" / "build_langflow_1_11_flows.py"), "--check"],
+        cwd=PROJECT_ROOT,
+        check=False,
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        timeout=180,
+    )
+    if drift.returncode:
+        raise RuntimeError((drift.stdout + drift.stderr).strip())
+    return {
+        "status": "passed",
+        "generator_langflow_version": generator_version,
+        "active_langflow_version": active_version,
+        "detail": drift.stdout.strip(),
     }
 
 
@@ -308,23 +352,13 @@ def main() -> int:
 
     component_paths = _component_files()
     components = [_validate_source(path) for path in component_paths]
-    expected_component_count = 39
+    expected_component_count = 43
     if len(components) != expected_component_count:
         raise ValueError(f"Expected {expected_component_count} standalone components, found {len(components)}")
     flows = [_validate_flow(FLOW_ROOT / filename) for filename in FLOW_FILES]
     manifest = _validate_manifest()
     project_manifest = _validate_project_manifest(component_paths)
-    drift = subprocess.run(
-        [sys.executable, str(PROJECT_ROOT / "scripts" / "build_langflow_1_11_flows.py"), "--check"],
-        cwd=PROJECT_ROOT,
-        check=False,
-        capture_output=True,
-        text=True,
-        encoding="utf-8",
-        timeout=180,
-    )
-    if drift.returncode:
-        raise RuntimeError((drift.stdout + drift.stderr).strip())
+    generator_check = _validate_generator_drift(resolved, manifest)
 
     result = {
         "ok": True,
@@ -334,7 +368,7 @@ def main() -> int:
         "flows": flows,
         "manifest": manifest,
         "project_manifest": project_manifest,
-        "generator_check": drift.stdout.strip(),
+        "generator_check": generator_check,
     }
     print(json.dumps(result, ensure_ascii=False, indent=2))
     return 0

@@ -6,6 +6,34 @@
         "className": "",
         "data": {
           "sourceHandle": {
+            "dataType": "ChatInput",
+            "id": "ChatInput-cfc6853",
+            "name": "message",
+            "output_types": [
+              "Message"
+            ]
+          },
+          "targetHandle": {
+            "fieldName": "playground_description",
+            "id": "CustomComponent-0ddddd4",
+            "inputTypes": [
+              "Message"
+            ],
+            "type": "str"
+          }
+        },
+        "id": "xy-edge__ChatInput-cfc6853{œdataTypeœ:œChatInputœ,œidœ:œChatInput-cfc6853œ,œnameœ:œmessageœ,œoutput_typesœ:[œMessageœ]}-CustomComponent-0ddddd4{œfieldNameœ:œplayground_descriptionœ,œidœ:œCustomComponent-0ddddd4œ,œinputTypesœ:[œMessageœ],œtypeœ:œstrœ}",
+        "selected": false,
+        "source": "ChatInput-cfc6853",
+        "sourceHandle": "{œdataTypeœ:œChatInputœ,œidœ:œChatInput-cfc6853œ,œnameœ:œmessageœ,œoutput_typesœ:[œMessageœ]}",
+        "target": "CustomComponent-0ddddd4",
+        "targetHandle": "{œfieldNameœ:œplayground_descriptionœ,œidœ:œCustomComponent-0ddddd4œ,œinputTypesœ:[œMessageœ],œtypeœ:œstrœ}"
+      },
+      {
+        "animated": false,
+        "className": "",
+        "data": {
+          "sourceHandle": {
             "dataType": "BusinessDesignInput",
             "id": "CustomComponent-0ddddd4",
             "name": "request",
@@ -860,7 +888,7 @@
         "data": {
           "id": "note-f01-input",
           "node": {
-            "description": "## 입력\n\n업무 설명과 기능 카탈로그 JSON 파일을 넣고 Run을 누르세요. 실행 중 추가 질문은 나오지 않습니다.",
+            "description": "## 입력\n\nPlayground에서는 00A에 업무를 입력하면 00으로 전달됩니다. Chat 값이 없으면 00의 업무 설명 원문 직접 입력을 사용합니다. 기능 카탈로그 JSON 파일도 넣고 Run을 누르세요.",
             "display_name": "",
             "documentation": "",
             "template": {
@@ -994,6 +1022,314 @@
       },
       {
         "data": {
+          "id": "ChatInput-cfc6853",
+          "node": {
+            "template": {
+              "_type": "Component",
+              "files": {
+                "tool_mode": false,
+                "trace_as_metadata": true,
+                "file_path": "",
+                "fileTypes": [
+                  "csv",
+                  "json",
+                  "pdf",
+                  "txt",
+                  "md",
+                  "mdx",
+                  "yaml",
+                  "yml",
+                  "xml",
+                  "html",
+                  "htm",
+                  "docx",
+                  "py",
+                  "sh",
+                  "sql",
+                  "js",
+                  "ts",
+                  "tsx",
+                  "jpg",
+                  "jpeg",
+                  "png",
+                  "bmp",
+                  "image"
+                ],
+                "temp_file": true,
+                "list": true,
+                "list_add_label": "Add More",
+                "override_skip": false,
+                "required": false,
+                "placeholder": "",
+                "show": true,
+                "name": "files",
+                "value": "",
+                "display_name": "Files",
+                "advanced": true,
+                "api_editable": false,
+                "dynamic": false,
+                "info": "Files to be sent with the message.",
+                "title_case": false,
+                "track_in_telemetry": false,
+                "type": "file",
+                "_input_type": "FileInput"
+              },
+              "code": {
+                "type": "code",
+                "required": true,
+                "placeholder": "",
+                "list": false,
+                "show": true,
+                "multiline": true,
+                "value": "from lfx.base.data.utils import IMG_FILE_TYPES, TEXT_FILE_TYPES\nfrom lfx.base.io.chat import ChatComponent\nfrom lfx.inputs.inputs import BoolInput\nfrom lfx.io import (\n    DropdownInput,\n    FileInput,\n    MessageTextInput,\n    MultilineInput,\n    Output,\n)\nfrom lfx.schema.message import Message\nfrom lfx.utils.constants import (\n    MESSAGE_SENDER_AI,\n    MESSAGE_SENDER_NAME_USER,\n    MESSAGE_SENDER_USER,\n)\n\n\nclass ChatInput(ChatComponent):\n    display_name = \"Chat Input\"\n    description = \"Get chat inputs from the Playground.\"\n    documentation: str = \"https://docs.langflow.org/chat-input-and-output\"\n    icon = \"MessagesSquare\"\n    name = \"ChatInput\"\n    minimized = True\n\n    inputs = [\n        MultilineInput(\n            name=\"input_value\",\n            display_name=\"Input Text\",\n            value=\"\",\n            info=\"Message to be passed as input.\",\n            input_types=[],\n        ),\n        BoolInput(\n            name=\"should_store_message\",\n            display_name=\"Store Messages\",\n            info=\"Store the message in the history.\",\n            value=True,\n            advanced=True,\n        ),\n        DropdownInput(\n            name=\"sender\",\n            display_name=\"Sender Type\",\n            options=[MESSAGE_SENDER_AI, MESSAGE_SENDER_USER],\n            value=MESSAGE_SENDER_USER,\n            info=\"Type of sender.\",\n            advanced=True,\n        ),\n        MessageTextInput(\n            name=\"sender_name\",\n            display_name=\"Sender Name\",\n            info=\"Name of the sender.\",\n            value=MESSAGE_SENDER_NAME_USER,\n            advanced=True,\n        ),\n        MessageTextInput(\n            name=\"session_id\",\n            display_name=\"Session ID\",\n            info=\"The session ID of the chat. If empty, the current session ID parameter will be used.\",\n            advanced=True,\n        ),\n        MessageTextInput(\n            name=\"context_id\",\n            display_name=\"Context ID\",\n            info=\"The context ID of the chat. Adds an extra layer to the local memory.\",\n            value=\"\",\n            advanced=True,\n        ),\n        FileInput(\n            name=\"files\",\n            display_name=\"Files\",\n            file_types=TEXT_FILE_TYPES + IMG_FILE_TYPES,\n            info=\"Files to be sent with the message.\",\n            advanced=True,\n            is_list=True,\n            temp_file=True,\n        ),\n    ]\n    outputs = [\n        Output(display_name=\"Chat Message\", name=\"message\", method=\"message_response\"),\n    ]\n\n    async def message_response(self) -> Message:\n        # Ensure files is a list and filter out empty/None values\n        files = self.files if self.files else []\n        if files and not isinstance(files, list):\n            files = [files]\n        # Filter out None/empty values\n        files = [f for f in files if f is not None and f != \"\"]\n\n        session_id = self.session_id or self.graph.session_id or \"\"\n        message = await Message.create(\n            text=self.input_value,\n            sender=self.sender,\n            sender_name=self.sender_name,\n            session_id=session_id,\n            context_id=self.context_id,\n            files=files,\n        )\n        if session_id and isinstance(message, Message) and self.should_store_message:\n            stored_message = await self.send_message(\n                message,\n            )\n            self.message.value = stored_message\n            message = stored_message\n\n        self.status = message\n        return message\n",
+                "fileTypes": [],
+                "file_path": "",
+                "password": false,
+                "name": "code",
+                "advanced": true,
+                "api_editable": false,
+                "dynamic": true,
+                "info": "",
+                "load_from_db": false,
+                "title_case": false
+              },
+              "context_id": {
+                "tool_mode": false,
+                "trace_as_input": true,
+                "trace_as_metadata": true,
+                "load_from_db": false,
+                "list": false,
+                "list_add_label": "Add More",
+                "override_skip": false,
+                "required": false,
+                "placeholder": "",
+                "show": true,
+                "name": "context_id",
+                "value": "",
+                "display_name": "Context ID",
+                "advanced": true,
+                "api_editable": false,
+                "input_types": [
+                  "Message"
+                ],
+                "dynamic": false,
+                "info": "The context ID of the chat. Adds an extra layer to the local memory.",
+                "title_case": false,
+                "track_in_telemetry": false,
+                "type": "str",
+                "_input_type": "MessageTextInput"
+              },
+              "input_value": {
+                "tool_mode": false,
+                "trace_as_input": true,
+                "multiline": true,
+                "ai_enabled": false,
+                "trace_as_metadata": true,
+                "load_from_db": false,
+                "list": false,
+                "list_add_label": "Add More",
+                "override_skip": false,
+                "required": false,
+                "placeholder": "",
+                "show": true,
+                "name": "input_value",
+                "value": "",
+                "display_name": "Input Text",
+                "advanced": false,
+                "api_editable": false,
+                "input_types": [],
+                "dynamic": false,
+                "info": "Message to be passed as input.",
+                "title_case": false,
+                "track_in_telemetry": false,
+                "copy_field": false,
+                "password": false,
+                "type": "str",
+                "_input_type": "MultilineInput"
+              },
+              "sender": {
+                "tool_mode": false,
+                "trace_as_metadata": true,
+                "options": [
+                  "Machine",
+                  "User"
+                ],
+                "options_metadata": [],
+                "combobox": false,
+                "dialog_inputs": {},
+                "toggle": false,
+                "override_skip": false,
+                "required": false,
+                "placeholder": "",
+                "show": true,
+                "name": "sender",
+                "value": "User",
+                "display_name": "Sender Type",
+                "advanced": true,
+                "api_editable": false,
+                "dynamic": false,
+                "info": "Type of sender.",
+                "title_case": false,
+                "track_in_telemetry": true,
+                "external_options": {},
+                "type": "str",
+                "_input_type": "DropdownInput"
+              },
+              "sender_name": {
+                "tool_mode": false,
+                "trace_as_input": true,
+                "trace_as_metadata": true,
+                "load_from_db": false,
+                "list": false,
+                "list_add_label": "Add More",
+                "override_skip": false,
+                "required": false,
+                "placeholder": "",
+                "show": true,
+                "name": "sender_name",
+                "value": "User",
+                "display_name": "Sender Name",
+                "advanced": true,
+                "api_editable": false,
+                "input_types": [
+                  "Message"
+                ],
+                "dynamic": false,
+                "info": "Name of the sender.",
+                "title_case": false,
+                "track_in_telemetry": false,
+                "type": "str",
+                "_input_type": "MessageTextInput"
+              },
+              "session_id": {
+                "tool_mode": false,
+                "trace_as_input": true,
+                "trace_as_metadata": true,
+                "load_from_db": false,
+                "list": false,
+                "list_add_label": "Add More",
+                "override_skip": false,
+                "required": false,
+                "placeholder": "",
+                "show": true,
+                "name": "session_id",
+                "value": "",
+                "display_name": "Session ID",
+                "advanced": true,
+                "api_editable": false,
+                "input_types": [
+                  "Message"
+                ],
+                "dynamic": false,
+                "info": "The session ID of the chat. If empty, the current session ID parameter will be used.",
+                "title_case": false,
+                "track_in_telemetry": false,
+                "type": "str",
+                "_input_type": "MessageTextInput"
+              },
+              "should_store_message": {
+                "tool_mode": false,
+                "trace_as_metadata": true,
+                "list": false,
+                "list_add_label": "Add More",
+                "override_skip": false,
+                "required": false,
+                "placeholder": "",
+                "show": true,
+                "name": "should_store_message",
+                "value": false,
+                "display_name": "Store Messages",
+                "advanced": true,
+                "api_editable": false,
+                "dynamic": false,
+                "info": "Store the message in the history.",
+                "title_case": false,
+                "track_in_telemetry": true,
+                "type": "bool",
+                "_input_type": "BoolInput"
+              }
+            },
+            "description": "Playground에서 보낸 업무 설명을 00의 연결 전용 입력으로 전달합니다. Chat 값이 없으면 00의 Canvas 직접 입력을 사용합니다. 메시지 저장은 사용하지 않습니다.",
+            "icon": "MessagesSquare",
+            "base_classes": [
+              "Message"
+            ],
+            "display_name": "00A Playground 업무 설명 입력",
+            "documentation": "https://docs.langflow.org/chat-input-and-output",
+            "minimized": true,
+            "custom_fields": {},
+            "output_types": [],
+            "pinned": false,
+            "conditional_paths": [],
+            "frozen": false,
+            "outputs": [
+              {
+                "types": [
+                  "Message"
+                ],
+                "selected": "Message",
+                "name": "message",
+                "display_name": "Chat Message",
+                "method": "message_response",
+                "value": "__UNDEFINED__",
+                "cache": true,
+                "allows_loop": false,
+                "group_outputs": false,
+                "tool_mode": true
+              }
+            ],
+            "field_order": [
+              "input_value",
+              "should_store_message",
+              "sender",
+              "sender_name",
+              "session_id",
+              "context_id",
+              "files"
+            ],
+            "beta": false,
+            "legacy": false,
+            "edited": false,
+            "metadata": {
+              "module": "custom_components.chat_input",
+              "code_hash": "7a26c54d89ed",
+              "dependencies": {
+                "total_dependencies": 1,
+                "dependencies": [
+                  {
+                    "name": "lfx",
+                    "version": "1.11.0"
+                  }
+                ]
+              },
+              "flow_build_target": "1.11.0",
+              "flow_contract": "business-work-design-single/v1",
+              "flow_node_key": "chat_input"
+            },
+            "tool_mode": false,
+            "lf_version": "1.11.0"
+          },
+          "showNode": true,
+          "type": "ChatInput",
+          "description": "Playground에서 보낸 업무 설명을 00의 연결 전용 입력으로 전달합니다. Chat 값이 없으면 00의 Canvas 직접 입력을 사용합니다. 메시지 저장은 사용하지 않습니다.",
+          "display_name": "00A Playground 업무 설명 입력",
+          "selected_output": "message"
+        },
+        "dragging": false,
+        "id": "ChatInput-cfc6853",
+        "measured": {
+          "height": 260,
+          "width": 320
+        },
+        "position": {
+          "x": -1160.0,
+          "y": 0.0
+        },
+        "selected": false,
+        "type": "genericNode"
+      },
+      {
+        "data": {
           "id": "CustomComponent-0ddddd4",
           "node": {
             "template": {
@@ -1035,7 +1371,7 @@
                 "list": false,
                 "show": true,
                 "multiline": true,
-                "value": "from __future__ import annotations\n\n\"\"\"Create the safe, deterministic request envelope for the single business-design flow.\n\nThis is intentionally a standalone Langflow component: it imports only Python's\nstandard library and Langflow/LFX public APIs.  In particular, it never persists\nthe submitted text and never emits a value that was recognised as a credential.\n\"\"\"\n\nimport hashlib\nimport json\nimport re\nimport unicodedata\nfrom typing import Any\n\nfrom lfx.custom import Component\nfrom lfx.io import DataInput, DropdownInput, IntInput, MultilineInput, Output\nfrom lfx.schema import Data\n\n\n_SCHEMA_VERSION = \"business-design-request/v2\"\n_REDACTED = \"[REDACTED]\"\n_MAX_DESCRIPTION_CHARS = 50_000\n_MIN_DESCRIPTION_CHARS = 20\n_DEFAULT_MODEL_CHARS = 16_000\n_MAX_MODEL_CHARS = 16_000\n_EXCERPT_MARKER = \"\\n\\n[... 모델 전달용으로 일부 생략됨 ...]\\n\\n\"\n\n# These patterns deliberately operate on a bounded string and replace only the\n# secret material, not an entire user paragraph.  Their matched values are never\n# returned in the output, exception text, status, or trace fields.\n_SECRET_PATTERNS: tuple[tuple[str, re.Pattern[str]], ...] = (\n    (\n        \"credential\",\n        re.compile(\n            r\"(?i)(\\b(?:api[_-]?key|access[_-]?token|client[_-]?secret|password|passwd|\"\n            r\"authorization|cookie|private[_-]?key|secret)\\b\\s*[:=]\\s*)(?:[\\\"']?)[^\\s,;\\]\\)}]{4,}\",\n        ),\n    ),\n    (\"bearer_token\", re.compile(r\"(?i)\\b(bearer\\s+)[A-Za-z0-9._~+/=-]{8,}\")),\n    (\"jwt\", re.compile(r\"\\b[A-Za-z0-9_-]{16,}\\.[A-Za-z0-9_-]{16,}\\.[A-Za-z0-9_-]{16,}\\b\")),\n    (\"provider_key\", re.compile(r\"\\b(?:sk|AIza)[-_A-Za-z0-9]{16,}\\b\")),\n    (\n        \"credential_url\",\n        re.compile(r\"([A-Za-z][A-Za-z0-9+.-]*://)[^/@\\s:]{1,128}:[^/@\\s]{1,128}@\"),\n    ),\n    (\n        \"private_key\",\n        re.compile(r\"-----BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY-----.*?-----END (?:RSA |EC |OPENSSH )?PRIVATE KEY-----\", re.S),\n    ),\n)\n\n\ndef _canonical_json(value: Any) -> str:\n    return json.dumps(value, ensure_ascii=False, sort_keys=True, separators=(\",\", \":\"), allow_nan=False)\n\n\ndef _sha256(value: str) -> str:\n    return \"sha256:\" + hashlib.sha256(value.encode(\"utf-8\")).hexdigest()\n\n\ndef _remove_unsafe_controls(value: str) -> tuple[str, int]:\n    kept: list[str] = []\n    removed = 0\n    for char in value:\n        if char in (\"\\n\", \"\\r\", \"\\t\"):\n            kept.append(char)\n            continue\n        if ord(char) == 0 or unicodedata.category(char) == \"Cc\":\n            removed += 1\n            continue\n        kept.append(char)\n    return \"\".join(kept), removed\n\n\ndef _redact(value: str) -> tuple[str, list[dict[str, str]], int]:\n    kinds: list[str] = []\n    count = 0\n    redacted = value\n\n    for kind, pattern in _SECRET_PATTERNS:\n        def replace(match: re.Match[str], *, _kind: str = kind) -> str:\n            nonlocal count\n            count += 1\n            kinds.append(_kind)\n            # Patterns with a safe prefix retain it (for example, \"api_key=\").\n            if _kind in {\"credential\", \"bearer_token\", \"credential_url\"}:\n                return match.group(1) + _REDACTED\n            return _REDACTED\n\n        redacted = pattern.sub(replace, redacted)\n\n    # The public contract does not leak match positions or original values.\n    unique = [{\"kind\": kind, \"replacement\": _REDACTED} for kind in sorted(set(kinds))]\n    return redacted, unique, count\n\n\ndef _excerpt_at_boundaries(value: str, limit: int) -> str:\n    \"\"\"Return a deterministic head/tail excerpt, preferring paragraph boundaries.\"\"\"\n    if len(value) <= limit:\n        return value\n    if limit < len(_EXCERPT_MARKER) + 20:\n        raise ValueError(\"max_model_description_chars must be at least 80\")\n\n    usable = limit - len(_EXCERPT_MARKER)\n    desired_head = int(usable * 0.60)\n    desired_tail = usable - desired_head\n\n    def left_boundary(position: int) -> int:\n        start = max(0, position - 512)\n        candidate = value.rfind(\"\\n\\n\", start, position)\n        return candidate + 2 if candidate >= start else position\n\n    def right_boundary(position: int) -> int:\n        end = min(len(value), position + 512)\n        candidate = value.find(\"\\n\\n\", position, end)\n        return candidate if candidate >= 0 else position\n\n    head_end = left_boundary(desired_head)\n    tail_start = right_boundary(len(value) - desired_tail)\n    # Do not let friendly boundary selection make the result exceed its limit.\n    if tail_start <= head_end or head_end + len(_EXCERPT_MARKER) + (len(value) - tail_start) > limit:\n        head_end = desired_head\n        tail_start = len(value) - desired_tail\n    return value[:head_end] + _EXCERPT_MARKER + value[tail_start:]\n\n\ndef _normalise_for_search(value: str) -> str:\n    return re.sub(r\"\\s+\", \" \", unicodedata.normalize(\"NFKC\", value)).strip()\n\n\nclass BusinessDesignInputComponent(Component):\n    display_name = \"00 업무 설명 입력\"\n    description = \"업무 설명을 안전하게 정리해 단일 설계 Flow의 요청으로 만듭니다.\"\n    icon = \"ClipboardPenLine\"\n    name = \"BusinessDesignInput\"\n\n    inputs = [\n        MultilineInput(\n            name=\"description\",\n            display_name=\"업무 설명 원문\",\n            info=\"현재 업무의 절차, 분기, 입력·결과물, 사용하는 시스템을 가능한 한 구체적으로 작성합니다.\",\n            required=True,\n        ),\n        MultilineInput(\n            name=\"additional_instructions\",\n            display_name=\"추가 설계 요청\",\n            info=\"선호하는 방향이나 반드시 유지할 조건이 있으면 작성합니다.\",\n            value=\"\",\n        ),\n        MultilineInput(\n            name=\"final_refinement_instructions\",\n            display_name=\"최종 설계 보완 지시\",\n            info=(\n                \"초안 설계 뒤 최종 보완 단계에서 특히 강조하거나 보충할 내용을 작성합니다. \"\n                \"첫 번째 설계 모델 호출에는 전달하지 않습니다.\"\n            ),\n            value=\"\",\n        ),\n        DropdownInput(\n            name=\"language\",\n            display_name=\"언어\",\n            options=[\"ko\"],\n            value=\"ko\",\n            required=True,\n        ),\n        IntInput(\n            name=\"max_model_description_chars\",\n            display_name=\"LLM 전달 원문 최대 문자 수\",\n            value=_DEFAULT_MODEL_CHARS,\n            advanced=True,\n            info=\"보고서 원문은 자르지 않고, LLM에 전달하는 안전한 원문만 이 길이로 제한합니다.\",\n        ),\n    ]\n    outputs = [Output(name=\"request\", display_name=\"업무 요청\", method=\"build_request\")]\n\n    def build_request(self) -> Data:\n        raw_description = str(getattr(self, \"description\", \"\") or \"\")\n        raw_instructions = str(getattr(self, \"additional_instructions\", \"\") or \"\")\n        raw_final_refinement_instructions = str(getattr(self, \"final_refinement_instructions\", \"\") or \"\")\n        language = str(getattr(self, \"language\", \"ko\") or \"ko\")\n        if language != \"ko\":\n            raise ValueError(\"LANGUAGE_UNSUPPORTED: 현재 Flow는 ko만 지원합니다.\")\n        if len(raw_description) > _MAX_DESCRIPTION_CHARS:\n            raise ValueError(f\"DESCRIPTION_TOO_LARGE: 업무 설명은 최대 {_MAX_DESCRIPTION_CHARS:,}자입니다.\")\n\n        safe_description, removed_description_controls = _remove_unsafe_controls(raw_description)\n        safe_instructions, removed_instruction_controls = _remove_unsafe_controls(raw_instructions)\n        safe_final_refinement, removed_final_refinement_controls = _remove_unsafe_controls(raw_final_refinement_instructions)\n        display_description, description_redactions, description_count = _redact(safe_description)\n        redacted_instructions, instruction_redactions, instruction_count = _redact(safe_instructions)\n        redacted_final_refinement, final_refinement_redactions, final_refinement_count = _redact(safe_final_refinement)\n        if len(display_description.strip()) < _MIN_DESCRIPTION_CHARS:\n            raise ValueError(f\"DESCRIPTION_TOO_SHORT: 업무 설명은 최소 {_MIN_DESCRIPTION_CHARS}자여야 합니다.\")\n        if len(display_description) > _MAX_DESCRIPTION_CHARS:\n            raise ValueError(f\"DESCRIPTION_TOO_LARGE: 업무 설명은 최대 {_MAX_DESCRIPTION_CHARS:,}자입니다.\")\n\n        requested_limit = int(getattr(self, \"max_model_description_chars\", _DEFAULT_MODEL_CHARS) or _DEFAULT_MODEL_CHARS)\n        if not 80 <= requested_limit <= _MAX_MODEL_CHARS:\n            raise ValueError(f\"MODEL_DESCRIPTION_LIMIT_INVALID: 80~{_MAX_MODEL_CHARS:,} 사이여야 합니다.\")\n        description_for_model = _excerpt_at_boundaries(display_description, requested_limit)\n        warnings: list[str] = []\n        if len(description_for_model) < len(display_description):\n            warnings.append(\"DESCRIPTION_TRUNCATED_FOR_MODEL\")\n        if removed_description_controls or removed_instruction_controls or removed_final_refinement_controls:\n            warnings.append(\"UNSAFE_CONTROL_CHARACTERS_REMOVED\")\n        if description_count or instruction_count or final_refinement_count:\n            warnings.append(\"SECRET_MATERIAL_REDACTED\")\n\n        all_redactions = description_redactions + [\n            entry for entry in instruction_redactions if entry not in description_redactions\n        ]\n        all_redactions += [\n            entry for entry in final_refinement_redactions if entry not in all_redactions\n        ]\n        request_material = {\n            \"description_display_redacted\": display_description,\n            \"additional_instructions\": redacted_instructions,\n            \"final_refinement_instructions\": redacted_final_refinement,\n            \"language\": language,\n        }\n        result = {\n            \"schema_version\": _SCHEMA_VERSION,\n            # This hash describes the source description only.  A redaction in an\n            # optional design instruction must not erase deterministic identity of\n            # an otherwise unredacted description.\n            \"description_original_sha256\": _sha256(raw_description) if not description_count else None,\n            \"description_display_redacted\": display_description,\n            \"description_for_model\": description_for_model,\n            \"description_normalized\": _normalise_for_search(display_description),\n            \"additional_instructions\": redacted_instructions,\n            \"language\": language,\n            \"redactions\": all_redactions,\n            \"redaction_count\": description_count + instruction_count + final_refinement_count,\n            \"description_char_count\": len(display_description),\n            \"description_for_model_char_count\": len(description_for_model),\n            # This is deliberately held back from the first-pass prompt builder.\n            # A later refinement component consumes only this redacted value after\n            # the initial design has been normalized and checked.\n            \"final_refinement_instructions\": redacted_final_refinement,\n            \"warnings\": warnings,\n            \"source_description_sha256\": _sha256(display_description),\n            \"request_sha256\": _sha256(_canonical_json(request_material)),\n        }\n        self.status = \"업무 설명을 안전한 설계 요청으로 정리했습니다.\"\n        return Data(data=result)\n",
+                "value": "from __future__ import annotations\n\n\"\"\"Create the safe, deterministic request envelope for the single business-design flow.\n\nThis is intentionally a standalone Langflow component: it imports only Python's\nstandard library and Langflow/LFX public APIs.  In particular, it never persists\nthe submitted text and never emits a value that was recognised as a credential.\n\"\"\"\n\nimport hashlib\nimport json\nimport re\nimport unicodedata\nfrom typing import Any\n\nfrom lfx.custom import Component\nfrom lfx.io import DataInput, DropdownInput, IntInput, MultilineInput, Output\nfrom lfx.schema import Data\n\n\n_SCHEMA_VERSION = \"business-design-request/v2\"\n_REDACTED = \"[REDACTED]\"\n_MAX_DESCRIPTION_CHARS = 50_000\n_MIN_DESCRIPTION_CHARS = 20\n_DEFAULT_MODEL_CHARS = 16_000\n_MAX_MODEL_CHARS = 16_000\n_EXCERPT_MARKER = \"\\n\\n[... 모델 전달용으로 일부 생략됨 ...]\\n\\n\"\n\n# These patterns deliberately operate on a bounded string and replace only the\n# secret material, not an entire user paragraph.  Their matched values are never\n# returned in the output, exception text, status, or trace fields.\n_SECRET_PATTERNS: tuple[tuple[str, re.Pattern[str]], ...] = (\n    (\n        \"credential\",\n        re.compile(\n            r\"(?i)(\\b(?:api[_-]?key|access[_-]?token|client[_-]?secret|password|passwd|\"\n            r\"authorization|cookie|private[_-]?key|secret)\\b\\s*[:=]\\s*)(?:[\\\"']?)[^\\s,;\\]\\)}]{4,}\",\n        ),\n    ),\n    (\"bearer_token\", re.compile(r\"(?i)\\b(bearer\\s+)[A-Za-z0-9._~+/=-]{8,}\")),\n    (\"jwt\", re.compile(r\"\\b[A-Za-z0-9_-]{16,}\\.[A-Za-z0-9_-]{16,}\\.[A-Za-z0-9_-]{16,}\\b\")),\n    (\"provider_key\", re.compile(r\"\\b(?:sk|AIza)[-_A-Za-z0-9]{16,}\\b\")),\n    (\n        \"credential_url\",\n        re.compile(r\"([A-Za-z][A-Za-z0-9+.-]*://)[^/@\\s:]{1,128}:[^/@\\s]{1,128}@\"),\n    ),\n    (\n        \"private_key\",\n        re.compile(r\"-----BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY-----.*?-----END (?:RSA |EC |OPENSSH )?PRIVATE KEY-----\", re.S),\n    ),\n)\n\n\ndef _canonical_json(value: Any) -> str:\n    return json.dumps(value, ensure_ascii=False, sort_keys=True, separators=(\",\", \":\"), allow_nan=False)\n\n\ndef _sha256(value: str) -> str:\n    return \"sha256:\" + hashlib.sha256(value.encode(\"utf-8\")).hexdigest()\n\n\ndef _remove_unsafe_controls(value: str) -> tuple[str, int]:\n    kept: list[str] = []\n    removed = 0\n    for char in value:\n        if char in (\"\\n\", \"\\r\", \"\\t\"):\n            kept.append(char)\n            continue\n        if ord(char) == 0 or unicodedata.category(char) == \"Cc\":\n            removed += 1\n            continue\n        kept.append(char)\n    return \"\".join(kept), removed\n\n\ndef _redact(value: str) -> tuple[str, list[dict[str, str]], int]:\n    kinds: list[str] = []\n    count = 0\n    redacted = value\n\n    for kind, pattern in _SECRET_PATTERNS:\n        def replace(match: re.Match[str], *, _kind: str = kind) -> str:\n            nonlocal count\n            count += 1\n            kinds.append(_kind)\n            # Patterns with a safe prefix retain it (for example, \"api_key=\").\n            if _kind in {\"credential\", \"bearer_token\", \"credential_url\"}:\n                return match.group(1) + _REDACTED\n            return _REDACTED\n\n        redacted = pattern.sub(replace, redacted)\n\n    # The public contract does not leak match positions or original values.\n    unique = [{\"kind\": kind, \"replacement\": _REDACTED} for kind in sorted(set(kinds))]\n    return redacted, unique, count\n\n\ndef _excerpt_at_boundaries(value: str, limit: int) -> str:\n    \"\"\"Return a deterministic head/tail excerpt, preferring paragraph boundaries.\"\"\"\n    if len(value) <= limit:\n        return value\n    if limit < len(_EXCERPT_MARKER) + 20:\n        raise ValueError(\"max_model_description_chars must be at least 80\")\n\n    usable = limit - len(_EXCERPT_MARKER)\n    desired_head = int(usable * 0.60)\n    desired_tail = usable - desired_head\n\n    def left_boundary(position: int) -> int:\n        start = max(0, position - 512)\n        candidate = value.rfind(\"\\n\\n\", start, position)\n        return candidate + 2 if candidate >= start else position\n\n    def right_boundary(position: int) -> int:\n        end = min(len(value), position + 512)\n        candidate = value.find(\"\\n\\n\", position, end)\n        return candidate if candidate >= 0 else position\n\n    head_end = left_boundary(desired_head)\n    tail_start = right_boundary(len(value) - desired_tail)\n    # Do not let friendly boundary selection make the result exceed its limit.\n    if tail_start <= head_end or head_end + len(_EXCERPT_MARKER) + (len(value) - tail_start) > limit:\n        head_end = desired_head\n        tail_start = len(value) - desired_tail\n    return value[:head_end] + _EXCERPT_MARKER + value[tail_start:]\n\n\ndef _normalise_for_search(value: str) -> str:\n    return re.sub(r\"\\s+\", \" \", unicodedata.normalize(\"NFKC\", value)).strip()\n\n\nclass BusinessDesignInputComponent(Component):\n    display_name = \"00 업무 설명 입력\"\n    description = \"업무 설명을 안전하게 정리해 단일 설계 Flow의 요청으로 만듭니다.\"\n    icon = \"ClipboardPenLine\"\n    name = \"BusinessDesignInput\"\n\n    inputs = [\n        MultilineInput(\n            name=\"description\",\n            display_name=\"업무 설명 원문\",\n            info=(\n                \"Canvas에서 직접 실행할 때 현재 업무의 절차, 분기, 입력·결과물, 사용하는 시스템을 가능한 한 구체적으로 작성합니다. \"\n                \"Playground Chat Input으로 실행할 때는 아래의 연결 전용 입력이 우선 사용됩니다.\"\n            ),\n            placeholder=\"예: 매주 금요일 Outlook과 JIRA를 취합해 승인된 주간 보고서를 게시합니다.\",\n            required=False,\n        ),\n        MultilineInput(\n            name=\"playground_description\",\n            display_name=\"Playground 업무 설명 (자동 수신)\",\n            info=(\n                \"00A Playground 업무 설명 입력의 Chat Message가 자동으로 이 칸에 전달됩니다. \"\n                \"필요 시 직접 입력할 수도 있으며, 값이 있으면 업무 설명 원문보다 우선 사용됩니다.\"\n            ),\n            value=\"\",\n            required=False,\n        ),\n        MultilineInput(\n            name=\"additional_instructions\",\n            display_name=\"추가 설계 요청\",\n            info=\"선호하는 방향이나 반드시 유지할 조건이 있으면 작성합니다.\",\n            value=\"\",\n        ),\n        MultilineInput(\n            name=\"final_refinement_instructions\",\n            display_name=\"최종 설계 보완 지시\",\n            info=(\n                \"초안 설계 뒤 최종 보완 단계에서 특히 강조하거나 보충할 내용을 작성합니다. \"\n                \"첫 번째 설계 모델 호출에는 전달하지 않습니다.\"\n            ),\n            value=\"\",\n        ),\n        DropdownInput(\n            name=\"language\",\n            display_name=\"언어\",\n            options=[\"ko\"],\n            value=\"ko\",\n            required=True,\n        ),\n        IntInput(\n            name=\"max_model_description_chars\",\n            display_name=\"LLM 전달 원문 최대 문자 수\",\n            value=_DEFAULT_MODEL_CHARS,\n            advanced=True,\n            info=\"보고서 원문은 자르지 않고, LLM에 전달하는 안전한 원문만 이 길이로 제한합니다.\",\n        ),\n    ]\n    outputs = [Output(name=\"request\", display_name=\"업무 요청\", method=\"build_request\")]\n\n    def build_request(self) -> Data:\n        raw_direct_description = str(getattr(self, \"description\", \"\") or \"\")\n        raw_playground_description = str(getattr(self, \"playground_description\", \"\") or \"\")\n        raw_description = raw_playground_description if raw_playground_description.strip() else raw_direct_description\n        input_source = \"Playground Chat Input\" if raw_playground_description.strip() else \"Canvas 업무 설명 원문\"\n        raw_instructions = str(getattr(self, \"additional_instructions\", \"\") or \"\")\n        raw_final_refinement_instructions = str(getattr(self, \"final_refinement_instructions\", \"\") or \"\")\n        language = str(getattr(self, \"language\", \"ko\") or \"ko\")\n        if language != \"ko\":\n            raise ValueError(\"LANGUAGE_UNSUPPORTED: 현재 Flow는 ko만 지원합니다.\")\n        if len(raw_description) > _MAX_DESCRIPTION_CHARS:\n            raise ValueError(f\"DESCRIPTION_TOO_LARGE: 업무 설명은 최대 {_MAX_DESCRIPTION_CHARS:,}자입니다.\")\n\n        safe_description, removed_description_controls = _remove_unsafe_controls(raw_description)\n        safe_instructions, removed_instruction_controls = _remove_unsafe_controls(raw_instructions)\n        safe_final_refinement, removed_final_refinement_controls = _remove_unsafe_controls(raw_final_refinement_instructions)\n        display_description, description_redactions, description_count = _redact(safe_description)\n        redacted_instructions, instruction_redactions, instruction_count = _redact(safe_instructions)\n        redacted_final_refinement, final_refinement_redactions, final_refinement_count = _redact(safe_final_refinement)\n        if len(display_description.strip()) < _MIN_DESCRIPTION_CHARS:\n            raise ValueError(f\"DESCRIPTION_TOO_SHORT: 업무 설명은 최소 {_MIN_DESCRIPTION_CHARS}자여야 합니다.\")\n        if len(display_description) > _MAX_DESCRIPTION_CHARS:\n            raise ValueError(f\"DESCRIPTION_TOO_LARGE: 업무 설명은 최대 {_MAX_DESCRIPTION_CHARS:,}자입니다.\")\n\n        requested_limit = int(getattr(self, \"max_model_description_chars\", _DEFAULT_MODEL_CHARS) or _DEFAULT_MODEL_CHARS)\n        if not 80 <= requested_limit <= _MAX_MODEL_CHARS:\n            raise ValueError(f\"MODEL_DESCRIPTION_LIMIT_INVALID: 80~{_MAX_MODEL_CHARS:,} 사이여야 합니다.\")\n        description_for_model = _excerpt_at_boundaries(display_description, requested_limit)\n        warnings: list[str] = []\n        if len(description_for_model) < len(display_description):\n            warnings.append(\"DESCRIPTION_TRUNCATED_FOR_MODEL\")\n        if removed_description_controls or removed_instruction_controls or removed_final_refinement_controls:\n            warnings.append(\"UNSAFE_CONTROL_CHARACTERS_REMOVED\")\n        if description_count or instruction_count or final_refinement_count:\n            warnings.append(\"SECRET_MATERIAL_REDACTED\")\n\n        all_redactions = description_redactions + [\n            entry for entry in instruction_redactions if entry not in description_redactions\n        ]\n        all_redactions += [\n            entry for entry in final_refinement_redactions if entry not in all_redactions\n        ]\n        request_material = {\n            \"description_display_redacted\": display_description,\n            \"additional_instructions\": redacted_instructions,\n            \"final_refinement_instructions\": redacted_final_refinement,\n            \"language\": language,\n        }\n        result = {\n            \"schema_version\": _SCHEMA_VERSION,\n            # This hash describes the source description only.  A redaction in an\n            # optional design instruction must not erase deterministic identity of\n            # an otherwise unredacted description.\n            \"description_original_sha256\": _sha256(raw_description) if not description_count else None,\n            \"description_display_redacted\": display_description,\n            \"description_for_model\": description_for_model,\n            \"description_normalized\": _normalise_for_search(display_description),\n            \"additional_instructions\": redacted_instructions,\n            \"language\": language,\n            \"redactions\": all_redactions,\n            \"redaction_count\": description_count + instruction_count + final_refinement_count,\n            \"description_char_count\": len(display_description),\n            \"description_for_model_char_count\": len(description_for_model),\n            # This is deliberately held back from the first-pass prompt builder.\n            # A later refinement component consumes only this redacted value after\n            # the initial design has been normalized and checked.\n            \"final_refinement_instructions\": redacted_final_refinement,\n            \"warnings\": warnings,\n            \"source_description_sha256\": _sha256(display_description),\n            \"request_sha256\": _sha256(_canonical_json(request_material)),\n        }\n        self.status = f\"{input_source}을 안전한 설계 요청으로 정리했습니다.\"\n        return Data(data=result)\n",
                 "fileTypes": [],
                 "file_path": "",
                 "password": false,
@@ -1057,11 +1393,11 @@
                 "list": false,
                 "list_add_label": "Add More",
                 "override_skip": false,
-                "required": true,
-                "placeholder": "",
+                "required": false,
+                "placeholder": "예: 매주 금요일 Outlook과 JIRA를 취합해 승인된 주간 보고서를 게시합니다.",
                 "show": true,
                 "name": "description",
-                "value": "매주 금요일 오후에 Outlook과 JIRA에서 지난 주 업무 정보를 수집해 팀 주간보고 초안을 만들고 있습니다. 프로젝트별로 완료 업무, 진행 중 업무, 이슈·리스크, 다음 주 계획을 정리하며 각 항목에 원본 메일 제목·링크와 JIRA 이슈 키를 근거로 남겨야 합니다.\n\n자동 알림·중복 메일은 제외합니다. 메일 조회 실패, 인증 만료, 필수 근거 누락 또는 민감정보 검토가 필요한 경우에는 게시하지 않고 원인과 누락 건수를 담당자에게 보여 줍니다. 초안은 담당자가 검토·수정한 뒤 팀장 승인 후 사내 보고 포털에 게시하고 링크를 관련 팀에 알립니다. 정상·반려·재작업·데이터 오류 경로까지 포함해 현재 업무와 개선 방향을 설계해 주세요.",
+                "value": "",
                 "display_name": "업무 설명 원문",
                 "advanced": false,
                 "api_editable": false,
@@ -1069,7 +1405,7 @@
                   "Message"
                 ],
                 "dynamic": false,
-                "info": "현재 업무의 절차, 분기, 입력·결과물, 사용하는 시스템을 가능한 한 구체적으로 작성합니다.",
+                "info": "Canvas에서 직접 실행할 때 현재 업무의 절차, 분기, 입력·결과물, 사용하는 시스템을 가능한 한 구체적으로 작성합니다. Playground Chat Input으로 실행할 때는 아래의 연결 전용 입력이 우선 사용됩니다.",
                 "title_case": false,
                 "track_in_telemetry": false,
                 "copy_field": false,
@@ -1154,6 +1490,36 @@
                 "track_in_telemetry": true,
                 "type": "int",
                 "_input_type": "IntInput"
+              },
+              "playground_description": {
+                "tool_mode": false,
+                "trace_as_input": true,
+                "multiline": true,
+                "ai_enabled": false,
+                "trace_as_metadata": true,
+                "load_from_db": false,
+                "list": false,
+                "list_add_label": "Add More",
+                "override_skip": false,
+                "required": false,
+                "placeholder": "",
+                "show": true,
+                "name": "playground_description",
+                "value": "",
+                "display_name": "Playground 업무 설명 (자동 수신)",
+                "advanced": false,
+                "api_editable": false,
+                "input_types": [
+                  "Message"
+                ],
+                "dynamic": false,
+                "info": "00A Playground 업무 설명 입력의 Chat Message가 자동으로 이 칸에 전달됩니다. 필요 시 직접 입력할 수도 있으며, 값이 있으면 업무 설명 원문보다 우선 사용됩니다.",
+                "title_case": false,
+                "track_in_telemetry": false,
+                "copy_field": false,
+                "password": false,
+                "type": "str",
+                "_input_type": "MultilineInput"
               }
             },
             "description": "업무 설명 원문을 안전하게 보존하고 검색·모델용 문맥을 만듭니다.",
@@ -1187,6 +1553,7 @@
             ],
             "field_order": [
               "description",
+              "playground_description",
               "additional_instructions",
               "final_refinement_instructions",
               "language",
@@ -1197,7 +1564,7 @@
             "edited": false,
             "metadata": {
               "module": "custom_components.00___",
-              "code_hash": "5d56bc134139",
+              "code_hash": "b25648a1afe8",
               "dependencies": {
                 "total_dependencies": 1,
                 "dependencies": [
@@ -1212,7 +1579,7 @@
               "flow_node_key": "business_input",
               "standalone": true,
               "standalone_source_path": "components/single_flow/00_business_design_input.py",
-              "standalone_source_sha256": "5d56bc134139edeacea7af257b2ba5999a11a4c4f011119062c9a204baaeeac9"
+              "standalone_source_sha256": "b25648a1afe86c2ed31ef71decbd52d9cc1a2ae5548b0c76a5137b0a32a5b86f"
             },
             "tool_mode": false,
             "lf_version": "1.11.0"
@@ -4657,7 +5024,8 @@
     "lfx_version": "1.11.0",
     "operational_readiness": "language_model_configuration_required",
     "required_configuration": [
-      "00 업무 설명 입력의 업무 설명과 선택적인 추가 설계 요청",
+      "00 업무 설명 입력: 업무 설명 원문, 선택적 추가 설계 요청, 선택적 최종 설계 보완 지시",
+      "00A Playground 업무 설명 입력의 Chat Message는 00의 Playground 업무 설명 입력으로 전달됨; Chat 값이 없으면 00의 Canvas 직접 입력을 사용",
       "01 기능 카탈로그 JSON 파일의 UTF-8 JSON 파일 하나",
       "02 관련 기능 카탈로그 검색의 키워드 검색 후보 수(기본 100); 상세 문맥은 내부 기준으로 자동 제한",
       "03 LLM 카탈로그 후보 선별의 LLM 선별 후보 최대 수(기본 12, 1~30)",
@@ -4680,6 +5048,6 @@
     },
     "custom_sources_embedded": true,
     "sticky_note_count": 4,
-    "execution_node_count": 17
+    "execution_node_count": 18
   }
 }

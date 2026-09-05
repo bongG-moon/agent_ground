@@ -104,20 +104,29 @@ def canonical_hash(work: dict[str, Any]) -> str:
         "automation_intent",
         "assumptions",
         "unresolved",
+        "f10_design_context",
         "as_is_graph",
     )
-    semantic = {field: copy.deepcopy(work.get(field)) for field in semantic_fields}
+    fields = semantic_fields if "f10_design_context" in work else tuple(
+        field for field in semantic_fields if field != "f10_design_context"
+    )
+    semantic = {field: copy.deepcopy(work.get(field)) for field in fields}
     text = json.dumps(semantic, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
     return "sha256:" + hashlib.sha256(text.encode("utf-8")).hexdigest()
 
 
 def approved_work() -> dict[str, Any]:
+    raw_request = "메일 보고 업무를 자동화한다"
+    additional_prompt = "승인 단계를 유지한다"
+    source_turn_id = "turn-001"
     work: dict[str, Any] = {
         "schema_version": "work-definition/v1",
         "work_definition_id": "wd-001",
         "tenant_id": "tenant-a",
         "owner_id": "employee-1",
         "session_id": "session-1",
+        "team_name": "업무자동화팀",
+        "employee_id": "employee-1",
         "channel_mode": "native_hitl",
         "revision": 3,
         "status": "APPROVED",
@@ -141,6 +150,24 @@ def approved_work() -> dict[str, Any]:
         "automation_intent": None,
         "assumptions": [],
         "unresolved": [],
+        "source_requests": [
+            {
+                "turn_id": source_turn_id,
+                "raw_text": raw_request,
+                "language": "ko",
+                "submitted_at": "2026-08-30T00:00:00Z",
+                "sha256": hashlib.sha256(raw_request.encode("utf-8")).hexdigest(),
+            }
+        ],
+        "f10_design_context": {
+            "schema_version": "f10-design-context/v1",
+            "source_request_turn_id": source_turn_id,
+            "source_request_sha256": "sha256:" + hashlib.sha256(raw_request.encode("utf-8")).hexdigest(),
+            "additional_prompt": {
+                "raw_text": additional_prompt,
+                "sha256": hashlib.sha256(additional_prompt.encode("utf-8")).hexdigest(),
+            },
+        },
         "as_is_graph": {"nodes": [], "edges": []},
     }
     work["approved_hash"] = canonical_hash(work)
@@ -424,6 +451,94 @@ def test_success_reloads_canonical_work_pointer_skills_and_prompt(module: Module
     assert "mongodb://" not in serialized
     assert "super-secret" not in serialized
     assert "must-not-escape" not in serialized
+
+
+def test_later_chat_answer_run_recovers_f20_inputs_from_canonical_context(module: ModuleType) -> None:
+    """A later Playground run has no Component 10 output to connect here."""
+
+    work = approved_work()
+    database = FakeDatabase(work)
+    factory = FakeFactory(database)
+
+    result = invoke(
+        module,
+        factory,
+        approval_result=approval_result(work),
+        request_envelope=None,
+    )
+
+    assert result["ok"] is True
+    assert result["design_prompt"] == "승인 단계를 유지한다"
+    assert result["search_seed"] == {
+        "text": "메일 보고 업무를 자동화한다",
+        "sha256": "sha256:" + hashlib.sha256("메일 보고 업무를 자동화한다".encode("utf-8")).hexdigest(),
+        "source": "validated_original_work_request",
+        "truncated": False,
+    }
+    assert result["trust_boundary"]["request_envelope_source"] == (
+        "mongodb-canonical-approved-f10-design-context"
+    )
+    assert result["trust_boundary"]["design_prompt_source"] == (
+        "mongodb-canonical-approved-f10-design-context"
+    )
+    # The reconstructed result uses the same sealed F10 -> F20 transport
+    # contract as an ordinary first-pass invocation.
+    planner = load_search_query_planner()
+    assert planner.validate_design_invocation(result)["ok"] is True
+    assert factory.client.closed is True
+
+
+def test_chat_answer_resume_requires_sealed_durable_design_context(module: ModuleType) -> None:
+    work = approved_work()
+    work.pop("f10_design_context")
+    # This represents a pre-migration approved record: its old hash remains
+    # valid for an ordinary first-pass run, but it cannot safely resume later.
+    work["approved_hash"] = canonical_hash(work)
+    factory = FakeFactory(FakeDatabase(work))
+
+    result = invoke(
+        module,
+        factory,
+        approval_result=approval_result(work),
+        request_envelope=None,
+    )
+
+    assert result["ok"] is False
+    assert result["error"]["code"] == "F10_DESIGN_CONTEXT_REQUIRED"
+    assert factory.client.closed is True
+
+
+def test_chat_answer_resume_rejects_source_replaced_under_same_turn_id(module: ModuleType) -> None:
+    """The turn id alone must not authorize a different original request."""
+
+    work = approved_work()
+    replacement = "동일한 turn id에 다른 업무 원문을 주입한다"
+    work["source_requests"][0]["raw_text"] = replacement
+    work["source_requests"][0]["sha256"] = hashlib.sha256(replacement.encode("utf-8")).hexdigest()
+    # source_requests itself is historical provenance, not a semantic work
+    # field.  The sealed f10_design_context hash binding must catch this.
+    factory = FakeFactory(FakeDatabase(work))
+
+    result = invoke(
+        module,
+        factory,
+        approval_result=approval_result(work),
+        request_envelope=None,
+    )
+
+    assert result["ok"] is False
+    assert result["error"]["code"] == "F10_DESIGN_CONTEXT_SOURCE_INVALID"
+    assert factory.client.closed is True
+
+
+def test_nonempty_invalid_request_is_not_silently_treated_as_a_resume(module: ModuleType) -> None:
+    factory = FakeFactory(FakeDatabase())
+
+    result = invoke(module, factory, request_envelope={"ok": True, "envelope": {}})
+
+    assert result["ok"] is False
+    assert result["error"]["code"] == "WORK_REQUEST_ENVELOPE_INVALID"
+    assert factory.calls == 0
 
 
 @pytest.mark.parametrize(

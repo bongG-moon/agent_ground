@@ -43,7 +43,7 @@ SECRET_VALUE_PATTERNS = (
 )
 
 
-BASE_POLICY = """Langflow OSS 1.11.1에서 실행되는 Standalone Custom Component 하나를 작성해줘.
+BASE_POLICY = """운영 Langflow OSS 1.11.0과 호환되는 Standalone Custom Component 하나를 작성해줘.
 
 [권위 정책]
 1. runtime Component source는 정확히 한 개의 .py 파일과 한 개의 Component subclass로 작성한다. pytest 파일은 별도이며 runtime Component가 import하지 않는다.
@@ -67,14 +67,14 @@ BASE_POLICY = """Langflow OSS 1.11.1에서 실행되는 Standalone Custom Compon
 - 완성된 대상 Component .py 전체 코드
 - runtime Component가 import하지 않는 별도 pytest 코드
 - input/output/secret/dependency 표와 오류 코드 표
-- langflow==1.11.1 단독 load 및 smoke test 절차
+- 운영 Langflow 1.11.0 단독 load 및 smoke test 절차
 - size, timeout, retry 기본값
 
 [필수 검증]
 - AST parse와 py_compile
 - 상대, 로컬, private Langflow import 없음
 - Component subclass 정확히 한 개
-- langflow==1.11.1 단독 load와 typed output 노출
+- 운영 Langflow 1.11.0 단독 load와 typed output 노출
 - 정상, 빈 값, 경계값, 잘못된 schema, 외부 장애
 - secret 미노출, production 설정 누락 실패, silent fallback 없음"""
 

@@ -2,12 +2,12 @@
 
 | 항목 | 값 |
 | --- | --- |
-| 문서 버전 | `0.5.0` |
+| 문서 버전 | `0.6.0` |
 | 문서 상태 | `implemented-local-validation` |
-| 작성 기준일 | `2026-08-30` |
+| 작성 기준일 | `2026-09-02` |
 | 대상 런타임 | Langflow OSS `1.11.x`, 검증 기준 `langflow==1.11.1` |
 | 프로젝트 | `business_work_design_agent` |
-| 구현 상태 | Langflow Flow 5개, Standalone Component 38개와 Report companion API가 구현됨. F10은 최대 3회의 Playground native HITL 입력 보완과 최종 승인을 거쳐 MongoDB 권위를 재검증하고 Langflow Run Flow direct mode로 F20을 연속 실행함 |
+| 구현 상태 | Langflow Flow 5개, Standalone Component 43개와 Report companion API가 구현됨. F10은 선택형 native HITL과 번호형 Playground Chat Input으로 최대 3회 보완하고, 최종 승인을 거쳐 MongoDB 권위를 재검증한 뒤 Langflow Run Flow direct mode로 F20을 연속 실행함 |
 | Custom Component 정책 | Standalone one-file, 로컬/형제 모듈 import 금지 |
 | 주 저장소 | MongoDB + Vector/Search index |
 
@@ -222,10 +222,11 @@ from lfx.schema import Data, Message
 본 시스템의 구현 결정은 다음과 같다.
 
 - 기본 `Human Input`은 최종 `승인`, `거절`, `중단`처럼 선택만 필요한 결정에 사용한다.
-- 자유서술 재질문은 standalone `42_f10_clarification_answer_gate.py`가 native `node_input` pause payload의 `schema`를 생성해 같은 Playground 카드에 질문별 입력칸으로 표시한다. 답변 제출 시 Langflow가 돌려주는 `{action_id, values}`를 42가 원래 `question_id` 기준 답변으로 복원한다. 사용자가 `skip_additional_input`을 선택하면 42는 empty answer가 아닌 현재 card 전체의 native skip event를 만든다.
-- F10은 질문 회차를 최대 3회로 고정하며, 1·2차는 최대 3문항·마지막 3차는 최대 4문항으로 부족한 필수 정보를 수집한다. `39`가 제출 답변을 `clarification_batches`에 기록·검증하고 마지막 3차의 네 번째 입력까지 답한 뒤에도 필수 정보가 부족하면 `CLARIFICATION_ROUND_LIMIT`으로 차단한다. 명시적 skip은 audit과 `unresolved`를 남겨 review로 보내며 `Cancel`이나 4차 질문으로 바꾸지 않는다. 별도 Answer Form/API나 Chat Input 재실행 경로는 사용하지 않는다.
+- 자유서술 재질문에서 `42_f10_clarification_answer_gate.py`는 **답변 입력하기**, `skip_additional_input`, `Cancel`만 포함한 choice-only native `node_input` pause를 만든다. 동적 `schema` 필드는 만들지 않는다. 답변 입력하기를 선택하면 Component 41이 복사 가능한 `1번: ...` 양식을 보여 준다.
+- F10의 단일 `playground_entry_input`은 첫 실행과 답변 재개에 함께 쓰인다. 비어 있는 메시지 또는 `새 업무 시작`은 `49_f10_playground_entry_router.py`가 Canvas의 팀 명·업무 설명·사번·추가 설계 프롬프트 Text Input을 사용하는 기존 업무 추출 경로로 보낸다. 번호형 답변은 `47_f10_chat_answer_resume_loader.py` → `46_f10_numbered_chat_answer_parser.py` → `39_f10_answer_commit.py`로 보낸다. 이 세 node는 같은 `employee_id` Text Input을 함께 사용하므로 사용자는 답변 완료 전 사번을 바꾸지 않는다. Loader는 MongoDB 권위 batch와 WorkDefinition identity를 재확인하고, Parser는 질문 번호·필수값·선택값을 정확히 검증한다.
+- F10은 질문 회차를 최대 3회로 고정하며, 1·2차는 최대 3문항·마지막 3차는 최대 4문항으로 부족한 필수 정보를 수집한다. `39`가 제출 답변을 `clarification_batches`에 기록·검증하고 마지막 3차의 네 번째 입력까지 답한 뒤에도 필수 정보가 부족하면 `CLARIFICATION_ROUND_LIMIT`으로 차단한다. 명시적 skip은 audit과 `unresolved`를 남겨 review로 보내며 `Cancel`이나 4차 질문으로 바꾸지 않는다. 별도 Answer Form/API는 사용하지 않는다.
 - 최종 승인 뒤 F20은 F10의 Langflow `Run Flow` direct mode(`tool_mode=false`)가 호출한다. F20 child에는 `Human Input`을 넣지 않는다.
-- `schema` 기반 Playground 입력칸은 Langflow 1.11.1 local runtime에서 source/template 검증과 native pause payload 테스트를 통과한 계약이다. 실제 배포 전에는 사내 Langflow UI에서 suspend/resume E2E를 추가 확인한다.
+- 운영 Langflow 1.11.0 UI는 choice-only HITL로 확인한 버전을 기준으로 한다. 실제 배포 전에는 새 업무 시작, 답변 입력하기, `1번:` 채팅 답변, skip/cancel, 세 번째 회차 한계까지의 Playground E2E를 추가 확인한다.
 
 ### 3.4 Workflow API 사용 계약
 
@@ -244,7 +245,7 @@ resume 요청의 최소 개념 형식:
 {
   "request_id": "<pending request id>",
   "decision": {
-    "action_id": "submit_answers"
+    "action_id": "continue_to_chat"
   }
 }
 ```
@@ -358,14 +359,14 @@ Flow 전용 Python node는 공용 Component catalog에 자동 등록하지 않�
 
 ### 5.1 일반 사용자
 
-1. 사용자가 한 칸에 업무를 자연어로 설명한다.
-2. 필요하면 “Agent 설계 시 추가로 고려할 내용”을 별도 입력한다.
+1. 사용자는 Canvas Text Input의 팀 명·업무 설명 원문·사번·추가 설계 프롬프트를 확인·수정한다. 사번은 대기 중인 질문 batch를 찾는 기준이므로 첫 실행 전에 한 번 정하고, 답변을 모두 보낼 때까지 바꾸지 않는다.
+2. 사용자는 Playground Chat Input을 비워 두거나 `새 업무 시작`을 보낸다. Component 49가 네 Text Input을 사용하는 기존 업무 추출 경로를 시작한다.
 3. 시스템은 원문을 변경하지 않고 request envelope에 저장한다.
 4. LLM이 업무 후보 구조를 만들고 Normalizer가 schema를 검증한다.
 5. Completeness Evaluator가 blocking gap, risk gap, contradiction을 찾는다.
 6. 질문이 필요하면 1·2차에는 최대 세 문항, 마지막 3차에는 최대 네 문항을 쉬운 한국어로 제시한다.
-7. 사용자는 F10 Playground의 질문 카드에서 답변을 채운 뒤 `Submit Answers`를 선택해 같은 suspended workflow를 resume한다. 현재 줄 수 있는 정보가 없으면 **`추가 입력 건너뛰기`**를 선택할 수 있고, 이는 `Cancel`과 다르다.
-8. 답변 제출 시에만 field별 provenance를 유지하며 기존 업무 정의에 병합된다. 건너뛰기 시에는 답을 만들지 않고, 건너뛴 질문과 미확정 항목을 audit/`unresolved`에 남긴다.
+7. 사용자는 F10 Playground 질문 카드에서 **답변 입력하기**를 선택한다. 카드에는 질문별 입력칸이 없고, 다음 안내 메시지에 `질문 묶음: qb-...`, `1번: [답변]` 양식이 표시된다. 현재 줄 수 있는 정보가 없으면 **`추가 입력 건너뛰기`**를 선택할 수 있고, 이는 `Cancel`과 다르다.
+8. 사용자는 같은 Playground Chat Input에 `1번: ...`, `2번: ...`처럼 답을 채워 전송한다. 질문 묶음이 하나면 ID 줄은 생략할 수 있고, 여러 건이면 안내문 그대로 `질문 묶음: qb-...`를 맨 위에 둔다. Loader와 Parser가 질문 번호를 정확히 검증한 경우에만 field별 provenance를 유지하며 기존 업무 정의에 병합한다. 건너뛰기 시에는 답을 만들지 않고, 건너뛴 질문과 미확정 항목을 audit/`unresolved`에 남긴다.
 9. 답변 제출 후 마지막 3차의 네 번째 입력까지 답했는데도 blocking gap이 있으면 답변 반영 단계가 `CLARIFICATION_ROUND_LIMIT`로 차단하며, 새 실행에서 업무 설명을 보완한다. 건너뛰기는 현재 card에서 바로 Preview/review로 가는 action이며 4차 질문이 아니다.
 10. 시스템은 확정 전 업무 graph와 가정·미확정 사항을 preview한다.
 11. 사용자가 `확정`, `거절`, `취소`를 선택한다. 수정이 필요하면 승인 전에 반영하거나 취소 후 새 session을 시작한다.
@@ -575,16 +576,19 @@ stateDiagram-v2
 
 ```text
 질문 batch 저장
-  → 42 보완 답변 HITL이 native node_input `schema`로 질문별 입력칸 표시
-  → 사용자가 Playground에서 Submit Answers / 추가 입력 건너뛰기 / Cancel 중 하나 선택
-  → Submit: 42가 `{action_id, values}`를 question_id별 answer_submission으로 복원
+  → 42 보완 답변 HITL이 choice-only native node_input으로 답변 입력하기 / 추가 입력 건너뛰기 / Cancel 표시
+  → 답변 입력하기: 41이 질문 묶음 ID와 `1번: [답변]` 형식의 복사 가능한 안내를 표시
+  → 사용자가 같은 Playground Chat Input에 번호형 답변을 전송
+  → 49 Playground 진입 Router가 번호형 답변만 재개 경로로 분기
+  → 47이 사번·질문 묶음·권위 MongoDB 상태를 확인하고, 46이 question_id별 answer_submission으로 복원
   → Skip: 42가 현재 card 전체 question ID의 native skip event를 생성
-  → 39 답변 반영·다음 단계가 Submit을 canonical batch에 답변 기록·검증·revision CAS 병합
-  → 39은 Skip을 별도 audit과 unresolved/unknown provenance로 기록하고 review_path로 이동
+  → 39 답변 반영·다음 단계가 번호형 Submit을 canonical batch에 답변 기록·검증·revision CAS 병합
+  → 48은 답변 반영 뒤 필요한 2차 또는 3차 질문 하나만 선택
+  → 39은 검토가 가능한 결과와 Skip audit 결과를 `40 검토 진입 Joiner`로 직접 보내며, Skip은 unresolved/unknown provenance를 함께 기록
   → Submit 경로만 completeness를 재평가해 다음 회차·검토·취소·차단 중 하나 선택
 ```
 
-질문 회차는 Flow Canvas에서 최대 3회까지 명시적으로 펼쳐 구성한다. 각 회차는 `12 완전성 평가 → 질문 LLM → 13 질문 Batch → 42 보완 답변 HITL → 39 답변 반영·다음 단계`라는 같은 형태다. 1·2차 질문 카드에는 최대 3개, 마지막 3차 카드에는 최대 4개의 입력칸을 두어 10개 기본 completeness gap을 세 회 안에 수집할 수 있다. 42는 parent Flow에서 native pause를 만들며, 사용자는 답변 제출·명시적 추가 입력 건너뛰기·취소 중 하나를 선택한다. 답변 제출은 다음 회차, 검토, 취소, 차단 중 하나를 열고, 건너뛰기는 audit/`unresolved`를 남긴 정상 review 경로 하나만 연다. 마지막 3차의 네 번째 입력까지 답한 뒤에도 blocking gap이 남으면 같은 `39`가 `CLARIFICATION_ROUND_LIMIT`로 `BLOCKED`를 반환하며 새 질문 또는 가정 수용 경로를 만들지 않는다. 건너뛰기는 4차 질문이 아니며 답을 추정하지 않는다. 동적으로 무한 반복하거나 외부 API를 숨겨 결합하지 않는다.
+질문 회차는 Flow Canvas에서 최대 3회까지 명시적으로 펼쳐 구성한다. 각 회차는 `12 완전성 평가 → 질문 LLM → 13 질문 Batch → 42 보완 답변 HITL → 번호형 Chat Input 재개 → 39 답변 반영·다음 단계`라는 같은 형태다. 1·2차 질문은 최대 3개, 마지막 3차 질문은 최대 4개로 10개 기본 completeness gap을 세 회 안에 수집할 수 있다. 42는 parent Flow에서 native pause를 만들며, 사용자는 답변 입력하기·명시적 추가 입력 건너뛰기·취소 중 하나를 선택한다. 답변 입력하기는 현재 실행을 읽기 쉬운 양식 안내로 끝내고, 다음 일반 Playground Chat Input 실행에서 권위 batch를 다시 읽은 뒤 검증·저장한다. 답변 제출은 다음 회차, 검토, 취소, 차단 중 하나를 열고, 건너뛰기는 audit/`unresolved`를 남긴 정상 review 경로 하나만 연다. 마지막 3차의 네 번째 입력까지 답한 뒤에도 blocking gap이 남으면 같은 `39`가 `CLARIFICATION_ROUND_LIMIT`로 `BLOCKED`를 반환하며 새 질문 또는 가정 수용 경로를 만들지 않는다. 건너뛰기는 4차 질문이 아니며 답을 추정하지 않는다. 동적으로 무한 반복하거나 외부 API를 숨겨 결합하지 않는다.
 
 업무 정의의 별도 실행형 구조화 command 경로는 두지 않는다. F10의 `Approve` 결과만 Component 45와 36으로 전달되며, Component 45는 local demo/operating gateway authentication context를 명시적으로 구분한다. Component 36은 MongoDB canonical `APPROVED` WorkDefinition과 active catalog/Skill, sealed context subject/groups, exact `native_hitl` channel을 재검증한다. 그 성공 결과인 `agent-design-invocation/v1`만 strict JSON text→Message 변환 뒤 Langflow `Run Flow` direct node로 F20에 전달한다. 따라서 사용자는 승인 업무 JSON을 복사하거나 F20에 별도 input을 넣지 않으며, Component 36 실패 branch에서는 child가 실행되지 않는다.
 
@@ -1092,7 +1096,7 @@ node 안에는 생성 요청 본문을 넣지 않는다. `implementation_source=
 
 ### 10.1 Built-in Component 사용
 
-Langflow가 제공하는 Chat Input/Output, Prompt Template, 승인된 Model, `Human Input`, `Run Flow`는 먼저 검토하고 그대로 사용한다. 같은 역할의 Custom Component를 다시 만들지 않는다. 다만 기본 `Human Input`이 제공하지 않는 질문별 자유서술 `schema` pause, Mongo snapshot, hybrid search, schema normalizer, report renderer처럼 계약이 다른 부분은 Standalone Component 또는 동반 API로 구현한다.
+Langflow가 제공하는 Chat Input/Output, Prompt Template, 승인된 Model, `Human Input`, `Run Flow`는 먼저 검토하고 그대로 사용한다. 같은 역할의 Custom Component를 다시 만들지 않는다. 다만 기본 `Human Input`이 제공하지 않는 질문별 자유서술 답변의 권위 batch 재조회·번호형 parser, Mongo snapshot, hybrid search, schema normalizer, report renderer처럼 계약이 다른 부분은 Standalone Component 또는 동반 API로 구현한다.
 
 | 요구 기능 | 먼저 사용할 Langflow 요소 | 신규 Custom을 만들지 않는 조건 |
 | --- | --- | --- |
@@ -1118,12 +1122,12 @@ Langflow가 제공하는 Chat Input/Output, Prompt Template, 승인된 Model, `H
 
 경계는 하나로 고정한다. `31_responsive_report_renderer.py`가 읽기 전용 interactive graph HTML artifact를 생성하고, companion Report API는 그 artifact의 인증·저장·CSP·URL·download만 담당한다. companion이 별도 graph layout을 다시 만들지 않는다. Blueprint의 `implementation_source=companion_service`는 설계 대상 업무에 필요한 외부 API/UI/worker를 뜻하며 Report viewer 자체의 node 분류가 아니다.
 
-구현된 Standalone Component는 총 38개다. 생성 요청 prompt pack의 대응은 다음과 같다. 한 생성 요청에는 Component 하나만 넣는다.
+구현된 Standalone Component는 총 43개다. 생성 요청 prompt pack의 대응은 다음과 같다. 한 생성 요청에는 Component 하나만 넣는다.
 
 | Component 범위 | 책임 성격 | 생성 요청 pack |
 | --- | --- | --- |
 | `00`~`02` | 파일 1개 parse·정규화, 결정론적 청킹, built-in Embeddings 기반 MongoDB 적재와 pointer 갱신 | `CCP-CATALOG` |
-| `10`~`18`, `27`, `28`, `39`~`45` | WorkDefinition 정규화, 완전성, Playground 질문 입력, 답변, review join, 최종 승인 경로, terminal 결과, F20→F30 gate, 인증 context 경계 | `CCP-WORK` |
+| `10`~`18`, `27`, `28`, `39`~`49` | WorkDefinition 정규화, 완전성, choice-only HITL, 번호형 Playground 답변 재개·검증, review join, 최종 승인 경로, terminal 결과, F20→F30 gate, 인증 context 경계 | `CCP-WORK` |
 | `19`~`22`, `29`, `36` | 승인 설계 invocation 조립, 승인 Skill 선택, scoped query plan/embedding, hybrid retrieval, context 제한 | `CCP-SEARCH-SKILL` |
 | `23`~`25`, `38` | Blueprint·port·readiness 결정론적 검증과 sealed F20→F30 handoff | `CCP-BLUEPRINT` |
 | `26` | 신규 Custom node용 생성 요청 조립 | `CCP-PROMPT-BUILDER` |
@@ -1149,9 +1153,9 @@ F00은 실행 node 6개/edge 5개이며 Canvas에는 파일 처리와 저장 단
 | 순서 | Component/Node | 책임 |
 | --- | --- | --- |
 | 1 | `10_work_request_envelope.py` → 추출 Prompt + Model → `11_work_definition_normalizer.py` | 원문과 추가 설계 prompt를 envelope로 보존하고, 업무 후보 JSON을 schema·stable ID·provenance로 정규화 |
-| 2 | 질문 1차: `12_work_completeness_evaluator.py` → 질문 LLM → `13_clarification_batch_builder.py` → `42_f10_clarification_answer_gate.py` → `39_f10_answer_commit.py` | 부족 정보 판정, 최대 3문항 생성. 질문이 실제 필요할 때 `13`이 revision 0 WorkDefinition과 immutable batch를 멱등 준비하고, `42`가 Playground 입력칸과 Submit/Skip/Cancel action을 만들며 `39`가 답변 병합 또는 skip audit·unresolved 기록·검토 진입을 한 회차 안에서 처리 |
-| 3 | 질문 2차: `12` → 질문 LLM → `13` → `42` → `39` | 1차 **답변 제출** 뒤에도 질문이 필요한 경우에만 동일 계약으로 두 번째 보완을 수행. 추가 입력 건너뛰기는 이 시점의 review 진입 action이다. |
-| 4 | 질문 3차: `12` → 질문 LLM → `13` → `42` → `39` | 세 번째이자 마지막 보완 회차. 최대 4문항을 제시해 10개 기본 completeness gap을 세 회 안에 수집하며, 네 번째 입력까지 답한 뒤에도 blocking gap이 남으면 `39`가 `CLARIFICATION_ROUND_LIMIT`로 차단. Skip은 4차 질문을 만들지 않고 미확정 사항을 preview에 남긴다. |
+| 2 | 질문 1차: `12_work_completeness_evaluator.py` → 질문 LLM → `13_clarification_batch_builder.py` → `42_f10_clarification_answer_gate.py` → `41` 안내 → Playground Chat Input → `49` → `47` → `46` → `39_f10_answer_commit.py` | 부족 정보 판정, 최대 3문항 생성. 질문이 실제 필요할 때 `13`이 revision 0 WorkDefinition과 immutable batch를 멱등 준비한다. Langflow 1.11.0에서 `42`는 **답변 입력하기** / **추가 입력 건너뛰기** / **Cancel**만 표시하는 선택형 카드이며 질문별 입력칸은 없다. 답변 입력하기 뒤 `41`의 `1번: ...` 양식을 같은 Playground Chat Input으로 보내면 `49`가 답변 경로를 열고, `47`이 권위 batch를 재조회, `46`이 번호형 답변을 검증, `39`가 답변 병합을 처리한다. Skip은 `39`가 audit·unresolved 기록 후 검토로 보낸다. |
+| 3 | 질문 2차: `12` → 질문 LLM → `13` → `42` → `41` → Chat Input → `49` → `47` → `46` → `39` | 1차 번호형 답변 반영 뒤에도 질문이 필요한 경우에만 동일 계약으로 두 번째 보완을 수행한다. 추가 입력 건너뛰기는 이 시점의 review 진입 action이며, 카드에 답변을 직접 채우는 방식이 아니다. |
+| 4 | 질문 3차: `12` → 질문 LLM → `13` → `42` → `41` → Chat Input → `49` → `47` → `46` → `39` | 세 번째이자 마지막 보완 회차. 최대 4문항을 제시해 10개 기본 completeness gap을 세 회 안에 수집한다. 번호형 답변 반영 뒤에도 blocking gap이 남으면 `39`가 `CLARIFICATION_ROUND_LIMIT`로 차단한다. Skip은 4차 질문을 만들지 않고 미확정 사항을 preview에 남긴다. |
 | 5 | `40_f10_review_entry_joiner.py` | 초기/각 회차의 상호 배타적 검토 진입 결과 9개 중 성공 WorkDefinition 하나만 선택하고, 중복·실패·형식 오류는 차단 |
 | 6 | `16_work_graph_normalizer.py` → `17_work_preview_hasher.py` | 선택된 WorkDefinition을 AS-IS graph와 preview hash로 정규화 |
 | 7 | `18_work_definition_store.py` `review_and_request_approval` → Human Input → `43_f10_final_approval_route_gate.py` → `18_work_definition_store.py` | Preview 검증본을 단일 CAS 저장과 event 기록으로 `WAITING_APPROVAL`로 전환. 43이 최종 선택 하나만 열고 미선택 18 저장 branch를 즉시 제외한다. Revision·중복 실행 방지 키·컬렉션은 자동/내부값이며, `approve`, `reject`, `cancel` action을 저장하고 승인 성공만 다음 단계로 전달 |
@@ -1162,9 +1166,9 @@ F10 Canvas는 질문 1~3차를 명시적으로 보여 주되, 각 회차의 답�
 
 ### 10.4 F10 승인 결과에서 F20으로의 권위 handoff
 
-F10의 `Approve` branch만 Component 45·36과 Run Flow에 연결된다. `45_f10_authentication_context.py`는 local demo fixture와 trusted gateway를 구분한 sealed `f10-authentication-context/v1`을 만든다. local demo fixture는 sample 실행을 허용하되 `authenticated_subject_verified=false`로 남으며, production에서는 SSO/gateway의 subject/group output만 trusted gateway 포트에 연결한다. `36_approved_design_invocation_loader.py`는 edge의 WorkDefinition body를 권위 원본으로 쓰지 않고, 승인 receipt와 원 request envelope에서 tenant/work/owner/session identity를 확인한 뒤 MongoDB `work_definitions`의 canonical 문서를 다시 읽는다. schema, `status=APPROVED`, revision, `approved_hash`, owner/session, `channel_mode=native_hitl`과 재계산한 semantic hash가 모두 일치해야 한다. sealed context의 subject는 canonical owner와 정확히 일치해야 하며 bounded gateway group만 ACL projection에 들어간다. 이어 같은 tenant의 `catalog_active_pointers`와 `status=active` Skill registry를 읽고 별도 추가 설계 prompt의 길이/hash/secret을 검사해 `agent-design-invocation/v1` 하나를 만든다.
+F10의 `Approve` branch만 Component 45·36과 Run Flow에 연결된다. `45_f10_authentication_context.py`는 local demo fixture와 trusted gateway를 구분한 sealed `f10-authentication-context/v1`을 만든다. local demo fixture는 sample 실행을 허용하되 `authenticated_subject_verified=false`로 남으며, production에서는 SSO/gateway의 subject/group output만 trusted gateway 포트에 연결한다. `36_approved_design_invocation_loader.py`는 edge의 WorkDefinition body를 권위 원본으로 쓰지 않고, 승인 receipt와 첫 실행의 request envelope에서 tenant/work/owner/session identity를 확인한 뒤 MongoDB `work_definitions`의 canonical 문서를 다시 읽는다. 번호형 채팅 답변 후의 재개 경로처럼 request envelope가 현재 graph에서 제외된 경우에는 canonical 승인본 안에 hash로 보호되어 보존된 `f10_design_context`만 복원할 수 있다. 이 context의 원문 turn ID·`source_request_sha256`·추가 설계 prompt를 canonical `source_requests`의 정확히 한 항목과 다시 대조하며, 새 Chat Input 문장은 prompt·검색 원문으로 사용하지 않는다. schema, `status=APPROVED`, revision, `approved_hash`, owner/session, `channel_mode=native_hitl`과 재계산한 semantic hash가 모두 일치해야 한다. sealed context의 subject는 canonical owner와 정확히 일치해야 하며 bounded gateway group만 ACL projection에 들어간다. 이어 같은 tenant의 `catalog_active_pointers`와 `status=active` Skill registry를 읽고 별도 추가 설계 prompt의 길이/hash/secret을 검사해 `agent-design-invocation/v1` 하나를 만든다.
 
-loader의 `success_path`는 Data→Message를 거쳐 Langflow 1.11.1 `Run Flow` node가 materialize한 F20 ChatInput 동적 port에 연결된다. Run Flow는 child UUID/name을 export에 고정하고 `cache_flow=false`, `tool_mode=false`인 direct 호출이며, F20의 최종 ChatOutput 동적 port를 F10 최종 ChatOutput으로 연결한다. `blocked_path`는 진단 ChatOutput으로 끝나므로 F20이 실행되지 않는다. 이 구조에는 다른 Flow HTTP API, 수동 WorkDefinition 복사, Agent가 선택하는 tool call이 없다. F20은 같은 project/folder에 먼저 import하고 UUID를 유지해야 하며 child 안에는 `Human Input`을 넣지 않는다.
+loader의 `success_path`는 Data→Message를 거쳐 **운영 Langflow 1.11.0 호환** `Run Flow` node가 materialize한 F20 ChatInput 동적 port에 연결된다. Run Flow는 child UUID/name을 export에 고정하고 `cache_flow=false`, `tool_mode=false`인 direct 호출이며, F20의 최종 ChatOutput 동적 port를 F10 최종 ChatOutput으로 연결한다. `blocked_path`는 진단 ChatOutput으로 끝나므로 F20이 실행되지 않는다. 이 구조에는 다른 Flow HTTP API, 수동 WorkDefinition 복사, Agent가 선택하는 tool call이 없다. F20은 같은 project/folder에 먼저 import하고 UUID를 유지해야 하며 child 안에는 `Human Input`을 넣지 않는다.
 
 ### 10.5 F20 Agent Blueprint Flow
 
@@ -1367,7 +1371,7 @@ edge의 실제 hit area는 보이는 선보다 넓게 두어 mouse와 touch 선�
       "component_filename": "41_mail_work_summary_normalizer.py",
       "class_name": "MailWorkSummaryNormalizerComponent",
       "prompt_sha256": "sha256:...",
-      "request_text": "Langflow OSS 1.11.1에서 실행되는 Standalone Custom Component 하나를 작성해줘..."
+      "request_text": "운영 Langflow OSS 1.11.0과 호환되는 Standalone Custom Component 하나를 작성해줘..."
     }
   },
   "text_fallback": [
@@ -1378,6 +1382,8 @@ edge의 실제 hit area는 보이는 선보다 넓게 두어 mouse와 touch 선�
 ```
 
 `node_id`, `port_id`, `edge_id`, `detail_ref`는 graph 안에서 유일해야 한다. 모든 edge endpoint와 detail ref가 실제 node/detail에 존재해야 renderer가 결과를 만들 수 있다. `generation_request_ref`는 `new_standalone_component` node에서만 허용하고 실제 `generation_requests` key를 참조해야 한다.
+
+새 `generation_requests[].request_text`의 운영 호환 target은 Langflow 1.11.0이다. source/template의 정적 build는 고정된 1.11.1 환경에서 계속 검증하지만, 이는 1.11.0 운영 호환성을 대체하지 않는다. F30 Component 30은 hash를 보존한 과거 1.11.1 요청도 legacy 보고서 입력으로 표시할 수 있으나, 새 요청을 만들 때 그 target을 다시 사용하거나 기존 봉인 본문을 수정하지 않는다.
 
 ### 11.4 Graph 상호작용
 
@@ -1462,7 +1468,7 @@ F30은 HTML을 로컬 저장하지 않는다. 공유 HTML Report API가 저장�
 
 ### 12.1 Langflow 밖의 작은 서비스
 
-F10의 질문 답변은 Langflow Playground native HITL 카드 안에서 끝나므로 별도 Answer Form companion endpoint를 사용하지 않는다. 저장소의 `services/hitl_form_api`는 이전 external-form 계약을 검증하는 호환/참고 구현으로만 남아 있으며 F10 runtime dependency가 아니다. F30의 현재 companion은 다른 팀이 운영하는 공유 HTML Report API이며 F30 Publisher는 그 `/reports` 계약만 사용한다. 저장소의 `services/report_api`는 별도 strict/immutable reference implementation으로 남아 있지만 F30 기본 endpoint가 아니다. F00도 companion API를 사용하지 않고 Langflow Flow 내부의 Loader·Chunker·MongoDB Writer와 built-in Embedding Model로 직접 적재한다.
+F10의 질문 답변은 choice-only native HITL 카드와 같은 Playground의 번호형 Chat Input으로 끝나므로 별도 Answer Form companion endpoint를 사용하지 않는다. 저장소의 `services/hitl_form_api`는 이전 external-form 계약을 검증하는 호환/참고 구현으로만 남아 있으며 F10 runtime dependency가 아니다. F30의 현재 companion은 다른 팀이 운영하는 공유 HTML Report API이며 F30 Publisher는 그 `/reports` 계약만 사용한다. 저장소의 `services/report_api`는 별도 strict/immutable reference implementation으로 남아 있지만 F30 기본 endpoint가 아니다. F00도 companion API를 사용하지 않고 Langflow Flow 내부의 Loader·Chunker·MongoDB Writer와 built-in Embedding Model로 직접 적재한다.
 
 공유 HTML `Report API`:
 
@@ -1643,7 +1649,7 @@ timeout 이후 자동 fallback과 늦은 응답 routing은 source만 보고 완�
 
 다음 시나리오를 한 번에 통과해야 1차 완료다.
 
-> “매일 메일에서 업무 내역을 모아 보고서를 만들고 GoodDocs에 기록한다”라는 설명을 입력한다. 시스템은 대상 메일 조건, GoodDocs 쓰기 승인, 보고서 수신자처럼 설계를 바꾸는 부족 정보를 1·2차에는 최대 세 문항, 마지막 3차에는 최대 네 문항으로 묻는다. 답변과 승인 이후 업무 graph를 확정한다. 활성 catalog에서 메일/GoodDocs/보고 관련 Flow와 Component를 hybrid search로 찾아 metadata-only와 verified-runtime을 구분한다. node·port·secret·Human review·실패 정책이 포함된 blueprint를 만들고, 각 node를 built-in·기존 자산·신규 Custom·외부 서비스·Human으로 분류한다. 반응형 report에서는 node와 Skill badge를 눌러 현재 방식, 개선안, 추천 근거와 Skill version을 확인하며, 신규 Custom node에는 Langflow 1.11.1 Standalone 생성 요청을 복사할 수 있어야 한다.
+> “매일 메일에서 업무 내역을 모아 보고서를 만들고 GoodDocs에 기록한다”라는 설명을 입력한다. 시스템은 대상 메일 조건, GoodDocs 쓰기 승인, 보고서 수신자처럼 설계를 바꾸는 부족 정보를 1·2차에는 최대 세 문항, 마지막 3차에는 최대 네 문항으로 묻는다. 답변과 승인 이후 업무 graph를 확정한다. 활성 catalog에서 메일/GoodDocs/보고 관련 Flow와 Component를 hybrid search로 찾아 metadata-only와 verified-runtime을 구분한다. node·port·secret·Human review·실패 정책이 포함된 blueprint를 만들고, 각 node를 built-in·기존 자산·신규 Custom·외부 서비스·Human으로 분류한다. 반응형 report에서는 node와 Skill badge를 눌러 현재 방식, 개선안, 추천 근거와 Skill version을 확인하며, 신규 Custom node에는 **운영 Langflow 1.11.0 호환** Standalone 생성 요청을 복사할 수 있어야 한다. source/template 정적 build 검증은 별도 1.11.1 기준을 유지하며, 이미 봉인된 1.11.1 요청은 보고서 표시용 legacy 입력으로 허용한다.
 
 ### 13.7 Definition of Done
 
@@ -1694,7 +1700,7 @@ Flow부터 그린 뒤 계약을 뒤늦게 맞추지 않는다. 각 단계는 이
 | LLM | endpoint/model, JSON mode, 데이터 반출 범위 | 외부 LLM 임의 사용 금지 |
 | Catalog 원본 | 실제 JSON wrapper, 최대 크기, 삭제/갱신 의미 | sample로 parser contract test 필요 |
 | 자산 계약 추출 | `.py`/Flow JSON 원본도 받을 수 있는지 | metadata-only 추천으로 제한 |
-| Playground HITL UI | 사내 Langflow 배포본이 `schema` 입력 카드와 resume 값을 그대로 지원하는지 | 실제 suspend/resume smoke test 전 production 승격 불가 |
+| Playground HITL UI | 사내 Langflow 1.11.0 배포본에서 선택형 Human Input 카드와 같은 Playground Chat Input의 번호형 답변 재개가 동작하는지 | 카드에는 질문별 입력칸이 없는 것이 의도된 동작이다. `답변 입력하기` → `1번:` 양식 복사 → Chat Input 전송의 suspend/resume smoke test 전 production 승격 불가 |
 | Report 배포 | 내부 URL, 인증, 보존, download/PDF 필요 | local artifact까지만 |
 | HITL timeout | 업무별 시간, fallback action, late answer 정책 | 자동 fallback 비활성 |
 | 승인 권한 | 본인/관리자/보안 담당자별 approval matrix | external write 설계 차단 |

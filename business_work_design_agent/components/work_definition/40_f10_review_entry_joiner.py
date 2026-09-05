@@ -31,6 +31,7 @@ _INPUT_ORDER = (
     "round1_answer_review",
     "round2_answer_review",
     "round3_answer_review",
+    "chat_answer_review",
 )
 
 
@@ -119,6 +120,7 @@ def join_f10_review_entries(
     round1_answer_review: Any = None,
     round2_answer_review: Any = None,
     round3_answer_review: Any = None,
+    chat_answer_review: Any = None,
 ) -> dict[str, Any]:
     """Route one valid review result; fail closed for stale or ambiguous branches."""
 
@@ -133,6 +135,7 @@ def join_f10_review_entries(
         round1_answer_review,
         round2_answer_review,
         round3_answer_review,
+        chat_answer_review,
     )
     candidates: list[tuple[str, dict[str, Any], dict[str, Any]]] = []
     explicit_failures: list[str] = []
@@ -227,7 +230,7 @@ def join_f10_review_entries(
 
 class F10ReviewEntryJoinerComponent(Component):
     display_name = "40 검토 진입 Joiner"
-    description = "초기·1~3차 보완 결과 중 유효한 WorkDefinition 하나만 골라 최종 검토 단계로 보냅니다."
+    description = "초기·1~3차 보완 또는 번호형 채팅 답변 결과 중 유효한 WorkDefinition 하나만 골라 최종 검토 단계로 보냅니다."
     icon = "GitMerge"
     name = "F10ReviewEntryJoiner"
 
@@ -241,6 +244,7 @@ class F10ReviewEntryJoinerComponent(Component):
         DataInput(name="round1_answer_review", display_name="1차 답변 검토 결과", input_types=["Data", "JSON"], required=False, advanced=False),
         DataInput(name="round2_answer_review", display_name="2차 답변 검토 결과", input_types=["Data", "JSON"], required=False, advanced=False),
         DataInput(name="round3_answer_review", display_name="3차 답변 검토 결과", input_types=["Data", "JSON"], required=False, advanced=False),
+        DataInput(name="chat_answer_review", display_name="채팅 답변 검토 결과", input_types=["Data", "JSON"], required=False, advanced=False),
     ]
     outputs = [
         Output(name="review_work_definition", display_name="검토 WorkDefinition", method="route_review_entry", types=["Data"], group_outputs=True),
@@ -286,6 +290,7 @@ class F10ReviewEntryJoinerComponent(Component):
                 getattr(self, "round1_answer_review", None),
                 getattr(self, "round2_answer_review", None),
                 getattr(self, "round3_answer_review", None),
+                getattr(self, "chat_answer_review", None),
             )
             self._review_entry_result = result
 

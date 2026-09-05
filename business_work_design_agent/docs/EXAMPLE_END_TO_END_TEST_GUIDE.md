@@ -11,7 +11,7 @@
   -> Agent Blueprint 및 Standalone Component 생성 요청
 ```
 
-F00은 이 경로가 검색할 참고 자산을 만드는 선행 Flow다. 업로드 파일 하나를 같은 Flow 안에서 정규화·청킹·임베딩하고 MongoDB에 저장한다. F10에서 F20으로 넘어갈 때는 Langflow 1.11.1의 built-in `Run Flow`를 `tool_mode=false`로 사용한다. 다른 Flow의 HTTP API를 호출하거나 사용자가 F20에 WorkDefinition을 다시 붙여 넣는 방식은 허용하지 않는다.
+F00은 이 경로가 검색할 참고 자산을 만드는 선행 Flow다. 업로드 파일 하나를 같은 Flow 안에서 정규화·청킹·임베딩하고 MongoDB에 저장한다. F10에서 F20으로 넘어갈 때는 **운영 Langflow 1.11.0 호환** built-in `Run Flow`를 `tool_mode=false`로 사용한다. 다른 Flow의 HTTP API를 호출하거나 사용자가 F20에 WorkDefinition을 다시 붙여 넣는 방식은 허용하지 않는다.
 
 ## 1. 테스트에 사용하는 파일
 
@@ -31,9 +31,10 @@ F00은 이 경로가 검색할 참고 자산을 만드는 선행 Flow다. 업로
 
 ## 2. 사전 준비
 
-### 2.1 필수 런타임
+### 2.1 운영/검증 런타임 구분
 
-- Langflow `1.11.1`
+- **운영 F10 UI 및 새 Standalone 생성 요청 호환 기준:** Langflow `1.11.0`
+- **source/template build 검증 기준:** Langflow `1.11.1`
 - `langflow-base==0.11.5`
 - `lfx==1.11.5`
 - MongoDB 연결 계정
@@ -41,7 +42,7 @@ F00은 이 경로가 검색할 참고 자산을 만드는 선행 Flow다. 업로
 - 승인된 embedding provider
 - F20 live 검색까지 할 경우 MongoDB Search/Vector Search를 제공하는 환경과 index
 
-이 저장소의 고정 검증 환경을 사용하는 예시는 다음과 같다.
+아래는 source/template의 고정 검증 환경을 사용하는 예시다. F10 Playground의 실제 choice-only HITL과 새 Component의 운영 smoke test는 1.11.0 환경에서도 별도로 확인한다.
 
 ```powershell
 $ProjectRoot = 'C:\Users\qkekt\Desktop\Agent_ground\business_work_design_agent'
@@ -444,7 +445,7 @@ Component 42가 안전한 field 이름을 원래 질문 ID와 답변 type으로 
 - retrieval candidate가 active snapshot과 ACL 범위 안에 있음
 - 최종 envelope `ok=true`, `status="COMPLETED"`
 - `agent-blueprint.v1`, `build_readiness`, blockers, generation request가 일관됨
-- 신규 Custom node가 있으면 Langflow 1.11.1 standalone 생성 요청이 node와 1:1로 존재
+- 신규 Custom node가 있으면 **운영 Langflow 1.11.0 호환** standalone 생성 요청이 node와 1:1로 존재하며, source/template build 검증은 별도 Langflow 1.11.1 기준으로 통과
 - F30 결과가 `ok=true`, `status="would_publish"`이면 보고서 생성·검증은 완료되고 실제 저장만 생략됨
 
 다음 negative path도 최소 한 번 확인한다.

@@ -93,6 +93,13 @@ class F10CompactHelperTests(unittest.TestCase):
         self.assertTrue(result["ok"])
         self.assertEqual(result["selected_input"], "round1_answer_review")
 
+    def test_joiner_accepts_the_numbered_chat_answer_review_result(self):
+        result = JOINER.join_f10_review_entries(
+            chat_answer_review={"ok": True, "status": "READY_FOR_REVIEW", "work_definition": _work()}
+        )
+        self.assertTrue(result["ok"])
+        self.assertEqual(result["selected_input"], "chat_answer_review")
+
     def test_joiner_stops_when_every_optional_input_is_empty(self):
         result = JOINER.join_f10_review_entries()
         self.assertEqual(result["route"], "no_input")
@@ -113,7 +120,8 @@ class F10CompactHelperTests(unittest.TestCase):
     def test_joiner_inputs_are_visible_and_outputs_are_grouped(self):
         component = JOINER.F10ReviewEntryJoinerComponent
         self.assertEqual(component.name, "F10ReviewEntryJoiner")
-        self.assertEqual(len(component.inputs), 9)
+        self.assertEqual(len(component.inputs), 10)
+        self.assertIn("chat_answer_review", {item.name for item in component.inputs})
         self.assertTrue(all(item.advanced is False for item in component.inputs))
         self.assertEqual({item.name for item in component.outputs}, {"review_work_definition", "blocked_path"})
         self.assertTrue(all(item.group_outputs for item in component.outputs))
@@ -152,6 +160,27 @@ class F10CompactHelperTests(unittest.TestCase):
         )
         self.assertIn("질문 카드", text)
         self.assertIn("ANSWER_REQUIRED_VALUE_MISSING", text)
+
+    def test_terminal_message_preserves_copyable_numbered_chat_guidance(self):
+        text = TERMINAL.render_f10_terminal_result_message(
+            [
+                {
+                    "ok": True,
+                    "status": "WAITING_CHAT_ANSWER",
+                    "chat_answer_guidance": (
+                        "[질문과 입력 안내]\n"
+                        "질문 1의 안내입니다.\n\n"
+                        "[복사용 답변 양식 — 아래 블록만 복사]\n"
+                        "질문 묶음: qb-1\n\n"
+                        "1번: [1번 답변을 입력하세요]"
+                    ),
+                }
+            ]
+        )
+        self.assertIn("[질문과 입력 안내]", text)
+        self.assertIn("[복사용 답변 양식", text)
+        self.assertIn("질문 묶음: qb-1", text)
+        self.assertIn("\n1번: [1번 답변을 입력하세요]", text)
 
     def test_terminal_message_has_safe_authentication_and_mongodb_explanations(self):
         authentication = TERMINAL.render_f10_terminal_result_message(

@@ -23,9 +23,9 @@ class SingleFlowPayloadTests(unittest.TestCase):
     def test_one_flow_has_expected_graph_contract(self) -> None:
         summary = build_single_flow.validate_flow_payload(self.flow, check_graph=True)
         self.assertTrue(summary["ok"])
-        self.assertEqual(summary["execution_nodes"], 17)
+        self.assertEqual(summary["execution_nodes"], 18)
         self.assertEqual(summary["sticky_notes"], 4)
-        self.assertEqual(summary["edges"], 29)
+        self.assertEqual(summary["edges"], 30)
         self.assertEqual(summary["standalone_components"], 15)
 
     def test_exact_edges_and_terminal_data_leaf(self) -> None:
@@ -43,6 +43,25 @@ class SingleFlowPayloadTests(unittest.TestCase):
         self.assertFalse(template["should_store_message"]["value"])
         self.assertEqual(template["session_id"]["value"], "")
         self.assertEqual(template["context_id"]["value"], "")
+
+    def test_chat_input_is_non_persistent_and_wired_to_business_description(self) -> None:
+        by_id, by_key = build_single_flow._node_map(self.flow)
+        actual = tuple(build_single_flow._edge_tuple(edge, by_id) for edge in self.flow["data"]["edges"])
+        self.assertIn(("chat_input", "message", "business_input", "playground_description"), actual)
+
+        template = by_key["chat_input"]["data"]["node"]["template"]
+        self.assertFalse(template["should_store_message"]["value"])
+        self.assertEqual(template["input_value"]["value"], "")
+        self.assertEqual(template["session_id"]["value"], "")
+        self.assertEqual(template["context_id"]["value"], "")
+
+        business_template = by_key["business_input"]["data"]["node"]["template"]
+        self.assertFalse(business_template["description"]["required"])
+        playground_description = business_template["playground_description"]
+        self.assertFalse(playground_description["required"])
+        self.assertFalse(playground_description["advanced"])
+        self.assertNotEqual(playground_description["show"], False)
+        self.assertIn("Message", playground_description["input_types"])
 
     def test_fixed_structured_output_enforces_the_embedded_json_contract(self) -> None:
         _, by_key = build_single_flow._node_map(self.flow)

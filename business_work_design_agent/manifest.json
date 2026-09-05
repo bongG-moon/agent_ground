@@ -17,7 +17,7 @@
   },
   "component_groups": {
     "catalog_ingestion": ["00", "01", "02"],
-    "work_definition": ["10", "11", "12", "13", "14", "15", "16", "17", "18", "27", "28", "34", "35", "39", "40", "41", "42", "43", "44", "45"],
+    "work_definition": ["10", "11", "12", "13", "14", "15", "16", "17", "18", "27", "28", "34", "35", "39", "40", "41", "42", "43", "44", "45", "46", "47", "48", "49"],
     "hybrid_retrieval": ["19", "20", "29", "21", "22", "36"],
     "agent_blueprint": ["23", "24", "25", "26", "38"],
     "report": ["30", "31", "32", "33", "37"]
@@ -31,7 +31,7 @@
   ],
   "services": ["report_api"],
   "legacy_reference_services": ["hitl_form_api"],
-  "standalone_component_count": 39,
+  "standalone_component_count": 43,
   "provider_modes": {
     "catalog_search": ["native_rank_fusion", "native_score_fusion", "application_rrf"],
     "query_embedding": ["built_in_embedding_model_runtime_contract_v2"],

@@ -34,16 +34,27 @@ from pymongo.errors import (
 SCHEMA_VERSION = "agent-design-invocation/v1"
 WORK_REQUEST_SCHEMA_VERSION = "work-request-envelope/v1"
 WORK_DEFINITION_SCHEMA_VERSION = "work-definition/v1"
+F10_DESIGN_CONTEXT_SCHEMA_VERSION = "f10-design-context/v1"
 AUTHENTICATION_CONTEXT_SCHEMA_VERSION = "f10-authentication-context/v1"
 AUTHENTICATION_SOURCES = {"local_demo_fixture", "trusted_gateway"}
 IDENTITY_PATTERN = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$")
 COLLECTION_PATTERN = re.compile(r"^[A-Za-z0-9_.-]{1,200}$")
 APPROVED_HASH_PATTERN = re.compile(r"^sha256:[0-9a-f]{64}$")
+SOURCE_REQUEST_HASH_PATTERN = re.compile(r"^(?:sha256:)?[0-9a-f]{64}$")
 MAX_GROUPS = 100
 MAX_GROUP_INPUT_CHARS = 20_000
 MAX_SKILL_ENTRIES = 500
 MAX_DESIGN_PROMPT_CHARS = 20_000
 MAX_SEARCH_SEED_CHARS = 4_000
+MAX_TEAM_NAME_CHARS = 200
+MAX_EMPLOYEE_ID_CHARS = 128
+F10_DESIGN_CONTEXT_KEYS = {
+    "schema_version",
+    "source_request_turn_id",
+    "source_request_sha256",
+    "additional_prompt",
+}
+SOURCE_REQUEST_KEYS = {"turn_id", "raw_text", "language", "submitted_at", "sha256"}
 SEMANTIC_FIELDS = (
     "goal",
     "trigger",
@@ -65,6 +76,10 @@ SEMANTIC_FIELDS = (
     "automation_intent",
     "assumptions",
     "unresolved",
+    # This is immutable, validated intake context.  It is intentionally part
+    # of the approval hash so a later native-HITL resume can reconstruct the
+    # F20 invocation without depending on a previous Langflow graph run.
+    "f10_design_context",
     "as_is_graph",
 )
 UNORDERED_LIST_KEYS = {
@@ -241,7 +256,13 @@ def _canonicalize(value: Any, parent_key: str = "") -> Any:
 
 
 def _approved_semantic_hash(work: dict[str, Any]) -> str:
-    semantic = {field: copy.deepcopy(work.get(field)) for field in SEMANTIC_FIELDS}
+    # Existing approved records predate the durable resume context.  Preserve
+    # their historical hash shape for an ordinary first-pass invocation, while
+    # every record that *has* the new context seals it into the approval hash.
+    fields = SEMANTIC_FIELDS if "f10_design_context" in work else tuple(
+        field for field in SEMANTIC_FIELDS if field != "f10_design_context"
+    )
+    semantic = {field: copy.deepcopy(work.get(field)) for field in fields}
     canonical = _canonicalize(semantic)
     text = json.dumps(
         canonical,
@@ -260,6 +281,111 @@ def _request_envelope(value: Any) -> dict[str, Any]:
             return {}
         return copy.deepcopy(payload["envelope"])
     return payload
+
+
+def _input_is_supplied(value: Any) -> bool:
+    """Distinguish an omitted optional Langflow port from a malformed value.
+
+    During a later Playground chat answer run, Component 10 is deliberately
+    excluded by F10's entry router.  Langflow represents that unconnected
+    optional input as ``None`` or an empty Data object.  A non-empty malformed
+    envelope must *not* be treated as an invitation to use the resume path.
+    """
+
+    if value is None:
+        return False
+    if isinstance(value, dict):
+        return bool(value)
+    data = getattr(value, "data", None)
+    if isinstance(data, (dict, list, tuple, set)):
+        return bool(data)
+    text = getattr(value, "text", value if isinstance(value, str) else None)
+    if isinstance(text, str):
+        return bool(text.strip())
+    return True
+
+
+def _reconstruct_request_envelope_from_canonical(canonical: dict[str, Any]) -> dict[str, Any]:
+    """Rebuild the F10 intake projection from the approved MongoDB document.
+
+    Native HITL may resume in a later Playground run, where the original
+    Component 10 vertex is intentionally not built.  The only accepted
+    fallback is immutable context saved on the canonical APPROVED
+    WorkDefinition.  Nothing from the new chat answer is used as a design
+    prompt or catalog-search seed.
+    """
+
+    context = canonical.get("f10_design_context")
+    if context is None:
+        raise ValueError("F10_DESIGN_CONTEXT_REQUIRED")
+    if not isinstance(context, dict) or set(context) != F10_DESIGN_CONTEXT_KEYS:
+        raise ValueError("F10_DESIGN_CONTEXT_INVALID")
+    if context.get("schema_version") != F10_DESIGN_CONTEXT_SCHEMA_VERSION:
+        raise ValueError("F10_DESIGN_CONTEXT_INVALID")
+
+    turn_id = _identity(context.get("source_request_turn_id"))
+    if not turn_id:
+        raise ValueError("F10_DESIGN_CONTEXT_INVALID")
+    context_source_hash = context.get("source_request_sha256")
+    if not isinstance(context_source_hash, str) or SOURCE_REQUEST_HASH_PATTERN.fullmatch(context_source_hash) is None:
+        raise ValueError("F10_DESIGN_CONTEXT_INVALID")
+    normalized_context_source_hash = context_source_hash.removeprefix("sha256:")
+    raw_sources = canonical.get("source_requests")
+    if not isinstance(raw_sources, list) or len(raw_sources) > 1_000:
+        raise ValueError("F10_DESIGN_CONTEXT_SOURCE_INVALID")
+    matches = [
+        item
+        for item in raw_sources
+        if isinstance(item, dict) and item.get("turn_id") == turn_id
+    ]
+    if len(matches) != 1:
+        raise ValueError("F10_DESIGN_CONTEXT_SOURCE_INVALID")
+    source = matches[0]
+    # Keep only the sealed source-request contract; historical annotation or
+    # UI fields in MongoDB never become a retrieval instruction.
+    source_request = {key: copy.deepcopy(source[key]) for key in SOURCE_REQUEST_KEYS if key in source}
+    if source_request.get("turn_id") != turn_id:
+        raise ValueError("F10_DESIGN_CONTEXT_SOURCE_INVALID")
+    source_hash = source_request.get("sha256")
+    if not isinstance(source_hash, str) or SOURCE_REQUEST_HASH_PATTERN.fullmatch(source_hash) is None:
+        raise ValueError("F10_DESIGN_CONTEXT_SOURCE_INVALID")
+    # Component 10 historically stores a bare hex digest, whereas the durable
+    # resume context stores its canonical ``sha256:<hex>`` spelling.  Compare
+    # the underlying digest so both approved record generations are handled.
+    if not hmac.compare_digest(normalized_context_source_hash, source_hash.removeprefix("sha256:")):
+        raise ValueError("F10_DESIGN_CONTEXT_SOURCE_INVALID")
+
+    additional_prompt = context.get("additional_prompt")
+    if not isinstance(additional_prompt, dict) or set(additional_prompt) != {"raw_text", "sha256"}:
+        raise ValueError("F10_DESIGN_CONTEXT_PROMPT_INVALID")
+    # The canonical document also preserves the human-facing identity
+    # metadata.  It is not used for authentication, but retaining it makes
+    # this an auditable reconstruction of the original request envelope.
+    team_name = canonical.get("team_name")
+    employee_id = canonical.get("employee_id")
+    if (
+        not isinstance(team_name, str)
+        or not team_name.strip()
+        or len(team_name) > MAX_TEAM_NAME_CHARS
+        or not isinstance(employee_id, str)
+        or not employee_id.strip()
+        or len(employee_id) > MAX_EMPLOYEE_ID_CHARS
+    ):
+        raise ValueError("F10_DESIGN_CONTEXT_IDENTITY_INVALID")
+
+    return {
+        "schema_version": WORK_REQUEST_SCHEMA_VERSION,
+        "work_definition_id": canonical.get("work_definition_id"),
+        "tenant_id": canonical.get("tenant_id"),
+        "owner_id": canonical.get("owner_id"),
+        "session_id": canonical.get("session_id"),
+        "team_name": team_name,
+        "employee_id": employee_id,
+        "channel_mode": canonical.get("channel_mode"),
+        "expected_revision": canonical.get("revision"),
+        "source_request": source_request,
+        "additional_prompt": copy.deepcopy(additional_prompt),
+    }
 
 
 def _approval_work(value: Any) -> tuple[dict[str, Any], dict[str, Any]]:
@@ -474,6 +600,7 @@ def load_approved_design_invocation(
     safe_trace = str(trace_id or f"trace-{uuid.uuid4()}")[:200]
     try:
         approval, approved_edge_work = _approval_work(approval_result)
+        request_input_supplied = _input_is_supplied(request_envelope)
         request = _request_envelope(request_envelope)
         authentication = _authentication_context(authentication_context)
         subject_id = authentication["subject_id"]
@@ -505,7 +632,10 @@ def load_approved_design_invocation(
             "명시적인 APPROVED 승인 결과가 필요합니다.",
             safe_trace,
         )
-    if request.get("schema_version") != WORK_REQUEST_SCHEMA_VERSION:
+    # A normal first-pass F10 run supplies Component 10's envelope.  A later
+    # native-HITL chat-answer run intentionally does not; it is reconstructed
+    # only after the canonical approved record has been re-read below.
+    if request_input_supplied and request.get("schema_version") != WORK_REQUEST_SCHEMA_VERSION:
         return _failure(
             "WORK_REQUEST_ENVELOPE_INVALID",
             "검증 가능한 업무 요청 envelope가 필요합니다.",
@@ -540,41 +670,45 @@ def load_approved_design_invocation(
         "owner_id": approved_edge_work.get("owner_id"),
         "session_id": approved_edge_work.get("session_id"),
     }
-    request_identity = {key: request.get(key) for key in approval_identity}
     if any(not _identity(value) for value in approval_identity.values()):
         return _failure(
             "APPROVAL_IDENTITY_INVALID",
             "승인 결과의 업무 identity가 유효하지 않습니다.",
             safe_trace,
         )
-    mismatch_fields = [key for key in approval_identity if request_identity.get(key) != approval_identity[key]]
-    if mismatch_fields:
-        return _failure(
-            "WORK_REQUEST_APPROVAL_MISMATCH",
-            "업무 요청과 승인 결과의 identity가 일치하지 않습니다.",
-            safe_trace,
-            details={"fields": mismatch_fields},
-        )
+    if request_input_supplied:
+        request_identity = {key: request.get(key) for key in approval_identity}
+        mismatch_fields = [key for key in approval_identity if request_identity.get(key) != approval_identity[key]]
+        if mismatch_fields:
+            return _failure(
+                "WORK_REQUEST_APPROVAL_MISMATCH",
+                "업무 요청과 승인 결과의 identity가 일치하지 않습니다.",
+                safe_trace,
+                details={"fields": mismatch_fields},
+            )
     if subject_id != str(approval_identity["owner_id"]):
         return _failure(
             "AUTHENTICATED_SUBJECT_OWNER_MISMATCH",
             "인증 주체가 승인 업무의 owner와 일치하지 않습니다.",
             safe_trace,
         )
-    try:
-        design_prompt = _additional_prompt(request)
-        search_seed = _search_seed_from_request(request)
-    except ValueError as exc:
-        code = str(exc)
-        messages = {
-            "DESIGN_PROMPT_INVALID": "추가 설계 프롬프트 검증에 실패했습니다.",
-            "DESIGN_PROMPT_HASH_MISMATCH": "추가 설계 프롬프트 hash가 일치하지 않습니다.",
-            "DESIGN_PROMPT_SECRET_MATERIAL_DETECTED": "추가 설계 프롬프트에 secret 원문을 넣을 수 없습니다.",
-            "SEARCH_SEED_INVALID": "업무 설명 원문 기반 검색 seed 형식이 유효하지 않습니다.",
-            "SEARCH_SEED_HASH_MISMATCH": "업무 설명 원문 기반 검색 seed hash가 일치하지 않습니다.",
-            "SEARCH_SEED_SECRET_MATERIAL_DETECTED": "업무 설명 원문 기반 검색 seed에 secret 원문을 넣을 수 없습니다.",
-        }
-        return _failure(code, messages.get(code, "설계 호출 입력 검증에 실패했습니다."), safe_trace)
+    design_prompt = ""
+    search_seed: dict[str, Any] = {}
+    if request_input_supplied:
+        try:
+            design_prompt = _additional_prompt(request)
+            search_seed = _search_seed_from_request(request)
+        except ValueError as exc:
+            code = str(exc)
+            messages = {
+                "DESIGN_PROMPT_INVALID": "추가 설계 프롬프트 검증에 실패했습니다.",
+                "DESIGN_PROMPT_HASH_MISMATCH": "추가 설계 프롬프트 hash가 일치하지 않습니다.",
+                "DESIGN_PROMPT_SECRET_MATERIAL_DETECTED": "추가 설계 프롬프트에 secret 원문을 넣을 수 없습니다.",
+                "SEARCH_SEED_INVALID": "업무 설명 원문 기반 검색 seed 형식이 유효하지 않습니다.",
+                "SEARCH_SEED_HASH_MISMATCH": "업무 설명 원문 기반 검색 seed hash가 일치하지 않습니다.",
+                "SEARCH_SEED_SECRET_MATERIAL_DETECTED": "업무 설명 원문 기반 검색 seed에 secret 원문을 넣을 수 없습니다.",
+            }
+            return _failure(code, messages.get(code, "설계 호출 입력 검증에 실패했습니다."), safe_trace)
 
     client = None
     try:
@@ -650,6 +784,28 @@ def load_approved_design_invocation(
                 "인증 주체가 canonical 업무 owner와 일치하지 않습니다.",
                 safe_trace,
             )
+        if not request_input_supplied:
+            try:
+                request = _reconstruct_request_envelope_from_canonical(canonical)
+                design_prompt = _additional_prompt(request)
+                search_seed = _search_seed_from_request(request)
+            except ValueError as exc:
+                code = str(exc)
+                messages = {
+                    "F10_DESIGN_CONTEXT_REQUIRED": "이전 실행에서 보존된 설계 입력 context가 없어 재개할 수 없습니다. 새 업무 실행으로 다시 시작하세요.",
+                    "F10_DESIGN_CONTEXT_INVALID": "보존된 설계 입력 context 형식이 유효하지 않습니다.",
+                    "F10_DESIGN_CONTEXT_SOURCE_INVALID": "보존된 업무 원문을 정확히 찾을 수 없어 재개할 수 없습니다.",
+                    "F10_DESIGN_CONTEXT_PROMPT_INVALID": "보존된 추가 설계 프롬프트가 유효하지 않습니다.",
+                    "F10_DESIGN_CONTEXT_IDENTITY_INVALID": "보존된 팀 명 또는 사번 정보가 유효하지 않습니다.",
+                    "DESIGN_PROMPT_INVALID": "보존된 추가 설계 프롬프트 검증에 실패했습니다.",
+                    "DESIGN_PROMPT_HASH_MISMATCH": "보존된 추가 설계 프롬프트 hash가 일치하지 않습니다.",
+                    "DESIGN_PROMPT_SECRET_MATERIAL_DETECTED": "보존된 추가 설계 프롬프트에 secret 원문을 넣을 수 없습니다.",
+                    "SEARCH_SEED_INVALID": "보존된 업무 설명 원문 기반 검색 seed 형식이 유효하지 않습니다.",
+                    "SEARCH_SEED_HASH_MISMATCH": "보존된 업무 설명 원문 기반 검색 seed hash가 일치하지 않습니다.",
+                    "SEARCH_SEED_SECRET_MATERIAL_DETECTED": "보존된 업무 설명 원문 기반 검색 seed에 secret 원문을 넣을 수 없습니다.",
+                }
+                return _failure(code, messages.get(code, "보존된 설계 호출 context를 검증할 수 없습니다."), safe_trace)
+
         if canonical.get("channel_mode") != "native_hitl" or request.get("channel_mode") != "native_hitl":
             return _failure(
                 "WORK_REQUEST_CHANNEL_INVALID",
@@ -677,6 +833,20 @@ def load_approved_design_invocation(
             skill_limit,
         )
         work = _public_work(canonical)
+        trust_boundary = {
+            "work_definition_source": "mongodb-canonical-approved",
+            "catalog_snapshot_source": "mongodb-active-pointer",
+            "skill_registry_source": "mongodb-active-only",
+            "search_seed_source": "validated-work-request-envelope",
+            "authenticated_subject_verified": authentication["authenticated_subject_verified"],
+            "authentication_context_source": authentication["source"],
+        }
+        if not request_input_supplied:
+            # Make the delayed resume path explicit to operators and F20 audit
+            # consumers without expanding the sealed F20 top-level contract.
+            trust_boundary["request_envelope_source"] = "mongodb-canonical-approved-f10-design-context"
+            trust_boundary["search_seed_source"] = "mongodb-canonical-approved-f10-design-context"
+            trust_boundary["design_prompt_source"] = "mongodb-canonical-approved-f10-design-context"
         return {
             "ok": True,
             "status": "READY_FOR_DESIGN",
@@ -707,14 +877,7 @@ def load_approved_design_invocation(
             },
             "design_prompt": design_prompt,
             "search_seed": search_seed,
-            "trust_boundary": {
-                "work_definition_source": "mongodb-canonical-approved",
-                "catalog_snapshot_source": "mongodb-active-pointer",
-                "skill_registry_source": "mongodb-active-only",
-                "search_seed_source": "validated-work-request-envelope",
-                "authenticated_subject_verified": authentication["authenticated_subject_verified"],
-                "authentication_context_source": authentication["source"],
-            },
+            "trust_boundary": trust_boundary,
             "trace_id": safe_trace,
         }
     except (TypeError, ValueError, json.JSONDecodeError):
@@ -750,13 +913,19 @@ def load_approved_design_invocation(
 
 class ApprovedDesignInvocationLoaderComponent(Component):
     display_name = "36 Approved Design Invocation Loader"
-    description = "F10 승인 receipt와 명시적 인증 context를 MongoDB canonical 승인본·활성 snapshot·Skill registry와 재검증해 F20 입력을 만듭니다."
+    description = "F10 승인 receipt와 명시적 인증 context를 MongoDB canonical 승인본·활성 snapshot·Skill registry와 재검증해 F20 입력을 만듭니다. F10에서는 항상 승인본의 보존된 설계 context로 원래 요청을 안전하게 복원합니다."
     icon = "ShieldCheck"
     name = "ApprovedDesignInvocationLoader"
 
     inputs = [
         DataInput(name="approval_result", display_name="F10 Approved Result", input_types=["Data", "JSON"], required=True),
-        DataInput(name="request_envelope", display_name="Original Work Request Envelope", input_types=["Data", "JSON"], required=True),
+        DataInput(
+            name="request_envelope",
+            display_name="Original Work Request Envelope (다른 Flow 선택 연결)",
+            input_types=["Data", "JSON"],
+            required=False,
+            info="F10에서는 이 입력을 연결하지 않습니다. 승인된 MongoDB WorkDefinition의 f10_design_context에서만 원래 요청을 복원합니다. 다른 Flow에서 첫 실행 envelope를 명시적으로 검증해야 할 때만 선택 연결합니다.",
+        ),
         DataInput(
             name="authentication_context",
             display_name="Verified Authentication Context",

@@ -84,7 +84,7 @@ FLOW_NAMES = {
 
 FLOW_DESCRIPTIONS = {
     "F00": "전체 catalog 파일을 안전한 테스트 실행으로 먼저 검증하고, 명시 확인 후 deterministic snapshot으로 게시하는 적재 Flow.",
-    "F10": "자연어 업무 추출, 최대 3회 HITL 보완, 최종 승인 후 trusted F20 설계와 F30 반응형 report 생성을 직접 실행하는 top-level Flow.",
+    "F10": "자연어 업무 추출, 최대 3회 선택형 HITL·번호형 Playground 채팅 보완, 최종 승인 후 trusted F20 설계와 F30 반응형 report 생성을 직접 실행하는 top-level Flow.",
     "F20": "trusted invocation의 승인 업무·ACL·Skill scope와 Canvas Embedding Model 기반 hybrid catalog 근거로 Agent Blueprint와 sealed F30 handoff를 만드는 child-safe Flow.",
     "F30": "F20의 sealed handoff를 검증해 반응형 HTML report를 만들고 저장 API에 발행 또는 dry-run 결과를 반환하는 child-safe Flow.",
     "F90": "고정 평가 입력과 Canvas Embedding Model로 query 계획, embedding, hybrid retrieval과 bounded context를 점검하는 검색 QA Flow.",
@@ -127,7 +127,7 @@ FLOW_REQUIRED_CONFIG = {
         "팀 명·사번 입력과 Langflow가 자동 제공하는 실행별 run ID (새 실행마다 새 WorkDefinition 생성)",
         "approved extraction and clarification language models",
         "Langflow Secret Global Variable MONGO_URL, Database business_work_design, transaction 지원 MongoDB replica set/Atlas, 그리고 F10 unique/TTL index",
-        "Langflow Playground의 native HITL 질문 카드 입력칸 또는 명시적 추가 입력 건너뛰기 (외부 Answer Form/API 불필요)",
+        "Langflow Playground에서 HITL 카드의 답변 입력하기/건너뛰기 선택 후, 같은 Playground 채팅창에 `1번: 답변` 형식으로 답변 (외부 Answer Form/API 불필요)",
         "로컬 확인은 45의 local_demo_fixture, 운영은 trusted_gateway subject/group edge 연결 (사번/Chat Input 직접 연결 금지)",
         "F20 in the same Langflow project/folder; import 뒤에는 F10 Run Flow에서 F20을 다시 선택해 동적 포트를 갱신",
         "F30 in the same Langflow project/folder with the exported flow UUID preserved and its Report API configuration",
@@ -405,6 +405,26 @@ class NodeRef:
     @property
     def type_name(self) -> str:
         return str(self.wrapper["data"]["type"])
+
+    def relabel(self, display_name: str, description: str | None = None) -> "NodeRef":
+        """Give a built-in Canvas node a task-oriented, human-readable title.
+
+        Langflow's stock Text Input and Chat Input templates otherwise display
+        their generic component names, even when the field is carrying a
+        business-critical value.  This changes only the saved Canvas label;
+        the component type and its input/output contract remain unchanged.
+        """
+
+        title = str(display_name or "").strip()
+        if not title:
+            raise ValueError("Canvas display name must not be blank")
+        self.node["display_name"] = title
+        self.wrapper["data"]["display_name"] = title
+        if description is not None:
+            text = str(description).strip()
+            self.node["description"] = text
+            self.wrapper["data"]["description"] = text
+        return self
 
 
 class FlowBuilder:
@@ -1575,9 +1595,11 @@ def _build_f10(f20_flow: dict[str, Any], f30_flow: dict[str, Any]) -> dict[str, 
     history reference, but is no longer exported.  Its state-store, result
     gate, message conversion, and answer-loader plumbing now live inside a
     few standalone components.  The Canvas keeps the three native question
-    cards visible while staying readable at normal zoom.  Each card renders
-    its own text fields in the Playground; no companion Answer Form/API is
-    required.
+    cards visible while staying readable at normal zoom.  The deployed 1.11.0
+    Human Input contract exposes choice buttons but cannot render dynamic
+    answer fields, so each card lets the user choose **답변 입력하기** and then
+    sends a copyable numbered template to the normal Playground Chat Input.
+    No companion Answer Form/API is required.
     """
 
     flow = FlowBuilder("F10")
@@ -1586,15 +1608,15 @@ def _build_f10(f20_flow: dict[str, Any], f30_flow: dict[str, Any]) -> dict[str, 
     answer_examples = example["clarification_answer_examples"]
     skip_guidance = example["clarification_skip_guidance"]
     clarification_example_lines = [
-        "### 이 데모에서 질문 카드에 넣을 답변 예시",
-        "- 실제 질문의 문구와 순서는 LLM 결과에 따라 달라질 수 있습니다. 아래에서 **의미가 같은 항목**을 해당 `answer_01`/`answer_02` 입력칸에 넣으세요.",
+        "### 이 데모에서 Playground 채팅창에 보낼 답변 예시",
+        "- 실제 질문의 문구와 순서는 LLM 결과에 따라 달라질 수 있습니다. HITL 카드에서 **답변 입력하기**를 누른 뒤, 안내문에 있는 번호를 유지해 `1번: ...` 형식으로 한 번에 보냅니다.",
     ]
     for index, item in enumerate(answer_examples, start=1):
         clarification_example_lines.extend(
             [
                 f"{index}. **{item['topic']}**",
                 f"   - 예상 질문: {item['likely_question']}",
-                f"   - 입력값 예시: {item['answer_to_enter']}",
+                f"   - 채팅 입력 예시: {index}번: {item['answer_to_enter']}",
             ]
         )
     clarification_example_note = "\n".join(clarification_example_lines)
@@ -1605,30 +1627,33 @@ def _build_f10(f20_flow: dict[str, Any], f30_flow: dict[str, Any]) -> dict[str, 
 
 - 직접 입력: 업무 설명 원문, 추가 설계 프롬프트, 팀 명, 사번입니다.
 - 자동·내부: 실행별 run ID/session, WorkDefinition ID, 기준 시각, catalog scope(`default`)입니다. 입력하지 않습니다. 새 전체 실행은 새 WorkDefinition과 질문 Batch를 만듭니다.
-- Canvas의 왼쪽 Text Input 두 개에는 복합 생산·프로젝트 리스크 보고 데모 원문과 설계 프롬프트가 이미 채워져 있습니다. 팀 명과 사번은 sample 파일의 값으로 채워집니다.
+- Canvas의 왼쪽 Text Input 네 개에는 복합 생산·프로젝트 리스크 보고 데모 원문, 설계 프롬프트, 팀 명, 사번이 이미 채워져 있습니다. 사번은 새 업무 실행과 이후 질문 답변 재개가 함께 사용하므로, 질문을 받은 뒤에는 같은 값을 유지합니다.
 - 실제 긴 문장은 `samples/f10_work_request_example.json`과 각 Text Input 필드에서 그대로 확인·수정합니다.
+- F10에는 Playground Chat Input이 하나 있습니다. **새 업무를 시작할 때는 채팅 입력을 비우거나 `새 업무 시작`이라고 보내면** Text Input의 업무 설명을 사용합니다. 질문에 답할 때만 이 채팅 입력에 `1번: 답변`을 보냅니다. 49번 노드가 두 실행을 분리하므로 새 업무와 기존 답변이 함께 처리되지 않습니다.
 - 첫 질문이 필요한 경우에만 질문 Batch가 revision 0 WorkDefinition을 준비합니다.""",
         (-100, -850),
         width=1780,
-        height=390,
+        height=470,
     )
     flow.note(
         "02-three-round-hitl",
-        f"""## ② 최대 3회 HITL 보완
+        f"""## ② 최대 3회 HITL 보완 — 1.11.0 호환 입력 방식
 
-- 각 회차는 완전성 평가 → 질문 생성 → 질문 카드 입력 → 답변 반영 순서입니다.
-- 질문 카드 안의 입력칸에 답변한 뒤 Submit Answers를 선택합니다. Batch·Context·사번·실행 신호·revision은 자동 연결됩니다.
+- 각 회차는 완전성 평가 → 질문 생성 → **선택형 질문 카드** → 번호형 채팅 답변 반영 순서입니다.
+- 질문 카드에서 **답변 입력하기**를 누르면, 이 Flow의 결과 메시지에 질문과 복사 가능한 답변 양식이 나옵니다. 그 양식을 같은 Playground 하단 채팅창에 붙여 넣고 `1번: ...`, `2번: ...`처럼 답한 뒤 다시 전송합니다.
+- 질문 카드 자체에는 입력칸이 없습니다. 이는 현재 운영 Langflow 1.11.0의 Human Input이 선택 버튼만 지원하기 때문입니다. 답변 텍스트는 `46 번호형 대화 답변 Parser`가 검증한 뒤 `39 답변 반영·다음 단계`로 자동 전달합니다.
+- 답변 중인 질문이 한 개라면 `질문 묶음: qb-...` 줄은 생략해도 됩니다. 동시에 여러 건이 열려 있으면 안내문에 나온 질문 묶음 ID를 답변 맨 위에 그대로 넣어 구분합니다.
 - **{skip_guidance['action_label']}**: {skip_guidance['when_to_use']}
 - 동작: {skip_guidance['result']}
-- 13/39 노드의 MongoDB URI는 공통 Langflow Secret `MONGO_URL`에 자동 연결됩니다. Database는 `business_work_design`으로 미리 채워져 있고, 세 회차에 같은 값을 사용합니다.
-- `clarification_batches`는 질문·답변 이력을 보관하는 내부 MongoDB 컬렉션입니다. 별도 Answer Form이나 API는 사용하지 않습니다.
-- 1·2차 질문 카드는 최대 3개 입력칸이고, 마지막 3차 카드는 누락된 기준까지 확인할 수 있도록 최대 4개 입력칸입니다. HITL 보완 회차는 여전히 최대 3회입니다.
+- 13/39/47 노드의 MongoDB URI는 공통 Langflow Secret `MONGO_URL`에 자동 연결됩니다. Database는 `business_work_design`으로 미리 채워져 있고, 세 회차에 같은 값을 사용합니다.
+- `clarification_batches`는 질문·답변 이력을 보관하는 내부 MongoDB 컬렉션입니다. 사람이 컬렉션에 직접 입력할 필요는 없습니다.
+- 1·2차 질문은 최대 3개, 마지막 3차 질문은 최대 4개입니다. HITL 보완 회차는 여전히 최대 3회입니다.
 - 세 번째 답변 뒤에도 필수 정보가 남으면 추가 질문 없이 차단합니다.
 
 {clarification_example_note}""",
         (1750, -850),
         width=5350,
-        height=650,
+        height=820,
         background_color="amber",
     )
     flow.note(
@@ -1676,7 +1701,7 @@ def _build_f10(f20_flow: dict[str, Any], f30_flow: dict[str, Any]) -> dict[str, 
 
 - 승인본을 MongoDB에서 다시 검증해 strict JSON invocation으로 만듭니다.
 - `45 인증 Context 경계`가 로컬 데모 fixture와 운영 gateway 인증을 구분합니다. 기본 `local_demo_fixture`는 예제 확인용이며 결과에 **미검증**으로 남습니다. 운영 전에는 `trusted_gateway`로 바꾸고 gateway subject/group 포트만 연결합니다.
-- 승인 결과·업무 요청·인증 Context는 자동 연결됩니다. 활성 catalog pointer·Skill Registry 컬렉션은 내부 고정입니다.
+- 승인 결과·인증 Context는 자동 연결됩니다. Component 36은 최초 업무 원문·추가 설계 프롬프트를 승인된 MongoDB WorkDefinition에서 다시 읽어 복원하므로, 답변 재개 실행에서도 초기 입력 노드에 의존하지 않습니다. 활성 catalog pointer·Skill Registry 컬렉션은 내부 고정입니다.
 - Component 36의 MongoDB URI도 앞 저장 노드와 같은 공통 Secret `MONGO_URL`에 자동 연결되며, Database는 `business_work_design` 기본값을 사용합니다.
 - F20은 Blueprint·검색 trace·승인 WorkDefinition을 sealed handoff로 만들고, F10 Gate가 무결성을 확인한 경우에만 F30을 직접 실행합니다.
 - F30은 반응형 HTML을 생성합니다. 기본값은 **테스트 실행(저장하지 않음)**이며, 실제 게시에는 F30의 Report API 설정과 명시적 dry-run 해제가 필요합니다.
@@ -1693,22 +1718,39 @@ def _build_f10(f20_flow: dict[str, Any], f30_flow: dict[str, Any]) -> dict[str, 
     # creates revision 0 later at the review save, avoiding an extra Canvas
     # storage node.
     flow.builtin(
+        "team_name_text_input",
+        "TextInput",
+        (-1140, -180),
+        {"input_value": example["team_name"], "use_global_variable": False},
+    ).relabel("팀 명 입력", "이 업무를 수행하는 팀 이름입니다. 최초 실행과 질문 답변 재개에 같은 값을 사용합니다.")
+    flow.builtin(
         "work_description_text_input",
         "TextInput",
         (-760, -180),
         {"input_value": example["request_text"], "use_global_variable": False},
-    )
+    ).relabel("업무 설명 원문", "자동화하려는 업무를 가능한 한 구체적으로 입력합니다. 질문에 답할 때는 이 값을 다시 입력하지 않습니다.")
+    flow.builtin(
+        "employee_id_text_input",
+        "TextInput",
+        (-1140, 180),
+        {"input_value": employee_id, "use_global_variable": False},
+    ).relabel("사번 입력", "업무 정의의 작성자 식별자입니다. 추가 질문에 답할 때도 반드시 같은 사번을 유지합니다.")
     flow.builtin(
         "additional_design_prompt_text_input",
         "TextInput",
         (-760, 180),
         {"input_value": example["additional_prompt"], "use_global_variable": False},
+    ).relabel("추가 설계 요청", "카탈로그 자산 활용, 승인 기준, 보고서에 포함할 내용을 보완합니다.")
+    flow.builtin("playground_entry_input", "ChatInput", (-760, 520), {"should_store_message": False}).relabel(
+        "Playground 시작·답변 입력",
+        "새 업무는 비우거나 `새 업무 시작`을 보내고, 질문 답변은 `1번: 답변` 형식으로 같은 입력창에 보냅니다.",
     )
+    flow.custom("playground_entry_router", "49_f10_playground_entry_router.py", (-380, 520))
     flow.custom(
         "request_envelope",
         "10_work_request_envelope.py",
         (0, 0),
-        {"team_name": example["team_name"], "employee_id": employee_id, "catalog_scope_id": "default"},
+        {"catalog_scope_id": "default"},
     )
     flow.prompt("extraction_prompt", (380, -260), _read_prompt("work_extraction.md"), ["request_envelope"])
     flow.builtin(
@@ -1718,7 +1760,11 @@ def _build_f10(f20_flow: dict[str, Any], f30_flow: dict[str, Any]) -> dict[str, 
         {"system_message": "Return exactly one JSON object. Do not execute tools.", "stream": False, "temperature": 0.0},
     )
     flow.custom("work_normalizer", "11_work_definition_normalizer.py", (1140, 0))
+    flow.connect("playground_entry_input", "message", "playground_entry_router", "message")
+    flow.connect("playground_entry_router", "new_work_path", "request_envelope", "start_trigger")
+    flow.connect("team_name_text_input", "text", "request_envelope", "team_name")
     flow.connect("work_description_text_input", "text", "request_envelope", "request_text")
+    flow.connect("employee_id_text_input", "text", "request_envelope", "employee_id")
     flow.connect("additional_design_prompt_text_input", "text", "request_envelope", "additional_prompt")
     flow.connect("request_envelope", "request_message", "extraction_prompt", "request_envelope")
     flow.connect("extraction_prompt", "prompt", "extraction_model", "input_value")
@@ -1726,13 +1772,17 @@ def _build_f10(f20_flow: dict[str, Any], f30_flow: dict[str, Any]) -> dict[str, 
     flow.connect("request_envelope", "request_envelope", "work_normalizer", "request_envelope")
 
     # ② Three visible, bounded clarification rounds.  Component 42 creates a
-    # native node_input pause with actual Playground text fields; Component 39
-    # records that submitted data, merges it, CAS-saves, and rechecks.
+    # native choice-only node_input pause.  Selecting "답변 입력하기" displays
+    # a numbered template; a later Playground Chat Input goes through
+    # Components 47 → 46 → 39 to load the authoritative batch, parse the
+    # readable response, CAS-save it, and recheck completeness.  The commit's
+    # review exit goes directly to the Joiner below; only its next-round exit
+    # enters 48, so two grouped outputs never feed one scalar input.
     def add_round(
         round_number: int,
         *,
-        work_source_key: str,
-        work_source_output: str,
+        work_source_key: str | None,
+        work_source_output: str = "work_definition",
         x: int,
         max_questions: int = 3,
     ) -> dict[str, str]:
@@ -1753,7 +1803,8 @@ def _build_f10(f20_flow: dict[str, Any], f30_flow: dict[str, Any]) -> dict[str, 
         flow.custom(gate, "42_f10_clarification_answer_gate.py", (x + 1140, -10))
         flow.custom(commit, "39_f10_answer_commit.py", (x + 1520, 0))
 
-        flow.connect(work_source_key, work_source_output, planner, "work_definition")
+        if work_source_key is not None:
+            flow.connect(work_source_key, work_source_output, planner, "work_definition")
         flow.connect(planner, "clarification_prompt", model, "input_value")
         flow.connect(planner, "clarification_path", batch, "work_definition")
         flow.connect(planner, "clarification_path", batch, "completeness")
@@ -1761,11 +1812,13 @@ def _build_f10(f20_flow: dict[str, Any], f30_flow: dict[str, Any]) -> dict[str, 
         flow.connect(batch, "waiting_path", gate, "clarification_batch")
         flow.connect(planner, "clarification_path", commit, "clarification_context")
         flow.connect(batch, "waiting_path", commit, "clarification_batch")
-        flow.connect(gate, "answer_submission", commit, "native_answer_submission")
-        flow.connect(gate, "branch_submit_answers", commit, "submit_trigger")
         flow.connect(gate, "branch_skip_additional_input", commit, "skip_trigger")
         flow.connect(gate, "branch_cancel", commit, "cancel_trigger")
-        flow.connect("request_envelope", "employee_actor_id", commit, "actor_id")
+        # The initial request node is deliberately excluded when a later
+        # numbered Playground answer resumes F10.  Keep the actor on the
+        # shared, visible employee-ID input so every clarification round can
+        # still save/skip/cancel with the same durable owner identity.
+        flow.connect("employee_id_text_input", "text", commit, "actor_id")
         return {"planner": planner, "batch": batch, "gate": gate, "commit": commit}
 
     round1 = add_round(
@@ -1776,17 +1829,55 @@ def _build_f10(f20_flow: dict[str, Any], f30_flow: dict[str, Any]) -> dict[str, 
     )
     round2 = add_round(
         2,
-        work_source_key=round1["commit"],
-        work_source_output="next_round_path",
+        work_source_key=None,
         x=3800,
     )
     round3 = add_round(
         3,
-        work_source_key=round2["commit"],
-        work_source_output="next_round_path",
+        work_source_key=None,
         x=5700,
         max_questions=4,
     )
+
+    # The first run starts with the two Text Inputs above.  After an answer
+    # card has paused, a person selects "답변 입력하기" and sends the numbered
+    # reply through this ordinary Playground Chat Input.  Loader 47 resolves
+    # only that person's pending Batch from MongoDB; Parser 46 then performs
+    # exact question-number/type validation before the existing Component 39
+    # applies the answer.  This keeps F10 compatible with the deployed
+    # 1.11.0 Human Input contract without pretending that the card has fields.
+    flow.custom(
+        "chat_answer_resume_loader",
+        "47_f10_chat_answer_resume_loader.py",
+        (2080, 740),
+        {"mongo_database": "business_work_design"},
+    )
+    flow.custom(
+        "numbered_chat_answer_parser",
+        "46_f10_numbered_chat_answer_parser.py",
+        (2460, 740),
+        {},
+    )
+    flow.custom(
+        "chat_answer_commit",
+        "39_f10_answer_commit.py",
+        (2840, 740),
+        {},
+    )
+    flow.custom("chat_answer_next_router", "48_f10_chat_answer_next_router.py", (3220, 740))
+    flow.connect("playground_entry_router", "answer_path", "chat_answer_resume_loader", "answer_text")
+    flow.connect("playground_entry_router", "answer_path", "numbered_chat_answer_parser", "answer_text")
+    flow.connect("employee_id_text_input", "text", "chat_answer_resume_loader", "employee_id")
+    flow.connect("employee_id_text_input", "text", "numbered_chat_answer_parser", "actor_id")
+    flow.connect("employee_id_text_input", "text", "chat_answer_commit", "actor_id")
+    flow.connect("chat_answer_resume_loader", "success_path", "numbered_chat_answer_parser", "clarification_batch")
+    flow.connect("chat_answer_resume_loader", "success_path", "chat_answer_commit", "clarification_context")
+    flow.connect("chat_answer_resume_loader", "success_path", "chat_answer_commit", "clarification_batch")
+    flow.connect("numbered_chat_answer_parser", "answer_submission", "chat_answer_commit", "native_answer_submission")
+    flow.connect("numbered_chat_answer_parser", "submit_trigger", "chat_answer_commit", "submit_trigger")
+    flow.connect("chat_answer_commit", "next_round_path", "chat_answer_next_router", "answer_commit")
+    flow.connect("chat_answer_next_router", "round2_path", round2["planner"], "work_definition")
+    flow.connect("chat_answer_next_router", "round3_path", round3["planner"], "work_definition")
 
     # ③ Combine every mutually-exclusive review exit, validate the graph and
     # preview, then atomically create/update the durable approval request.
@@ -1816,11 +1907,12 @@ def _build_f10(f20_flow: dict[str, Any], f30_flow: dict[str, Any]) -> dict[str, 
     flow.connect(round1["commit"], "review_path", "review_entry_joiner", "round1_answer_review")
     flow.connect(round2["commit"], "review_path", "review_entry_joiner", "round2_answer_review")
     flow.connect(round3["commit"], "review_path", "review_entry_joiner", "round3_answer_review")
+    flow.connect("chat_answer_commit", "review_path", "review_entry_joiner", "chat_answer_review")
     flow.connect("review_entry_joiner", "review_work_definition", "graph_normalizer", "work_definition")
     flow.connect("graph_normalizer", "success_path", "preview", "work_definition")
     flow.connect("preview", "success_path", "review_approval_store", "work_definition")
     flow.connect("review_approval_store", "stored_work_message", "approval_gate", "prompt")
-    flow.connect("request_envelope", "employee_actor_id", "review_approval_store", "actor_id")
+    flow.connect("employee_id_text_input", "text", "review_approval_store", "actor_id")
     for command in ("approve", "reject", "cancel"):
         flow.connect("approval_gate", f"branch_{command}", "final_approval_route_gate", "approval_triggers")
 
@@ -1847,7 +1939,7 @@ def _build_f10(f20_flow: dict[str, Any], f30_flow: dict[str, Any]) -> dict[str, 
         )
         flow.connect("review_approval_store", "success_path", key, "work_definition")
         flow.connect("final_approval_route_gate", f"branch_{command}", key, "route_trigger")
-        flow.connect("request_envelope", "employee_actor_id", key, "actor_id")
+        flow.connect("employee_id_text_input", "text", key, "actor_id")
 
     # ⑤ Trust boundary and direct child Flow invocation.  F20 creates one
     # sealed report handoff; F10 verifies its envelope before F30 runs.
@@ -1864,8 +1956,10 @@ def _build_f10(f20_flow: dict[str, Any], f30_flow: dict[str, Any]) -> dict[str, 
     report_input_field = f"{f30_flow['metadata']['report_handoff_input_node_id']}~input_value"
     report_output_name = f"{f30_flow['metadata']['report_output_node_id']}~message"
     flow.connect("approved_work_store", "success_path", "design_invocation_loader", "approval_result")
-    flow.connect("request_envelope", "request_envelope", "design_invocation_loader", "request_envelope")
-    flow.connect("request_envelope", "employee_actor_id", "authentication_context", "local_demo_employee_actor_id")
+    # Component 36 always reloads the approved canonical record.  This makes
+    # a post-HITL chat-answer run independent of Component 10, which is
+    # intentionally excluded by the entry router on that path.
+    flow.connect("employee_id_text_input", "text", "authentication_context", "local_demo_employee_actor_id")
     flow.connect("authentication_context", "success_path", "design_invocation_loader", "authentication_context")
     flow.connect("design_invocation_loader", "success_path", "design_invocation_message", "input_data")
     flow.connect("design_invocation_message", "message_output", "run_agent_blueprint_design", invocation_input_field)
@@ -1892,9 +1986,20 @@ def _build_f10(f20_flow: dict[str, Any], f30_flow: dict[str, Any]) -> dict[str, 
         (round1["gate"], "blocked_path"),
         (round2["gate"], "blocked_path"),
         (round3["gate"], "blocked_path"),
+        # A selected 1.11.0-compatible "답변 입력하기" action terminates this
+        # run with a human-readable numbered template.  The next normal
+        # Playground Chat Input runs the 47 → 46 → 39 resume path above.
+        (round1["gate"], "branch_continue_chat"),
+        (round2["gate"], "branch_continue_chat"),
+        (round3["gate"], "branch_continue_chat"),
         (round1["commit"], "blocked_path"),
         (round2["commit"], "blocked_path"),
         (round3["commit"], "blocked_path"),
+        ("chat_answer_resume_loader", "blocked_path"),
+        ("numbered_chat_answer_parser", "blocked_path"),
+        ("chat_answer_commit", "blocked_path"),
+        ("chat_answer_next_router", "blocked_path"),
+        ("playground_entry_router", "blocked_path"),
         ("review_entry_joiner", "blocked_path"),
         ("graph_normalizer", "blocked_path"),
         ("preview", "blocked_path"),

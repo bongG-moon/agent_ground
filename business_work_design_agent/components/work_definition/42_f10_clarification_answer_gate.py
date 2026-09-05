@@ -1,16 +1,19 @@
 from __future__ import annotations
 
-"""Native Langflow 1.11.1 HITL answer form for F10.
+"""Langflow 1.11.0-compatible F10 clarification choice gate.
 
-This is intentionally a standalone custom component.  It does not import
-another local component or call a Flow/API: it turns a persisted clarification
-batch into Langflow's native ``node_input`` pause contract, then converts the
-resumed decision values back to the original question ids.
+The deployed Human Input implementation supports durable *choices*, not
+dynamic text form fields.  This standalone component therefore pauses only
+for the human's next action:
 
-Langflow 1.11.1 renders every entry in ``schema`` as a text field and sends
-the typed values back in ``decision.values``.  Therefore this component uses
-safe, deterministic field keys (``answer_01`` …) rather than exposing an
-arbitrary ``question_id`` as a browser form key.
+* answer in the normal Playground Chat Input;
+* skip additional input; or
+* cancel.
+
+The selected ``continue_to_chat`` branch returns a copyable numbered answer
+template.  A separate standalone parser reads the later Chat Input message
+and turns it into the existing F10 answer contract.  No browser extension,
+local-module import, or Flow/API call is required here.
 """
 
 import copy
@@ -29,12 +32,15 @@ from lfx.schema import Data
 
 HUMAN_INPUT_REQUIRED = "human_input_required"
 KIND_NODE_INPUT = "node_input"
+CONTINUE_ACTION = "continue_to_chat"
+# Retained as the stable answer-commit action.  It is emitted by the
+# playground-chat parser, not selected on this choice-only HITL card.
 SUBMIT_ACTION = "submit_answers"
 SKIP_ACTION = "skip_additional_input"
 CANCEL_ACTION = "cancel"
-# Rounds 1 and 2 use at most three fields.  The third and final native HITL
-# card may carry a fourth field so a ten-gap definition fits inside the
-# promised three-round HITL limit.
+# Rounds 1 and 2 ask at most three questions.  The third and final card may
+# ask a fourth question so a ten-gap definition still fits the three-round
+# limit.  The person answers these through the numbered Chat Input template.
 MAX_QUESTIONS = 4
 MAX_FREE_TEXT_CHARS = 16_000
 MAX_ANSWER_VALUE_BYTES = 64 * 1024
@@ -178,7 +184,7 @@ def _question_mappings(batch: dict[str, Any]) -> list[dict[str, Any]]:
 
 
 def _field_instruction(mapping: dict[str, Any]) -> str:
-    """Show type-specific guidance because Langflow 1.11.1 fields are text-only."""
+    """Show type-specific guidance for the numbered Chat Input reply."""
 
     answer_type = mapping["answer_type"]
     choices = mapping["choices"]
@@ -188,7 +194,7 @@ def _field_instruction(mapping: dict[str, Any]) -> str:
         return (
             "선택지는 "
             + " / ".join(choices)
-            + ". 기타 설명은 {\"choice\":\"__other__\",\"text\":\"설명\"} 형식으로 입력"
+            + ". 선택지에 없으면 `기타: 설명` 형식으로 입력"
         )
     if answer_type == "multi_choice":
         return "복수 선택은 쉼표로 구분해 입력: " + " / ".join(choices)
@@ -200,53 +206,43 @@ def _field_instruction(mapping: dict[str, Any]) -> str:
 
 
 def build_pause_request(batch_value: Any, *, component_id: Any = "F10ClarificationAnswerGate", run_id: Any = "") -> dict[str, Any]:
-    """Build the exact ``node_input`` pause data consumed by Langflow 1.11.1."""
+    """Build the choice-only ``node_input`` contract supported by 1.11.0."""
 
     batch = _batch(batch_value)
     mappings = _question_mappings(batch)
     component = _bounded_text(component_id, 200) or "F10ClarificationAnswerGate"
     run = _bounded_text(run_id, 200) or "run"
     batch_id = _bounded_text(batch.get("batch_id"), 200)
-    request_id = f"{component}:{run}:{batch_id}"
+    # Langflow 1.11.0's native Human Input resumes a vertex by the exact
+    # ``<vertex_id>:<run_id>`` key.  The question batch belongs in the pause
+    # payload, not in this key; adding a suffix can leave the gate cached in
+    # its paused state when the server injects the resumed decision.
+    request_id = f"{component}:{run}"
     lines = [
         f"업무 정의를 위해 {batch.get('round_number')}차 보완이 필요합니다.",
-        "각 질문 아래에 표시된 입력 항목에 답변한 뒤 Submit Answers를 선택해 주세요.",
+        "이 운영 환경에서는 질문 카드 안에 입력칸이 표시되지 않습니다.",
+        "아래 질문을 확인한 뒤 **답변 입력하기**를 선택하면, 다음 화면에서 Playground 채팅창에 `1번: ...` 형식으로 답할 수 있습니다.",
         "추가 정보가 없으면 추가 입력 건너뛰기를 선택할 수 있습니다. 이 경우 답변하지 않은 항목은 미확정으로 기록된 채 검토 단계로 넘어갑니다.",
     ]
-    schema: list[dict[str, Any]] = []
     for index, mapping in enumerate(mappings, start=1):
         question = mapping["question"]
         lines.extend(
             [
                 "",
                 f"{index}. {_bounded_text(question.get('text'), 4_000)}",
-                f"   입력 항목: {mapping['field_name']} — {_field_instruction(mapping)}",
+                f"   번호형 답변: {index}번: ... — {_field_instruction(mapping)}",
             ]
-        )
-        # The current Playground renders name + required as a real text field.
-        # Extra metadata is retained for a compatible future renderer and for
-        # deterministic recovery, but the browser only needs name/required.
-        schema.append(
-            {
-                "name": mapping["field_name"],
-                "required": mapping["required"],
-                "type": "text",
-                "question_id": mapping["question_id"],
-                "answer_type": mapping["answer_type"],
-                "description": _bounded_text(question.get("text"), 4_000),
-            }
         )
     return {
         "request_id": request_id,
         "kind": KIND_NODE_INPUT,
         "prompt": "\n".join(lines)[:16_000],
-        "schema": schema,
         "options": [
-            {"action_id": SUBMIT_ACTION, "label": "Submit Answers"},
+            {"action_id": CONTINUE_ACTION, "label": "답변 입력하기"},
             {"action_id": SKIP_ACTION, "label": "추가 입력 건너뛰기"},
             {"action_id": CANCEL_ACTION, "label": "Cancel"},
         ],
-        "allowed_decisions": [SUBMIT_ACTION, SKIP_ACTION, CANCEL_ACTION],
+        "allowed_decisions": [CONTINUE_ACTION, SKIP_ACTION, CANCEL_ACTION],
         "batch_id": batch_id,
         "field_mappings": [
             {"field_name": item["field_name"], "question_id": item["question_id"]}
@@ -389,8 +385,47 @@ def build_resumed_submission(
     if not isinstance(decision, dict):
         return _failure("HUMAN_DECISION_INVALID", "재개된 Human Input 결정값이 object가 아닙니다.", trace_id)
     action_id = str(decision.get("action_id") or "").strip()
-    if action_id not in {SUBMIT_ACTION, SKIP_ACTION, CANCEL_ACTION}:
-        return _failure("HUMAN_DECISION_INVALID", "Submit Answers, 추가 입력 건너뛰기 또는 Cancel 중 하나를 선택해야 합니다.", trace_id)
+    if action_id not in {CONTINUE_ACTION, SUBMIT_ACTION, SKIP_ACTION, CANCEL_ACTION}:
+        return _failure("HUMAN_DECISION_INVALID", "답변 입력하기, 추가 입력 건너뛰기 또는 Cancel 중 하나를 선택해야 합니다.", trace_id)
+    if action_id == CONTINUE_ACTION:
+        lines = [
+            "아래 질문을 확인한 뒤, 맨 아래 **복사용 답변 양식**만 Playground 하단 채팅창에 붙여 넣어 답해 주세요.",
+            "질문 묶음 ID는 여러 작업이 동시에 열려 있을 때만 필요합니다. 그대로 복사해도 됩니다.",
+            "",
+            "[질문과 입력 안내]",
+        ]
+        for index, mapping in enumerate(mappings, start=1):
+            question = mapping["question"]
+            lines.extend(
+                [
+                    "",
+                    f"{index}. {_bounded_text(question.get('text'), 4_000)}",
+                    f"   입력 안내: {_field_instruction(mapping)}",
+                ]
+            )
+        lines.extend(
+            [
+                "",
+                "[복사용 답변 양식 — 아래 블록만 복사해 대괄호 안을 바꾸세요]",
+                f"질문 묶음: {batch['batch_id']}",
+                *[f"{index}번: [{index}번 답변을 입력하세요]" for index in range(1, len(mappings) + 1)],
+                "",
+                "모든 필수 질문에 답한 뒤 한 번에 전송해 주세요.",
+                "형식 오류가 표시된 경우에는 같은 질문 묶음 ID와 번호로 고쳐서 다시 전송해 주세요.",
+            ]
+        )
+        return {
+            "ok": True,
+            "status": "WAITING_CHAT_ANSWER",
+            "route": "branch_continue_chat",
+            "artifact_refs": [{"kind": "clarification_batch", "id": batch["batch_id"]}],
+            "clarification_batch": copy.deepcopy(batch),
+            "answer_submission": None,
+            "chat_answer_guidance": "\n".join(lines)[:16_000],
+            "chat_request_id": str(request_id or ""),
+            "human_decision": {"action_id": CONTINUE_ACTION, "values": {}},
+            "trace_id": trace_id,
+        }
     if action_id == CANCEL_ACTION:
         return {
             "ok": True,
@@ -544,11 +579,11 @@ def build_resumed_submission(
 
 
 class F10ClarificationAnswerGateComponent(Component):
-    """Pause F10 with real answer fields, then expose a selected native branch."""
+    """Pause F10 for a 1.11.0-compatible choice, then expose one branch."""
 
-    display_name = "42 보완 답변 HITL"
-    description = "질문 Batch를 Langflow Playground의 답변 입력칸으로 표시하고 Submit Answers, 추가 입력 건너뛰기 또는 Cancel 결과를 원래 question_id 기준 Data로 반환합니다."
-    icon = "FormInput"
+    display_name = "42 보완 답변 안내 HITL"
+    description = "질문을 확인한 뒤 답변 입력하기·추가 입력 건너뛰기·Cancel 중 하나를 선택합니다. 답변 입력하기는 1.11.0 호환 번호형 채팅 답변 안내를 반환합니다."
+    icon = "MessageCircleQuestion"
     name = "F10ClarificationAnswerGate"
 
     inputs = [
@@ -557,14 +592,13 @@ class F10ClarificationAnswerGateComponent(Component):
             display_name="질문 Batch",
             input_types=["Data", "JSON"],
             required=True,
-            info="13 재질문 Batch 생성의 재질문 Batch 출력을 연결합니다. 외부 Answer Form이나 API가 필요하지 않습니다.",
+            info="13 재질문 Batch 생성의 재질문 Batch 출력을 연결합니다. 답변은 이후 Playground 채팅창에서 번호형으로 입력합니다.",
         ),
     ]
     outputs = [
-        Output(name="answer_submission", display_name="답변 제출 Data", method="build_submission", types=["Data"]),
         Output(
-            name="branch_submit_answers",
-            display_name="Submit Answers",
+            name="branch_continue_chat",
+            display_name="답변 입력하기",
             method="route_submission",
             types=["Data"],
             group_outputs=True,
@@ -596,7 +630,7 @@ class F10ClarificationAnswerGateComponent(Component):
         return _bounded_text(getattr(self, "_id", ""), 200) or self.name
 
     def _is_nonselected_group_output(self, selected: Any) -> bool:
-        output_names = {"branch_submit_answers", "branch_skip_additional_input", "branch_cancel", "blocked_path"}
+        output_names = {"branch_continue_chat", "branch_skip_additional_input", "branch_cancel", "blocked_path"}
         current_output = str(getattr(self, "_current_output", "") or "")
         return bool(current_output and selected in output_names and current_output in output_names and current_output != selected)
 
@@ -629,7 +663,7 @@ class F10ClarificationAnswerGateComponent(Component):
             request = self._pause_request()
         except (TypeError, ValueError, json.JSONDecodeError) as exc:
             code = str(exc) or "CLARIFICATION_BATCH_INVALID"
-            result = _failure(code, "질문 batch를 Playground HITL 입력폼으로 변환하지 못했습니다.", trace_id)
+            result = _failure(code, "질문 batch를 Playground HITL 안내로 변환하지 못했습니다.", trace_id)
             self._answer_gate_result = result
             return result
         decision = self._injected_decision(request["request_id"])
@@ -662,10 +696,6 @@ class F10ClarificationAnswerGateComponent(Component):
 
     def build_submission(self) -> Data:
         result = self._result()
-        if result.get("route") in {"branch_cancel", "branch_skip_additional_input"}:
-            # Cancel and explicit skip never carry answer data.  Each has a
-            # dedicated branch so downstream answer persistence cannot run.
-            self.stop("answer_submission")
         self.status = {"ok": result.get("ok"), "status": result.get("status"), "route": result.get("route")}
         return Data(data=copy.deepcopy(result))
 
@@ -683,13 +713,13 @@ class F10ClarificationAnswerGateComponent(Component):
             return Data(data={})
         # On the first pass the graph pauses at its checkpoint boundary.  Do
         # not stop either branch before the user actually selects an action.
-        if selected in {"branch_submit_answers", "branch_skip_additional_input", "branch_cancel", "blocked_path"}:
+        if selected in {"branch_continue_chat", "branch_skip_additional_input", "branch_cancel", "blocked_path"}:
             non_selected = [
                 output_name
-                for output_name in ("branch_submit_answers", "branch_skip_additional_input", "branch_cancel", "blocked_path")
+                for output_name in ("branch_continue_chat", "branch_skip_additional_input", "branch_cancel", "blocked_path")
                 if output_name != selected
             ]
-            for output_name in ("branch_submit_answers", "branch_skip_additional_input", "branch_cancel", "blocked_path"):
+            for output_name in ("branch_continue_chat", "branch_skip_additional_input", "branch_cancel", "blocked_path"):
                 if output_name != selected:
                     self.stop(output_name)
             # Built-in Human Input persists the branches it did not select

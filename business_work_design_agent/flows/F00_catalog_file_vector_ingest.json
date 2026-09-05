@@ -163,7 +163,7 @@
             "template": {
               "backgroundColor": "blue"
             },
-            "lf_version": "1.11.0"
+            "lf_version": "1.11.1"
           },
           "type": "note"
         },
@@ -197,7 +197,7 @@
             "template": {
               "backgroundColor": "amber"
             },
-            "lf_version": "1.11.0"
+            "lf_version": "1.11.1"
           },
           "type": "note"
         },
@@ -408,18 +408,18 @@
                 "dependencies": [
                   {
                     "name": "lfx",
-                    "version": "1.11.0"
+                    "version": "1.11.5"
                   }
                 ]
               },
-              "flow_build_target": "1.11.0",
+              "flow_build_target": "1.11.1",
               "flow_node_key": "catalog_loader",
               "standalone": true,
               "standalone_source_path": "components/catalog_ingestion/00_catalog_json_loader.py",
               "standalone_source_sha256": "a4bc910ee6a668dd2e6bdd3a5283a35c4f1f77693ecb03cc3c794bb7fecb8c56"
             },
             "tool_mode": false,
-            "lf_version": "1.11.0"
+            "lf_version": "1.11.1"
           },
           "showNode": true,
           "type": "CatalogJsonLoader",
@@ -625,18 +625,18 @@
                 "dependencies": [
                   {
                     "name": "lfx",
-                    "version": "1.11.0"
+                    "version": "1.11.5"
                   }
                 ]
               },
-              "flow_build_target": "1.11.0",
+              "flow_build_target": "1.11.1",
               "flow_node_key": "catalog_chunker",
               "standalone": true,
               "standalone_source_path": "components/catalog_ingestion/01_catalog_deterministic_chunker.py",
               "standalone_source_sha256": "1c7bc8b69121cc42e1f4a5d21baaacb8dd488cb3a820899d1be8d9a044e3eab1"
             },
             "tool_mode": false,
-            "lf_version": "1.11.0"
+            "lf_version": "1.11.1"
           },
           "showNode": true,
           "type": "CatalogDeterministicChunker",
@@ -771,7 +771,7 @@
                 "list": false,
                 "show": true,
                 "multiline": true,
-                "value": "from lfx.base.embeddings.model import LCEmbeddingsModel\nfrom lfx.base.models.unified_models import (\n    get_embedding_model_options,\n    get_embeddings,\n    handle_model_input_update,\n)\nfrom lfx.base.models.watsonx_constants import IBM_WATSONX_URLS\nfrom lfx.components.models_and_agents.model_selection import apply_model_overrides\nfrom lfx.field_typing import Embeddings\nfrom lfx.io import (\n    BoolInput,\n    DictInput,\n    DropdownInput,\n    FloatInput,\n    IntInput,\n    MessageTextInput,\n    ModelInput,\n    SecretStrInput,\n    StrInput,\n)\n\nDEFAULT_OLLAMA_URL = \"http://localhost:11434\"\n\n\nclass EmbeddingModelComponent(LCEmbeddingsModel):\n    display_name = \"Embedding Model\"\n    description = \"Generate embeddings using a specified provider.\"\n    documentation: str = \"https://docs.langflow.org/components-embedding-models\"\n    icon = \"binary\"\n    name = \"EmbeddingModel\"\n    category = \"models\"\n\n    def update_build_config(self, build_config: dict, field_value: str, field_name: str | None = None):\n        \"\"\"Dynamically update build config with user-filtered model options.\"\"\"\n        return handle_model_input_update(\n            self,\n            dict(build_config),\n            field_value,\n            field_name,\n            cache_key_prefix=\"embedding_model_options\",\n            get_options_func=get_embedding_model_options,\n        )\n\n    inputs = [\n        ModelInput(\n            name=\"model\",\n            display_name=\"Embedding Model\",\n            info=\"Select your model provider\",\n            real_time_refresh=True,\n            required=True,\n            model_type=\"embedding\",\n            input_types=[\"Embeddings\"],  # Override default to accept Embeddings instead of LanguageModel\n        ),\n        StrInput(\n            name=\"model_name\",\n            display_name=\"Model Name Override\",\n            info=(\n                \"Optional embedding model name to use instead of the selected model. \"\n                \"Can be set from a global variable for runtime model selection.\"\n            ),\n            advanced=True,\n            load_from_db=False,\n        ),\n        StrInput(\n            name=\"provider\",\n            display_name=\"Provider Override\",\n            info=(\n                \"Optional provider to use with Model Name Override. Leave blank to use the selected model's provider.\"\n            ),\n            advanced=True,\n            load_from_db=False,\n        ),\n        SecretStrInput(\n            name=\"api_key\",\n            display_name=\"API Key\",\n            info=\"Overrides global provider settings. Leave blank to use your pre-configured API Key.\",\n            real_time_refresh=True,\n            advanced=True,\n        ),\n        MessageTextInput(\n            name=\"api_base\",\n            display_name=\"API Base URL\",\n            info=\"Base URL for the API. Leave empty for default.\",\n            advanced=True,\n        ),\n        # Watson-specific inputs\n        DropdownInput(\n            name=\"base_url_ibm_watsonx\",\n            display_name=\"watsonx API Endpoint\",\n            info=\"The base URL of the API (IBM watsonx.ai only)\",\n            options=IBM_WATSONX_URLS,\n            value=IBM_WATSONX_URLS[0],\n            combobox=True,\n            show=False,\n            real_time_refresh=True,\n        ),\n        MessageTextInput(\n            name=\"project_id\",\n            display_name=\"Project ID\",\n            info=\"IBM watsonx.ai Project ID (required for IBM watsonx.ai)\",\n            show=False,\n        ),\n        # Ollama-specific input\n        StrInput(\n            name=\"ollama_base_url\",\n            display_name=\"Ollama API URL\",\n            info=f\"Endpoint of the Ollama API (Ollama only). Defaults to {DEFAULT_OLLAMA_URL}\",\n            value=DEFAULT_OLLAMA_URL,\n            show=False,\n            real_time_refresh=True,\n        ),\n        IntInput(\n            name=\"dimensions\",\n            display_name=\"Dimensions\",\n            info=\"The number of dimensions the resulting output embeddings should have. \"\n            \"Only supported by certain models.\",\n            advanced=True,\n        ),\n        IntInput(\n            name=\"chunk_size\",\n            display_name=\"Chunk Size\",\n            advanced=True,\n            value=1000,\n        ),\n        FloatInput(\n            name=\"request_timeout\",\n            display_name=\"Request Timeout\",\n            advanced=True,\n        ),\n        IntInput(\n            name=\"max_retries\",\n            display_name=\"Max Retries\",\n            advanced=True,\n            value=3,\n        ),\n        BoolInput(\n            name=\"show_progress_bar\",\n            display_name=\"Show Progress Bar\",\n            advanced=True,\n        ),\n        DictInput(\n            name=\"model_kwargs\",\n            display_name=\"Model Kwargs\",\n            advanced=True,\n            info=(\n                \"Additional keyword arguments to pass to the model. Only used by providers that support this parameter \"\n                \"(e.g. OpenAI, Google Generative AI). \"\n                \"Ignored for providers that do not include it in their parameter mapping.\"\n            ),\n        ),\n        IntInput(\n            name=\"truncate_input_tokens\",\n            display_name=\"Truncate Input Tokens\",\n            advanced=True,\n            value=200,\n            show=False,\n        ),\n        BoolInput(\n            name=\"input_text\",\n            display_name=\"Include the original text in the output\",\n            value=True,\n            advanced=True,\n            show=False,\n        ),\n    ]\n\n    def build_embeddings(self) -> Embeddings:\n        \"\"\"Build and return an embeddings instance based on the selected model.\"\"\"\n        model = apply_model_overrides(\n            self.model,\n            model_name=getattr(self, \"model_name\", None),\n            provider=getattr(self, \"provider\", None),\n            user_id=self.user_id,\n            get_options=get_embedding_model_options,\n        )\n        return get_embeddings(\n            model=model,\n            user_id=self.user_id,\n            api_key=self.api_key,\n            api_base=self.api_base,\n            dimensions=self.dimensions,\n            chunk_size=self.chunk_size,\n            request_timeout=self.request_timeout,\n            max_retries=self.max_retries,\n            show_progress_bar=self.show_progress_bar,\n            model_kwargs=self.model_kwargs,\n            watsonx_url=getattr(self, \"base_url_ibm_watsonx\", None),\n            watsonx_project_id=getattr(self, \"project_id\", None),\n            watsonx_truncate_input_tokens=getattr(self, \"truncate_input_tokens\", None),\n            watsonx_input_text=getattr(self, \"input_text\", None),\n            ollama_base_url=getattr(self, \"ollama_base_url\", None),\n        )\n",
+                "value": "from lfx.base.embeddings.model import LCEmbeddingsModel\nfrom lfx.base.models.unified_models import (\n    get_embedding_model_options,\n    get_embeddings,\n    handle_model_input_update,\n)\nfrom lfx.base.models.watsonx_constants import IBM_WATSONX_URLS\nfrom lfx.components.models_and_agents.model_selection import apply_model_overrides\nfrom lfx.field_typing import Embeddings\nfrom lfx.io import (\n    BoolInput,\n    DictInput,\n    DropdownInput,\n    FloatInput,\n    IntInput,\n    MessageTextInput,\n    ModelInput,\n    SecretStrInput,\n    StrInput,\n)\n\n\nclass EmbeddingModelComponent(LCEmbeddingsModel):\n    display_name = \"Embedding Model\"\n    description = \"Generate embeddings using a specified provider.\"\n    documentation: str = \"https://docs.langflow.org/components-embedding-models\"\n    icon = \"binary\"\n    name = \"EmbeddingModel\"\n    category = \"models\"\n\n    def update_build_config(self, build_config: dict, field_value: str, field_name: str | None = None):\n        \"\"\"Dynamically update build config with user-filtered model options.\"\"\"\n        return handle_model_input_update(\n            self,\n            dict(build_config),\n            field_value,\n            field_name,\n            cache_key_prefix=\"embedding_model_options\",\n            get_options_func=get_embedding_model_options,\n        )\n\n    inputs = [\n        ModelInput(\n            name=\"model\",\n            display_name=\"Embedding Model\",\n            info=\"Select your model provider\",\n            real_time_refresh=True,\n            required=True,\n            model_type=\"embedding\",\n            input_types=[\"Embeddings\"],  # Override default to accept Embeddings instead of LanguageModel\n        ),\n        StrInput(\n            name=\"model_name\",\n            display_name=\"Model Name Override\",\n            info=(\n                \"Optional embedding model name to use instead of the selected model. \"\n                \"Can be set from a global variable for runtime model selection.\"\n            ),\n            advanced=True,\n            load_from_db=False,\n        ),\n        StrInput(\n            name=\"provider\",\n            display_name=\"Provider Override\",\n            info=(\n                \"Optional provider to use with Model Name Override. Leave blank to use the selected model's provider.\"\n            ),\n            advanced=True,\n            load_from_db=False,\n        ),\n        SecretStrInput(\n            name=\"api_key\",\n            display_name=\"API Key\",\n            info=\"Overrides global provider settings. Leave blank to use your pre-configured API Key.\",\n            real_time_refresh=True,\n            advanced=True,\n        ),\n        MessageTextInput(\n            name=\"api_base\",\n            display_name=\"API Base URL\",\n            info=\"Base URL for the API. Leave empty for default.\",\n            advanced=True,\n        ),\n        # Watson-specific inputs\n        DropdownInput(\n            name=\"base_url_ibm_watsonx\",\n            display_name=\"watsonx API Endpoint\",\n            info=\"The base URL of the API (IBM watsonx.ai only)\",\n            options=IBM_WATSONX_URLS,\n            value=IBM_WATSONX_URLS[0],\n            combobox=True,\n            show=False,\n            real_time_refresh=True,\n        ),\n        MessageTextInput(\n            name=\"project_id\",\n            display_name=\"Project ID\",\n            info=\"IBM watsonx.ai Project ID (required for IBM watsonx.ai)\",\n            show=False,\n        ),\n        # Ollama-specific input\n        StrInput(\n            name=\"ollama_base_url\",\n            display_name=\"Ollama API URL\",\n            info=\"Endpoint of the Ollama API (Ollama only)\",\n            show=False,\n            real_time_refresh=True,\n        ),\n        IntInput(\n            name=\"dimensions\",\n            display_name=\"Dimensions\",\n            info=\"The number of dimensions the resulting output embeddings should have. \"\n            \"Only supported by certain models.\",\n            advanced=True,\n        ),\n        IntInput(\n            name=\"chunk_size\",\n            display_name=\"Chunk Size\",\n            advanced=True,\n            value=1000,\n        ),\n        FloatInput(\n            name=\"request_timeout\",\n            display_name=\"Request Timeout\",\n            advanced=True,\n        ),\n        IntInput(\n            name=\"max_retries\",\n            display_name=\"Max Retries\",\n            advanced=True,\n            value=3,\n        ),\n        BoolInput(\n            name=\"show_progress_bar\",\n            display_name=\"Show Progress Bar\",\n            advanced=True,\n        ),\n        DictInput(\n            name=\"model_kwargs\",\n            display_name=\"Model Kwargs\",\n            advanced=True,\n            info=(\n                \"Additional keyword arguments to pass to the model. Only used by providers that support this parameter \"\n                \"(e.g. OpenAI, Google Generative AI). \"\n                \"Ignored for providers that do not include it in their parameter mapping.\"\n            ),\n        ),\n        IntInput(\n            name=\"truncate_input_tokens\",\n            display_name=\"Truncate Input Tokens\",\n            advanced=True,\n            value=200,\n            show=False,\n        ),\n        BoolInput(\n            name=\"input_text\",\n            display_name=\"Include the original text in the output\",\n            value=True,\n            advanced=True,\n            show=False,\n        ),\n    ]\n\n    def build_embeddings(self) -> Embeddings:\n        \"\"\"Build and return an embeddings instance based on the selected model.\"\"\"\n        model = apply_model_overrides(\n            self.model,\n            model_name=getattr(self, \"model_name\", None),\n            provider=getattr(self, \"provider\", None),\n            user_id=self.user_id,\n            get_options=get_embedding_model_options,\n        )\n        return get_embeddings(\n            model=model,\n            user_id=self.user_id,\n            api_key=self.api_key,\n            api_base=self.api_base,\n            dimensions=self.dimensions,\n            chunk_size=self.chunk_size,\n            request_timeout=self.request_timeout,\n            max_retries=self.max_retries,\n            show_progress_bar=self.show_progress_bar,\n            model_kwargs=self.model_kwargs,\n            watsonx_url=getattr(self, \"base_url_ibm_watsonx\", None),\n            watsonx_project_id=getattr(self, \"project_id\", None),\n            watsonx_truncate_input_tokens=getattr(self, \"truncate_input_tokens\", None),\n            watsonx_input_text=getattr(self, \"input_text\", None),\n            ollama_base_url=getattr(self, \"ollama_base_url\", None),\n        )\n",
                 "fileTypes": [],
                 "file_path": "",
                 "password": false,
@@ -938,12 +938,12 @@
                 "placeholder": "",
                 "show": false,
                 "name": "ollama_base_url",
-                "value": "http://localhost:11434",
+                "value": "",
                 "display_name": "Ollama API URL",
                 "advanced": false,
                 "api_editable": false,
                 "dynamic": false,
-                "info": "Endpoint of the Ollama API (Ollama only). Defaults to http://localhost:11434",
+                "info": "Endpoint of the Ollama API (Ollama only)",
                 "real_time_refresh": true,
                 "title_case": false,
                 "track_in_telemetry": false,
@@ -1114,21 +1114,21 @@
             "edited": false,
             "metadata": {
               "module": "custom_components.embedding_model",
-              "code_hash": "408487f1431c",
+              "code_hash": "0780e9bbc5fa",
               "dependencies": {
                 "total_dependencies": 1,
                 "dependencies": [
                   {
                     "name": "lfx",
-                    "version": "1.11.0"
+                    "version": "1.11.5"
                   }
                 ]
               },
-              "flow_build_target": "1.11.0",
+              "flow_build_target": "1.11.1",
               "flow_node_key": "embedding_model"
             },
             "tool_mode": false,
-            "lf_version": "1.11.0"
+            "lf_version": "1.11.1"
           },
           "showNode": true,
           "type": "EmbeddingModel",
@@ -1603,22 +1603,22 @@
                 "dependencies": [
                   {
                     "name": "lfx",
-                    "version": "1.11.0"
+                    "version": "1.11.5"
                   },
                   {
                     "name": "pymongo",
-                    "version": "4.17.0"
+                    "version": "4.15.5"
                   }
                 ]
               },
-              "flow_build_target": "1.11.0",
+              "flow_build_target": "1.11.1",
               "flow_node_key": "mongodb_vector_writer",
               "standalone": true,
               "standalone_source_path": "components/catalog_ingestion/02_catalog_mongodb_vector_writer.py",
               "standalone_source_sha256": "71fdcfbb68ec37f723f2a4dbab8143495e130ea371363d8571c7dbcb48502e80"
             },
             "tool_mode": false,
-            "lf_version": "1.11.0"
+            "lf_version": "1.11.1"
           },
           "showNode": true,
           "type": "CatalogMongoDBVectorWriter",
@@ -1808,15 +1808,15 @@
                 "dependencies": [
                   {
                     "name": "lfx",
-                    "version": "1.11.0"
+                    "version": "1.11.5"
                   }
                 ]
               },
-              "flow_build_target": "1.11.0",
+              "flow_build_target": "1.11.1",
               "flow_node_key": "ingestion_message"
             },
             "tool_mode": false,
-            "lf_version": "1.11.0"
+            "lf_version": "1.11.1"
           },
           "showNode": true,
           "type": "ParseData",
@@ -2114,23 +2114,23 @@
                 "dependencies": [
                   {
                     "name": "orjson",
-                    "version": "3.11.9"
+                    "version": "3.12.0"
                   },
                   {
                     "name": "fastapi",
-                    "version": "0.139.0"
+                    "version": "0.141.1"
                   },
                   {
                     "name": "lfx",
-                    "version": "1.11.0"
+                    "version": "1.11.5"
                   }
                 ]
               },
-              "flow_build_target": "1.11.0",
+              "flow_build_target": "1.11.1",
               "flow_node_key": "ingestion_output"
             },
             "tool_mode": false,
-            "lf_version": "1.11.0"
+            "lf_version": "1.11.1"
           },
           "showNode": true,
           "type": "ChatOutput",
@@ -2164,7 +2164,7 @@
   "icon_bg_color": null,
   "id": "14ccbaaa-9364-5320-aa4a-b09f0aeb9f95",
   "is_component": false,
-  "last_tested_version": "1.11.0",
+  "last_tested_version": "1.11.1",
   "locked": false,
   "mcp_enabled": false,
   "name": "F00_catalog_file_vector_ingest",
@@ -2177,7 +2177,7 @@
   "metadata": {
     "flow_contract": "business-work-design/f00/v1",
     "generated_by": "scripts/build_langflow_1_11_flows.py",
-    "langflow_version": "1.11.0",
+    "langflow_version": "1.11.1",
     "operational_readiness": "mongodb_vector_ingestion_configuration_required",
     "required_configuration": [
       "one complete current catalog JSON file (not a delta-only update)",

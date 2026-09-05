@@ -69,6 +69,21 @@ def _safe_message(value: Any) -> str:
     return text[:240]
 
 
+def _safe_guidance(value: Any) -> str:
+    """Keep the numbered reply template readable while still redacting secrets.
+
+    Unlike a terminal error, this is intentionally multi-line content that a
+    person may copy into the Playground input.  Collapsing whitespace here
+    would make the required ``1번: 답변`` structure difficult to follow.
+    """
+
+    text = str(value or "").replace("\r\n", "\n").replace("\r", "\n").strip()
+    if not text:
+        return ""
+    text = _SENSITIVE_PATTERN.sub("[민감정보 제거]", text)
+    return text[:12_000]
+
+
 def _base_message(payload: dict[str, Any]) -> str:
     """Infer a short outcome without relying on which fan-in edge supplied it."""
 
@@ -82,6 +97,8 @@ def _base_message(payload: dict[str, Any]) -> str:
         return "업무 정의 작성을 취소했습니다."
     if error_code.startswith("ANSWER_") or error_code.startswith("CLARIFICATION_") or error_code.startswith("F10_ANSWER_"):
         return "질문 카드의 답변을 처리할 수 없어 중단되었습니다."
+    if error_code.startswith("F10_ENTRY_"):
+        return "Playground 입력 방식을 확인해 주세요."
     if error_code.startswith("QUESTION_"):
         return "추가 질문을 준비할 수 없어 중단되었습니다."
     if error_code.startswith("AUTHENTICATION_") or error_code.startswith("AUTHENTICATED_") or error_code.startswith("TRUSTED_GATEWAY_") or error_code.startswith("LOCAL_DEMO_"):
@@ -132,6 +149,12 @@ def render_f10_terminal_result_message(terminal_events: Any = None) -> str:
         if not _has_value(value, payload):
             continue
 
+        if str(payload.get("status") or "").upper() == "WAITING_CHAT_ANSWER":
+            guidance = _safe_guidance(payload.get("chat_answer_guidance"))
+            if guidance:
+                return guidance
+            return "답변 입력을 기다리고 있습니다. Playground 채팅 입력창에 `1번: 답변` 형식으로 입력해 주세요."
+
         error = payload.get("error") if isinstance(payload.get("error"), dict) else {}
         parts = [_base_message(payload)]
         status = _safe_code(payload.get("status"))
@@ -155,8 +178,8 @@ def render_f10_terminal_result_message(terminal_events: Any = None) -> str:
 
 
 class F10TerminalResultMessageComponent(Component):
-    display_name = "41 F10 결과 메시지"
-    description = "취소·반려·차단 결과 중 먼저 도착한 하나를 민감정보 없이 짧은 안내 메시지로 표시합니다."
+    display_name = "41 F10 안내·결과 메시지"
+    description = "채팅 답변 양식 또는 취소·반려·차단 결과 중 먼저 도착한 하나를 민감정보 없이 사람이 읽기 쉽게 표시합니다."
     icon = "MessageSquareWarning"
     name = "F10TerminalResultMessage"
 

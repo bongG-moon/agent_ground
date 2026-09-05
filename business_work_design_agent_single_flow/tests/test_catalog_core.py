@@ -7,6 +7,7 @@ import sys
 from pathlib import Path
 
 from jsonschema import Draft202012Validator
+from lfx.schema.message import Message
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
@@ -38,6 +39,40 @@ def _request(description: str, instructions: str = "", final_refinement_instruct
     component.language = "ko"
     component.max_model_description_chars = 16_000
     return component.build_request().data
+
+
+def test_request_uses_chat_message_text_for_multiline_description() -> None:
+    """Langflow 1.11 delivers a Chat Input Message to 00's MultilineInput."""
+
+    source = "매주 금요일 Outlook과 JIRA를 취합해 승인된 주간 보고서를 게시합니다."
+    component = M00.BusinessDesignInputComponent()
+    component.description = "Canvas에서 직접 입력한 설명입니다."
+    component.set_input_value("playground_description", Message(text=source))
+    component.additional_instructions = ""
+    component.final_refinement_instructions = ""
+    component.language = "ko"
+    component.max_model_description_chars = 16_000
+
+    result = component.build_request().data
+
+    assert result["description_display_redacted"] == source
+    assert result["description_for_model"] == source
+
+
+def test_request_falls_back_to_canvas_description_when_chat_message_is_blank() -> None:
+    source = "월말에 승인된 비용 데이터를 취합해 부서별 정산 보고서를 작성합니다."
+    component = M00.BusinessDesignInputComponent()
+    component.description = source
+    component.playground_description = "   "
+    component.additional_instructions = ""
+    component.final_refinement_instructions = ""
+    component.language = "ko"
+    component.max_model_description_chars = 16_000
+
+    result = component.build_request().data
+
+    assert result["description_display_redacted"] == source
+    assert result["description_for_model"] == source
 
 
 def _load_catalog(path: Path) -> dict:

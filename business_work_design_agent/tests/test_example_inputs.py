@@ -197,19 +197,42 @@ def test_f10_example_is_safe_and_is_embedded_only_in_the_exported_f10_node() -> 
 
     flow = _json(PROJECT_ROOT / "flows" / "F10_work_definition_parent.json")
     request_node = _flow_node(flow, "request_envelope")
-    assert request_node["template"]["team_name"]["value"] == example["team_name"]
-    assert request_node["template"]["employee_id"]["value"] == example["employee_id"]
     assert request_node["template"]["catalog_scope_id"]["value"] == "default"
+    assert request_node["template"]["team_name"]["value"] in {"", None}
+    assert request_node["template"]["employee_id"]["value"] in {"", None}
     assert request_node["template"]["request_text"]["value"] in {"", None}
     assert request_node["template"]["additional_prompt"]["value"] in {"", None}
     assert "tenant_id" not in request_node["template"]
     assert "owner_id" not in request_node["template"]
     assert "session_id" not in request_node["template"]
 
+    team_input = _flow_node(flow, "team_name_text_input")
     work_input = _flow_node(flow, "work_description_text_input")
+    employee_input = _flow_node(flow, "employee_id_text_input")
     prompt_input = _flow_node(flow, "additional_design_prompt_text_input")
+    assert team_input["template"]["input_value"]["value"] == example["team_name"]
     assert work_input["template"]["input_value"]["value"] == example["request_text"]
+    assert employee_input["template"]["input_value"]["value"] == example["employee_id"]
     assert prompt_input["template"]["input_value"]["value"] == example["additional_prompt"]
+
+    wrappers_by_key = {
+        wrapper["data"]["node"].get("metadata", {}).get("flow_node_key"): wrapper
+        for wrapper in flow["data"]["nodes"]
+    }
+    request_id = wrappers_by_key["request_envelope"]["id"]
+    for input_key, target_field in (
+        ("team_name_text_input", "team_name"),
+        ("work_description_text_input", "request_text"),
+        ("employee_id_text_input", "employee_id"),
+        ("additional_design_prompt_text_input", "additional_prompt"),
+    ):
+        assert any(
+            edge["source"] == wrappers_by_key[input_key]["id"]
+            and edge["target"] == request_id
+            and edge["data"]["sourceHandle"]["name"] == "text"
+            and edge["data"]["targetHandle"]["fieldName"] == target_field
+            for edge in flow["data"]["edges"]
+        ), (input_key, target_field)
 
 
 def test_f00_flow_keeps_file_upload_empty_and_points_to_the_committed_example() -> None:

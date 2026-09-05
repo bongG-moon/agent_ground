@@ -139,8 +139,22 @@ class BusinessDesignInputComponent(Component):
         MultilineInput(
             name="description",
             display_name="업무 설명 원문",
-            info="현재 업무의 절차, 분기, 입력·결과물, 사용하는 시스템을 가능한 한 구체적으로 작성합니다.",
-            required=True,
+            info=(
+                "Canvas에서 직접 실행할 때 현재 업무의 절차, 분기, 입력·결과물, 사용하는 시스템을 가능한 한 구체적으로 작성합니다. "
+                "Playground Chat Input으로 실행할 때는 아래의 연결 전용 입력이 우선 사용됩니다."
+            ),
+            placeholder="예: 매주 금요일 Outlook과 JIRA를 취합해 승인된 주간 보고서를 게시합니다.",
+            required=False,
+        ),
+        MultilineInput(
+            name="playground_description",
+            display_name="Playground 업무 설명 (자동 수신)",
+            info=(
+                "00A Playground 업무 설명 입력의 Chat Message가 자동으로 이 칸에 전달됩니다. "
+                "필요 시 직접 입력할 수도 있으며, 값이 있으면 업무 설명 원문보다 우선 사용됩니다."
+            ),
+            value="",
+            required=False,
         ),
         MultilineInput(
             name="additional_instructions",
@@ -175,7 +189,10 @@ class BusinessDesignInputComponent(Component):
     outputs = [Output(name="request", display_name="업무 요청", method="build_request")]
 
     def build_request(self) -> Data:
-        raw_description = str(getattr(self, "description", "") or "")
+        raw_direct_description = str(getattr(self, "description", "") or "")
+        raw_playground_description = str(getattr(self, "playground_description", "") or "")
+        raw_description = raw_playground_description if raw_playground_description.strip() else raw_direct_description
+        input_source = "Playground Chat Input" if raw_playground_description.strip() else "Canvas 업무 설명 원문"
         raw_instructions = str(getattr(self, "additional_instructions", "") or "")
         raw_final_refinement_instructions = str(getattr(self, "final_refinement_instructions", "") or "")
         language = str(getattr(self, "language", "ko") or "ko")
@@ -242,5 +259,5 @@ class BusinessDesignInputComponent(Component):
             "source_description_sha256": _sha256(display_description),
             "request_sha256": _sha256(_canonical_json(request_material)),
         }
-        self.status = "업무 설명을 안전한 설계 요청으로 정리했습니다."
+        self.status = f"{input_source}을 안전한 설계 요청으로 정리했습니다."
         return Data(data=result)

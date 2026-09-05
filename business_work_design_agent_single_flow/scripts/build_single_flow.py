@@ -63,6 +63,7 @@ CUSTOM_COMPONENTS = {
 }
 
 EXPECTED_EDGES = (
+    ("chat_input", "message", "business_input", "playground_description"),
     ("business_input", "request", "catalog_ranker", "request"),
     ("catalog_loader", "catalog_bundle", "catalog_ranker", "catalog_bundle"),
     ("business_input", "request", "catalog_shortlister", "request"),
@@ -97,7 +98,7 @@ EXPECTED_EDGES = (
     ("result_message", "message", "chat_output", "input_value"),
 )
 
-BUILTIN_COMPONENTS = {"language_model", "chat_output"}
+BUILTIN_COMPONENTS = {"chat_input", "language_model", "chat_output"}
 
 ALLOWED_IMPORT_ROOTS = {
     "__future__",
@@ -497,7 +498,8 @@ class FlowBuilder:
                 "lfx_version": self.runtime["lfx"],
                 "operational_readiness": "language_model_configuration_required",
                 "required_configuration": [
-                    "00 업무 설명 입력의 업무 설명과 선택적인 추가 설계 요청",
+                    "00 업무 설명 입력: 업무 설명 원문, 선택적 추가 설계 요청, 선택적 최종 설계 보완 지시",
+            "00A Playground 업무 설명 입력의 Chat Message는 00의 Playground 업무 설명 입력으로 전달됨; Chat 값이 없으면 00의 Canvas 직접 입력을 사용",
                     "01 기능 카탈로그 JSON 파일의 UTF-8 JSON 파일 하나",
                     "02 관련 기능 카탈로그 검색의 키워드 검색 후보 수(기본 100); 상세 문맥은 내부 기준으로 자동 제한",
                     "03 LLM 카탈로그 후보 선별의 LLM 선별 후보 최대 수(기본 12, 1~30)",
@@ -536,23 +538,13 @@ def _prompt_text() -> str:
     return prompt
 
 
-def _example_description() -> str:
-    return (
-        "매주 금요일 오후에 Outlook과 JIRA에서 지난 주 업무 정보를 수집해 팀 주간보고 초안을 만들고 있습니다. "
-        "프로젝트별로 완료 업무, 진행 중 업무, 이슈·리스크, 다음 주 계획을 정리하며 각 항목에 원본 메일 제목·링크와 JIRA 이슈 키를 근거로 남겨야 합니다.\n\n"
-        "자동 알림·중복 메일은 제외합니다. 메일 조회 실패, 인증 만료, 필수 근거 누락 또는 민감정보 검토가 필요한 경우에는 게시하지 않고 원인과 누락 건수를 담당자에게 보여 줍니다. "
-        "초안은 담당자가 검토·수정한 뒤 팀장 승인 후 사내 보고 포털에 게시하고 링크를 관련 팀에 알립니다. "
-        "정상·반려·재작업·데이터 오류 경로까지 포함해 현재 업무와 개선 방향을 설계해 주세요."
-    )
-
-
 def build_flow() -> dict[str, Any]:
     runtime = runtime_versions()
     prompt = _prompt_text()
     builder = FlowBuilder(runtime)
     builder.note(
         "input",
-        "## 입력\n\n업무 설명과 기능 카탈로그 JSON 파일을 넣고 Run을 누르세요. 실행 중 추가 질문은 나오지 않습니다.",
+        "## 입력\n\nPlayground에서는 00A에 업무를 입력하면 00으로 전달됩니다. Chat 값이 없으면 00의 업무 설명 원문 직접 입력을 사용합니다. 기능 카탈로그 JSON 파일도 넣고 Run을 누르세요.",
         (-760, -660),
         width=940,
         height=210,
@@ -581,12 +573,22 @@ def build_flow() -> dict[str, Any]:
         color="amber",
     )
 
+    chat_input = builder.builtin(
+        "chat_input",
+        "lfx.components.input_output.chat",
+        (-1160, 0),
+        {"input_value": "", "should_store_message": False, "session_id": "", "context_id": ""},
+    )
+    chat_input.relabel(
+        "00A Playground 업무 설명 입력",
+        "Playground에서 보낸 업무 설명을 00의 연결 전용 입력으로 전달합니다. Chat 값이 없으면 00의 Canvas 직접 입력을 사용합니다. 메시지 저장은 사용하지 않습니다.",
+    )
     builder.custom(
         "business_input",
         CUSTOM_COMPONENTS["business_input"],
         (-720, 0),
         {
-            "description": _example_description(),
+            "description": "",
             "additional_instructions": "카탈로그 후보를 참고하되 실제 적용할 항목만 명확한 이유와 함께 선택하고, 사람이 확인해야 하는 판단은 남겨 주세요.",
             "final_refinement_instructions": "보고서에서 현재 업무의 분기·예외·사람 확인 지점과 카탈로그를 적용하는 이유가 한눈에 보이도록 보완해 주세요.",
             "language": "ko",
@@ -759,10 +761,10 @@ def _validate_node_types(flow: dict[str, Any], by_id: dict[str, dict[str, Any]],
             raise ValueError(f"Forbidden node type in one-flow export: {type_name}")
         for input_name in (node.get("template") or {}):
             normalized = str(input_name).casefold()
-            # Chat Output has stock, hidden session/context fields in Langflow
-            # 1.11.0.  They are not Flow inputs here: `_validate_builtins`
+            # Chat Input/Output have stock, hidden session/context fields in
+            # Langflow 1.11.0. They are not Flow inputs here: `_validate_builtins`
             # below requires both to be blank and non-persistent.
-            if key == "chat_output" and normalized in {"session_id", "context_id"}:
+            if key in {"chat_input", "chat_output"} and normalized in {"session_id", "context_id"}:
                 continue
             if any(part in normalized for part in FORBIDDEN_INPUT_NAME_PARTS):
                 raise ValueError(f"Forbidden operational input {input_name!r} on {key}")
@@ -815,9 +817,11 @@ def _validate_edges(flow: dict[str, Any], by_id: dict[str, dict[str, Any]]) -> N
         if not set(output.get("types") or []).intersection(field.get("input_types") or []):
             raise ValueError(f"Edge types do not intersect: {edge.get('id')}")
     # Every data-bearing input declared as an execution connection by this
-    # Flow contract has exactly one owner. Canvas configuration fields such as
-    # 00.description, 01.catalog_json_file and 04.model are intentionally not
-    # included: they are entered/selected directly by the operator.
+    # Flow contract has exactly one owner. 00.playground_description is owned
+    # by the Playground Chat Input, while 00.description remains a direct
+    # Canvas fallback when the Chat message is empty. Canvas
+    # configuration fields such as 01.catalog_json_file and 04.model are
+    # intentionally not included because the operator enters/selects them.
     expected_targets = {(target, field) for _, _, target, field in EXPECTED_EDGES}
     if targets != expected_targets:
         raise ValueError("Connected input ownership differs from the Flow contract")
@@ -844,6 +848,15 @@ def _validate_notes(flow: dict[str, Any], runtime: dict[str, str]) -> None:
 
 
 def _validate_builtins(by_key: dict[str, dict[str, Any]], prompt: str) -> None:
+    chat_input = by_key["chat_input"]["data"]["node"].get("template", {})
+    if chat_input.get("should_store_message", {}).get("value") is not False:
+        raise ValueError("Chat Input should_store_message must be false")
+    if chat_input.get("input_value", {}).get("value") != "":
+        raise ValueError("Chat Input input_value must be blank")
+    for field_name in ("session_id", "context_id"):
+        if chat_input.get(field_name, {}).get("value") != "":
+            raise ValueError(f"Chat Input {field_name} must be blank")
+
     language_model = by_key["language_model"]["data"]["node"]
     model_template = language_model.get("template", {})
     system_field = model_template.get("system_message")

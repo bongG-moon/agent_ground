@@ -115,13 +115,17 @@ class _Graph:
 
 
 class NativeClarificationGateTests(unittest.TestCase):
-    def test_pause_schema_uses_safe_fields_and_preserves_question_mapping(self):
+    def test_pause_is_choice_only_and_preserves_question_mapping(self):
         request = MODULE.build_pause_request(_batch(), component_id="node-42", run_id="run-42")
 
         self.assertEqual(request["kind"], "node_input")
-        self.assertEqual(request["request_id"], "node-42:run-42:qb-native-1")
-        self.assertEqual([field["name"] for field in request["schema"]], ["answer_01", "answer_02"])
-        self.assertTrue(all(field["required"] for field in request["schema"]))
+        # Match the native Human Input resume key exactly.  The batch is
+        # carried in the pause payload; adding it to this key breaks 1.11.0
+        # resume because the server injects by <component_id>:<run_id>.
+        self.assertEqual(request["request_id"], "node-42:run-42")
+        # The operational 1.11.0 Human Input implementation accepts choices
+        # only.  Dynamic fields would render no input controls in Playground.
+        self.assertNotIn("schema", request)
         self.assertEqual(
             request["field_mappings"],
             [
@@ -129,16 +133,19 @@ class NativeClarificationGateTests(unittest.TestCase):
                 {"field_name": "answer_02", "question_id": "q unsafe/id?2"},
             ],
         )
-        self.assertNotIn("q unsafe/id?1", request["schema"][0]["name"])
         self.assertEqual(
             [option["action_id"] for option in request["options"]],
-            ["submit_answers", "skip_additional_input", "cancel"],
+            ["continue_to_chat", "skip_additional_input", "cancel"],
         )
+        self.assertIn("답변 입력하기", request["prompt"])
         self.assertIn("추가 입력 건너뛰기", request["prompt"])
-        self.assertIn("answer_01", request["prompt"])
+        # Internal answer_01 mappings remain in the payload, but the person
+        # sees only the Korean numbered reply syntax.
+        self.assertNotIn("answer_01", request["prompt"])
+        self.assertIn("1번: ...", request["prompt"])
 
     def test_final_round_pause_accepts_and_maps_four_questions(self):
-        """Round 3 can present the final fourth answer field without an API form."""
+        """Round 3 keeps four stable number mappings without adding form fields."""
 
         questions = _batch()["questions"] + [
             {
@@ -172,17 +179,15 @@ class NativeClarificationGateTests(unittest.TestCase):
         self.assertEqual(waiting["status"], "WAITING_ANSWER")
         self.assertEqual(len(component.graph.pauses), 1)
         pause = component.graph.pauses[0]["data"]
-        self.assertEqual(
-            [field["name"] for field in pause["schema"]],
-            ["answer_01", "answer_02", "answer_03", "answer_04"],
-        )
+        self.assertNotIn("schema", pause)
         self.assertEqual(
             pause["field_mappings"][-1],
             {"field_name": "answer_04", "question_id": "q unsafe/id?4"},
         )
-        self.assertIn("answer_04", pause["prompt"])
+        self.assertNotIn("answer_04", pause["prompt"])
+        self.assertIn("4번: ...", pause["prompt"])
 
-    def test_component_pauses_then_resumes_with_original_question_ids(self):
+    def test_component_pauses_then_returns_numbered_chat_guidance(self):
         component = MODULE.F10ClarificationAnswerGateComponent()
         component._id = "node-42"
         component.graph = _Graph()
@@ -193,30 +198,46 @@ class NativeClarificationGateTests(unittest.TestCase):
         self.assertEqual(len(component.graph.pauses), 1)
         pause = component.graph.pauses[0]["data"]
         self.assertEqual(pause["kind"], "node_input")
-        self.assertEqual([field["name"] for field in pause["schema"]], ["answer_01", "answer_02"])
+        self.assertNotIn("schema", pause)
 
         component.graph.human_input_decisions[pause["request_id"]] = {
-            "action_id": "submit_answers",
-            "values": {
-                "answer_01": "주간 업무보고서가 담당자에게 전달됨",
-                "answer_02": "매주 금요일 09:00",
-            },
+            "action_id": "continue_to_chat",
         }
         resumed = component.build_submission().data
 
         self.assertTrue(resumed["ok"])
-        self.assertEqual(resumed["route"], "branch_submit_answers")
-        submitted = resumed["answer_submission"]
-        self.assertEqual(submitted["schema_version"], "native-clarification-answer-submission/v1")
-        self.assertEqual(submitted["request_id"], pause["request_id"])
-        self.assertEqual(submitted["action_id"], "submit_answers")
-        self.assertEqual(submitted["revision"], 4)
-        self.assertEqual(submitted["round_number"], 2)
-        self.assertEqual(
-            [answer["question_id"] for answer in submitted["answers"]],
-            ["q unsafe/id?1", "q unsafe/id?2"],
-        )
-        self.assertTrue(all(answer["evidence_turn_id"].startswith("native-hitl-") for answer in submitted["answers"]))
+        self.assertEqual(resumed["status"], "WAITING_CHAT_ANSWER")
+        self.assertEqual(resumed["route"], "branch_continue_chat")
+        self.assertIsNone(resumed["answer_submission"])
+        self.assertEqual(resumed["chat_request_id"], pause["request_id"])
+        self.assertIn("[질문과 입력 안내]", resumed["chat_answer_guidance"])
+        self.assertIn("[복사용 답변 양식", resumed["chat_answer_guidance"])
+        self.assertIn("질문 묶음: qb-native-1", resumed["chat_answer_guidance"])
+        self.assertIn("1번: [1번 답변을 입력하세요]", resumed["chat_answer_guidance"])
+        self.assertIn("2번: [2번 답변을 입력하세요]", resumed["chat_answer_guidance"])
+
+    def test_cached_waiting_pause_rechecks_native_request_id_after_resume(self):
+        """A restored component must not retain its pre-resume WAITING result."""
+
+        component = MODULE.F10ClarificationAnswerGateComponent()
+        component._id = "node-42"
+        component.graph = _Graph()
+        component.clarification_batch = {"clarification_batch": _batch()}
+
+        waiting = component.build_submission().data
+        request_id = waiting["resume"]["request_id"]
+        self.assertEqual(request_id, "node-42:run-native-1")
+        self.assertEqual(component._answer_gate_result["status"], "WAITING_ANSWER")
+
+        # This mirrors the decision map that Langflow 1.11.0 injects into a
+        # restored graph.  The same instance still holds the cached envelope.
+        component.graph.human_input_decisions[request_id] = {"action_id": "continue_to_chat"}
+        resumed = component.build_submission().data
+
+        self.assertEqual(resumed["status"], "WAITING_CHAT_ANSWER")
+        self.assertEqual(resumed["route"], "branch_continue_chat")
+        self.assertEqual(resumed["chat_request_id"], request_id)
+        self.assertEqual(len(component.graph.pauses), 1)
 
     def test_skip_additional_input_uses_a_dedicated_branch_without_fake_answers(self):
         """Skip is explicit consent, not a partial Submit or a cancellation."""
@@ -251,13 +272,13 @@ class NativeClarificationGateTests(unittest.TestCase):
         component.route_submission()
 
         self.assertEqual(skipped["route"], "branch_skip_additional_input")
-        self.assertIn("answer_submission", component.stopped_outputs)
+        self.assertIn("branch_continue_chat", component.stopped_outputs)
         self.assertEqual(
             component.graph.exclusions,
             [
                 {
                     "vertex_id": "node-42",
-                    "output_names": ["branch_submit_answers", "branch_cancel", "blocked_path"],
+                    "output_names": ["branch_continue_chat", "branch_cancel", "blocked_path"],
                 }
             ],
         )
@@ -277,54 +298,6 @@ class NativeClarificationGateTests(unittest.TestCase):
         # checkpoint resume.
         self.assertEqual(waiting_branch_payload, {})
 
-    def test_text_form_coerces_supported_answer_types_and_rejects_missing_required(self):
-        questions = [
-            {
-                "question_id": "choice",
-                "text": "승인 방식",
-                "target_paths": ["goal"],
-                "answer_type": "single_choice",
-                "choices": ["자동", "수동"],
-                "required": True,
-            },
-            {
-                "question_id": "many",
-                "text": "적용 채널",
-                "target_paths": ["inputs"],
-                "answer_type": "multi_choice",
-                "choices": ["메일", "JIRA", "Outlook"],
-                "required": True,
-            },
-            {
-                "question_id": "flag",
-                "text": "승인이 필요한가요?",
-                "target_paths": ["automation_intent"],
-                "answer_type": "boolean",
-                "choices": [],
-                "required": True,
-            },
-        ]
-        result = MODULE.build_resumed_submission(
-            _batch(questions=questions),
-            {
-                "action_id": "submit_answers",
-                "values": {"answer_01": "자동", "answer_02": "메일, JIRA", "answer_03": "예"},
-            },
-            request_id="node:run:batch",
-            now_utc="2026-08-30T00:00:00Z",
-        )
-        values = [item["value"] for item in result["answer_submission"]["answers"]]
-        self.assertEqual(values, ["자동", ["메일", "JIRA"], True])
-
-        blocked = MODULE.build_resumed_submission(
-            _batch(),
-            {"action_id": "submit_answers", "values": {"answer_01": ""}},
-            request_id="node:run:batch",
-        )
-        self.assertFalse(blocked["ok"])
-        self.assertEqual(blocked["route"], "blocked_path")
-        self.assertEqual(blocked["error"]["code"], "ANSWER_REQUIRED_VALUE_MISSING")
-
     def test_cancel_only_uses_cancel_branch_and_stops_answer_output(self):
         component = MODULE.F10ClarificationAnswerGateComponent()
         component._id = "node-42"
@@ -336,16 +309,15 @@ class NativeClarificationGateTests(unittest.TestCase):
 
         cancelled = component.build_submission().data
         self.assertEqual(cancelled["route"], "branch_cancel")
-        self.assertIn("answer_submission", component.stopped_outputs)
         component.route_submission()
-        self.assertIn("branch_submit_answers", component.stopped_outputs)
+        self.assertIn("branch_continue_chat", component.stopped_outputs)
         self.assertIn("blocked_path", component.stopped_outputs)
         self.assertEqual(
             component.graph.exclusions,
             [
                 {
                     "vertex_id": "node-42",
-                    "output_names": ["branch_submit_answers", "branch_skip_additional_input", "blocked_path"],
+                    "output_names": ["branch_continue_chat", "branch_skip_additional_input", "blocked_path"],
                 }
             ],
         )

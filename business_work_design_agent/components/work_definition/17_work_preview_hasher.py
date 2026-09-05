@@ -160,6 +160,12 @@ def build_work_preview_hash(value: Any) -> dict[str, Any]:
         }
 
     semantic = {field: copy.deepcopy(work.get(field)) for field in SEMANTIC_FIELDS}
+    # New F10 records preserve a sealed intake fragment so an ordinary
+    # Playground chat reply can safely resume after Component 10 is excluded.
+    # Keep its presence conditional: older approved records do not have this
+    # field and must retain their already-published approval hash.
+    if "f10_design_context" in work:
+        semantic["f10_design_context"] = copy.deepcopy(work.get("f10_design_context"))
     canonical_preview = _canonicalize(semantic)
     try:
         canonical_text = json.dumps(canonical_preview, ensure_ascii=False, sort_keys=True, separators=(",", ":"), allow_nan=False)

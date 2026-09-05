@@ -64,7 +64,7 @@ REPORT_RENDERER_VERSION = "business-report-renderer.v1"
 F30_TERMINAL_SCHEMA_VERSION = "f30-terminal-result/v1"
 GENERATION_TEMPLATE_VERSION = "ccp-base-2026-08-27.v1"
 GENERATION_PROMPT_PACKS = {"CCP-CATALOG", "CCP-WORK", "CCP-SEARCH-SKILL", "CCP-BLUEPRINT", "CCP-REPORT"}
-GENERATION_BASE_POLICY = """Langflow OSS 1.11.1에서 실행되는 Standalone Custom Component 하나를 작성해줘.
+GENERATION_BASE_POLICY = """운영 Langflow OSS 1.11.0과 호환되는 Standalone Custom Component 하나를 작성해줘.
 
 [권위 정책]
 1. runtime Component source는 정확히 한 개의 .py 파일과 한 개의 Component subclass로 작성한다. pytest 파일은 별도이며 runtime Component가 import하지 않는다.
@@ -88,16 +88,25 @@ GENERATION_BASE_POLICY = """Langflow OSS 1.11.1에서 실행되는 Standalone Cu
 - 완성된 대상 Component .py 전체 코드
 - runtime Component가 import하지 않는 별도 pytest 코드
 - input/output/secret/dependency 표와 오류 코드 표
-- langflow==1.11.1 단독 load 및 smoke test 절차
+- 운영 Langflow 1.11.0 단독 load 및 smoke test 절차
 - size, timeout, retry 기본값
 
 [필수 검증]
 - AST parse와 py_compile
 - 상대, 로컬, private Langflow import 없음
 - Component subclass 정확히 한 개
-- langflow==1.11.1 단독 load와 typed output 노출
+- 운영 Langflow 1.11.0 단독 load와 typed output 노출
 - 정상, 빈 값, 경계값, 잘못된 schema, 외부 장애
 - secret 미노출, production 설정 누락 실패, silent fallback 없음"""
+# Reports may be rebuilt from an approved F20 handoff that was sealed before
+# the operating-runtime wording changed.  Keep that previous template as an
+# exact, closed compatibility contract: it is not a relaxed string check and
+# it cannot accept arbitrary old prompt text.
+LEGACY_GENERATION_BASE_POLICY = (
+    GENERATION_BASE_POLICY
+    .replace("운영 Langflow OSS 1.11.0과 호환되는", "Langflow OSS 1.11.1에서 실행되는")
+    .replace("운영 Langflow 1.11.0", "langflow==1.11.1")
+)
 GENERATION_PACK_POLICIES = {
     "CCP-CATALOG": """[CCP-CATALOG]
 - catalog pipeline stage 하나만 책임지고 job ref, tenant, snapshot, cursor, idempotency를 보존한다.
@@ -601,6 +610,10 @@ def _canonicalize(value: Any, parent_key: str = "") -> Any:
 
 def _approved_semantic_hash(work: dict[str, Any]) -> str:
     semantic = {field: work.get(field) for field in SEMANTIC_FIELDS}
+    # Keep the report-side approval verification aligned with F10/17 and F20.
+    # It is conditional so already-approved legacy records retain their hash.
+    if "f10_design_context" in work:
+        semantic["f10_design_context"] = work.get("f10_design_context")
     canonical = _canonicalize(semantic)
     payload = json.dumps(
         canonical,
@@ -614,10 +627,13 @@ def _approved_semantic_hash(work: dict[str, Any]) -> str:
 
 def _work_source_contract_projection(work: dict[str, Any]) -> dict[str, Any]:
     """Keep the report source hash aligned with the sealed F20 work scope."""
-    return {
+    projection = {
         **{field: work.get(field) for field in WORK_SOURCE_IDENTITY_FIELDS},
         **{field: work.get(field) for field in SEMANTIC_FIELDS},
     }
+    if "f10_design_context" in work:
+        projection["f10_design_context"] = work.get("f10_design_context")
+    return projection
 
 
 def _validate_approved_contract(work: dict[str, Any], blueprint: dict[str, Any]) -> tuple[str, int]:
@@ -2516,6 +2532,8 @@ def _expected_generation_request_text(
     contract: dict[str, Any],
     target_node_id: str,
     blueprint: dict[str, Any],
+    *,
+    base_policy: str = GENERATION_BASE_POLICY,
 ) -> str:
     contract_data = {
         "component_filename": contract["component_filename"],
@@ -2544,7 +2562,7 @@ def _expected_generation_request_text(
         raise ValueError("generation_contract exceeds the prompt size limit")
     safe_contract = json.loads(bounded_text)
     contract_json = json.dumps(safe_contract, ensure_ascii=False, sort_keys=True, indent=2)
-    request_text = GENERATION_BASE_POLICY.replace("{CONTRACT_JSON}", contract_json)
+    request_text = base_policy.replace("{CONTRACT_JSON}", contract_json)
     request_text += "\n\n" + GENERATION_PACK_POLICIES[contract["prompt_pack"]]
     return request_text.replace("\r\n", "\n").replace("\r", "\n").strip() + "\n"
 
@@ -3121,20 +3139,31 @@ def _build_graph(
         )
         target_node_id = request_ref_to_node[request_id]
         generation_contract = node_generation_contracts.get(target_node_id)
-        expected_request_text = (
-            _expected_generation_request_text(generation_contract, target_node_id, blueprint_contract)
-            if isinstance(generation_contract, dict)
-            else ""
+        expected_contracts: list[tuple[str, str, str]] = []
+        if isinstance(generation_contract, dict):
+            for base_policy in (GENERATION_BASE_POLICY, LEGACY_GENERATION_BASE_POLICY):
+                expected_request_text = _expected_generation_request_text(
+                    generation_contract,
+                    target_node_id,
+                    blueprint_contract,
+                    base_policy=base_policy,
+                )
+                expected_contract_hash = "sha256:" + hashlib.sha256(expected_request_text.encode("utf-8")).hexdigest()
+                expected_contracts.append(
+                    (
+                        expected_request_text,
+                        expected_contract_hash,
+                        "gen-" + expected_contract_hash.removeprefix("sha256:")[:20],
+                    )
+                )
+        sealed_contract_match = any(
+            request_id == expected_request_id
+            and hmac.compare_digest(prompt_sha256, expected_contract_hash)
+            and hmac.compare_digest(request_text.encode("utf-8"), expected_request_text.encode("utf-8"))
+            for expected_request_text, expected_contract_hash, expected_request_id in expected_contracts
         )
-        expected_contract_hash = (
-            "sha256:" + hashlib.sha256(expected_request_text.encode("utf-8")).hexdigest()
-            if expected_request_text
-            else ""
-        )
-        expected_request_id = "gen-" + expected_contract_hash.removeprefix("sha256:")[:20]
         if (
             str(request.get("generation_request_id") or "") != request_id
-            or request_id != expected_request_id
             or str(request.get("target_node_id") or "") != target_node_id
             or str(request.get("template_version") or "") != GENERATION_TEMPLATE_VERSION
             or str(request.get("prompt_pack") or "") not in GENERATION_PROMPT_PACKS
@@ -3143,9 +3172,7 @@ def _build_graph(
             or not re.fullmatch(r"sha256:[0-9a-f]{64}", prompt_sha256)
             or not expected_prompt_sha256
             or not hmac.compare_digest(prompt_sha256, expected_prompt_sha256)
-            or not expected_contract_hash
-            or not hmac.compare_digest(prompt_sha256, expected_contract_hash)
-            or not hmac.compare_digest(request_text.encode("utf-8"), expected_request_text.encode("utf-8"))
+            or not sealed_contract_match
             or not isinstance(generation_contract, dict)
             or request.get("component_filename") != generation_contract.get("component_filename")
             or request.get("class_name") != generation_contract.get("class_name")
